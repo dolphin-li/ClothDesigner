@@ -1,0 +1,409 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;cxx;c;def</Extensions>
+    </Filter>
+    <Filter Include="Form Files">
+      <UniqueIdentifier>{99349809-55BA-4b9d-BF79-8FDBB0286EB3}</UniqueIdentifier>
+      <Extensions>ui</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{D9D6E242-F8AF-46E4-B9FD-80ECBC20BA3E}</UniqueIdentifier>
+      <Extensions>qrc;*</Extensions>
+      <ParseFiles>false</ParseFiles>
+    </Filter>
+    <Filter Include="Generated Files">
+      <UniqueIdentifier>{71ED8ED8-ACB9-4CE9-BBE1-E00B30144E11}</UniqueIdentifier>
+      <Extensions>moc;h;cpp</Extensions>
+      <SourceControlFiles>False</SourceControlFiles>
+    </Filter>
+    <Filter Include="Generated Files\Debug">
+      <UniqueIdentifier>{59275a57-ce53-437d-9301-2910a37e37c6}</UniqueIdentifier>
+      <Extensions>cpp;moc</Extensions>
+      <SourceControlFiles>False</SourceControlFiles>
+    </Filter>
+    <Filter Include="Generated Files\Release">
+      <UniqueIdentifier>{05eab42d-bdca-42fb-8d11-daa941d1dbc5}</UniqueIdentifier>
+      <Extensions>cpp;moc</Extensions>
+      <SourceControlFiles>False</SourceControlFiles>
+    </Filter>
+    <Filter Include="algorithm">
+      <UniqueIdentifier>{81d58e2e-08a4-4bd7-8953-b57a7536711f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="algorithm\camera">
+      <UniqueIdentifier>{fe1f4140-646b-4a2f-89f7-b56ffd1dfe87}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="algorithm\conv">
+      <UniqueIdentifier>{01da125a-a8a6-4688-a6ff-a9e705c88368}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="algorithm\freeImage">
+      <UniqueIdentifier>{8ca46123-0fcc-4600-9bbe-3d562f4600e1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="algorithm\kdtree">
+      <UniqueIdentifier>{3b132013-5fb2-4a18-a877-126405580ea3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="algorithm\ldpMat">
+      <UniqueIdentifier>{4ef5a48a-9724-41f3-8ac4-0774ddaa59f3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="algorithm\renderable">
+      <UniqueIdentifier>{c17f86d0-7fdf-4aea-85c2-9c034e47aa30}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="algorithm\triangle">
+      <UniqueIdentifier>{84829a69-bd9f-41ec-b35b-0d39f03f0f65}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="algorithm\cloth">
+      <UniqueIdentifier>{f762a534-be22-45c8-bc5a-a53dca7d2ec4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="event_handel">
+      <UniqueIdentifier>{eca3fb3e-8d28-4240-bedb-ca9cc79064ce}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="clothdesigner.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Debug\moc_clothdesigner.cpp">
+      <Filter>Generated Files\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Release\moc_clothdesigner.cpp">
+      <Filter>Generated Files\Release</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\qrc_clothdesigner.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\qrc_style.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\camera\Camera.cpp">
+      <Filter>algorithm\camera</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\conv\Convolution_Helper.cpp">
+      <Filter>algorithm\conv</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\conv\ConvolutionPyramid.cpp">
+      <Filter>algorithm\conv</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\conv\ImageData.cpp">
+      <Filter>algorithm\conv</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\FreeImage\CFreeImage.cpp">
+      <Filter>algorithm\freeImage</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\kdtree\AABB.cpp">
+      <Filter>algorithm\kdtree</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\kdtree\KdTree.cpp">
+      <Filter>algorithm\kdtree</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\kdtree\Primitive.cpp">
+      <Filter>algorithm\kdtree</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\Renderable\bmesh.cpp">
+      <Filter>algorithm\renderable</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\Renderable\BoneMesh.cpp">
+      <Filter>algorithm\renderable</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\Renderable\GLNode.cpp">
+      <Filter>algorithm\renderable</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\Renderable\ObjMesh.cpp">
+      <Filter>algorithm\renderable</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\ldputil.cpp">
+      <Filter>algorithm</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\qimdebug.cpp">
+      <Filter>algorithm</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\triangle\triangle.c">
+      <Filter>algorithm\triangle</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\triangle\triangleWrapper.cpp">
+      <Filter>algorithm\triangle</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\cloth\clothManager.cpp">
+      <Filter>algorithm\cloth</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\cloth\clothPiece.cpp">
+      <Filter>algorithm\cloth</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\cloth\panelPolygon.cpp">
+      <Filter>algorithm\cloth</Filter>
+    </ClCompile>
+    <ClCompile Include="viewer3d.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Debug\moc_viewer3d.cpp">
+      <Filter>Generated Files\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Release\moc_viewer3d.cpp">
+      <Filter>Generated Files\Release</Filter>
+    </ClCompile>
+    <ClCompile Include="event_handles\Abstract3dEventHandle.cpp">
+      <Filter>event_handel</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\global_data_holder.cpp">
+      <Filter>algorithm</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="clothdesigner.ui">
+      <Filter>Form Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="clothdesigner.qrc">
+      <Filter>Resource Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="qdarkstyle\style.qrc">
+      <Filter>Resource Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="clothdesigner.h">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="viewer3d.h">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="GeneratedFiles\ui_clothdesigner.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\camera\Camera.h">
+      <Filter>algorithm\camera</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\camera\fmath.h">
+      <Filter>algorithm\camera</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\conv\Convolution_Helper.h">
+      <Filter>algorithm\conv</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\conv\ConvolutionPyramid.h">
+      <Filter>algorithm\conv</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\conv\ImageData.h">
+      <Filter>algorithm\conv</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\FreeImage\CFreeImage.h">
+      <Filter>algorithm\freeImage</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\kdtree\AABB.h">
+      <Filter>algorithm\kdtree</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\kdtree\BSphere.h">
+      <Filter>algorithm\kdtree</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\kdtree\common.h">
+      <Filter>algorithm\kdtree</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\kdtree\KdTree.h">
+      <Filter>algorithm\kdtree</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\kdtree\nanoflann.hpp">
+      <Filter>algorithm\kdtree</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\kdtree\PointTree.h">
+      <Filter>algorithm\kdtree</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\kdtree\Primitive.h">
+      <Filter>algorithm\kdtree</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\kdtree\Ray.h">
+      <Filter>algorithm\kdtree</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\ldpMat\half.hpp">
+      <Filter>algorithm\ldpMat</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\ldpMat\ldp_basic_mat.h">
+      <Filter>algorithm\ldpMat</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\ldpMat\ldp_basic_vec.h">
+      <Filter>algorithm\ldpMat</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\ldpMat\ldpdef.h">
+      <Filter>algorithm\ldpMat</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\ldpMat\Quaternion.h">
+      <Filter>algorithm\ldpMat</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\Renderable\bmesh.h">
+      <Filter>algorithm\renderable</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\Renderable\bmesh_private.h">
+      <Filter>algorithm\renderable</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\Renderable\BoneMesh.h">
+      <Filter>algorithm\renderable</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\Renderable\Error.h">
+      <Filter>algorithm\renderable</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\Renderable\GLNode.h">
+      <Filter>algorithm\renderable</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\Renderable\ObjMesh.h">
+      <Filter>algorithm\renderable</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\Renderable\Renderable.h">
+      <Filter>algorithm\renderable</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\ldputil.h">
+      <Filter>algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\LMSolver.h">
+      <Filter>algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\qimdebug.h">
+      <Filter>algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\triangle\triangle.h">
+      <Filter>algorithm\triangle</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\triangle\triangleWrapper.h">
+      <Filter>algorithm\triangle</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\clothManager.h">
+      <Filter>algorithm\cloth</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\clothPiece.h">
+      <Filter>algorithm\cloth</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\panelPolygon.h">
+      <Filter>algorithm\cloth</Filter>
+    </ClInclude>
+    <ClInclude Include="event_handles\Abstract3dEventHandle.h">
+      <Filter>event_handel</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\global_data_holder.h">
+      <Filter>algorithm</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="qdarkstyle\rc\up_arrow_disabled.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\Hmovetoolbar.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\stylesheet-branch-end.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\branch_closed-on.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\stylesheet-vline.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\branch_closed.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\branch_open-on.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\transparent.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\right_arrow_disabled.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\sizegrip.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\close.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\close-hover.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\close-pressed.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\down_arrow.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\Vmovetoolbar.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\left_arrow.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\stylesheet-branch-more.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\up_arrow.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\right_arrow.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\left_arrow_disabled.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\Hsepartoolbar.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\branch_open.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\Vsepartoolbar.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\down_arrow_disabled.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\undock.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\checkbox_checked_disabled.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\checkbox_checked_focus.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\checkbox_checked.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\checkbox_indeterminate.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\checkbox_indeterminate_focus.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\checkbox_unchecked_disabled.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\checkbox_unchecked_focus.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\checkbox_unchecked.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\radio_checked_disabled.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\radio_checked_focus.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\radio_checked.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\radio_unchecked_disabled.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\radio_unchecked_focus.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="qdarkstyle\rc\radio_unchecked.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="qdarkstyle\style.qss">
+      <Filter>Resource Files</Filter>
+    </None>
+  </ItemGroup>
+</Project>
