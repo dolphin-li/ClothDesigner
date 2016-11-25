@@ -45,6 +45,7 @@ public:
 	QString toolTips()const;
 
 	void pick(QPoint pos);
+	const PickInfo& pickInfo()const { return m_pickInfo; }
 
 	virtual void mousePressEvent(QMouseEvent *);
 	virtual void mouseReleaseEvent(QMouseEvent *);

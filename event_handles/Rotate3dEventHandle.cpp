@@ -3,7 +3,7 @@
 #include "Viewer3d.h"
 #include "ldpMat\Quaternion.h"
 #include "Rotate3dEventHandle.h"
-
+#include "Renderable\ObjMesh.h"
 
 Rotate3dEventHandle::Rotate3dEventHandle(Viewer3d* v) : Abstract3dEventHandle(v)
 {

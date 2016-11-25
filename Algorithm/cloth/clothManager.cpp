@@ -4,6 +4,7 @@
 #include <cuda_runtime_api.h>
 #include <fstream>
 #include "PROGRESSING_BAR.h"
+#include "Renderable\ObjMesh.h"
 //#define ENABLE_DEBUG_DUMPING
 
 namespace ldp
@@ -44,7 +45,6 @@ namespace ldp
 		m_X.clear();
 		m_V.clear();
 		m_T.clear();
-		m_bmesh.clear();
 		m_allE.clear();
 		m_allVV.clear();
 		m_allVL.clear();
@@ -66,11 +66,79 @@ namespace ldp
 		m_simulationMode = SimulationPause;
 	}
 
-	void ClothManager::simulationUpdate()
+	void ClothManager::simulationUpdate(DragInfo drag_info)
 	{
 		if (m_simulationMode != SimulationOn)
 			return;
 
+		// convert drag_info to global index
+		int drag_vert = -1;
+		for (size_t iCloth = 0; iCloth < m_clothPieces.size(); iCloth++)
+		{
+			if (drag_info.selected_cloth == &m_clothPieces[iCloth]->mesh3d())
+			{
+				drag_vert = drag_info.selected_vert_id + m_clothVertBegin[iCloth];
+				break;
+			}
+		} // end for iCloth
+
+		for (int oiter = 0; oiter < m_simulationParam.out_iter; oiter++)
+		{
+			// 1. process dragging info
+			ldp::Float3 drag_dir;
+			if (drag_vert != -1)
+			{
+				drag_dir = drag_info.target - m_X[drag_vert];
+				float dir_length = drag_dir.length();
+				drag_dir.normalizeLocal();
+				if (dir_length>0.1)	dir_length = 0.1;
+				drag_dir *= dir_length;
+			}
+
+			// 2. laplacian damping, considering the air damping
+			laplaceDamping();
+			updateAfterLap();
+			constrain0();
+
+			// 3. perform inner loops
+			ValueType omega = 0;
+			for (int iter = 0; iter<m_simulationParam.inner_iter; iter++)
+			{
+				constrain1();
+
+				// chebshev param
+				if (iter <= 5)		
+					omega = 1;
+				else if (iter == 6)	
+					omega = 2 / (2 - ldp::sqr(m_simulationParam.rho));
+				else			
+					omega = 4 / (4 - ldp::sqr(m_simulationParam.rho)*omega);
+
+				constrain1();
+
+				m_dev_X.swap(m_dev_prev_X);
+				m_dev_X.swap(m_dev_next_X);
+			} // end for iter
+
+			constrain3();
+
+#ifdef ENABLE_SELF_COLLISION
+			collider.Run(dev_old_X, dev_X, dev_V, number, dev_T, t_number, X, 1/t);
+#endif
+
+			constrain4();
+
+			// 4. output to main memory for rendering
+			m_dev_X.download((ValueType*)m_X.data());
+			for (size_t iCloth = 0; iCloth < m_clothPieces.size(); iCloth++)
+			{
+				int vb = m_clothVertBegin[iCloth];
+				auto& mesh = m_clothPieces[iCloth]->mesh3d();
+				mesh.vertex_list.assign(m_X.begin() + vb, m_X.begin() + vb + mesh.vertex_list.size());
+				mesh.updateNormals();
+				mesh.updateBoundingBox();
+			} // end for iCloth
+		} // end for oiter
 	}
 
 	void ClothManager::simulationDestroy()
@@ -103,6 +171,9 @@ namespace ldp
 		air_damping = 0.999;
 		bending_k = 10;
 		spring_k = 20000000;
+		out_iter = 8;
+		inner_iter = 40;
+		time_step = 1.0 / 240.0;
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////

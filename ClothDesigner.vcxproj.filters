@@ -451,4 +451,9 @@
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="Algorithm\cloth\clothManager.cu">
+      <Filter>algorithm\cloth</Filter>
+    </CudaCompile>
+  </ItemGroup>
 </Project>

@@ -30,7 +30,12 @@ ClothDesigner::~ClothDesigner()
 
 void ClothDesigner::timerEvent(QTimerEvent* ev)
 {
-	g_dataholder.m_clothManager->simulationUpdate();
+	auto pick = m_widget3d->getEventHandle(m_widget3d->getEventHandleType())->pickInfo();
+	ldp::DragInfo info;
+	info.selected_cloth = pick.mesh == g_dataholder.m_clothManager->bodyMesh() ? nullptr : pick.mesh;
+	info.selected_vert_id = pick.faceId;
+	info.target = 0; // LDP DEBUG: how to set here?
+	g_dataholder.m_clothManager->simulationUpdate(info);
 }
 
 void ClothDesigner::initLeftDockActions()

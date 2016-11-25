@@ -2,13 +2,13 @@
 
 #include <vector>
 #include <memory>
-#include "Renderable\ObjMesh.h"
 #include "device_array.h"
-
+#include "ldpMat\ldp_basic_vec.h"
 //#define ENABLE_SELF_COLLISION
 #ifdef ENABLE_SELF_COLLISION
 #include "COLLISION_HANDLER.h"
 #endif
+class ObjMesh;
 namespace ldp
 {
 	struct SimulationParam
@@ -20,8 +20,24 @@ namespace ldp
 		float air_damping;		// damping of the air
 		float bending_k;
 		float spring_k;
+		int out_iter;			// number of iterations
+		int inner_iter;			// number of iterations
+		float time_step;
 		SimulationParam();
 		void setDefaultParam();
+	};
+
+	struct DragInfo
+	{
+		ObjMesh* selected_cloth;
+		int selected_vert_id;
+		ldp::Float3 target;
+		DragInfo()
+		{
+			selected_cloth = nullptr;
+			selected_vert_id = -1;
+			target = 0;
+		}
 	};
 
 	class ClothPiece;
@@ -45,7 +61,7 @@ namespace ldp
 		void clear();
 
 		void simulationInit();
-		void simulationUpdate();
+		void simulationUpdate(DragInfo info);
 		void simulationDestroy();
 
 		void setSimulationMode(SimulationMode mode);
@@ -78,7 +94,6 @@ namespace ldp
 		std::vector<Vec3> m_X;						// vertex position list
 		std::vector<Vec3> m_V;						// vertex velocity list
 		std::vector<ldp::Int3> m_T;					// triangle list
-		ldp::BMesh m_bmesh;							// mesh to save the topology structure
 		std::vector<ldp::Int2> m_allE;				// edges + bending edges, for [0,1,2]+[0,1,3], bend_e=[2,3]
 		std::vector<int> m_allVV;					// one-ring vertex of each vertex based an allE, NOT including self
 		std::vector<ValueType> m_allVL;				// off-diag values of spring length
@@ -92,6 +107,15 @@ namespace ldp
 		void releaseGpuMemory();
 		void copyToGpuMatrix();
 		void debug_save_values();
+
+		void laplaceDamping();
+		void updateAfterLap();
+
+		void constrain0();
+		void constrain1();
+		void constrain2();
+		void constrain3();
+		void constrain4();
 	private:
 		DeviceArray<ValueType> m_dev_X;				// position
 		DeviceArray<ValueType> m_dev_old_X;			// position backup

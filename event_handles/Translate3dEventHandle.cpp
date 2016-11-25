@@ -1,7 +1,7 @@
 #include <QEvent>
 #include <GL\glew.h>
 #include "Viewer3d.h"
-
+#include "Renderable\ObjMesh.h"
 #include "Translate3dEventHandle.h"
 
 
