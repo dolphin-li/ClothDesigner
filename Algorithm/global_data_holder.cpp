@@ -70,4 +70,12 @@ void GlobalDataHolder::debug_2()
 		m_clothManager->bodyLevelSet()->fromMesh(*body);
 		m_clothManager->bodyLevelSet()->save("data/mannequin.set");
 	}
+
+	try
+	{
+		m_clothManager->simulationInit();
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
 }

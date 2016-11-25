@@ -2,8 +2,28 @@
 #include "LevelSet3D.h"
 #include "clothPiece.h"
 #include <cuda_runtime_api.h>
+#include <fstream>
+#include "PROGRESSING_BAR.h"
+//#define ENABLE_DEBUG_DUMPING
+
 namespace ldp
 {
+	PROGRESSING_BAR g_debug_save_bar(0);
+	template<class T> static void debug_save_gpu_array(DeviceArray<T> D, std::string filename)
+	{
+		std::vector<T> H;
+		D.download(H);
+		std::ofstream stm(filename);
+		if (stm.fail())
+			throw std::exception(("IOError: " + filename).c_str());
+		for (const auto& v : H)
+		{
+			stm << v << std::endl;
+			g_debug_save_bar.Add();
+		}
+		stm.close();
+	}
+
 	ClothManager::ClothManager()
 	{
 		m_bodyMesh.reset(new ObjMesh);
@@ -113,6 +133,7 @@ namespace ldp
 		bmesh.init_triangles((int)m_X.size(), m_X.data()->ptr(), (int)m_T.size(), m_T.data()->ptr());
 
 		// set up all edges + bending edges
+		std::vector<ldp::Int4> edgeTemp;
 		m_allE.clear();
 		BMESH_ALL_EDGES(e, eiter, bmesh)
 		{
@@ -120,8 +141,8 @@ namespace ldp
 				bmesh.vofe_last(e)->getIndex());
 			m_allE.push_back(vori);
 			m_allE.push_back(ldp::Int2(vori[1], vori[0]));
-			if (bmesh.fofe_count(e) != 2)
-				continue;
+			if (bmesh.fofe_count(e) > 2)
+				throw std::exception("error: non-manifold mesh found!");
 			ldp::Int2 vbend = -1;
 			int vcnt = 0;
 			BMESH_F_OF_E(f, e, fiter, bmesh)
@@ -134,18 +155,22 @@ namespace ldp
 				vsum -= vori[0] + vori[1];
 				vbend[vcnt++] = vsum;
 			} // end for fiter
-			m_allE.push_back(vbend);
-			m_allE.push_back(ldp::Int2(vbend[1], vbend[0]));
+			if (vbend[0] >= 0 && vbend[1] >= 0)
+			{
+				m_allE.push_back(vbend);
+				m_allE.push_back(ldp::Int2(vbend[1], vbend[0]));
+			}
+			edgeTemp.push_back(ldp::Int4(vori[0], vori[1], vbend[0], vbend[1]));
 		} // end for all edges
 		std::sort(m_allE.begin(), m_allE.end());
+		m_allE.resize(std::unique(m_allE.begin(), m_allE.end()) - m_allE.begin());
 
 		// setup one-ring vertex info
 		size_t eIdx = 0;
-		int all_vv_ptr = 0;
 		m_allVV_num.reserve(m_X.size()+1);
 		for (size_t i = 0; i<m_X.size(); i++)
 		{
-			m_allVV_num.push_back(all_vv_ptr);
+			m_allVV_num.push_back(m_allVV.size());
 			for (; eIdx<m_allE.size(); eIdx++)
 			{
 				const auto& e = m_allE[eIdx];
@@ -153,38 +178,21 @@ namespace ldp
 					break;		// not in the right vertex
 				if (eIdx != 0 && e[1] == e[0])	
 					continue;	// duplicate
-				m_allVV[all_vv_ptr++] = e[1];
+				m_allVV.push_back(e[1]);
 			} 
 		} // end for i
-		m_allVV_num.push_back(all_vv_ptr);
+		m_allVV_num.push_back(m_allVV.size());
 
 		// compute matrix related values
-		m_allVL.resize(all_vv_ptr);
-		m_allVW.resize(all_vv_ptr);
+		m_allVL.resize(m_allVV.size());
+		m_allVW.resize(m_allVV.size());
 		m_allVC.resize(m_X.size());
 		std::fill(m_allVL.begin(), m_allVL.end(), ValueType(-1));
 		std::fill(m_allVW.begin(), m_allVW.end(), ValueType(0));
 		std::fill(m_allVC.begin(), m_allVC.end(), ValueType(0));
-		BMESH_ALL_EDGES(e, eiter1, bmesh)
+		for (size_t iv = 0; iv < edgeTemp.size(); iv++)
 		{
-			ldp::Int2 vori(bmesh.vofe_first(e)->getIndex(),
-				bmesh.vofe_last(e)->getIndex());
-			if (bmesh.fofe_count(e) != 2)
-				continue;
-			ldp::Int2 vbend = -1;
-			int vcnt = 0;
-			BMESH_F_OF_E(f, e, fiter, bmesh)
-			{
-				int vsum = 0;
-				BMESH_V_OF_F(v, f, viter, bmesh)
-				{
-					vsum += v->getIndex();
-				}
-				vsum -= vori[0] + vori[1];
-				vbend[vcnt++] = vsum;
-			} // end for fiter
-
-			ldp::Int4 v(vori[0], vori[1], vbend[0], vbend[1]);
+			const auto& v = edgeTemp[iv];
 
 			// first, handle spring length			
 			ValueType l = (m_X[v[0]] - m_X[v[1]]).length();
@@ -194,6 +202,10 @@ namespace ldp
 			m_allVC[v[1]] += m_simulationParam.spring_k;
 			m_allVW[findNeighbor(v[0], v[1])] -= m_simulationParam.spring_k;
 			m_allVW[findNeighbor(v[1], v[0])] -= m_simulationParam.spring_k;
+
+			// ignore boundary edges for bending
+			if (v[2] == -1 || v[3] == -1)
+				continue;
 
 			// second, handle bending weights
 			ValueType c01 = Cotangent(m_X[v[0]].ptr(), m_X[v[1]].ptr(), m_X[v[2]].ptr());
@@ -293,5 +305,36 @@ namespace ldp
 		m_dev_all_VC.upload(m_allVC);
 		cudaMemset(m_dev_new_VC.ptr(), 0, m_dev_new_VC.sizeBytes());
 		m_dev_phi.upload(m_bodyLvSet->value(), m_bodyLvSet->sizeXYZ());
+
+		debug_save_values();
+	}
+
+	void ClothManager::debug_save_values()
+	{
+#ifdef ENABLE_DEBUG_DUMPING
+		printf("begin debug saving all variables..\n");
+		g_debug_save_bar.sample_number = m_dev_X.size() + m_dev_next_X.size()
+			+ m_dev_prev_X.size() + m_dev_V.size() + m_dev_F.size()
+			+ m_dev_init_B.size() + m_dev_T.size() + m_dev_all_VV.size()
+			+ m_dev_all_VC.size() + m_dev_all_VW.size() + m_dev_all_VL.size()
+			+ m_dev_new_VC.size() + m_dev_all_vv_num.size();
+		g_debug_save_bar.Start();
+		debug_save_gpu_array(m_dev_X, "tmp/X.txt");
+		debug_save_gpu_array(m_dev_next_X, "tmp/next_X.txt");
+		debug_save_gpu_array(m_dev_prev_X, "tmp/prev_X.txt");
+		debug_save_gpu_array(m_dev_fixed, "tmp/fixed.txt");
+		debug_save_gpu_array(m_dev_more_fixed, "tmp/more_fixed.txt");
+		debug_save_gpu_array(m_dev_V, "tmp/V.txt");
+		debug_save_gpu_array(m_dev_F, "tmp/F.txt");
+		debug_save_gpu_array(m_dev_init_B, "tmp/init_B.txt");
+		debug_save_gpu_array(m_dev_T, "tmp/fixed_T.txt");
+		debug_save_gpu_array(m_dev_all_VV, "tmp/all_VV.txt");
+		debug_save_gpu_array(m_dev_all_VC, "tmp/all_VC.txt");
+		debug_save_gpu_array(m_dev_all_VW, "tmp/all_VW.txt");
+		debug_save_gpu_array(m_dev_all_VL, "tmp/all_VL.txt");
+		debug_save_gpu_array(m_dev_new_VC, "tmp/new_VC.txt");
+		debug_save_gpu_array(m_dev_all_vv_num, "tmp/all_vv_num.txt");
+		g_debug_save_bar.End();
+#endif
 	}
 }

@@ -91,6 +91,7 @@ namespace ldp
 		void allocateGpuMemory();
 		void releaseGpuMemory();
 		void copyToGpuMatrix();
+		void debug_save_values();
 	private:
 		DeviceArray<ValueType> m_dev_X;				// position
 		DeviceArray<ValueType> m_dev_old_X;			// position backup
