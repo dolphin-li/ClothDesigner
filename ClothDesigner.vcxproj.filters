@@ -157,6 +157,12 @@
     <ClCompile Include="event_handles\Select3dEventHandle.cpp">
       <Filter>event_handle</Filter>
     </ClCompile>
+    <ClCompile Include="event_handles\Rotate3dEventHandle.cpp">
+      <Filter>event_handle</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\cloth\LevelSet3D.cpp">
+      <Filter>algorithm\cloth</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">
@@ -292,6 +298,12 @@
     </ClInclude>
     <ClInclude Include="event_handles\Select3dEventHandle.h">
       <Filter>event_handle</Filter>
+    </ClInclude>
+    <ClInclude Include="event_handles\Rotate3dEventHandle.h">
+      <Filter>event_handle</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\LevelSet3D.h">
+      <Filter>algorithm\cloth</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

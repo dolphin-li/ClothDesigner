@@ -143,6 +143,7 @@
     <ClCompile Include="Algorithm\camera\Camera.cpp" />
     <ClCompile Include="Algorithm\cloth\clothManager.cpp" />
     <ClCompile Include="Algorithm\cloth\clothPiece.cpp" />
+    <ClCompile Include="Algorithm\cloth\LevelSet3D.cpp" />
     <ClCompile Include="Algorithm\cloth\panelPolygon.cpp" />
     <ClCompile Include="Algorithm\conv\ConvolutionPyramid.cpp" />
     <ClCompile Include="Algorithm\conv\Convolution_Helper.cpp" />
@@ -162,6 +163,7 @@
     <ClCompile Include="Algorithm\triangle\triangleWrapper.cpp" />
     <ClCompile Include="clothdesigner.cpp" />
     <ClCompile Include="event_handles\Abstract3dEventHandle.cpp" />
+    <ClCompile Include="event_handles\Rotate3dEventHandle.cpp" />
     <ClCompile Include="event_handles\Select3dEventHandle.cpp" />
     <ClCompile Include="event_handles\Translate3dEventHandle.cpp" />
     <ClCompile Include="GeneratedFiles\Debug\moc_clothdesigner.cpp">
@@ -248,6 +250,7 @@
     <ClInclude Include="Algorithm\camera\fmath.h" />
     <ClInclude Include="Algorithm\cloth\clothManager.h" />
     <ClInclude Include="Algorithm\cloth\clothPiece.h" />
+    <ClInclude Include="Algorithm\cloth\LevelSet3D.h" />
     <ClInclude Include="Algorithm\cloth\panelPolygon.h" />
     <ClInclude Include="Algorithm\conv\ConvolutionPyramid.h" />
     <ClInclude Include="Algorithm\conv\Convolution_Helper.h" />
@@ -280,6 +283,7 @@
     <ClInclude Include="Algorithm\triangle\triangle.h" />
     <ClInclude Include="Algorithm\triangle\triangleWrapper.h" />
     <ClInclude Include="event_handles\Abstract3dEventHandle.h" />
+    <ClInclude Include="event_handles\Rotate3dEventHandle.h" />
     <ClInclude Include="event_handles\Select3dEventHandle.h" />
     <ClInclude Include="event_handles\Translate3dEventHandle.h" />
     <ClInclude Include="GeneratedFiles\ui_clothdesigner.h" />
