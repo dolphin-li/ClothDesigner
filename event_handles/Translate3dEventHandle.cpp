@@ -60,7 +60,7 @@ void Translate3dEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 		} // end if track ball axis active
 		else
 		{
-			if (m_pickInfo.mesh)
+			if (m_pickInfo.mesh && ev->pos() == m_mouse_press_pt)
 			{
 				auto box = m_pickInfo.mesh->boundingBox;
 				m_viewer->beginTrackBall(Viewer3d::TrackBall_Trans, m_pickInfo.pickPos,

@@ -36,11 +36,6 @@ void GlobalDataHolder::debug_1()
 
 void GlobalDataHolder::debug_2()
 {
-	ldp::LevelSet3D lvt;
-	lvt.load("data/mannequin.set");
-	lvt.save("data/mannequin1.set");
-	return;
-
 	m_clothManager->bodyMesh()->loadObj("data/mannequin.obj", true, false);
 
 	auto body = m_clothManager->bodyMesh();
@@ -59,15 +54,21 @@ void GlobalDataHolder::debug_2()
 	m_clothManager->addClothPiece(std::shared_ptr<ldp::ClothPiece>(piece));
 
 	// debug create levelset
-	const float step = 0.003;
-	ldp::Float3 range = body->boundingBox[1] - body->boundingBox[0];
-	ldp::Float3 start = body->boundingBox[0] - ldp::Float3(0, 0, 0.12f)*range;
-	ldp::Float3 end = body->boundingBox[1] + ldp::Float3(0, 0, 0.12f)*range;
-	ldp::Int3 res = (end - start) / step;
-	start = ldp::Float3(-0.169504836, 0.789619565, -0.134123757);
-	res = ldp::Int3(110, 236, 84);
 	ldp::LevelSet3D lv;
-	lv.create(res, start, step);
-	lv.fromMesh(*body);
-	lv.save("data/mannequin.set");
+	try
+	{
+		lv.load("data/mannequin.set");
+	} catch (std::exception e)
+	{
+		const float step = 0.003;
+		ldp::Float3 range = body->boundingBox[1] - body->boundingBox[0];
+		ldp::Float3 start = body->boundingBox[0] - ldp::Float3(0, 0, 0.12f)*range;
+		ldp::Float3 end = body->boundingBox[1] + ldp::Float3(0, 0, 0.12f)*range;
+		ldp::Int3 res = (end - start) / step;
+		start = ldp::Float3(-0.169504836, 0.789619565, -0.134123757);
+		res = ldp::Int3(110, 236, 84);
+		lv.create(res, start, step);
+		lv.fromMesh(*body);
+		lv.save("data/mannequin.set");
+	}
 }

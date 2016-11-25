@@ -41,6 +41,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 7.5.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -143,6 +144,7 @@
     <ClCompile Include="Algorithm\camera\Camera.cpp" />
     <ClCompile Include="Algorithm\cloth\clothManager.cpp" />
     <ClCompile Include="Algorithm\cloth\clothPiece.cpp" />
+    <ClCompile Include="Algorithm\cloth\device_memory.cpp" />
     <ClCompile Include="Algorithm\cloth\LevelSet3D.cpp" />
     <ClCompile Include="Algorithm\cloth\panelPolygon.cpp" />
     <ClCompile Include="Algorithm\conv\ConvolutionPyramid.cpp" />
@@ -250,6 +252,10 @@
     <ClInclude Include="Algorithm\camera\fmath.h" />
     <ClInclude Include="Algorithm\cloth\clothManager.h" />
     <ClInclude Include="Algorithm\cloth\clothPiece.h" />
+    <ClInclude Include="Algorithm\cloth\cuda_utils.h" />
+    <ClInclude Include="Algorithm\cloth\device_array.h" />
+    <ClInclude Include="Algorithm\cloth\device_memory.h" />
+    <ClInclude Include="Algorithm\cloth\kernel_containers.h" />
     <ClInclude Include="Algorithm\cloth\LevelSet3D.h" />
     <ClInclude Include="Algorithm\cloth\panelPolygon.h" />
     <ClInclude Include="Algorithm\conv\ConvolutionPyramid.h" />
@@ -592,6 +598,7 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 7.5.targets" />
   </ImportGroup>
   <ProjectExtensions>
     <VisualStudio>

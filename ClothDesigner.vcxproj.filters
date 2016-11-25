@@ -163,6 +163,9 @@
     <ClCompile Include="Algorithm\cloth\LevelSet3D.cpp">
       <Filter>algorithm\cloth</Filter>
     </ClCompile>
+    <ClCompile Include="Algorithm\cloth\device_memory.cpp">
+      <Filter>algorithm\cloth</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">
@@ -303,6 +306,18 @@
       <Filter>event_handle</Filter>
     </ClInclude>
     <ClInclude Include="Algorithm\cloth\LevelSet3D.h">
+      <Filter>algorithm\cloth</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\cuda_utils.h">
+      <Filter>algorithm\cloth</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\device_array.h">
+      <Filter>algorithm\cloth</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\device_memory.h">
+      <Filter>algorithm\cloth</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\kernel_containers.h">
       <Filter>algorithm\cloth</Filter>
     </ClInclude>
   </ItemGroup>

@@ -19,6 +19,7 @@ public:
 		int faceId;
 		ldp::Float3 pickInnerCoords;
 		ldp::Float3 pickPos;
+		ldp::Float3 meshCenter;
 		PickInfo()
 		{
 			mesh = nullptr;

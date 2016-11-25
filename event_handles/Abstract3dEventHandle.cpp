@@ -59,25 +59,28 @@ void Abstract3dEventHandle::pick(QPoint pos)
 	if (renderedId >= m_viewer->FaceIndex && renderedId < m_viewer->TrackBallIndex_X)
 	{
 		// 1. pick the body mesh
+		bool picked = false;
 		int curIdx = m_viewer->FaceIndex;
-		auto mesh = manager->bodyMesh();
-		if (renderedId >= curIdx && renderedId < curIdx + mesh->face_list.size())
+		auto mesh0 = manager->bodyMesh();
+		if (renderedId >= curIdx && renderedId < curIdx + mesh0->face_list.size())
 		{
-			m_pickInfo.mesh = mesh;
+			m_pickInfo.mesh = mesh0;
 			m_pickInfo.faceId = renderedId - curIdx;
+			picked = true;
 		}
-		curIdx += mesh->face_list.size();
+		curIdx += mesh0->face_list.size();
 
 		// 2. pick the cloth meshes
-		if (m_pickInfo.mesh == nullptr)
+		if (!picked)
 		{
 			for (int iMesh = 0; iMesh < manager->numClothPieces(); iMesh++)
 			{
-				mesh = &manager->clothPiece(iMesh)->mesh3d();
+				auto mesh = &manager->clothPiece(iMesh)->mesh3d();
 				if (renderedId >= curIdx && renderedId < curIdx + mesh->face_list.size())
 				{
 					m_pickInfo.mesh = mesh;
 					m_pickInfo.faceId = renderedId - curIdx;
+					picked = true;
 					break;
 				}
 				curIdx += mesh->face_list.size();
@@ -85,7 +88,7 @@ void Abstract3dEventHandle::pick(QPoint pos)
 		}
 
 		// 3. if picked, we compute the detailed info
-		if (m_pickInfo.mesh)
+		if (picked)
 		{
 			ldp::Float3 v[3]; // world pos
 			for (int k = 0; k < 3; k++)
@@ -113,6 +116,9 @@ void Abstract3dEventHandle::pick(QPoint pos)
 			m_pickInfo.pickInnerCoords = area;
 			m_pickInfo.screenPos = vs[0] * area[0] + vs[1] * area[1] + vs[2] * area[2];
 			m_pickInfo.pickPos = v[0] * area[0] + v[1] * area[1] + v[2] * area[2];
+
+			auto box = m_pickInfo.mesh->boundingBox;
+			m_pickInfo.meshCenter = (box[0] + box[1]) * 0.5f;
 		}
 	} // end for id
 }
