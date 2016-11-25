@@ -54,10 +54,9 @@ void GlobalDataHolder::debug_2()
 	m_clothManager->addClothPiece(std::shared_ptr<ldp::ClothPiece>(piece));
 
 	// debug create levelset
-	ldp::LevelSet3D lv;
 	try
 	{
-		lv.load("data/mannequin.set");
+		m_clothManager->bodyLevelSet()->load("data/mannequin.set");
 	} catch (std::exception e)
 	{
 		const float step = 0.003;
@@ -67,8 +66,8 @@ void GlobalDataHolder::debug_2()
 		ldp::Int3 res = (end - start) / step;
 		start = ldp::Float3(-0.169504836, 0.789619565, -0.134123757);
 		res = ldp::Int3(110, 236, 84);
-		lv.create(res, start, step);
-		lv.fromMesh(*body);
-		lv.save("data/mannequin.set");
+		m_clothManager->bodyLevelSet()->create(res, start, step);
+		m_clothManager->bodyLevelSet()->fromMesh(*body);
+		m_clothManager->bodyLevelSet()->save("data/mannequin.set");
 	}
 }

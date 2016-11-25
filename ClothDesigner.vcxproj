@@ -252,11 +252,13 @@
     <ClInclude Include="Algorithm\camera\fmath.h" />
     <ClInclude Include="Algorithm\cloth\clothManager.h" />
     <ClInclude Include="Algorithm\cloth\clothPiece.h" />
+    <ClInclude Include="Algorithm\cloth\COLLISION_HANDLER.h" />
     <ClInclude Include="Algorithm\cloth\cuda_utils.h" />
     <ClInclude Include="Algorithm\cloth\device_array.h" />
     <ClInclude Include="Algorithm\cloth\device_memory.h" />
     <ClInclude Include="Algorithm\cloth\kernel_containers.h" />
     <ClInclude Include="Algorithm\cloth\LevelSet3D.h" />
+    <ClInclude Include="Algorithm\cloth\LEVEL_SET_COLLISION.h" />
     <ClInclude Include="Algorithm\cloth\panelPolygon.h" />
     <ClInclude Include="Algorithm\conv\ConvolutionPyramid.h" />
     <ClInclude Include="Algorithm\conv\Convolution_Helper.h" />
