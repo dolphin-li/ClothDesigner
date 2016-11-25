@@ -3,16 +3,33 @@
 #include <QPoint>
 #include <QCursor>
 #include <QString>
-
+#include "ldpMat\ldp_basic_mat.h"
 class Viewer3d;
 class QMouseEvent;
 class QWheelEvent;
 class QKeyEvent;
+class ObjMesh;
 class Abstract3dEventHandle
 {
 public:
+	struct PickInfo
+	{
+		ldp::Float3 screenPos;
+		ObjMesh* mesh;
+		int faceId;
+		ldp::Float3 pickInnerCoords;
+		ldp::Float3 pickPos;
+		PickInfo()
+		{
+			mesh = nullptr;
+			faceId = -1;
+		}
+	};
 	enum ProcessorType{
 		ProcessorTypeGeneral = 0,
+		ProcessorTypeSelect,
+		ProcessorTypeTranslate,
+		ProcessorTypeRotate,
 		ProcessorTypeEnd, // the end, no processor for this
 	};
 public:
@@ -25,6 +42,8 @@ public:
 	QString iconFile()const;
 	QString inactiveIconFile()const;
 	QString toolTips()const;
+
+	void pick(QPoint pos);
 
 	virtual void mousePressEvent(QMouseEvent *);
 	virtual void mouseReleaseEvent(QMouseEvent *);
@@ -44,5 +63,6 @@ protected:
 	QString m_iconFile;
 	QString m_inactiveIconFile;
 	QString m_toolTips;
-	ldp::Double3 m_picked_screenPos;
+
+	PickInfo m_pickInfo;
 };

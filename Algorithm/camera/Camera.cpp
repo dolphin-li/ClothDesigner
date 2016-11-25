@@ -384,8 +384,8 @@ namespace ldp
 		store[1] = (v[1] + 1) * height / 2 + viewPortTop;
 		store[2] = (v[2] + 1) / 2;
 
-		store[0] = (int)floor(store[0]);
-		store[1] = (int)floor(store[1]);
+		//store[0] = (int)floor(store[0]);
+		//store[1] = (int)floor(store[1]);
 		return store;
 	}
 

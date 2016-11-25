@@ -1,9 +1,13 @@
 #include <QEvent>
 #include <GL\glew.h>
 #include "Viewer3d.h"
+#include "cloth\clothManager.h"
+#include "cloth\clothPiece.h"
 
 #include "Abstract3dEventHandle.h"
-
+#include "Translate3dEventHandle.h"
+#include "Select3dEventHandle.h"
+#include "Rotate3dEventHandle.h"
 Abstract3dEventHandle::Abstract3dEventHandle(Viewer3d* v)
 {
 	m_viewer = v;
@@ -33,15 +37,84 @@ QString Abstract3dEventHandle::inactiveIconFile()const
 void Abstract3dEventHandle::handleEnter()
 {
 	m_viewer->setFocus();
+	m_pickInfo.mesh = nullptr;
 }
 void Abstract3dEventHandle::handleLeave()
 {
 	m_viewer->clearFocus();
+	m_pickInfo.mesh = nullptr;
 }
 
 QString Abstract3dEventHandle::toolTips()const
 {
 	return m_toolTips;
+}
+
+void Abstract3dEventHandle::pick(QPoint pos)
+{
+	auto manager = m_viewer->getManager();
+	if (manager == nullptr)
+		return;
+	int renderedId = m_viewer->fboRenderedIndex(pos);
+	if (renderedId >= m_viewer->FaceIndex && renderedId < m_viewer->TrackBallIndex_X)
+	{
+		// 1. pick the body mesh
+		int curIdx = m_viewer->FaceIndex;
+		auto mesh = manager->bodyMesh();
+		if (renderedId >= curIdx && renderedId < curIdx + mesh->face_list.size())
+		{
+			m_pickInfo.mesh = mesh;
+			m_pickInfo.faceId = renderedId - curIdx;
+		}
+		curIdx += mesh->face_list.size();
+
+		// 2. pick the cloth meshes
+		if (m_pickInfo.mesh == nullptr)
+		{
+			for (int iMesh = 0; iMesh < manager->numClothPieces(); iMesh++)
+			{
+				mesh = &manager->clothPiece(iMesh)->mesh3d();
+				if (renderedId >= curIdx && renderedId < curIdx + mesh->face_list.size())
+				{
+					m_pickInfo.mesh = mesh;
+					m_pickInfo.faceId = renderedId - curIdx;
+					break;
+				}
+				curIdx += mesh->face_list.size();
+			}
+		}
+
+		// 3. if picked, we compute the detailed info
+		if (m_pickInfo.mesh)
+		{
+			ldp::Float3 v[3]; // world pos
+			for (int k = 0; k < 3; k++)
+				v[k] = m_pickInfo.mesh->vertex_list[m_pickInfo.mesh->face_list[m_pickInfo.faceId].vertex_index[k]];
+			ldp::Float3 vs[3]; // screen pos
+			for (int k = 0; k < 3; k++)
+				vs[k] = m_viewer->camera().getScreenCoords(v[k]);
+			ldp::Float3 area;
+			float totalArea = 0;
+			ldp::Float2 s(pos.x(), m_viewer->height() - 1 - pos.y());
+			for (int k = 0; k < 3; k++)
+			{
+				ldp::Float2 e1(vs[k][0] - s[0], vs[k][1] - s[1]);
+				int k1 = (k + 1) % 3;
+				ldp::Float2 e2(vs[k1][0] - s[0], vs[k1][1] - s[1]);
+				area[k] = e1.cross(e2);
+				totalArea += area[k];
+			}
+			if (fabs(totalArea) < std::numeric_limits<float>::epsilon())
+			{
+				m_pickInfo.mesh = nullptr;
+				return;
+			}
+			area /= totalArea;
+			m_pickInfo.pickInnerCoords = area;
+			m_pickInfo.screenPos = vs[0] * area[0] + vs[1] * area[1] + vs[2] * area[2];
+			m_pickInfo.pickPos = v[0] * area[0] + v[1] * area[1] + v[2] * area[2];
+		}
+	} // end for id
 }
 
 Abstract3dEventHandle* Abstract3dEventHandle::create(ProcessorType type, Viewer3d* v)
@@ -50,6 +123,12 @@ Abstract3dEventHandle* Abstract3dEventHandle::create(ProcessorType type, Viewer3
 	{
 	case Abstract3dEventHandle::ProcessorTypeGeneral:
 		return new Abstract3dEventHandle(v);
+	case Abstract3dEventHandle::ProcessorTypeSelect:
+		return new Select3dEventHandle(v);
+	case Abstract3dEventHandle::ProcessorTypeTranslate:
+		return new Translate3dEventHandle(v);
+	case Abstract3dEventHandle::ProcessorTypeRotate:
+		return new Rotate3dEventHandle(v);
 	case Abstract3dEventHandle::ProcessorTypeEnd:
 	default:
 		return nullptr;

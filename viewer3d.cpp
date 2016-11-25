@@ -90,9 +90,7 @@ Viewer3d::Viewer3d(QWidget *parent)
 	}
 	setEventHandleType(Abstract3dEventHandle::ProcessorTypeGeneral);
 
-	m_fps = 0;
-	m_computeTimer = startTimer(1);
-	m_renderTimer = startTimer(30);
+	startTimer(30);
 }
 
 Viewer3d::~Viewer3d()
@@ -164,12 +162,7 @@ void Viewer3d::resizeGL(int w, int h)
 
 void Viewer3d::timerEvent(QTimerEvent* ev)
 {
-	if (ev->timerId() == m_computeTimer && m_clothManager)
-	{
-		m_clothManager->simulationUpdate();
-	}
-	if (ev->timerId() == m_renderTimer)
-		updateGL();
+	updateGL();
 }
 
 void Viewer3d::paintGL()
@@ -207,12 +200,45 @@ void Viewer3d::renderSelectionOnFbo()
 
 	m_camera.apply();
 
+	renderMeshForSelection();
 	renderTrackBall(true);
 
 	m_fboImage = m_fbo->toImage();
 	m_fbo->release();
 
 	glPopAttrib();
+}
+
+void Viewer3d::renderMeshForSelection()
+{
+	if (m_clothManager == nullptr)
+		return;
+	int curIdx = FaceIndex;
+	auto mesh = m_clothManager->bodyMesh();
+	glBegin(GL_TRIANGLES); 
+	for (const auto& f : mesh->face_list)
+	{
+		for (int k = 0; k < 3; k++)
+		{
+			glColor4fv(selectIdToColor(curIdx).ptr());
+			glVertex3fv(mesh->vertex_list[f.vertex_index[k]].ptr());
+		}
+		curIdx++;
+	}
+	for (int iMesh = 0; iMesh < m_clothManager->numClothPieces(); iMesh++)
+	{
+		auto mesh = &m_clothManager->clothPiece(iMesh)->mesh3d();
+		for (const auto& f : mesh->face_list)
+		{
+			for (int k = 0; k < 3; k++)
+			{
+				glColor4fv(selectIdToColor(curIdx).ptr());
+				glVertex3fv(mesh->vertex_list[f.vertex_index[k]].ptr());
+			}
+			curIdx++;
+		}
+	}
+	glEnd();
 }
 
 void Viewer3d::mousePressEvent(QMouseEvent *ev)

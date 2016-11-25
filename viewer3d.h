@@ -11,7 +11,8 @@ class Viewer3d : public QGLWidget
 
 public:
 	enum {
-		TrackBallIndex_X = 1,
+		FaceIndex = 1,
+		TrackBallIndex_X = 0x3fffffff,
 		TrackBallIndex_Y,
 		TrackBallIndex_Z,
 	};
@@ -25,8 +26,7 @@ public:
 	~Viewer3d();
 
 	void init(ldp::ClothManager* clothManager);
-
-	float getFps()const{ return m_fps; }
+	ldp::ClothManager* getManager() { return m_clothManager; }
 	const ldp::Camera& camera()const{ return m_camera; }
 	ldp::Camera& camera(){ return m_camera; }
 	void resetCamera();
@@ -66,6 +66,7 @@ protected:
 	void renderDragBox();
 	void renderTrackBall(bool idxMode);
 	void timerEvent(QTimerEvent* ev);
+	void renderMeshForSelection();
 protected:
 	ldp::Camera m_camera;
 	QPoint m_lastPos;
@@ -83,10 +84,6 @@ protected:
 	int m_hoverTrackBallAxis;
 	Abstract3dEventHandle* m_currentEventHandle;
 	std::vector<std::shared_ptr<Abstract3dEventHandle>> m_eventHandles;
-
-	ldp::Float3 m_modelBound[2];
-	int m_computeTimer, m_renderTimer;
-	float m_fps;
 
 	ldp::ClothManager* m_clothManager;
 };

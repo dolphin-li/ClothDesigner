@@ -162,6 +162,8 @@
     <ClCompile Include="Algorithm\triangle\triangleWrapper.cpp" />
     <ClCompile Include="clothdesigner.cpp" />
     <ClCompile Include="event_handles\Abstract3dEventHandle.cpp" />
+    <ClCompile Include="event_handles\Select3dEventHandle.cpp" />
+    <ClCompile Include="event_handles\Translate3dEventHandle.cpp" />
     <ClCompile Include="GeneratedFiles\Debug\moc_clothdesigner.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -278,6 +280,8 @@
     <ClInclude Include="Algorithm\triangle\triangle.h" />
     <ClInclude Include="Algorithm\triangle\triangleWrapper.h" />
     <ClInclude Include="event_handles\Abstract3dEventHandle.h" />
+    <ClInclude Include="event_handles\Select3dEventHandle.h" />
+    <ClInclude Include="event_handles\Translate3dEventHandle.h" />
     <ClInclude Include="GeneratedFiles\ui_clothdesigner.h" />
     <CustomBuild Include="viewer3d.h">
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>

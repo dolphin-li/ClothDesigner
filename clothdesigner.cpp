@@ -17,6 +17,8 @@ ClothDesigner::ClothDesigner(QWidget *parent)
 	m_splitter->addWidget(m_widget3d);
 	m_splitter->addWidget(m_widget2d);
 
+	initLeftDockActions();
+
 	g_dataholder.init();
 	m_widget3d->init(g_dataholder.m_clothManager.get());
 }
@@ -24,4 +26,60 @@ ClothDesigner::ClothDesigner(QWidget *parent)
 ClothDesigner::~ClothDesigner()
 {
 
+}
+
+void ClothDesigner::timerEvent(QTimerEvent* ev)
+{
+	g_dataholder.m_clothManager->simulationUpdate();
+}
+
+void ClothDesigner::initLeftDockActions()
+{
+	m_ldbSignalMapper.reset(new QSignalMapper(this));
+	connect(m_ldbSignalMapper.data(), SIGNAL(mapped(int)), this, SLOT(leftDocButtonsClicked(int)));
+	ui.dockWidgetContentsLeft->setLayout(new QGridLayout(ui.dockWidgetContentsLeft));
+	ui.dockWidgetContentsLeft->layout()->setAlignment(Qt::AlignTop);
+
+	// add buttons
+	for (size_t i = (size_t)Abstract3dEventHandle::ProcessorTypeGeneral + 1;
+		i < (size_t)Abstract3dEventHandle::ProcessorTypeEnd; i++)
+	{
+		auto type = Abstract3dEventHandle::ProcessorType(i);
+		addLeftDockWidgetButton(type);
+	}
+	m_leftDockButtons[Abstract3dEventHandle::ProcessorType(Abstract3dEventHandle::ProcessorTypeGeneral + 1)]->setChecked(true);
+	m_leftDockButtons[Abstract3dEventHandle::ProcessorTypeTranslate]->setShortcut(Qt::Key_T);
+
+	// do connections
+	for (auto it : m_leftDockButtons.toStdMap())
+	{
+		m_ldbSignalMapper->setMapping(it.second.data(), it.first);
+		connect(it.second.data(), SIGNAL(clicked()), m_ldbSignalMapper.data(), SLOT(map()));
+	}
+}
+
+void ClothDesigner::addLeftDockWidgetButton(Abstract3dEventHandle::ProcessorType type)
+{
+	auto handle = m_widget3d->getEventHandle(type);
+	auto colorStr = QString("background-color: rgb(73, 73, 73)");
+	QIcon icon;
+	icon.addFile(handle->iconFile(), QSize(), QIcon::Active);
+	icon.addFile(handle->iconFile(), QSize(), QIcon::Selected);
+	icon.addFile(handle->inactiveIconFile(), QSize(), QIcon::Normal);
+	QSharedPointer<QPushButton> btn(new QPushButton(ui.dockWidgetLeft));
+	btn->setIconSize(QSize(80, 80));
+	btn->setIcon(icon);
+	btn->setCheckable(true);
+	btn->setStyleSheet(colorStr);
+	btn->setAutoExclusive(true);
+	btn->setToolTip(handle->toolTips());
+	m_leftDockButtons.insert(type, btn);
+	ui.dockWidgetContentsLeft->layout()->addWidget(btn.data());
+}
+
+void ClothDesigner::leftDocButtonsClicked(int i)
+{
+	Abstract3dEventHandle::ProcessorType type = (Abstract3dEventHandle::ProcessorType)i;
+	m_widget3d->setEventHandleType(type);
+	m_leftDockButtons[type]->setChecked(true);
 }

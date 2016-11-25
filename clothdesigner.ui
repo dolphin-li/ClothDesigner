@@ -73,6 +73,18 @@
    </attribute>
    <widget class="QWidget" name="dockWidgetContentsLower"/>
   </widget>
+  <widget class="QDockWidget" name="dockWidgetLeft">
+   <property name="features">
+    <set>QDockWidget::NoDockWidgetFeatures</set>
+   </property>
+   <property name="allowedAreas">
+    <set>Qt::NoDockWidgetArea</set>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>1</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContentsLeft"/>
+  </widget>
   <action name="actionLoad_project">
    <property name="text">
     <string>open project</string>

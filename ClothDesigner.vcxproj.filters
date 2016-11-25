@@ -56,7 +56,7 @@
     <Filter Include="algorithm\cloth">
       <UniqueIdentifier>{f762a534-be22-45c8-bc5a-a53dca7d2ec4}</UniqueIdentifier>
     </Filter>
-    <Filter Include="event_handel">
+    <Filter Include="event_handle">
       <UniqueIdentifier>{eca3fb3e-8d28-4240-bedb-ca9cc79064ce}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -146,10 +146,16 @@
       <Filter>Generated Files\Release</Filter>
     </ClCompile>
     <ClCompile Include="event_handles\Abstract3dEventHandle.cpp">
-      <Filter>event_handel</Filter>
+      <Filter>event_handle</Filter>
     </ClCompile>
     <ClCompile Include="Algorithm\global_data_holder.cpp">
       <Filter>algorithm</Filter>
+    </ClCompile>
+    <ClCompile Include="event_handles\Translate3dEventHandle.cpp">
+      <Filter>event_handle</Filter>
+    </ClCompile>
+    <ClCompile Include="event_handles\Select3dEventHandle.cpp">
+      <Filter>event_handle</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -276,10 +282,16 @@
       <Filter>algorithm\cloth</Filter>
     </ClInclude>
     <ClInclude Include="event_handles\Abstract3dEventHandle.h">
-      <Filter>event_handel</Filter>
+      <Filter>event_handle</Filter>
     </ClInclude>
     <ClInclude Include="Algorithm\global_data_holder.h">
       <Filter>algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="event_handles\Translate3dEventHandle.h">
+      <Filter>event_handle</Filter>
+    </ClInclude>
+    <ClInclude Include="event_handles\Select3dEventHandle.h">
+      <Filter>event_handle</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
