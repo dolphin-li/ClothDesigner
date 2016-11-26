@@ -22,7 +22,8 @@ ClothDesigner::ClothDesigner(QWidget *parent)
 	g_dataholder.init();
 	m_widget3d->init(g_dataholder.m_clothManager.get());
 
-	startTimer(1);
+	m_simulateTimer = startTimer(1);
+	m_fpsTimer = startTimer(200);
 }
 
 ClothDesigner::~ClothDesigner()
@@ -32,14 +33,11 @@ ClothDesigner::~ClothDesigner()
 
 void ClothDesigner::timerEvent(QTimerEvent* ev)
 {
-	auto pick = m_widget3d->getEventHandle(m_widget3d->getEventHandleType())->pickInfo();
-	ldp::DragInfo info;
-	info.selected_cloth = pick.mesh == g_dataholder.m_clothManager->bodyMesh() ? nullptr : pick.mesh;
-	info.selected_vert_id = pick.faceId;
-	info.target = 0; // LDP DEBUG: how to set here?
-	g_dataholder.m_clothManager->simulationUpdate(info);
+	if (ev->timerId() == m_simulateTimer)
+		g_dataholder.m_clothManager->simulationUpdate();
 
-	setWindowTitle(QString().sprintf("fps: %f", g_dataholder.m_clothManager->getFps()));
+	if (ev->timerId() == m_fpsTimer)
+		setWindowTitle(QString().sprintf("fps: %f", g_dataholder.m_clothManager->getFps()));
 }
 
 void ClothDesigner::initLeftDockActions()
@@ -56,8 +54,7 @@ void ClothDesigner::initLeftDockActions()
 		auto type = Abstract3dEventHandle::ProcessorType(i);
 		addLeftDockWidgetButton(type);
 	}
-	m_leftDockButtons[Abstract3dEventHandle::ProcessorType(Abstract3dEventHandle::ProcessorTypeGeneral + 1)]->setChecked(true);
-	m_leftDockButtons[Abstract3dEventHandle::ProcessorTypeTranslate]->setShortcut(Qt::Key_T);
+	m_widget3d->setEventHandleType(Abstract3dEventHandle::ProcessorTypeSelect);
 
 	// do connections
 	for (auto it : m_leftDockButtons.toStdMap())

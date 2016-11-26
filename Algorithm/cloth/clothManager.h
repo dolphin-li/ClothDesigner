@@ -22,7 +22,8 @@ namespace ldp
 		float spring_k;			// related to the elasticity of the cloth
 		int out_iter;			// number of iterations
 		int inner_iter;			// number of iterations
-		float time_step;
+		float control_mag;		// for dragging, the stiffness of dragged point
+		float time_step;		// simulation time step
 		SimulationParam();
 		void setDefaultParam();
 	};
@@ -59,6 +60,7 @@ namespace ldp
 		{
 			int vert_id;
 			ldp::Float3 dir;
+			ldp::Float3 target;
 		};
 	public:
 		ClothManager();
@@ -67,8 +69,12 @@ namespace ldp
 		void clear();
 
 		void simulationInit();
-		void simulationUpdate(DragInfo info);
+		void simulationUpdate();
 		void simulationDestroy();
+
+		void dragBegin(DragInfo info);
+		void dragMove(ldp::Float3 target);
+		void dragEnd();
 
 		void setSimulationMode(SimulationMode mode);
 		void setSimulationParam(SimulationParam param);
@@ -125,6 +131,7 @@ namespace ldp
 		void constrain2(float omega);				// inner loop, chebshev relax
 		void constrain3();							// collision handle using level set.
 		void constrain4();							// update velocity
+		void resetMoreFixed();						// for draging
 	private:
 		DeviceArray<ValueType> m_dev_X;				// position
 		DeviceArray<ValueType> m_dev_old_X;			// position backup

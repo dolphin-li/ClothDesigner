@@ -116,7 +116,7 @@ void Viewer3d::resetCamera()
 		c = (bmax + bmin) / 2.f;
 		l = (bmax - bmin).length();
 	}
-	m_camera.lookAt(ldp::Float3(0, -l, 0) + c, c, ldp::Float3(0, 0, 1));
+	m_camera.lookAt(ldp::Float3(0, -l, 0)*2 + c, c, ldp::Float3(0, 0, 1));
 	m_camera.arcballSetCenter(c);
 }
 

@@ -3,7 +3,8 @@
 #include "Viewer3d.h"
 
 #include "Select3dEventHandle.h"
-
+#include "cloth\clothManager.h"
+#include "Renderable\ObjMesh.h"
 
 Select3dEventHandle::Select3dEventHandle(Viewer3d* v) : Abstract3dEventHandle(v)
 {
@@ -21,25 +22,61 @@ Select3dEventHandle::~Select3dEventHandle()
 void Select3dEventHandle::handleEnter()
 {
 	Abstract3dEventHandle::handleEnter();
+	m_pickInfo.mesh = nullptr;
+	auto manager = m_viewer->getManager();
+	if (manager)
+	{
+		manager->dragEnd();
+	}
 }
 
 void Select3dEventHandle::handleLeave()
 {
 	Abstract3dEventHandle::handleLeave();
+	m_pickInfo.mesh = nullptr;
+	auto manager = m_viewer->getManager();
+	if (manager)
+	{
+		manager->dragEnd();
+	}
 }
 
 void Select3dEventHandle::mousePressEvent(QMouseEvent *ev)
 {
 	Abstract3dEventHandle::mousePressEvent(ev);
+	m_pickInfo.mesh = nullptr;
 	if (m_viewer->buttons() == Qt::LeftButton)
 	{
 		pick(ev->pos());
+
+		auto manager = m_viewer->getManager();
+		if (manager && m_pickInfo.mesh)
+		{
+			ldp::DragInfo info;
+			info.selected_cloth = m_pickInfo.mesh;
+			info.selected_vert_id = m_pickInfo.mesh->face_list[m_pickInfo.faceId].vertex_index[0];
+			auto v = info.selected_cloth->vertex_list[info.selected_vert_id];
+			ldp::Float3	p, q;
+			getSelectionRay(ev->pos(), p, q);
+			auto dir = (q - p).normalize();
+			auto diff = v - p;
+			auto dist = diff.dot(dir);
+			info.target = p + dist*dir;
+			manager->dragBegin(info);
+		} // end if manager
 	} // end if initial_location and left button
 }
 
 void Select3dEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 {
 	Abstract3dEventHandle::mouseReleaseEvent(ev);
+
+	auto manager = m_viewer->getManager();
+	if (manager)
+	{
+		manager->dragEnd();
+	}
+	m_pickInfo.mesh = nullptr;
 }
 
 void Select3dEventHandle::mouseDoubleClickEvent(QMouseEvent *ev)
@@ -49,7 +86,29 @@ void Select3dEventHandle::mouseDoubleClickEvent(QMouseEvent *ev)
 
 void Select3dEventHandle::mouseMoveEvent(QMouseEvent *ev)
 {
-	Abstract3dEventHandle::mouseMoveEvent(ev);
+	bool valid_op = false;
+	if (m_viewer->buttons() == Qt::LeftButton)
+	{
+		auto manager = m_viewer->getManager();
+		if (manager && m_pickInfo.mesh)
+		{
+			ldp::DragInfo info;
+			info.selected_cloth = m_pickInfo.mesh;
+			info.selected_vert_id = m_pickInfo.mesh->face_list[m_pickInfo.faceId].vertex_index[0];
+			auto v = info.selected_cloth->vertex_list[info.selected_vert_id];
+			ldp::Float3	p, q;
+			getSelectionRay(ev->pos(), p, q);
+			auto dir = (q - p).normalize();
+			auto diff = v - p;
+			auto dist = diff.dot(dir);
+			info.target = p + dist*dir;
+			manager->dragMove(info.target);
+			valid_op = true;
+		} // end if manager
+	} // end if initial_location and left button
+
+	if (!valid_op)
+		Abstract3dEventHandle::mouseMoveEvent(ev);
 }
 
 void Select3dEventHandle::wheelEvent(QWheelEvent *ev)

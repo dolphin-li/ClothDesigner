@@ -335,4 +335,32 @@ namespace ldp
 			m_dev_more_fixed.ptr(), 1 / m_simulationParam.time_step, m_X.size());
 	}
 #pragma endregion
+
+#pragma region --drag control
+#define RADIUS_SQUARED	0.000625
+	__global__ void Control_Kernel(float* X, float *more_fixed, float control_mag, const int number, const int select_v)
+	{
+		int i = blockDim.x * blockIdx.x + threadIdx.x;
+		if (i >= number)	return;
+
+		more_fixed[i] = 0;
+		if (select_v != -1)
+		{
+			float dist2 = 0;
+			dist2 += (X[i * 3 + 0] - X[select_v * 3 + 0])*(X[i * 3 + 0] - X[select_v * 3 + 0]);
+			dist2 += (X[i * 3 + 1] - X[select_v * 3 + 1])*(X[i * 3 + 1] - X[select_v * 3 + 1]);
+			dist2 += (X[i * 3 + 2] - X[select_v * 3 + 2])*(X[i * 3 + 2] - X[select_v * 3 + 2]);
+			if (dist2<RADIUS_SQUARED)	
+				more_fixed[i] = control_mag;
+		}
+	}
+
+	void ClothManager::resetMoreFixed()
+	{
+		const int blocksPerGrid = divUp(m_X.size(), threadsPerBlock);
+		Control_Kernel << <blocksPerGrid, threadsPerBlock >> >(
+			m_dev_X.ptr(), m_dev_more_fixed.ptr(), m_simulationParam.control_mag, 
+			m_X.size(), m_curDragInfo.vert_id);
+	}
+#pragma endregion
 }

@@ -46,6 +46,7 @@ public:
 
 	void pick(QPoint pos);
 	const PickInfo& pickInfo()const { return m_pickInfo; }
+	void getSelectionRay(QPoint mousePos, ldp::Float3& p, ldp::Float3& q)const;
 
 	virtual void mousePressEvent(QMouseEvent *);
 	virtual void mouseReleaseEvent(QMouseEvent *);

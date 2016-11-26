@@ -24,6 +24,8 @@ private:
 	QSplitter* m_splitter;
 	QWidget* m_widget2d;
 	Viewer3d* m_widget3d;
+	int m_simulateTimer;
+	int m_fpsTimer;
 	//////////////////////////////////////////////////////////////////////////
 protected:
 	QMap<Abstract3dEventHandle::ProcessorType, QSharedPointer<QPushButton>> m_leftDockButtons;

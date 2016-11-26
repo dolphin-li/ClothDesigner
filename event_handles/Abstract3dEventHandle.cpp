@@ -50,6 +50,12 @@ QString Abstract3dEventHandle::toolTips()const
 	return m_toolTips;
 }
 
+void Abstract3dEventHandle::getSelectionRay(QPoint mousePos, ldp::Float3& p, ldp::Float3& q)const
+{
+	p = m_viewer->camera().getWorldCoords(ldp::Float3(mousePos.x(), m_viewer->height() - 1 - mousePos.y(), -1));
+	q = m_viewer->camera().getWorldCoords(ldp::Float3(mousePos.x(), m_viewer->height() - 1 - mousePos.y(), 1));
+}
+
 void Abstract3dEventHandle::pick(QPoint pos)
 {
 	auto manager = m_viewer->getManager();

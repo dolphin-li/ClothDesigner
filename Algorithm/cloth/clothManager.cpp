@@ -61,6 +61,37 @@ namespace ldp
 		m_fps = 0.f;
 	}
 
+	void ClothManager::dragBegin(DragInfo info)
+	{
+		// convert drag_info to global index
+		m_curDragInfo.vert_id = -1;
+		m_curDragInfo.dir = 0;
+		m_curDragInfo.target = 0;
+		for (size_t iCloth = 0; iCloth < m_clothPieces.size(); iCloth++)
+		{
+			if (info.selected_cloth == &m_clothPieces[iCloth]->mesh3d())
+			{
+				m_curDragInfo.vert_id = info.selected_vert_id + m_clothVertBegin[iCloth];
+				m_curDragInfo.target = info.target;
+				break;
+			}
+		} // end for iCloth
+		resetMoreFixed();
+	}
+
+	void ClothManager::dragMove(ldp::Float3 target)
+	{
+		m_curDragInfo.target = target;
+	}
+
+	void ClothManager::dragEnd()
+	{
+		m_curDragInfo.vert_id = -1;
+		m_curDragInfo.dir = 0;
+		m_curDragInfo.target = 0;
+		resetMoreFixed();
+	}
+
 	void ClothManager::simulationInit()
 	{
 		buildTopology();
@@ -69,30 +100,19 @@ namespace ldp
 		m_simulationMode = SimulationPause;
 	}
 
-	void ClothManager::simulationUpdate(DragInfo drag_info)
+	void ClothManager::simulationUpdate()
 	{
 		if (m_simulationMode != SimulationOn)
 			return;
 
 		gtime_t t_begin = ldp::gtime_now();
 
-		// convert drag_info to global index
-		m_curDragInfo.vert_id = -1;
-		for (size_t iCloth = 0; iCloth < m_clothPieces.size(); iCloth++)
-		{
-			if (drag_info.selected_cloth == &m_clothPieces[iCloth]->mesh3d())
-			{
-				m_curDragInfo.vert_id = drag_info.selected_vert_id + m_clothVertBegin[iCloth];
-				break;
-			}
-		} // end for iCloth
-
 		for (int oiter = 0; oiter < m_simulationParam.out_iter; oiter++)
 		{
 			// 1. process dragging info
 			if (m_curDragInfo.vert_id != -1)
 			{
-				m_curDragInfo.dir = drag_info.target - m_X[m_curDragInfo.vert_id];
+				m_curDragInfo.dir = m_curDragInfo.target - m_X[m_curDragInfo.vert_id];
 				float dir_length = m_curDragInfo.dir.length();
 				m_curDragInfo.dir.normalizeLocal();
 				if (dir_length>0.1)	dir_length = 0.1;
@@ -134,16 +154,7 @@ namespace ldp
 #endif
 
 			constrain4();
-
-			// 4. output to main memory for rendering
 			m_dev_X.download((ValueType*)m_X.data());
-			for (size_t iCloth = 0; iCloth < m_clothPieces.size(); iCloth++)
-			{
-				int vb = m_clothVertBegin[iCloth];
-				auto& mesh = m_clothPieces[iCloth]->mesh3d();
-				mesh.vertex_list.assign(m_X.begin() + vb, m_X.begin() + vb + mesh.vertex_list.size());
-				mesh.requireRenderUpdate(); // we do not update normals here, only update the postions to speed up
-			} // end for iCloth
 		} // end for oiter
 
 		// finally we update normals and bounding boxes
@@ -193,6 +204,7 @@ namespace ldp
 		out_iter = 8;
 		inner_iter = 40;
 		time_step = 1.0 / 240.0;
+		control_mag = 400;
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////
