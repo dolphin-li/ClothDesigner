@@ -267,22 +267,14 @@ void Viewer3d::keyPressEvent(QKeyEvent*ev)
 				m_clothManager->setSimulationMode(ldp::ClothManager::SimulationOn);
 		}
 		break;
-	case Qt::Key_1:
-		if (m_clothManager)
-		{
-			m_clothManager->simulationInit();
-			printf("simulation init\n");
-		}
-		break;
-	case Qt::Key_2:
-		if (m_clothManager)
-		{
-			m_clothManager->simulationDestroy();
-			printf("simulation destroy\n");
-		}
-		break;
 	case Qt::Key_E:
 		m_showType ^= Renderable::SW_E;
+		break;
+	case Qt::Key_F:
+		m_showType ^= Renderable::SW_F;
+		break;
+	case Qt::Key_T:
+		m_showType ^= Renderable::SW_TEXTURE;
 		break;
 	case Qt::Key_S:
 		m_showType ^= Renderable::SW_SMOOTH;

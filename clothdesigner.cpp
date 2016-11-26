@@ -22,6 +22,7 @@ ClothDesigner::ClothDesigner(QWidget *parent)
 	g_dataholder.init();
 	m_widget3d->init(g_dataholder.m_clothManager.get());
 
+	updateUiByParam();
 	m_simulateTimer = startTimer(1);
 	m_fpsTimer = startTimer(200);
 }
@@ -91,4 +92,167 @@ void ClothDesigner::leftDocButtonsClicked(int i)
 	Abstract3dEventHandle::ProcessorType type = (Abstract3dEventHandle::ProcessorType)i;
 	m_widget3d->setEventHandleType(type);
 	m_leftDockButtons[type]->setChecked(true);
+}
+
+void ClothDesigner::updateUiByParam()
+{
+	try
+	{
+		auto param = g_dataholder.m_clothManager->getSimulationParam();
+		ui.sbSparamAirDamp->setValue(param.air_damping);
+		ui.sbSparamBendStiff->setValue(param.bending_k);
+		ui.sbSparamControlStiff->setValue(param.control_mag);
+		ui.sbSparamInnerIter->setValue(param.inner_iter);
+		ui.sbSparamLapDampIter->setValue(param.lap_damping);
+		ui.sbSparamOuterIter->setValue(param.out_iter);
+		ui.sbSparamRho->setValue(param.rho);
+		ui.sbSparamSpringStiff->setValue(param.spring_k_raw);
+		ui.sbSparamTimeStepInv->setValue(1./param.time_step);
+		ui.sbSparamUnderRelax->setValue(param.under_relax);
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+}
+
+void ClothDesigner::on_pbResetSimulation_clicked()
+{
+	try
+	{
+		g_dataholder.m_clothManager->simulationInit();
+		m_widget3d->updateGL();
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+}
+
+void ClothDesigner::on_sbSparamOuterIter_valueChanged(int v)
+{
+	try
+	{
+		auto param = g_dataholder.m_clothManager->getSimulationParam();
+		param.out_iter = v;
+		g_dataholder.m_clothManager->setSimulationParam(param);
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+}
+
+void ClothDesigner::on_sbSparamInnerIter_valueChanged(int v)
+{
+	try
+	{
+		auto param = g_dataholder.m_clothManager->getSimulationParam();
+		param.inner_iter = v;
+		g_dataholder.m_clothManager->setSimulationParam(param);
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+}
+
+void ClothDesigner::on_sbSparamTimeStepInv_valueChanged(int v)
+{
+	try
+	{
+		auto param = g_dataholder.m_clothManager->getSimulationParam();
+		param.time_step = 1./v;
+		g_dataholder.m_clothManager->setSimulationParam(param);
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+}
+
+void ClothDesigner::on_sbSparamLapDampIter_valueChanged(int v)
+{
+	try
+	{
+		auto param = g_dataholder.m_clothManager->getSimulationParam();
+		param.lap_damping = v;
+		g_dataholder.m_clothManager->setSimulationParam(param);
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+}
+
+void ClothDesigner::on_sbSparamAirDamp_valueChanged(double v)
+{
+	try
+	{
+		auto param = g_dataholder.m_clothManager->getSimulationParam();
+		param.air_damping = v;
+		g_dataholder.m_clothManager->setSimulationParam(param);
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+}
+
+void ClothDesigner::on_sbSparamControlStiff_valueChanged(double v)
+{
+	try
+	{
+		auto param = g_dataholder.m_clothManager->getSimulationParam();
+		param.control_mag = v;
+		g_dataholder.m_clothManager->setSimulationParam(param);
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+}
+
+void ClothDesigner::on_sbSparamRho_valueChanged(double v)
+{
+	try
+	{
+		auto param = g_dataholder.m_clothManager->getSimulationParam();
+		param.rho = v;
+		g_dataholder.m_clothManager->setSimulationParam(param);
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+}
+
+void ClothDesigner::on_sbSparamUnderRelax_valueChanged(double v)
+{
+	try
+	{
+		auto param = g_dataholder.m_clothManager->getSimulationParam();
+		param.under_relax = v;
+		g_dataholder.m_clothManager->setSimulationParam(param);
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+}
+
+void ClothDesigner::on_sbSparamSpringStiff_valueChanged(double v)
+{
+	try
+	{
+		auto param = g_dataholder.m_clothManager->getSimulationParam();
+		param.spring_k_raw = v;
+		g_dataholder.m_clothManager->setSimulationParam(param);
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+}
+
+void ClothDesigner::on_sbSparamBendStiff_valueChanged(double v)
+{
+	try
+	{
+		auto param = g_dataholder.m_clothManager->getSimulationParam();
+		param.bending_k = v;
+		g_dataholder.m_clothManager->setSimulationParam(param);
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
 }

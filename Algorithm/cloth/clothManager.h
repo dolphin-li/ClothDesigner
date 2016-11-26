@@ -19,6 +19,7 @@ namespace ldp
 		float air_damping;		// damping of the air
 		float bending_k;		// related to the thickness of the cloth
 		float spring_k;			// related to the elasticity of the cloth
+		float spring_k_raw;		// spring_k_raw / avgArea = spring_k
 		int out_iter;			// number of iterations
 		int inner_iter;			// number of iterations
 		float control_mag;		// for dragging, the stiffness of dragged point
@@ -97,6 +98,7 @@ namespace ldp
 		std::shared_ptr<LevelSet3D> m_bodyLvSet;
 		SimulationMode m_simulationMode;
 		SimulationParam m_simulationParam;
+		float m_avgArea;
 		float m_fps;
 		DragInfoInternal m_curDragInfo;
 		// Topology related--------------------------------------------------------------
@@ -115,6 +117,7 @@ namespace ldp
 		std::vector<ValueType> m_allVC;				// diag values of springs
 		std::vector<int> m_allVV_num;				// num of one-ring vertex of each vertex
 		std::vector<float> m_fixed;					// fix constraints of vertices
+		std::vector<ldp::Int4> m_edgeWithBendEdge;
 		// GPU related-------------------------------------------------------------------
 	protected:
 		void allocateGpuMemory();

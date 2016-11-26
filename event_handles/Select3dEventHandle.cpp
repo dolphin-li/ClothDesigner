@@ -55,6 +55,7 @@ void Select3dEventHandle::mousePressEvent(QMouseEvent *ev)
 			ldp::DragInfo info;
 			info.selected_cloth = m_pickInfo.mesh;
 			info.selected_vert_id = m_pickInfo.mesh->face_list[m_pickInfo.faceId].vertex_index[0];
+			printf("drag vert: %d\n", info.selected_vert_id);
 			auto v = info.selected_cloth->vertex_list[info.selected_vert_id];
 			ldp::Float3	p, q;
 			getSelectionRay(ev->pos(), p, q);

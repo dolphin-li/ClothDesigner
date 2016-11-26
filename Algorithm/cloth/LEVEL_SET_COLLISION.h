@@ -80,6 +80,7 @@ __device__ float Level_Set_Projection(const float* phi, float &x, float &y, floa
 		y=y-gy*factor;
 		z=z-gz*factor;
 	}
+	return ret;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

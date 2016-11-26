@@ -51,6 +51,7 @@ void GlobalDataHolder::debug_2()
 	auto piece = new ldp::ClothPiece();
 	piece->mesh3d().loadObj("data/drs_mod.obj", true, false);
 	piece->mesh3d().scaleBy(ldp::Float3(0.001, 0.0009, 0.0009), 0);
+	piece->mesh3dInit().cloneFrom(&piece->mesh3d());
 	m_clothManager->addClothPiece(std::shared_ptr<ldp::ClothPiece>(piece));
 
 	// debug create levelset

@@ -31,6 +31,7 @@ namespace ldp
 		m_bodyLvSet.reset(new LevelSet3D);
 		m_simulationMode = SimulationNotInit;
 		m_fps = 0.f;
+		m_avgArea = 0;
 	}
 
 	ClothManager::~ClothManager()
@@ -53,16 +54,20 @@ namespace ldp
 		m_allVC.clear();
 		m_allVV_num.clear();
 		m_fixed.clear();
+		m_edgeWithBendEdge.clear();
 
 		m_bodyMesh->clear();
 		m_clothPieces.clear();
 		m_bodyLvSet->clear();
 
 		m_fps = 0.f;
+		m_avgArea = 0;
 	}
 
 	void ClothManager::dragBegin(DragInfo info)
 	{
+		if (m_simulationMode != SimulationOn)
+			return;
 		// convert drag_info to global index
 		m_curDragInfo.vert_id = -1;
 		m_curDragInfo.dir = 0;
@@ -81,11 +86,15 @@ namespace ldp
 
 	void ClothManager::dragMove(ldp::Float3 target)
 	{
+		if (m_simulationMode != SimulationOn)
+			return;
 		m_curDragInfo.target = target;
 	}
 
 	void ClothManager::dragEnd()
 	{
+		if (m_simulationMode != SimulationOn)
+			return;
 		m_curDragInfo.vert_id = -1;
 		m_curDragInfo.dir = 0;
 		m_curDragInfo.target = 0;
@@ -94,6 +103,8 @@ namespace ldp
 
 	void ClothManager::simulationInit()
 	{
+		for (size_t i = 0; i < m_clothPieces.size(); i++)
+			m_clothPieces[i]->mesh3d().cloneFrom(&m_clothPieces[i]->mesh3dInit());
 		buildTopology();
 		allocateGpuMemory();
 		copyToGpuMatrix();
@@ -190,7 +201,79 @@ namespace ldp
 
 	void ClothManager::setSimulationParam(SimulationParam param)
 	{
+		auto lastParam = m_simulationParam;
 		m_simulationParam = param;
+		m_simulationParam.spring_k = m_simulationParam.spring_k_raw / m_avgArea;
+#if 0
+		printf("simulaton param:\n");
+		printf("\t rho          = %f\n", m_simulationParam.rho);
+		printf("\t under_relax  = %f\n", m_simulationParam.under_relax);
+		printf("\t lap_damping  = %d\n", m_simulationParam.lap_damping);
+		printf("\t air_damping  = %f\n", m_simulationParam.air_damping);
+		printf("\t bending_k    = %f\n", m_simulationParam.bending_k);
+		printf("\t spring_k     = %f\n", m_simulationParam.spring_k);
+		printf("\t spring_k_raw = %f\n", m_simulationParam.spring_k_raw);
+		printf("\t out_iter     = %d\n", m_simulationParam.out_iter);
+		printf("\t inner_iter   = %d\n", m_simulationParam.inner_iter);
+		printf("\t time_step    = %f\n", m_simulationParam.time_step);
+		printf("\t control_mag  = %f\n", m_simulationParam.control_mag);
+#endif
+		
+		bool matrixNumericUpdate = false;
+		if (fabs(lastParam.spring_k - m_simulationParam.spring_k) >= std::numeric_limits<float>::epsilon())
+			matrixNumericUpdate = true;
+		if (fabs(lastParam.bending_k - m_simulationParam.bending_k) >= std::numeric_limits<float>::epsilon())
+			matrixNumericUpdate = true;
+
+
+		// some parameter changes will have effects on the precompuated matrix..
+		if (matrixNumericUpdate)
+		{
+			// compute matrix related values
+			m_allVW.resize(m_allVV.size());
+			m_allVC.resize(m_X.size());
+			std::fill(m_allVW.begin(), m_allVW.end(), ValueType(0));
+			std::fill(m_allVC.begin(), m_allVC.end(), ValueType(0));
+			for (size_t iv = 0; iv < m_edgeWithBendEdge.size(); iv++)
+			{
+				const auto& v = m_edgeWithBendEdge[iv];
+
+				// first, handle spring length			
+				m_allVC[v[0]] += m_simulationParam.spring_k;
+				m_allVC[v[1]] += m_simulationParam.spring_k;
+				m_allVW[findNeighbor(v[0], v[1])] -= m_simulationParam.spring_k;
+				m_allVW[findNeighbor(v[1], v[0])] -= m_simulationParam.spring_k;
+
+				// ignore boundary edges for bending
+				if (v[2] == -1 || v[3] == -1)
+					continue;
+
+				// second, handle bending weights
+				ValueType c01 = Cotangent(m_X[v[0]].ptr(), m_X[v[1]].ptr(), m_X[v[2]].ptr());
+				ValueType c02 = Cotangent(m_X[v[0]].ptr(), m_X[v[1]].ptr(), m_X[v[3]].ptr());
+				ValueType c03 = Cotangent(m_X[v[1]].ptr(), m_X[v[0]].ptr(), m_X[v[2]].ptr());
+				ValueType c04 = Cotangent(m_X[v[1]].ptr(), m_X[v[0]].ptr(), m_X[v[3]].ptr());
+				ValueType area0 = sqrt(Area_Squared(m_X[v[0]].ptr(), m_X[v[1]].ptr(), m_X[v[2]].ptr()));
+				ValueType area1 = sqrt(Area_Squared(m_X[v[0]].ptr(), m_X[v[1]].ptr(), m_X[v[3]].ptr()));
+				ValueType weight = 1 / (area0 + area1);
+				ValueType k[4];
+				k[0] = c03 + c04;
+				k[1] = c01 + c02;
+				k[2] = -c01 - c03;
+				k[3] = -c02 - c04;
+
+				for (int i = 0; i<4; i++)
+				for (int j = 0; j<4; j++)
+				{
+					if (i == j)
+						m_allVC[v[i]] += k[i] * k[j] * m_simulationParam.bending_k*weight;
+					else
+						m_allVW[findNeighbor(v[i], v[j])] += k[i] * k[j] * m_simulationParam.bending_k*weight;
+				}
+			} // end for all edges
+			m_dev_all_VW.upload(m_allVW);
+			m_dev_all_VC.upload(m_allVC);
+		} // end if spring_k updated
 	}
 
 	SimulationParam::SimulationParam()
@@ -205,7 +288,8 @@ namespace ldp
 		lap_damping = 4;
 		air_damping = 0.999;
 		bending_k = 10;
-		spring_k = 20000000;
+		spring_k_raw = 1000;
+		spring_k = 0;//will be updated after built topology
 		out_iter = 8;
 		inner_iter = 40;
 		time_step = 1.0 / 240.0;
@@ -219,6 +303,8 @@ namespace ldp
 		m_X.clear();
 		m_T.clear();
 		m_clothVertBegin.resize(numClothPieces() + 1, 0);
+		m_avgArea = 0;
+		int fcnt = 0;
 		for (int iCloth = 0; iCloth < numClothPieces(); iCloth++)
 		{
 			const int vid_s = m_clothVertBegin[iCloth];
@@ -227,8 +313,17 @@ namespace ldp
 			for (const auto& v : mesh.vertex_list)
 				m_X.push_back(v);
 			for (const auto& f : mesh.face_list)
+			{
 				m_T.push_back(ldp::Int3(f.vertex_index[0], f.vertex_index[1], f.vertex_index[2]));
+				ldp::Float3 v[3] = { mesh.vertex_list[f.vertex_index[0]], mesh.vertex_list[f.vertex_index[1]],
+					mesh.vertex_list[f.vertex_index[2]] };
+				m_avgArea += sqrt(Area_Squared(v[0].ptr(), v[1].ptr(), v[2].ptr()));
+				fcnt++;
+			}
 		} // end for iCloth
+		m_avgArea /= fcnt;
+
+		m_simulationParam.spring_k = m_simulationParam.spring_k_raw / m_avgArea;
 
 		m_V.resize(m_X.size());
 		std::fill(m_V.begin(), m_V.end(), ValueType(0));
@@ -240,7 +335,7 @@ namespace ldp
 		bmesh.init_triangles((int)m_X.size(), m_X.data()->ptr(), (int)m_T.size(), m_T.data()->ptr());
 
 		// set up all edges + bending edges
-		std::vector<ldp::Int4> edgeTemp;
+		m_edgeWithBendEdge.clear();
 		m_allE.clear();
 		BMESH_ALL_EDGES(e, eiter, bmesh)
 		{
@@ -267,7 +362,7 @@ namespace ldp
 				m_allE.push_back(vbend);
 				m_allE.push_back(ldp::Int2(vbend[1], vbend[0]));
 			}
-			edgeTemp.push_back(ldp::Int4(vori[0], vori[1], vbend[0], vbend[1]));
+			m_edgeWithBendEdge.push_back(ldp::Int4(vori[0], vori[1], vbend[0], vbend[1]));
 		} // end for all edges
 		std::sort(m_allE.begin(), m_allE.end());
 		m_allE.resize(std::unique(m_allE.begin(), m_allE.end()) - m_allE.begin());
@@ -297,9 +392,9 @@ namespace ldp
 		std::fill(m_allVL.begin(), m_allVL.end(), ValueType(-1));
 		std::fill(m_allVW.begin(), m_allVW.end(), ValueType(0));
 		std::fill(m_allVC.begin(), m_allVC.end(), ValueType(0));
-		for (size_t iv = 0; iv < edgeTemp.size(); iv++)
+		for (size_t iv = 0; iv < m_edgeWithBendEdge.size(); iv++)
 		{
-			const auto& v = edgeTemp[iv];
+			const auto& v = m_edgeWithBendEdge[iv];
 
 			// first, handle spring length			
 			ValueType l = (m_X[v[0]] - m_X[v[1]]).length();

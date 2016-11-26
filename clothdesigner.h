@@ -19,6 +19,20 @@ public:
 	~ClothDesigner();
 
 	void timerEvent(QTimerEvent* ev);
+
+	void updateUiByParam();
+	public slots:
+	void on_pbResetSimulation_clicked();
+	void on_sbSparamOuterIter_valueChanged(int v);
+	void on_sbSparamInnerIter_valueChanged(int v);
+	void on_sbSparamTimeStepInv_valueChanged(int v);
+	void on_sbSparamLapDampIter_valueChanged(int v);
+	void on_sbSparamAirDamp_valueChanged(double v);
+	void on_sbSparamControlStiff_valueChanged(double v);
+	void on_sbSparamRho_valueChanged(double v);
+	void on_sbSparamUnderRelax_valueChanged(double v);
+	void on_sbSparamSpringStiff_valueChanged(double v);
+	void on_sbSparamBendStiff_valueChanged(double v);
 private:
 	Ui::ClothDesignerClass ui;
 	QSplitter* m_splitter;

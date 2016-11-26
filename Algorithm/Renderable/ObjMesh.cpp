@@ -49,6 +49,7 @@ void ObjMesh::cloneFrom(const ObjMesh* rhs)
 	strcpy_s(scene_filename, rhs->scene_filename);
 	strcpy_s(material_filename, rhs->material_filename);
 
+	requireRenderUpdate();
 	// reconstruct bmesh, prevent multi-reference.
 	m_bmesh = 0;
 }
