@@ -77,6 +77,7 @@ public:
 	void updateNormals();
 	void updateBoundingBox();
 	void normalizeModel();
+	void requireRenderUpdate();
 
 	enum VertexSelectOP
 	{

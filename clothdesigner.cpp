@@ -21,6 +21,8 @@ ClothDesigner::ClothDesigner(QWidget *parent)
 
 	g_dataholder.init();
 	m_widget3d->init(g_dataholder.m_clothManager.get());
+
+	startTimer(1);
 }
 
 ClothDesigner::~ClothDesigner()
@@ -36,6 +38,8 @@ void ClothDesigner::timerEvent(QTimerEvent* ev)
 	info.selected_vert_id = pick.faceId;
 	info.target = 0; // LDP DEBUG: how to set here?
 	g_dataholder.m_clothManager->simulationUpdate(info);
+
+	setWindowTitle(QString().sprintf("fps: %f", g_dataholder.m_clothManager->getFps()));
 }
 
 void ClothDesigner::initLeftDockActions()

@@ -18,8 +18,8 @@ namespace ldp
 		float velocity_cap;
 		int lap_damping;		// loops of laplacian damping
 		float air_damping;		// damping of the air
-		float bending_k;
-		float spring_k;
+		float bending_k;		// related to the thickness of the cloth
+		float spring_k;			// related to the elasticity of the cloth
 		int out_iter;			// number of iterations
 		int inner_iter;			// number of iterations
 		float time_step;
@@ -54,6 +54,12 @@ namespace ldp
 			SimulationOn,
 			SimulationPause,
 		};
+	protected:
+		struct DragInfoInternal
+		{
+			int vert_id;
+			ldp::Float3 dir;
+		};
 	public:
 		ClothManager();
 		~ClothManager();
@@ -67,6 +73,7 @@ namespace ldp
 		void setSimulationMode(SimulationMode mode);
 		void setSimulationParam(SimulationParam param);
 
+		float getFps()const { return m_fps; }
 		SimulationMode getSimulationMode()const { return m_simulationMode; }
 		const ObjMesh* bodyMesh()const { return m_bodyMesh.get(); }
 		ObjMesh* bodyMesh() { return m_bodyMesh.get(); }
@@ -85,6 +92,8 @@ namespace ldp
 		std::shared_ptr<LevelSet3D> m_bodyLvSet;
 		SimulationMode m_simulationMode;
 		SimulationParam m_simulationParam;
+		float m_fps;
+		DragInfoInternal m_curDragInfo;
 		// Topology related--------------------------------------------------------------
 	protected:
 		void buildTopology();
@@ -108,14 +117,14 @@ namespace ldp
 		void copyToGpuMatrix();
 		void debug_save_values();
 
-		void laplaceDamping();
-		void updateAfterLap();
-
-		void constrain0();
-		void constrain1();
-		void constrain2();
-		void constrain3();
-		void constrain4();
+		///// kernel wrappers
+		void laplaceDamping();						// apply laplacian damping
+		void updateAfterLap();						// X += V(apply air damping, gravity, etc.
+		void constrain0();							// compute init_B and new_VC
+		void constrain1();							// inner loop, jacobi update
+		void constrain2(float omega);				// inner loop, chebshev relax
+		void constrain3();							// collision handle using level set.
+		void constrain4();							// update velocity
 	private:
 		DeviceArray<ValueType> m_dev_X;				// position
 		DeviceArray<ValueType> m_dev_old_X;			// position backup

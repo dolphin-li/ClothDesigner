@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ldpMat\ldp_basic_mat.h"
+#include "ldpMat\ldp_basic_vec.h"
 #include "INTERSECTION.h"
 #include "DISTANCE.h"
 #include "HEAP.h"

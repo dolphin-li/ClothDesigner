@@ -31,7 +31,6 @@
 
 #define INDEX(i,j,k) (size_yz*(int)(i)+size_z*(int)(j)+(int)(k))
 
-//#define USE_CUDA
 #ifdef	USE_CUDA		//GPU version
 
 ///////////////////////////////////////////////////////////////////////////////////////////

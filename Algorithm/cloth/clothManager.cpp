@@ -5,7 +5,7 @@
 #include <fstream>
 #include "PROGRESSING_BAR.h"
 #include "Renderable\ObjMesh.h"
-//#define ENABLE_DEBUG_DUMPING
+#define ENABLE_DEBUG_DUMPING
 
 namespace ldp
 {
@@ -30,6 +30,7 @@ namespace ldp
 		m_bodyMesh.reset(new ObjMesh);
 		m_bodyLvSet.reset(new LevelSet3D);
 		m_simulationMode = SimulationNotInit;
+		m_fps = 0.f;
 	}
 
 	ClothManager::~ClothManager()
@@ -56,6 +57,8 @@ namespace ldp
 		m_bodyMesh->clear();
 		m_clothPieces.clear();
 		m_bodyLvSet->clear();
+
+		m_fps = 0.f;
 	}
 
 	void ClothManager::simulationInit()
@@ -71,13 +74,15 @@ namespace ldp
 		if (m_simulationMode != SimulationOn)
 			return;
 
+		gtime_t t_begin = ldp::gtime_now();
+
 		// convert drag_info to global index
-		int drag_vert = -1;
+		m_curDragInfo.vert_id = -1;
 		for (size_t iCloth = 0; iCloth < m_clothPieces.size(); iCloth++)
 		{
 			if (drag_info.selected_cloth == &m_clothPieces[iCloth]->mesh3d())
 			{
-				drag_vert = drag_info.selected_vert_id + m_clothVertBegin[iCloth];
+				m_curDragInfo.vert_id = drag_info.selected_vert_id + m_clothVertBegin[iCloth];
 				break;
 			}
 		} // end for iCloth
@@ -85,15 +90,17 @@ namespace ldp
 		for (int oiter = 0; oiter < m_simulationParam.out_iter; oiter++)
 		{
 			// 1. process dragging info
-			ldp::Float3 drag_dir;
-			if (drag_vert != -1)
+			if (m_curDragInfo.vert_id != -1)
 			{
-				drag_dir = drag_info.target - m_X[drag_vert];
-				float dir_length = drag_dir.length();
-				drag_dir.normalizeLocal();
+				m_curDragInfo.dir = drag_info.target - m_X[m_curDragInfo.vert_id];
+				float dir_length = m_curDragInfo.dir.length();
+				m_curDragInfo.dir.normalizeLocal();
 				if (dir_length>0.1)	dir_length = 0.1;
-				drag_dir *= dir_length;
+				m_curDragInfo.dir *= dir_length;
 			}
+
+			// backup
+			m_dev_X.copyTo(m_dev_old_X);
 
 			// 2. laplacian damping, considering the air damping
 			laplaceDamping();
@@ -114,7 +121,7 @@ namespace ldp
 				else			
 					omega = 4 / (4 - ldp::sqr(m_simulationParam.rho)*omega);
 
-				constrain1();
+				constrain2(omega);
 
 				m_dev_X.swap(m_dev_prev_X);
 				m_dev_X.swap(m_dev_next_X);
@@ -135,10 +142,22 @@ namespace ldp
 				int vb = m_clothVertBegin[iCloth];
 				auto& mesh = m_clothPieces[iCloth]->mesh3d();
 				mesh.vertex_list.assign(m_X.begin() + vb, m_X.begin() + vb + mesh.vertex_list.size());
-				mesh.updateNormals();
-				mesh.updateBoundingBox();
+				mesh.requireRenderUpdate(); // we do not update normals here, only update the postions to speed up
 			} // end for iCloth
 		} // end for oiter
+
+		// finally we update normals and bounding boxes
+		for (size_t iCloth = 0; iCloth < m_clothPieces.size(); iCloth++)
+		{
+			int vb = m_clothVertBegin[iCloth];
+			auto& mesh = m_clothPieces[iCloth]->mesh3d();
+			mesh.vertex_list.assign(m_X.begin() + vb, m_X.begin() + vb + mesh.vertex_list.size());
+			mesh.updateNormals();
+			mesh.updateBoundingBox();
+		} // end for iCloth
+
+		gtime_t t_end = ldp::gtime_now();
+		m_fps = 1 / ldp::gtime_seconds(t_begin, t_end);
 	}
 
 	void ClothManager::simulationDestroy()
@@ -376,19 +395,21 @@ namespace ldp
 		m_dev_all_VC.upload(m_allVC);
 		cudaMemset(m_dev_new_VC.ptr(), 0, m_dev_new_VC.sizeBytes());
 		m_dev_phi.upload(m_bodyLvSet->value(), m_bodyLvSet->sizeXYZ());
-
-		debug_save_values();
 	}
 
 	void ClothManager::debug_save_values()
 	{
 #ifdef ENABLE_DEBUG_DUMPING
+		static int a = 0;
+		if (a != 0)
+			return;
+		a++;
 		printf("begin debug saving all variables..\n");
 		g_debug_save_bar.sample_number = m_dev_X.size() + m_dev_next_X.size()
 			+ m_dev_prev_X.size() + m_dev_V.size() + m_dev_F.size()
 			+ m_dev_init_B.size() + m_dev_T.size() + m_dev_all_VV.size()
 			+ m_dev_all_VC.size() + m_dev_all_VW.size() + m_dev_all_VL.size()
-			+ m_dev_new_VC.size() + m_dev_all_vv_num.size();
+			+ m_dev_new_VC.size() + m_dev_all_vv_num.size();// +m_dev_phi.size();
 		g_debug_save_bar.Start();
 		debug_save_gpu_array(m_dev_X, "tmp/X.txt");
 		debug_save_gpu_array(m_dev_next_X, "tmp/next_X.txt");
@@ -405,6 +426,7 @@ namespace ldp
 		debug_save_gpu_array(m_dev_all_VL, "tmp/all_VL.txt");
 		debug_save_gpu_array(m_dev_new_VC, "tmp/new_VC.txt");
 		debug_save_gpu_array(m_dev_all_vv_num, "tmp/all_vv_num.txt");
+		//debug_save_gpu_array(m_dev_phi, "tmp/phi.txt");
 		g_debug_save_bar.End();
 #endif
 	}

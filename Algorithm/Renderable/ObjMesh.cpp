@@ -145,6 +145,11 @@ void ObjMesh::transform(ldp::Mat4f T)
 		delete m_bmesh;
 }
 
+void ObjMesh::requireRenderUpdate()
+{
+	_fast_view_should_update = true;	
+}
+
 void ObjMesh::renderConstColor(Float3 color)const
 {
 	if(!_isEnabled)
