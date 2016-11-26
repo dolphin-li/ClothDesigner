@@ -62,6 +62,10 @@ namespace ldp
 			int vert_id;
 			ldp::Float3 dir;
 			ldp::Float3 target;
+			DragInfoInternal()
+			{
+				vert_id = -1;
+			}
 		};
 	public:
 		ClothManager();

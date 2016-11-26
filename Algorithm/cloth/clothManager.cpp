@@ -297,7 +297,8 @@ namespace ldp
 				m_X.push_back(v);
 			for (const auto& f : mesh.face_list)
 			{
-				m_T.push_back(ldp::Int3(f.vertex_index[0], f.vertex_index[1], f.vertex_index[2]));
+				m_T.push_back(ldp::Int3(f.vertex_index[0], f.vertex_index[1], 
+					f.vertex_index[2]) + m_clothVertBegin[iCloth]);
 				ldp::Float3 v[3] = { mesh.vertex_list[f.vertex_index[0]], mesh.vertex_list[f.vertex_index[1]],
 					mesh.vertex_list[f.vertex_index[2]] };
 				m_avgArea += sqrt(Area_Squared(v[0].ptr(), v[1].ptr(), v[2].ptr()));

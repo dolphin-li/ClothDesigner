@@ -16,6 +16,7 @@ public:
 	void debug_1();
 	void debug_2();
 	void debug_3();
+	void debug_4();
 public:
 	std::shared_ptr<ldp::ClothManager> m_clothManager;
 };
