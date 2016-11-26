@@ -360,7 +360,6 @@ namespace ldp
 		m_dev_fixed.create(nverts);
 		m_dev_more_fixed.create(nverts);
 		m_dev_V.create(nverts * 3);
-		m_dev_F.create(nverts * 3);
 		m_dev_init_B.create(nverts * 3);
 		m_dev_T.create(ntris * 3);
 		m_dev_all_VV.create(nvv);
@@ -381,7 +380,6 @@ namespace ldp
 		m_dev_fixed.release();
 		m_dev_more_fixed.release();
 		m_dev_V.release();
-		m_dev_F.release();
 		m_dev_init_B.release();
 		m_dev_T.release();
 		m_dev_all_VV.release();
@@ -402,7 +400,6 @@ namespace ldp
 		m_dev_fixed.upload(m_fixed);
 		cudaMemset(m_dev_more_fixed, 0, m_dev_fixed.sizeBytes());
 		m_dev_V.upload((const ValueType*)m_V.data(), m_V.size() * 3);
-		cudaMemset(m_dev_F.ptr(), 0, m_dev_F.sizeBytes());
 		cudaMemset(m_dev_init_B.ptr(), 0, m_dev_init_B.sizeBytes());
 		m_dev_T.upload((const int*)m_T.data(), m_T.size() * 3);
 		m_dev_all_VV.upload(m_allVV);
@@ -423,7 +420,7 @@ namespace ldp
 		a++;
 		printf("begin debug saving all variables..\n");
 		g_debug_save_bar.sample_number = m_dev_X.size() + m_dev_next_X.size()
-			+ m_dev_prev_X.size() + m_dev_V.size() + m_dev_F.size()
+			+ m_dev_prev_X.size() + m_dev_V.size()
 			+ m_dev_init_B.size() + m_dev_T.size() + m_dev_all_VV.size()
 			+ m_dev_all_VC.size() + m_dev_all_VW.size() + m_dev_all_VL.size()
 			+ m_dev_new_VC.size() + m_dev_all_vv_num.size();// +m_dev_phi.size();
@@ -434,7 +431,6 @@ namespace ldp
 		debug_save_gpu_array(m_dev_fixed, "tmp/fixed.txt");
 		debug_save_gpu_array(m_dev_more_fixed, "tmp/more_fixed.txt");
 		debug_save_gpu_array(m_dev_V, "tmp/V.txt");
-		debug_save_gpu_array(m_dev_F, "tmp/F.txt");
 		debug_save_gpu_array(m_dev_init_B, "tmp/init_B.txt");
 		debug_save_gpu_array(m_dev_T, "tmp/fixed_T.txt");
 		debug_save_gpu_array(m_dev_all_VV, "tmp/all_VV.txt");

@@ -129,7 +129,7 @@ namespace ldp
 #pragma endregion
 	
 #pragma region --constrain1
-	__global__ void Constraint_1_Kernel(const float* X, const float* init_B, float* F, 
+	__global__ void Constraint_1_Kernel(const float* X, const float* init_B,
 		float* next_X, const int* all_VV, const float* all_VL, const float* all_VW, 
 		const float* new_VC, const int* all_vv_num, const float spring_k, const int number)
 	{
@@ -151,7 +151,7 @@ namespace ldp
 			b -= all_VW[index] * xj;
 
 			// Add the other part of b
-			if (jl == -1)	continue;
+			jl *= (jl != -1); //if (jl == -1)	continue;
 			float3 d = normalize(xi - xj);
 			b += d * spring_k* jl;
 			k += (d * d + max(0., 1.-jl) * (1 - d * d) - 1) * spring_k;
@@ -162,17 +162,13 @@ namespace ldp
 		next_X[i * 3 + 0] = nxi.x;
 		next_X[i * 3 + 1] = nxi.y;
 		next_X[i * 3 + 2] = nxi.z;
-
-		//F[i*3+0]=b[0]-new_VC[i]*X[i*3+0];
-		//F[i*3+1]=b[1]-new_VC[i]*X[i*3+1];
-		//F[i*3+2]=b[2]-new_VC[i]*X[i*3+2];
 	}
 
 	void ClothManager::constrain1()
 	{
 		const int blocksPerGrid = divUp(m_X.size(), threadsPerBlock);
 		Constraint_1_Kernel << <blocksPerGrid, threadsPerBlock >> >(
-			m_dev_X.ptr(), m_dev_init_B.ptr(), m_dev_F.ptr(), m_dev_next_X.ptr(), 
+			m_dev_X.ptr(), m_dev_init_B.ptr(), m_dev_next_X.ptr(), 
 			m_dev_all_VV.ptr(), m_dev_all_VL.ptr(), m_dev_all_VW.ptr(), m_dev_new_VC.ptr(), 
 			m_dev_all_vv_num.ptr(), m_simulationParam.spring_k, m_X.size());
 		cudaSafeCall(cudaGetLastError(), "constrain1");
@@ -292,7 +288,7 @@ namespace ldp
 		{
 			float3 xi = make_float3(X[i * 3 + 0], X[i * 3 + 1], X[i * 3 + 2]);
 			float3 xs = make_float3(X[select_v * 3 + 0], X[select_v * 3 + 1], X[select_v * 3 + 2]);
-			if (length(xi-xs) < RADIUS_SQUARED)	
+			if (dot(xi-xs, xi-xs) < RADIUS_SQUARED)	
 				more_fixed[i] = control_mag;
 		}
 	}

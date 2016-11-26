@@ -137,9 +137,8 @@ namespace ldp
 		DeviceArray<ValueType> m_dev_next_X;		// next X for temporary storage
 		DeviceArray<ValueType> m_dev_prev_X;		// prev X for temporary storage
 		DeviceArray<ValueType> m_dev_fixed;			// fixed constraint, indicating which vertex should be fixed
-		DeviceArray<ValueType> m_dev_more_fixed;
+		DeviceArray<ValueType> m_dev_more_fixed;	// for dragging
 		DeviceArray<ValueType> m_dev_V;				// velocity
-		DeviceArray<ValueType> m_dev_F;
 		DeviceArray<ValueType> m_dev_init_B;		// Initialized momentum condition in B
 		DeviceArray<int> m_dev_T;					// trangle list
 		DeviceArray<int> m_dev_all_VV;				// one-ring vertex list, NOT including itself
