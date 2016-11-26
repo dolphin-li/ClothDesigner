@@ -68,6 +68,10 @@ public:
     QDoubleSpinBox *sbSparamSpringStiff;
     QLabel *label_10;
     QDoubleSpinBox *sbSparamBendStiff;
+    QLabel *label_11;
+    QDoubleSpinBox *sbSparamGravityX;
+    QDoubleSpinBox *sbSparamGravityY;
+    QDoubleSpinBox *sbSparamGravityZ;
     QSpacerItem *verticalSpacer;
     QPushButton *pbResetSimulation;
     QDockWidget *dockWidgetLower;
@@ -105,7 +109,7 @@ public:
         ClothDesignerClass->setStatusBar(statusBar);
         dockWidgetRight = new QDockWidget(ClothDesignerClass);
         dockWidgetRight->setObjectName(QStringLiteral("dockWidgetRight"));
-        dockWidgetRight->setMinimumSize(QSize(201, 362));
+        dockWidgetRight->setMinimumSize(QSize(288, 388));
         dockWidgetRight->setFeatures(QDockWidget::NoDockWidgetFeatures);
         dockWidgetContentsRight = new QWidget();
         dockWidgetContentsRight->setObjectName(QStringLiteral("dockWidgetContentsRight"));
@@ -127,7 +131,7 @@ public:
         sbSparamOuterIter = new QSpinBox(groupBox);
         sbSparamOuterIter->setObjectName(QStringLiteral("sbSparamOuterIter"));
 
-        gridLayout->addWidget(sbSparamOuterIter, 0, 1, 1, 1);
+        gridLayout->addWidget(sbSparamOuterIter, 0, 2, 1, 2);
 
         label_2 = new QLabel(groupBox);
         label_2->setObjectName(QStringLiteral("label_2"));
@@ -138,7 +142,7 @@ public:
         sbSparamInnerIter->setObjectName(QStringLiteral("sbSparamInnerIter"));
         sbSparamInnerIter->setMaximum(9999);
 
-        gridLayout->addWidget(sbSparamInnerIter, 1, 1, 1, 1);
+        gridLayout->addWidget(sbSparamInnerIter, 1, 2, 1, 2);
 
         label_3 = new QLabel(groupBox);
         label_3->setObjectName(QStringLiteral("label_3"));
@@ -149,17 +153,17 @@ public:
         sbSparamTimeStepInv->setObjectName(QStringLiteral("sbSparamTimeStepInv"));
         sbSparamTimeStepInv->setMaximum(9999);
 
-        gridLayout->addWidget(sbSparamTimeStepInv, 2, 1, 1, 1);
+        gridLayout->addWidget(sbSparamTimeStepInv, 2, 2, 1, 2);
 
         label_4 = new QLabel(groupBox);
         label_4->setObjectName(QStringLiteral("label_4"));
 
-        gridLayout->addWidget(label_4, 3, 0, 1, 1);
+        gridLayout->addWidget(label_4, 3, 0, 1, 2);
 
         sbSparamLapDampIter = new QSpinBox(groupBox);
         sbSparamLapDampIter->setObjectName(QStringLiteral("sbSparamLapDampIter"));
 
-        gridLayout->addWidget(sbSparamLapDampIter, 3, 1, 1, 1);
+        gridLayout->addWidget(sbSparamLapDampIter, 3, 2, 1, 2);
 
         label_5 = new QLabel(groupBox);
         label_5->setObjectName(QStringLiteral("label_5"));
@@ -171,7 +175,7 @@ public:
         sbSparamAirDamp->setDecimals(5);
         sbSparamAirDamp->setMaximum(1);
 
-        gridLayout->addWidget(sbSparamAirDamp, 4, 1, 1, 1);
+        gridLayout->addWidget(sbSparamAirDamp, 4, 2, 1, 3);
 
         label_6 = new QLabel(groupBox);
         label_6->setObjectName(QStringLiteral("label_6"));
@@ -182,7 +186,7 @@ public:
         sbSparamControlStiff->setObjectName(QStringLiteral("sbSparamControlStiff"));
         sbSparamControlStiff->setMaximum(1e+09);
 
-        gridLayout->addWidget(sbSparamControlStiff, 5, 1, 1, 1);
+        gridLayout->addWidget(sbSparamControlStiff, 5, 2, 1, 3);
 
         label_7 = new QLabel(groupBox);
         label_7->setObjectName(QStringLiteral("label_7"));
@@ -194,7 +198,7 @@ public:
         sbSparamRho->setDecimals(5);
         sbSparamRho->setMaximum(1);
 
-        gridLayout->addWidget(sbSparamRho, 6, 1, 1, 1);
+        gridLayout->addWidget(sbSparamRho, 6, 2, 1, 3);
 
         label_8 = new QLabel(groupBox);
         label_8->setObjectName(QStringLiteral("label_8"));
@@ -206,7 +210,7 @@ public:
         sbSparamUnderRelax->setDecimals(5);
         sbSparamUnderRelax->setMaximum(1);
 
-        gridLayout->addWidget(sbSparamUnderRelax, 7, 1, 1, 1);
+        gridLayout->addWidget(sbSparamUnderRelax, 7, 2, 1, 3);
 
         label_9 = new QLabel(groupBox);
         label_9->setObjectName(QStringLiteral("label_9"));
@@ -217,7 +221,7 @@ public:
         sbSparamSpringStiff->setObjectName(QStringLiteral("sbSparamSpringStiff"));
         sbSparamSpringStiff->setMaximum(1e+09);
 
-        gridLayout->addWidget(sbSparamSpringStiff, 8, 1, 1, 1);
+        gridLayout->addWidget(sbSparamSpringStiff, 8, 2, 1, 3);
 
         label_10 = new QLabel(groupBox);
         label_10->setObjectName(QStringLiteral("label_10"));
@@ -228,7 +232,33 @@ public:
         sbSparamBendStiff->setObjectName(QStringLiteral("sbSparamBendStiff"));
         sbSparamBendStiff->setMaximum(9999);
 
-        gridLayout->addWidget(sbSparamBendStiff, 9, 1, 1, 1);
+        gridLayout->addWidget(sbSparamBendStiff, 9, 2, 1, 3);
+
+        label_11 = new QLabel(groupBox);
+        label_11->setObjectName(QStringLiteral("label_11"));
+
+        gridLayout->addWidget(label_11, 10, 0, 1, 1);
+
+        sbSparamGravityX = new QDoubleSpinBox(groupBox);
+        sbSparamGravityX->setObjectName(QStringLiteral("sbSparamGravityX"));
+        sbSparamGravityX->setDecimals(1);
+        sbSparamGravityX->setMinimum(-100);
+
+        gridLayout->addWidget(sbSparamGravityX, 10, 1, 1, 2);
+
+        sbSparamGravityY = new QDoubleSpinBox(groupBox);
+        sbSparamGravityY->setObjectName(QStringLiteral("sbSparamGravityY"));
+        sbSparamGravityY->setDecimals(1);
+        sbSparamGravityY->setMinimum(-100);
+
+        gridLayout->addWidget(sbSparamGravityY, 10, 3, 1, 1);
+
+        sbSparamGravityZ = new QDoubleSpinBox(groupBox);
+        sbSparamGravityZ->setObjectName(QStringLiteral("sbSparamGravityZ"));
+        sbSparamGravityZ->setDecimals(1);
+        sbSparamGravityZ->setMinimum(-100);
+
+        gridLayout->addWidget(sbSparamGravityZ, 10, 4, 1, 1);
 
 
         gridLayout_2->addWidget(groupBox, 0, 0, 1, 1);
@@ -293,6 +323,7 @@ public:
         label_8->setText(QApplication::translate("ClothDesignerClass", "under relax", 0));
         label_9->setText(QApplication::translate("ClothDesignerClass", "spring stiff", 0));
         label_10->setText(QApplication::translate("ClothDesignerClass", "bend stiff", 0));
+        label_11->setText(QApplication::translate("ClothDesignerClass", "gravity", 0));
         pbResetSimulation->setText(QApplication::translate("ClothDesignerClass", "reset simulaton", 0));
         pbResetSimulation->setShortcut(QApplication::translate("ClothDesignerClass", "1", 0));
     } // retranslateUi

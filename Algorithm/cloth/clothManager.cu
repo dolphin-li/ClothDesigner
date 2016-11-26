@@ -82,9 +82,9 @@ namespace ldp
 		V[i * 3 + 2] *= damping;
 
 		//Apply gravity
-		V[i * 3 + 1] += g_gravity[0] * t;
+		V[i * 3 + 0] += g_gravity[0] * t;
 		V[i * 3 + 1] += g_gravity[1] * t;
-		V[i * 3 + 1] += g_gravity[2] * t;
+		V[i * 3 + 2] += g_gravity[2] * t;
 
 		//Position update
 		X[i * 3 + 0] = X[i * 3 + 0] + V[i * 3 + 0] * t;
@@ -94,6 +94,7 @@ namespace ldp
 
 	void ClothManager::updateAfterLap()
 	{
+		cudaMemcpyToSymbol(g_gravity, m_simulationParam.gravity.ptr(), 3 * sizeof(float));
 		const int blocksPerGrid = divUp(m_X.size(), threadsPerBlock);
 		Update_Kernel << <blocksPerGrid, threadsPerBlock >> >(
 			m_dev_X.ptr(), m_dev_V.ptr(), m_dev_fixed.ptr(), m_dev_more_fixed.ptr(), 

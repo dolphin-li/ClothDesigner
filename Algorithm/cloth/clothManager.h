@@ -24,6 +24,7 @@ namespace ldp
 		int inner_iter;			// number of iterations
 		float control_mag;		// for dragging, the stiffness of dragged point
 		float time_step;		// simulation time step
+		ldp::Float3 gravity;	
 		SimulationParam();
 		void setDefaultParam();
 	};
@@ -104,6 +105,7 @@ namespace ldp
 		// Topology related--------------------------------------------------------------
 	protected:
 		void buildTopology();
+		void buildNumerical();
 		int findNeighbor(int i, int j)const;
 	private:
 		std::vector<int> m_clothVertBegin;			// index begin of each cloth piece

@@ -109,6 +109,9 @@ void ClothDesigner::updateUiByParam()
 		ui.sbSparamSpringStiff->setValue(param.spring_k_raw);
 		ui.sbSparamTimeStepInv->setValue(1./param.time_step);
 		ui.sbSparamUnderRelax->setValue(param.under_relax);
+		ui.sbSparamGravityX->setValue(param.gravity[0]);
+		ui.sbSparamGravityY->setValue(param.gravity[1]);
+		ui.sbSparamGravityZ->setValue(param.gravity[2]);
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
@@ -250,6 +253,45 @@ void ClothDesigner::on_sbSparamBendStiff_valueChanged(double v)
 	{
 		auto param = g_dataholder.m_clothManager->getSimulationParam();
 		param.bending_k = v;
+		g_dataholder.m_clothManager->setSimulationParam(param);
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+}
+
+void ClothDesigner::on_sbSparamGravityX_valueChanged(double v)
+{
+	try
+	{
+		auto param = g_dataholder.m_clothManager->getSimulationParam();
+		param.gravity[0] = v;
+		g_dataholder.m_clothManager->setSimulationParam(param);
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+}
+
+void ClothDesigner::on_sbSparamGravityY_valueChanged(double v)
+{
+	try
+	{
+		auto param = g_dataholder.m_clothManager->getSimulationParam();
+		param.gravity[1] = v;
+		g_dataholder.m_clothManager->setSimulationParam(param);
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+}
+
+void ClothDesigner::on_sbSparamGravityZ_valueChanged(double v)
+{
+	try
+	{
+		auto param = g_dataholder.m_clothManager->getSimulationParam();
+		param.gravity[2] = v;
 		g_dataholder.m_clothManager->setSimulationParam(param);
 	} catch (std::exception e)
 	{

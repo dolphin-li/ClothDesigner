@@ -8,7 +8,9 @@ void GlobalDataHolder::init()
 {
 	m_clothManager.reset(new ldp::ClothManager);
 
-	debug_2();
+	debug_3();
+
+	m_clothManager->simulationInit();
 }
 
 void GlobalDataHolder::debug_1()
@@ -53,7 +55,6 @@ void GlobalDataHolder::debug_2()
 	piece->mesh3d().scaleBy(ldp::Float3(0.001, 0.0009, 0.0009), 0);
 	piece->mesh3dInit().cloneFrom(&piece->mesh3d());
 	m_clothManager->addClothPiece(std::shared_ptr<ldp::ClothPiece>(piece));
-
 	// debug create levelset
 	try
 	{
@@ -61,22 +62,47 @@ void GlobalDataHolder::debug_2()
 	} catch (std::exception e)
 	{
 		const float step = 0.003;
-		ldp::Float3 range = body->boundingBox[1] - body->boundingBox[0];
-		ldp::Float3 start = body->boundingBox[0] - ldp::Float3(0, 0, 0.12f)*range;
-		ldp::Float3 end = body->boundingBox[1] + ldp::Float3(0, 0, 0.12f)*range;
-		ldp::Int3 res = (end - start) / step;
-		start = ldp::Float3(-0.169504836, 0.789619565, -0.134123757);
-		res = ldp::Int3(110, 236, 84);
+		ldp::Float3 start = ldp::Float3(-0.169504836, 0.789619565, -0.134123757);
+		ldp::Int3 res = ldp::Int3(110, 236, 84);
 		m_clothManager->bodyLevelSet()->create(res, start, step);
 		m_clothManager->bodyLevelSet()->fromMesh(*body);
 		m_clothManager->bodyLevelSet()->save("data/mannequin.set");
 	}
+}
 
+void GlobalDataHolder::debug_3()
+{
+	m_clothManager->bodyMesh()->loadObj("data/mannequin_scaled.obj", true, false);
+
+	auto body = m_clothManager->bodyMesh();
+	auto mat = body->default_material;
+	mat.diff = ldp::Float3(0.5, 0.7, 0.8);
+	body->material_list.clear();
+	body->material_list.push_back(mat);
+	for (auto& f : body->face_list)
+		f.material_index = 0;
+
+	auto piece = new ldp::ClothPiece();
+	piece->mesh3d().loadObj("data/drs_scaled.obj", true, false);
+	piece->mesh3dInit().cloneFrom(&piece->mesh3d());
+	m_clothManager->addClothPiece(std::shared_ptr<ldp::ClothPiece>(piece));
+
+	// debug create levelset
 	try
 	{
-		m_clothManager->simulationInit();
+		m_clothManager->bodyLevelSet()->load("data/mannequin_scaled.set");
 	} catch (std::exception e)
 	{
-		std::cout << e.what() << std::endl;
+		const float step = 0.003;
+		auto bmin = body->boundingBox[0];
+		auto bmax = body->boundingBox[1];
+		auto brag = bmax - bmin;
+		bmin -= 0.1f * brag;
+		bmax += 0.1f * brag;
+		ldp::Int3 res = (bmax - bmin) / step;
+		ldp::Float3 start = bmin;
+		m_clothManager->bodyLevelSet()->create(res, start, step);
+		m_clothManager->bodyLevelSet()->fromMesh(*body);
+		m_clothManager->bodyLevelSet()->save("data/mannequin_scaled.set");
 	}
 }

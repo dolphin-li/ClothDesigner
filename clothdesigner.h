@@ -33,6 +33,9 @@ public:
 	void on_sbSparamUnderRelax_valueChanged(double v);
 	void on_sbSparamSpringStiff_valueChanged(double v);
 	void on_sbSparamBendStiff_valueChanged(double v);
+	void on_sbSparamGravityX_valueChanged(double v);
+	void on_sbSparamGravityY_valueChanged(double v);
+	void on_sbSparamGravityZ_valueChanged(double v);
 private:
 	Ui::ClothDesignerClass ui;
 	QSplitter* m_splitter;

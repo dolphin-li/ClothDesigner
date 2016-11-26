@@ -107,6 +107,7 @@ namespace ldp
 			m_clothPieces[i]->mesh3d().cloneFrom(&m_clothPieces[i]->mesh3dInit());
 		buildTopology();
 		allocateGpuMemory();
+		buildNumerical();
 		copyToGpuMatrix();
 		m_simulationMode = SimulationPause;
 	}
@@ -217,6 +218,8 @@ namespace ldp
 		printf("\t inner_iter   = %d\n", m_simulationParam.inner_iter);
 		printf("\t time_step    = %f\n", m_simulationParam.time_step);
 		printf("\t control_mag  = %f\n", m_simulationParam.control_mag);
+		printf("\t gravity      = %f %f %f\n", m_simulationParam.gravity[0], 
+			m_simulationParam.gravity[1], m_simulationParam.gravity[2]);
 #endif
 		
 		bool matrixNumericUpdate = false;
@@ -225,52 +228,11 @@ namespace ldp
 		if (fabs(lastParam.bending_k - m_simulationParam.bending_k) >= std::numeric_limits<float>::epsilon())
 			matrixNumericUpdate = true;
 
-
 		// some parameter changes will have effects on the precompuated matrix..
 		if (matrixNumericUpdate)
 		{
-			// compute matrix related values
-			m_allVW.resize(m_allVV.size());
-			m_allVC.resize(m_X.size());
-			std::fill(m_allVW.begin(), m_allVW.end(), ValueType(0));
-			std::fill(m_allVC.begin(), m_allVC.end(), ValueType(0));
-			for (size_t iv = 0; iv < m_edgeWithBendEdge.size(); iv++)
-			{
-				const auto& v = m_edgeWithBendEdge[iv];
-
-				// first, handle spring length			
-				m_allVC[v[0]] += m_simulationParam.spring_k;
-				m_allVC[v[1]] += m_simulationParam.spring_k;
-				m_allVW[findNeighbor(v[0], v[1])] -= m_simulationParam.spring_k;
-				m_allVW[findNeighbor(v[1], v[0])] -= m_simulationParam.spring_k;
-
-				// ignore boundary edges for bending
-				if (v[2] == -1 || v[3] == -1)
-					continue;
-
-				// second, handle bending weights
-				ValueType c01 = Cotangent(m_X[v[0]].ptr(), m_X[v[1]].ptr(), m_X[v[2]].ptr());
-				ValueType c02 = Cotangent(m_X[v[0]].ptr(), m_X[v[1]].ptr(), m_X[v[3]].ptr());
-				ValueType c03 = Cotangent(m_X[v[1]].ptr(), m_X[v[0]].ptr(), m_X[v[2]].ptr());
-				ValueType c04 = Cotangent(m_X[v[1]].ptr(), m_X[v[0]].ptr(), m_X[v[3]].ptr());
-				ValueType area0 = sqrt(Area_Squared(m_X[v[0]].ptr(), m_X[v[1]].ptr(), m_X[v[2]].ptr()));
-				ValueType area1 = sqrt(Area_Squared(m_X[v[0]].ptr(), m_X[v[1]].ptr(), m_X[v[3]].ptr()));
-				ValueType weight = 1 / (area0 + area1);
-				ValueType k[4];
-				k[0] = c03 + c04;
-				k[1] = c01 + c02;
-				k[2] = -c01 - c03;
-				k[3] = -c02 - c04;
-
-				for (int i = 0; i<4; i++)
-				for (int j = 0; j<4; j++)
-				{
-					if (i == j)
-						m_allVC[v[i]] += k[i] * k[j] * m_simulationParam.bending_k*weight;
-					else
-						m_allVW[findNeighbor(v[i], v[j])] += k[i] * k[j] * m_simulationParam.bending_k*weight;
-				}
-			} // end for all edges
+			buildNumerical();
+			m_dev_all_VL.upload(m_allVL);
 			m_dev_all_VW.upload(m_allVW);
 			m_dev_all_VC.upload(m_allVC);
 		} // end if spring_k updated
@@ -294,6 +256,7 @@ namespace ldp
 		inner_iter = 40;
 		time_step = 1.0 / 240.0;
 		control_mag = 400;
+		gravity = ldp::Float3(0, 0, -9.8);
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////
@@ -384,7 +347,10 @@ namespace ldp
 			} 
 		} // end for i
 		m_allVV_num.push_back(m_allVV.size());
+	}
 
+	void ClothManager::buildNumerical()
+	{
 		// compute matrix related values
 		m_allVL.resize(m_allVV.size());
 		m_allVW.resize(m_allVV.size());
