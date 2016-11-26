@@ -127,6 +127,9 @@ namespace ldp
 			updateAfterLap();
 			constrain0();
 
+			//cudaThreadSynchronize();
+			//ldp::tic();
+
 			// 3. perform inner loops
 			ValueType omega = 0;
 			for (int iter = 0; iter<m_simulationParam.inner_iter; iter++)
@@ -146,6 +149,9 @@ namespace ldp
 				m_dev_X.swap(m_dev_prev_X);
 				m_dev_X.swap(m_dev_next_X);
 			} // end for iter
+
+			//cudaThreadSynchronize();
+			//ldp::toc();
 
 			constrain3();
 
@@ -196,7 +202,6 @@ namespace ldp
 	{
 		rho = 0.996;
 		under_relax = 0.5;
-		velocity_cap = 1000;
 		lap_damping = 4;
 		air_damping = 0.999;
 		bending_k = 10;

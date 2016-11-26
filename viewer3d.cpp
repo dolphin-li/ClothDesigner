@@ -90,7 +90,7 @@ Viewer3d::Viewer3d(QWidget *parent)
 	}
 	setEventHandleType(Abstract3dEventHandle::ProcessorTypeGeneral);
 
-	startTimer(30);
+	//startTimer(30);
 }
 
 Viewer3d::~Viewer3d()
@@ -162,7 +162,7 @@ void Viewer3d::resizeGL(int w, int h)
 
 void Viewer3d::timerEvent(QTimerEvent* ev)
 {
-	updateGL();
+	//updateGL();
 }
 
 void Viewer3d::paintGL()
@@ -263,7 +263,7 @@ void Viewer3d::keyPressEvent(QKeyEvent*ev)
 		{
 			if (m_clothManager->getSimulationMode() == ldp::ClothManager::SimulationOn)
 				m_clothManager->setSimulationMode(ldp::ClothManager::SimulationPause);
-			if (m_clothManager->getSimulationMode() == ldp::ClothManager::SimulationPause)
+			else if (m_clothManager->getSimulationMode() == ldp::ClothManager::SimulationPause)
 				m_clothManager->setSimulationMode(ldp::ClothManager::SimulationOn);
 		}
 		break;

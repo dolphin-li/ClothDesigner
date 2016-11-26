@@ -15,7 +15,6 @@ namespace ldp
 	{
 		float rho;				// for chebshev accereration
 		float under_relax;		// jacobi relax param
-		float velocity_cap;
 		int lap_damping;		// loops of laplacian damping
 		float air_damping;		// damping of the air
 		float bending_k;		// related to the thickness of the cloth

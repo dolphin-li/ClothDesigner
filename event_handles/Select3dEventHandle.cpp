@@ -50,7 +50,7 @@ void Select3dEventHandle::mousePressEvent(QMouseEvent *ev)
 		pick(ev->pos());
 
 		auto manager = m_viewer->getManager();
-		if (manager && m_pickInfo.mesh)
+		if (manager && m_pickInfo.mesh && ev->modifiers() == Qt::CTRL)
 		{
 			ldp::DragInfo info;
 			info.selected_cloth = m_pickInfo.mesh;
@@ -90,7 +90,7 @@ void Select3dEventHandle::mouseMoveEvent(QMouseEvent *ev)
 	if (m_viewer->buttons() == Qt::LeftButton)
 	{
 		auto manager = m_viewer->getManager();
-		if (manager && m_pickInfo.mesh)
+		if (manager && m_pickInfo.mesh && ev->modifiers() == Qt::CTRL)
 		{
 			ldp::DragInfo info;
 			info.selected_cloth = m_pickInfo.mesh;

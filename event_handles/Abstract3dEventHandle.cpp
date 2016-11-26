@@ -61,6 +61,7 @@ void Abstract3dEventHandle::pick(QPoint pos)
 	auto manager = m_viewer->getManager();
 	if (manager == nullptr)
 		return;
+
 	int renderedId = m_viewer->fboRenderedIndex(pos);
 	if (renderedId >= m_viewer->FaceIndex && renderedId < m_viewer->TrackBallIndex_X)
 	{

@@ -34,7 +34,10 @@ ClothDesigner::~ClothDesigner()
 void ClothDesigner::timerEvent(QTimerEvent* ev)
 {
 	if (ev->timerId() == m_simulateTimer)
+	{
 		g_dataholder.m_clothManager->simulationUpdate();
+		m_widget3d->updateGL();
+	}
 
 	if (ev->timerId() == m_fpsTimer)
 		setWindowTitle(QString().sprintf("fps: %f", g_dataholder.m_clothManager->getFps()));

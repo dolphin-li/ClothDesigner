@@ -326,6 +326,12 @@
     <ClInclude Include="Algorithm\cloth\LEVEL_SET_COLLISION.h">
       <Filter>algorithm\cloth</Filter>
     </ClInclude>
+    <ClInclude Include="Algorithm\cloth\device_utils.h">
+      <Filter>algorithm\cloth</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\helper_math.h">
+      <Filter>algorithm\cloth</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="qdarkstyle\rc\up_arrow_disabled.png">
@@ -449,6 +455,9 @@
   <ItemGroup>
     <None Include="qdarkstyle\style.qss">
       <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Activity5.nvact">
+      <Filter>Form Files</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

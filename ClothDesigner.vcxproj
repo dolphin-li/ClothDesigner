@@ -256,6 +256,8 @@
     <ClInclude Include="Algorithm\cloth\cuda_utils.h" />
     <ClInclude Include="Algorithm\cloth\device_array.h" />
     <ClInclude Include="Algorithm\cloth\device_memory.h" />
+    <ClInclude Include="Algorithm\cloth\device_utils.h" />
+    <ClInclude Include="Algorithm\cloth\helper_math.h" />
     <ClInclude Include="Algorithm\cloth\kernel_containers.h" />
     <ClInclude Include="Algorithm\cloth\LevelSet3D.h" />
     <ClInclude Include="Algorithm\cloth\LEVEL_SET_COLLISION.h" />
@@ -591,6 +593,7 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
+    <None Include="Activity5.nvact" />
     <None Include="qdarkstyle\style.qss">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
