@@ -22,7 +22,10 @@ Translate3dEventHandle::~Translate3dEventHandle()
 void Translate3dEventHandle::handleEnter()
 {
 	Abstract3dEventHandle::handleEnter();
-	if (m_pickInfo.mesh){
+	if (m_viewer->getManager())
+		m_viewer->getManager()->simulationDestroy();
+	if (m_pickInfo.mesh)
+	{
 		auto box = m_pickInfo.mesh->boundingBox;
 		m_viewer->beginTrackBall(Viewer3d::TrackBall_Trans, m_pickInfo.pickPos, 
 			ldp::Mat3d().eye(), (box[1] - box[0]).length()* m_axisScale);
@@ -113,6 +116,7 @@ void Translate3dEventHandle::mouseMoveEvent(QMouseEvent *ev)
 			ldp::Double3 wlp = cam.getWorldCoords(ldp::Float3(lp.x(), m_viewer->height() - 1 - lp.y(), m_pickInfo.screenPos[2]));
 			ldp::Double3 dir = (wp - wlp)*axis;
 			m_pickInfo.mesh->translate(dir);
+			m_viewer->getManager()->updateCurrentClothsToInitial();
 			m_viewer->translateTrackBall(dir);
 			valid_op = true;
 		} // end if getPickedMeshFrameInfo

@@ -80,6 +80,9 @@ namespace ldp
 		void setSimulationMode(SimulationMode mode);
 		void setSimulationParam(SimulationParam param);
 
+		void updateCurrentClothsToInitial();
+		void updateInitialClothsToCurrent();
+
 		float getFps()const { return m_fps; }
 		SimulationMode getSimulationMode()const { return m_simulationMode; }
 		const ObjMesh* bodyMesh()const { return m_bodyMesh.get(); }

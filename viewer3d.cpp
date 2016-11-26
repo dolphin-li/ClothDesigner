@@ -258,15 +258,6 @@ void Viewer3d::keyPressEvent(QKeyEvent*ev)
 	{
 	default:
 		break;
-	case Qt::Key_Space:
-		if (m_clothManager)
-		{
-			if (m_clothManager->getSimulationMode() == ldp::ClothManager::SimulationOn)
-				m_clothManager->setSimulationMode(ldp::ClothManager::SimulationPause);
-			else if (m_clothManager->getSimulationMode() == ldp::ClothManager::SimulationPause)
-				m_clothManager->setSimulationMode(ldp::ClothManager::SimulationOn);
-		}
-		break;
 	case Qt::Key_E:
 		m_showType ^= Renderable::SW_E;
 		break;

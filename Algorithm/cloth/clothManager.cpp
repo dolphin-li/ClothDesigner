@@ -103,6 +103,8 @@ namespace ldp
 
 	void ClothManager::simulationInit()
 	{
+		if (m_clothPieces.size() == 0)
+			return;
 		for (size_t i = 0; i < m_clothPieces.size(); i++)
 			m_clothPieces[i]->mesh3d().cloneFrom(&m_clothPieces[i]->mesh3dInit());
 		buildTopology();
@@ -115,6 +117,8 @@ namespace ldp
 	void ClothManager::simulationUpdate()
 	{
 		if (m_simulationMode != SimulationOn)
+			return;
+		if (m_X.size() == 0)
 			return;
 
 		gtime_t t_begin = ldp::gtime_now();
@@ -192,7 +196,8 @@ namespace ldp
 	void ClothManager::simulationDestroy()
 	{
 		m_simulationMode = SimulationNotInit;
-		releaseGpuMemory();
+		updateInitialClothsToCurrent();
+		//releaseGpuMemory();
 	}
 
 	void ClothManager::setSimulationMode(SimulationMode mode)
@@ -259,6 +264,21 @@ namespace ldp
 		gravity = ldp::Float3(0, 0, -9.8);
 	}
 
+	void ClothManager::updateCurrentClothsToInitial()
+	{
+		for (auto& cloth : m_clothPieces)
+		{
+			cloth->mesh3dInit().cloneFrom(&cloth->mesh3d());
+		}
+	}
+
+	void ClothManager::updateInitialClothsToCurrent()
+	{
+		for (auto& cloth : m_clothPieces)
+		{
+			cloth->mesh3d().cloneFrom(&cloth->mesh3dInit());
+		}
+	}
 	//////////////////////////////////////////////////////////////////////////////////
 	void ClothManager::buildTopology()
 	{

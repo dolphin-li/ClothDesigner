@@ -120,6 +120,23 @@ void Select3dEventHandle::wheelEvent(QWheelEvent *ev)
 void Select3dEventHandle::keyPressEvent(QKeyEvent *ev)
 {
 	Abstract3dEventHandle::keyPressEvent(ev);
+
+	switch (ev->key())
+	{
+	default:
+		break;
+	case Qt::Key_Space:
+		if (m_viewer->getManager())
+		{
+			if (m_viewer->getManager()->getSimulationMode() == ldp::ClothManager::SimulationNotInit)
+				m_viewer->getManager()->simulationInit();
+			if (m_viewer->getManager()->getSimulationMode() == ldp::ClothManager::SimulationOn)
+				m_viewer->getManager()->setSimulationMode(ldp::ClothManager::SimulationPause);
+			else if (m_viewer->getManager()->getSimulationMode() == ldp::ClothManager::SimulationPause)
+				m_viewer->getManager()->setSimulationMode(ldp::ClothManager::SimulationOn);
+		}
+		break;
+	}
 }
 
 void Select3dEventHandle::keyReleaseEvent(QKeyEvent *ev)

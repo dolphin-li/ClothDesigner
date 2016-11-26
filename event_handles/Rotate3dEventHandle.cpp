@@ -4,6 +4,7 @@
 #include "ldpMat\Quaternion.h"
 #include "Rotate3dEventHandle.h"
 #include "Renderable\ObjMesh.h"
+#include "cloth\clothManager.h"
 
 Rotate3dEventHandle::Rotate3dEventHandle(Viewer3d* v) : Abstract3dEventHandle(v)
 {
@@ -22,7 +23,10 @@ Rotate3dEventHandle::~Rotate3dEventHandle()
 void Rotate3dEventHandle::handleEnter()
 {
 	Abstract3dEventHandle::handleEnter();
-	if (m_pickInfo.mesh){
+	if (m_viewer->getManager())
+		m_viewer->getManager()->simulationDestroy();
+	if (m_pickInfo.mesh)
+	{
 		auto box = m_pickInfo.mesh->boundingBox;
 		m_trackBallMouseClickR.eye();
 		if (m_accumulatedRots.find(m_pickInfo.mesh) == m_accumulatedRots.end())
@@ -143,6 +147,7 @@ void Rotate3dEventHandle::mouseMoveEvent(QMouseEvent *ev)
 			auto lastR = m_accumulatedRots[m_pickInfo.mesh];
 			m_pickInfo.mesh->rotateBy(R*lastR.trans(), m_pickInfo.meshCenter);
 			m_viewer->rotateTrackBall(R*lastR.trans());
+			m_viewer->getManager()->updateCurrentClothsToInitial();
 			m_accumulatedRots[m_pickInfo.mesh] = R;
 			valid_op = true;
 		} // end if getPickedMeshFrameInfo
