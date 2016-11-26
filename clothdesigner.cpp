@@ -107,6 +107,7 @@ void ClothDesigner::updateUiByParam()
 		ui.sbSparamOuterIter->setValue(param.out_iter);
 		ui.sbSparamRho->setValue(param.rho);
 		ui.sbSparamSpringStiff->setValue(param.spring_k_raw);
+		ui.sbSparamStitchStiff->setValue(param.stitch_k_raw);
 		ui.sbSparamTimeStepInv->setValue(1./param.time_step);
 		ui.sbSparamUnderRelax->setValue(param.under_relax);
 		ui.sbSparamGravityX->setValue(param.gravity[0]);
@@ -253,6 +254,19 @@ void ClothDesigner::on_sbSparamBendStiff_valueChanged(double v)
 	{
 		auto param = g_dataholder.m_clothManager->getSimulationParam();
 		param.bending_k = v;
+		g_dataholder.m_clothManager->setSimulationParam(param);
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+}
+
+void ClothDesigner::on_sbSparamStitchStiff_valueChanged(double v)
+{
+	try
+	{
+		auto param = g_dataholder.m_clothManager->getSimulationParam();
+		param.stitch_k_raw = v;
 		g_dataholder.m_clothManager->setSimulationParam(param);
 	} catch (std::exception e)
 	{

@@ -210,6 +210,7 @@ namespace ldp
 		auto lastParam = m_simulationParam;
 		m_simulationParam = param;
 		m_simulationParam.spring_k = m_simulationParam.spring_k_raw / m_avgArea;
+		m_simulationParam.stitch_k = m_simulationParam.stitch_k_raw / m_avgArea;
 #if 0
 		printf("simulaton param:\n");
 		printf("\t rho          = %f\n", m_simulationParam.rho);
@@ -219,6 +220,8 @@ namespace ldp
 		printf("\t bending_k    = %f\n", m_simulationParam.bending_k);
 		printf("\t spring_k     = %f\n", m_simulationParam.spring_k);
 		printf("\t spring_k_raw = %f\n", m_simulationParam.spring_k_raw);
+		printf("\t stitch_k     = %f\n", m_simulationParam.stitch_k);
+		printf("\t stitch_k_raw = %f\n", m_simulationParam.stitch_k_raw);
 		printf("\t out_iter     = %d\n", m_simulationParam.out_iter);
 		printf("\t inner_iter   = %d\n", m_simulationParam.inner_iter);
 		printf("\t time_step    = %f\n", m_simulationParam.time_step);
@@ -231,6 +234,8 @@ namespace ldp
 		if (fabs(lastParam.spring_k - m_simulationParam.spring_k) >= std::numeric_limits<float>::epsilon())
 			matrixNumericUpdate = true;
 		if (fabs(lastParam.bending_k - m_simulationParam.bending_k) >= std::numeric_limits<float>::epsilon())
+			matrixNumericUpdate = true;
+		if (fabs(lastParam.stitch_k - m_simulationParam.stitch_k) >= std::numeric_limits<float>::epsilon())
 			matrixNumericUpdate = true;
 
 		// some parameter changes will have effects on the precompuated matrix..
@@ -257,6 +262,8 @@ namespace ldp
 		bending_k = 10;
 		spring_k_raw = 1000;
 		spring_k = 0;//will be updated after built topology
+		stitch_k_raw = 1000;
+		stitch_k = 0;//will be updated after built topology
 		out_iter = 8;
 		inner_iter = 40;
 		time_step = 1.0 / 240.0;
@@ -306,8 +313,6 @@ namespace ldp
 			}
 		} // end for iCloth
 		m_avgArea /= fcnt;
-
-		m_simulationParam.spring_k = m_simulationParam.spring_k_raw / m_avgArea;
 
 		m_V.resize(m_X.size());
 		std::fill(m_V.begin(), m_V.end(), ValueType(0));
@@ -368,6 +373,9 @@ namespace ldp
 			} 
 		} // end for i
 		m_allVV_num.push_back(m_allVV.size());
+
+		m_simulationParam.spring_k = m_simulationParam.spring_k_raw / m_avgArea;
+		m_simulationParam.stitch_k = m_simulationParam.stitch_k_raw / m_avgArea;
 	}
 
 	void ClothManager::buildNumerical()

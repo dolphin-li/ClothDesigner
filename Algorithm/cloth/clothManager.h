@@ -20,6 +20,8 @@ namespace ldp
 		float bending_k;		// related to the thickness of the cloth
 		float spring_k;			// related to the elasticity of the cloth
 		float spring_k_raw;		// spring_k_raw / avgArea = spring_k
+		float stitch_k;			// stiffness of stithed vertex, for sewing
+		float stitch_k_raw;		// stitch_k_raw / avgArea = stitch_k
 		int out_iter;			// number of iterations
 		int inner_iter;			// number of iterations
 		float control_mag;		// for dragging, the stiffness of dragged point
