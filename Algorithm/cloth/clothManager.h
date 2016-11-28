@@ -118,6 +118,7 @@ namespace ldp
 		SimulationParam getSimulationParam()const { return m_simulationParam; }
 		int numStitches()const { return (int)m_stitches.size(); }
 		std::pair<Float3, Float3> getStitchPos(int i)const;
+		void get2dBound(ldp::Float2& bmin, ldp::Float2& bmax)const;
 	private:
 		std::vector<std::shared_ptr<ClothPiece>> m_clothPieces;
 		std::shared_ptr<ObjMesh> m_bodyMesh;

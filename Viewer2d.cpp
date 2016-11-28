@@ -54,18 +54,29 @@ void Viewer2d::init(ldp::ClothManager* clothManager)
 
 void Viewer2d::resetCamera()
 {
-	m_camera.setPerspective(60, float(width()) / float(height()), 0.1, 10000);
-	ldp::Float3 c = 0.f;
-	float l = 1.f;
+	m_camera.setViewPort(0, width(), 0, height());
+	m_camera.enableOrtho(true);
+	const float as = float(width()) / float(height());
+	m_camera.setFrustum(-as, as, -1, 1, -1, 1);
+	m_camera.lookAt(ldp::Float3(0, 0, 0), ldp::Float3(0, 0, -1), ldp::Float3(0, 1, 0));
 	if (m_clothManager)
 	{
-		ldp::Float3 bmin, bmax;
-		getModelBound(bmin, bmax);
-		c = (bmax + bmin) / 2.f;
-		l = (bmax - bmin).length();
+		ldp::Float2 bmin, bmax;
+		m_clothManager->get2dBound(bmin, bmax);
+		float x0 = bmin[0], x1 = bmax[0], y0 = bmin[1], y1 = bmax[1];
+		float bw = (x1 - x0) / 2, bh = (y1 - y0) / 2, mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+		if (bw / bh < as)
+		{
+			x0 = mx - bh * as;
+			x1 = mx + bh * as;
+		}
+		else
+		{
+			y0 = my - bw / as;
+			y1 = my + bw / as;
+		}
+		m_camera.setFrustum(x0, x1, y0, y1, -1, 1);
 	}
-	m_camera.lookAt(ldp::Float3(0, -l, 0)*2 + c, c, ldp::Float3(0, 0, 1));
-	m_camera.arcballSetCenter(c);
 }
 
 void Viewer2d::initializeGL()
@@ -96,9 +107,20 @@ void Viewer2d::initializeGL()
 
 void Viewer2d::resizeGL(int w, int h)
 {
-	m_camera.setViewPort(0, w, 0, h);
-	m_camera.setPerspective(m_camera.getFov(), float(w) / float(h), 
-		m_camera.getFrustumNear(), m_camera.getFrustumFar());
+	const float x0 = m_camera.getFrustumLeft();
+	const float x1 = m_camera.getFrustumRight();
+	const float y0 = m_camera.getFrustumTop();
+	const float y1 = m_camera.getFrustumBottom();
+	const float xc = (x0 + x1) / 2;
+	const float yc = (y0 + y1) / 2;
+	resetCamera();
+	const float nx0 = m_camera.getFrustumLeft();
+	const float nx1 = m_camera.getFrustumRight();
+	const float ny0 = m_camera.getFrustumTop();
+	const float ny1 = m_camera.getFrustumBottom();
+	const float nxc = -(nx0 + nx1) / 2 + xc;
+	const float nyc = -(ny0 + ny1) / 2 + yc;
+	m_camera.setFrustum(nx0 + nxc, nx1 + nxc, ny0 + nyc, ny1 + nyc, -1, 1);
 
 	if (m_fbo)
 		delete m_fbo;
@@ -106,6 +128,7 @@ void Viewer2d::resizeGL(int w, int h)
 	fmt.setAttachment(QGLFramebufferObject::CombinedDepthStencil);
 	fmt.setMipmap(true);
 	m_fbo = new QGLFramebufferObject(width(), height(), fmt);
+	updateGL();
 }
 
 void Viewer2d::paintGL()
@@ -114,11 +137,14 @@ void Viewer2d::paintGL()
 	renderSelectionOnFbo();
 
 	// then we do formal rendering=========================
-	glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
+	glClearColor(0.8f, 0.8f, 0.8f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// show cloth simulation=============================
 	m_camera.apply();
+
+	renderBackground();
+
 	if (m_clothManager)
 	{
 		m_clothManager->bodyMesh()->render(m_showType);
@@ -145,6 +171,42 @@ void Viewer2d::renderSelectionOnFbo()
 
 	m_fboImage = m_fbo->toImage();
 	m_fbo->release();
+
+	glPopAttrib();
+}
+
+void Viewer2d::renderBackground()
+{
+	ldp::Float3 lt = m_camera.getWorldCoords(ldp::Float3(0, height(), m_camera.getFrustumNear()));
+	ldp::Float3 rb = m_camera.getWorldCoords(ldp::Float3(width(), 0, m_camera.getFrustumNear()));
+	float gridSz = 0.1;
+	if ((rb-lt).length() / gridSz < 10)
+		gridSz /= 10;
+
+	glPushAttrib(GL_ALL_ATTRIB_BITS);
+
+	glColor3f(0.7, 0.7, 0.7);
+	glLineWidth(1);
+	glBegin(GL_LINES);
+	for (float x = std::floor(lt[0]/gridSz)*gridSz; x < std::ceil(rb[0]/gridSz)*gridSz; x += gridSz)
+	{
+		glVertex2f(x, lt[1]);
+		glVertex2f(x, rb[1]);
+	}
+	for (float y = std::floor(lt[1] / gridSz)*gridSz; y < std::ceil(rb[1] / gridSz)*gridSz;y += gridSz)
+	{
+		glVertex2f(lt[0], y);
+		glVertex2f(rb[0], y);
+	}
+	glEnd();
+	glLineWidth(2);
+	glColor3f(0.6, 0.6, 0.6);
+	glBegin(GL_LINES);
+	glVertex2f(0, lt[1]);
+	glVertex2f(0, rb[1]);
+	glVertex2f(lt[0], 0);
+	glVertex2f(rb[0], 0);
+	glEnd();
 
 	glPopAttrib();
 }

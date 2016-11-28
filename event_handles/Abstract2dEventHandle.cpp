@@ -69,10 +69,6 @@ Abstract2dEventHandle* Abstract2dEventHandle::create(ProcessorType type, Viewer2
 void Abstract2dEventHandle::mousePressEvent(QMouseEvent *ev)
 {
 	m_mouse_press_pt = ev->pos();
-
-	// arcball drag
-	if (ev->buttons() == Qt::LeftButton)
-		m_viewer->camera().arcballClick(ldp::Float2(ev->x(), ev->y()));
 }
 
 void Abstract2dEventHandle::mouseReleaseEvent(QMouseEvent *ev)
@@ -88,28 +84,42 @@ void Abstract2dEventHandle::mouseDoubleClickEvent(QMouseEvent *ev)
 
 void Abstract2dEventHandle::mouseMoveEvent(QMouseEvent *ev)
 {
-	if (ev->buttons() == Qt::LeftButton)
-		m_viewer->camera().arcballDrag(ldp::Float2(ev->x(), ev->y()));
 	if (ev->buttons() == Qt::MidButton)
 	{
-		QPoint dif = ev->pos() - m_viewer->lastMousePos();
-		ldp::Float3 bmin, bmax;
-		m_viewer->getModelBound(bmin, bmax);
-		float len = (bmax - bmin).length() / sqrt(3.f);
-		ldp::Float3 t(-(float)dif.x() / m_viewer->width(), (float)dif.y() / m_viewer->height(), 0);
-		m_viewer->camera().translate(t * len);
-		m_viewer->camera().arcballSetCenter((bmin + bmax) / 2.f + t * len);
+		float l = m_viewer->camera().getFrustumLeft();
+		float r = m_viewer->camera().getFrustumRight();
+		float t = m_viewer->camera().getFrustumTop();
+		float b = m_viewer->camera().getFrustumBottom();
+		float dx = (r - l) / float(m_viewer->width()) * (ev->pos().x() - m_viewer->lastMousePos().x());
+		float dy = (b - t) / float(m_viewer->height()) * (ev->pos().y() - m_viewer->lastMousePos().y());
+		l -= dx;
+		r -= dx;
+		t -= dy;
+		b -= dy;
+		m_viewer->camera().setFrustum(l, r, t, b,
+			m_viewer->camera().getFrustumNear(),
+			m_viewer->camera().getFrustumFar());
 	}
 }
 
 void Abstract2dEventHandle::wheelEvent(QWheelEvent *ev)
 {
-	float s = 1.1;
+	float s = 1.2f;
 	if (ev->delta() < 0)
 		s = 1.f / s;
 
-	float fov = std::max(1e-3f, std::min(160.f, m_viewer->camera().getFov()*s));
-	m_viewer->camera().setPerspective(fov, m_viewer->camera().getAspect(),
+	float l = m_viewer->camera().getFrustumLeft();
+	float r = m_viewer->camera().getFrustumRight();
+	float t = m_viewer->camera().getFrustumTop();
+	float b = m_viewer->camera().getFrustumBottom();
+	float dx = float(ev->pos().x()) / float(m_viewer->width()) * (r - l);
+	float dy = float(ev->pos().y()) / float(m_viewer->height()) * (b - t);
+
+	r = dx + l + (r - l - dx) * s;
+	l = dx + l - dx * s;
+	b = dy + t + (b - t - dy) * s;
+	t = dy + t - dy * s;
+	m_viewer->camera().setFrustum(l, r, t, b,
 		m_viewer->camera().getFrustumNear(), m_viewer->camera().getFrustumFar());
 }
 

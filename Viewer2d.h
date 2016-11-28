@@ -43,6 +43,7 @@ protected:
 	void keyReleaseEvent(QKeyEvent*);
 	void renderDragBox();
 	void renderSelectionOnFbo();
+	void renderBackground();
 protected:
 	ldp::Camera m_camera;
 	QPoint m_lastPos;

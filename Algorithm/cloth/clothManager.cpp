@@ -664,4 +664,30 @@ namespace ldp
 		g_debug_save_bar.End();
 #endif
 	}
+
+	//////////////////////////////////////////////////////////////////////////////////
+	void ClothManager::get2dBound(ldp::Float2& bmin, ldp::Float2& bmax)const
+	{
+		bmin = FLT_MAX;
+		bmax = FLT_MIN;
+		for (const auto& c : m_clothPieces)
+		{
+			const auto& m = c->mesh2d();
+			for (int k = 0; k < 3; k++)
+			{
+				bmin[k] = std::min(bmin[k], m.boundingBox[0][k]);
+				bmax[k] = std::min(bmax[k], m.boundingBox[1][k]);
+			}
+		}
+
+		for (int k = 0; k < 3; k++)
+		{
+			if (bmin[k] > bmax[k])
+			{
+				bmin = 0;
+				bmax = 0;
+			}
+		}
+		return;
+	}
 }

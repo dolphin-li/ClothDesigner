@@ -2,6 +2,7 @@
 
 #include "Renderable\ObjMesh.h"
 #include "panelPolygon.h"
+#include <set>
 namespace ldp
 {
 	class ClothPiece
@@ -18,10 +19,17 @@ namespace ldp
 		ObjMesh& mesh2d() { return m_mesh2d; }
 		const PanelPolygon& panel()const { return m_panel; }
 		PanelPolygon& panel() { return m_panel; }
+
+		std::string getName()const { return m_name; }
+		std::string setName(std::string name); // return a unique name
+	public:
+		static std::string generateUniqueName(std::string nameHints);
 	private:
 		ObjMesh m_mesh3d;
 		ObjMesh m_mesh3dInit;
 		ObjMesh m_mesh2d;
 		PanelPolygon m_panel;
+		std::string m_name;
+		static std::set<std::string> s_nameSet;
 	};
 }
