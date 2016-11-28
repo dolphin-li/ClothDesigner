@@ -181,9 +181,29 @@ void Viewer3d::paintGL()
 		m_clothManager->bodyMesh()->render(m_showType);
 		for (int i = 0; i < m_clothManager->numClothPieces(); i++)
 			m_clothManager->clothPiece(i)->mesh3d().render(m_showType);
+		renderStitches();
 	}
 	renderTrackBall(false);
 	renderDragBox();
+}
+
+void Viewer3d::renderStitches()
+{
+	if (!m_clothManager)
+		return;
+
+	glPushAttrib(GL_ALL_ATTRIB_BITS);
+	glDisable(GL_LIGHTING);
+	glColor3f(0, 1, 0);
+	glBegin(GL_LINES);
+	for (int is = 0; is < m_clothManager->numStitches(); is++)
+	{
+		auto vp = m_clothManager->getStitchPos(is);
+		glVertex3fv(vp.first.ptr());
+		glVertex3fv(vp.second.ptr());
+	} // end for is
+	glEnd();
+	glPopAttrib();
 }
 
 void Viewer3d::renderSelectionOnFbo()

@@ -4,6 +4,7 @@
 #include <memory>
 #include "device_array.h"
 #include "ldpMat\ldp_basic_vec.h"
+#include <map>
 //#define ENABLE_SELF_COLLISION
 #ifdef ENABLE_SELF_COLLISION
 #include "COLLISION_HANDLER.h"
@@ -47,6 +48,8 @@ namespace ldp
 	class ClothPiece;
 	class PanelPolygon;
 	class LevelSet3D;
+	class BMesh;
+	class BMVert;
 	class ClothManager
 	{
 	public:
@@ -69,26 +72,43 @@ namespace ldp
 				vert_id = -1;
 			}
 		};
+
+		struct StitchEle
+		{
+			Int3 vids;
+			Vec3 innerCoords;
+		};
+
+		typedef std::pair<StitchEle, StitchEle> StitchElePair;
 	public:
 		ClothManager();
 		~ClothManager();
 
 		void clear();
 
-		void simulationInit();
+		/// simulation main functions
+		void simulationInit();							// must be called after the body and all cloths ready.
 		void simulationUpdate();
 		void simulationDestroy();
 
+		/// dragging related
 		void dragBegin(DragInfo info);
 		void dragMove(ldp::Float3 target);
 		void dragEnd();
 
+		/// parameters related
 		void setSimulationMode(SimulationMode mode);
 		void setSimulationParam(SimulationParam param);
 
+		/// mesh backup related
 		void updateCurrentClothsToInitial();
 		void updateInitialClothsToCurrent();
 
+		/// stitch related
+		void clearStiches();
+		void addStitchVert(const ClothPiece* cloth1, int mesh_vid1, const ClothPiece* cloth2, int mesh_vid2);
+
+		/// getters
 		float getFps()const { return m_fps; }
 		SimulationMode getSimulationMode()const { return m_simulationMode; }
 		const ObjMesh* bodyMesh()const { return m_bodyMesh.get(); }
@@ -98,37 +118,45 @@ namespace ldp
 		int numClothPieces()const { return (int)m_clothPieces.size(); }
 		const ClothPiece* clothPiece(int i)const { return m_clothPieces.at(i).get(); }
 		ClothPiece* clothPiece(int i) { return m_clothPieces.at(i).get(); }
-		void clearClothPieces() { m_clothPieces.clear(); }
-		void addClothPiece(std::shared_ptr<ClothPiece> piece) { m_clothPieces.push_back(piece); }
-		void removeClothPiece(int i) { m_clothPieces.erase(m_clothPieces.begin() + i); }
+		void clearClothPieces();
+		void addClothPiece(std::shared_ptr<ClothPiece> piece);
+		void removeClothPiece(int i);
 		SimulationParam getSimulationParam()const { return m_simulationParam; }
+		int numStitches()const { return (int)m_stiches.size(); }
+		std::pair<Float3, Float3> getStitchPos(int i)const;
 	private:
 		std::vector<std::shared_ptr<ClothPiece>> m_clothPieces;
 		std::shared_ptr<ObjMesh> m_bodyMesh;
 		std::shared_ptr<LevelSet3D> m_bodyLvSet;
 		SimulationMode m_simulationMode;
 		SimulationParam m_simulationParam;
-		float m_avgArea;
-		float m_fps;
+		ValueType m_avgArea;
+		ValueType m_avgEdgeLength;
+		ValueType m_fps;
+		bool m_shouldMergePieces;
 		DragInfoInternal m_curDragInfo;
 		// Topology related--------------------------------------------------------------
 	protected:
+		void mergePieces();
 		void buildTopology();
 		void buildNumerical();
 		int findNeighbor(int i, int j)const;
 	private:
-		std::vector<int> m_clothVertBegin;			// index begin of each cloth piece
-		std::vector<Vec3> m_X;						// vertex position list
-		std::vector<Vec3> m_V;						// vertex velocity list
-		std::vector<ldp::Int3> m_T;					// triangle list
-		std::vector<ldp::Int2> m_allE;				// edges + bending edges, for [0,1,2]+[0,1,3], bend_e=[2,3]
-		std::vector<int> m_allVV;					// one-ring vertex of each vertex based an allE, NOT including self
-		std::vector<ValueType> m_allVL;				// off-diag values of spring length
-		std::vector<ValueType> m_allVW;				// off-diag values of springs
-		std::vector<ValueType> m_allVC;				// diag values of springs
-		std::vector<int> m_allVV_num;				// num of one-ring vertex of each vertex
-		std::vector<float> m_fixed;					// fix constraints of vertices
-		std::vector<ldp::Int4> m_edgeWithBendEdge;
+		std::shared_ptr<BMesh> m_bmesh;					// topology mesh
+		std::vector<BMVert*> m_bmeshVerts;				// topology mesh
+		std::map<const ObjMesh*, int> m_clothVertBegin;	// index begin of each cloth piece
+		std::vector<Vec3> m_X;							// vertex position list
+		std::vector<Vec3> m_V;							// vertex velocity list
+		std::vector<Int3> m_T;							// triangle list
+		std::vector<Int2> m_allE;						// edges + bending edges, sorted, for [0,1,2]+[0,1,3], bend_e=[2,3]
+		std::vector<int> m_allVV;						// one-ring vertex of each vertex based an allE, NOT including self
+		std::vector<ValueType> m_allVL;					// off-diag values of spring length
+		std::vector<ValueType> m_allVW;					// off-diag values of springs
+		std::vector<ValueType> m_allVC;					// diag values of springs
+		std::vector<int> m_allVV_num;					// num of one-ring vertex of each vertex
+		std::vector<ValueType> m_fixed;					// fix constraints of vertices
+		std::vector<Int4> m_edgeWithBendEdge;			// original edges + beding edges, before sorted and unique.
+		std::vector<StitchElePair> m_stiches;			// the elements that must be stiched together, for sewing
 		// GPU related-------------------------------------------------------------------
 	protected:
 		void allocateGpuMemory();

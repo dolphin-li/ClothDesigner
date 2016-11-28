@@ -30,8 +30,10 @@ namespace ldp
 		m_bodyMesh.reset(new ObjMesh);
 		m_bodyLvSet.reset(new LevelSet3D);
 		m_simulationMode = SimulationNotInit;
-		m_fps = 0.f;
+		m_fps = 0;
 		m_avgArea = 0;
+		m_avgEdgeLength = 0;
+		m_shouldMergePieces = false;
 	}
 
 	ClothManager::~ClothManager()
@@ -43,10 +45,7 @@ namespace ldp
 	{
 		simulationDestroy();
 
-		m_clothVertBegin.clear();		
-		m_X.clear();
 		m_V.clear();
-		m_T.clear();
 		m_allE.clear();
 		m_allVV.clear();
 		m_allVL.clear();
@@ -57,11 +56,12 @@ namespace ldp
 		m_edgeWithBendEdge.clear();
 
 		m_bodyMesh->clear();
-		m_clothPieces.clear();
 		m_bodyLvSet->clear();
 
-		m_fps = 0.f;
-		m_avgArea = 0;
+		m_fps = 0;
+
+		clearStiches();
+		clearClothPieces();
 	}
 
 	void ClothManager::dragBegin(DragInfo info)
@@ -72,15 +72,11 @@ namespace ldp
 		m_curDragInfo.vert_id = -1;
 		m_curDragInfo.dir = 0;
 		m_curDragInfo.target = 0;
-		for (size_t iCloth = 0; iCloth < m_clothPieces.size(); iCloth++)
+		if (m_clothVertBegin.find(info.selected_cloth) != m_clothVertBegin.end())
 		{
-			if (info.selected_cloth == &m_clothPieces[iCloth]->mesh3d())
-			{
-				m_curDragInfo.vert_id = info.selected_vert_id + m_clothVertBegin[iCloth];
-				m_curDragInfo.target = info.target;
-				break;
-			}
-		} // end for iCloth
+			m_curDragInfo.vert_id = info.selected_vert_id + m_clothVertBegin.at(info.selected_cloth);
+			m_curDragInfo.target = info.target;
+		}
 		resetMoreFixed();
 	}
 
@@ -107,6 +103,7 @@ namespace ldp
 			return;
 		for (size_t i = 0; i < m_clothPieces.size(); i++)
 			m_clothPieces[i]->mesh3d().cloneFrom(&m_clothPieces[i]->mesh3dInit());
+		m_shouldMergePieces = true;
 		buildTopology();
 		allocateGpuMemory();
 		buildNumerical();
@@ -182,8 +179,8 @@ namespace ldp
 		// finally we update normals and bounding boxes
 		for (size_t iCloth = 0; iCloth < m_clothPieces.size(); iCloth++)
 		{
-			int vb = m_clothVertBegin[iCloth];
 			auto& mesh = m_clothPieces[iCloth]->mesh3d();
+			int vb = m_clothVertBegin.at(&mesh);
 			mesh.vertex_list.assign(m_X.begin() + vb, m_X.begin() + vb + mesh.vertex_list.size());
 			mesh.updateNormals();
 			mesh.updateBoundingBox();
@@ -286,60 +283,164 @@ namespace ldp
 			cloth->mesh3d().cloneFrom(&cloth->mesh3dInit());
 		}
 	}
+
 	//////////////////////////////////////////////////////////////////////////////////
-	void ClothManager::buildTopology()
+	void ClothManager::clearClothPieces() 
 	{
-		// collect all cloth pieces
+		m_bmesh.reset((BMesh*)nullptr);
+		m_bmeshVerts.clear();
+		m_clothPieces.clear();
+		m_clothVertBegin.clear();
 		m_X.clear();
 		m_T.clear();
-		m_clothVertBegin.resize(numClothPieces() + 1, 0);
 		m_avgArea = 0;
+		m_avgEdgeLength = 0;
+		m_shouldMergePieces = false;
+	}
+
+	void ClothManager::addClothPiece(std::shared_ptr<ClothPiece> piece) 
+	{ 
+		m_clothPieces.push_back(piece); 
+		m_shouldMergePieces = true;
+	}
+
+	void ClothManager::removeClothPiece(int i) 
+	{ 
+		m_clothPieces.erase(m_clothPieces.begin() + i);
+		m_shouldMergePieces = true;
+	}
+
+	void ClothManager::mergePieces()
+	{
+		if (!m_shouldMergePieces)
+			return;
+		m_X.clear();
+		m_T.clear();
+		m_clothVertBegin.clear();
+		m_avgArea = 0;
+		m_avgEdgeLength = 0;
 		int fcnt = 0;
+		int ecnt = 0;
+		int vid_s = 0;
 		for (int iCloth = 0; iCloth < numClothPieces(); iCloth++)
 		{
-			const int vid_s = m_clothVertBegin[iCloth];
 			const auto& mesh = clothPiece(iCloth)->mesh3d();
-			m_clothVertBegin[iCloth + 1] = vid_s + (int)mesh.vertex_list.size();
+			m_clothVertBegin.insert(std::make_pair(&mesh, vid_s));
 			for (const auto& v : mesh.vertex_list)
 				m_X.push_back(v);
 			for (const auto& f : mesh.face_list)
 			{
-				m_T.push_back(ldp::Int3(f.vertex_index[0], f.vertex_index[1], 
-					f.vertex_index[2]) + m_clothVertBegin[iCloth]);
+				m_T.push_back(ldp::Int3(f.vertex_index[0], f.vertex_index[1],
+					f.vertex_index[2]) + vid_s);
 				ldp::Float3 v[3] = { mesh.vertex_list[f.vertex_index[0]], mesh.vertex_list[f.vertex_index[1]],
 					mesh.vertex_list[f.vertex_index[2]] };
 				m_avgArea += sqrt(Area_Squared(v[0].ptr(), v[1].ptr(), v[2].ptr()));
 				fcnt++;
+
+				m_avgEdgeLength += (v[0] - v[1]).length() + (v[0] - v[2]).length() + (v[1] - v[2]).length();
+				ecnt += 3;
 			}
+			vid_s += mesh.vertex_list.size();
 		} // end for iCloth
 		m_avgArea /= fcnt;
+		m_avgEdgeLength /= ecnt;
 
+		// build connectivity
+		m_bmesh.reset(new ldp::BMesh);
+		m_bmesh->init_triangles((int)m_X.size(), m_X.data()->ptr(), (int)m_T.size(), m_T.data()->ptr());
+		m_bmeshVerts.clear();
+		BMESH_ALL_VERTS(v, viter, *m_bmesh)
+		{
+			m_bmeshVerts.push_back(v);
+		}
+
+		m_shouldMergePieces = false;
+	}
+
+	void ClothManager::clearStiches()
+	{
+		m_stiches.clear();
+	}
+
+	void ClothManager::addStitchVert(const ClothPiece* cloth1, int mesh_vid1, const ClothPiece* cloth2, int mesh_vid2)
+	{
+		if (m_shouldMergePieces)
+			mergePieces();
+
+		int vid[2] = { 0 };
+
+		// convert from mesh id to global id
+		vid[0] = mesh_vid1 + m_clothVertBegin.at(&cloth1->mesh3d());
+		vid[1] = mesh_vid2 + m_clothVertBegin.at(&cloth2->mesh3d());
+
+		StitchEle ele[2];
+		for (int idx = 0; idx < 2; idx++)
+		{
+			auto v = m_bmeshVerts.at(vid[idx]);
+			BMESH_F_OF_V(f, v, viter, *m_bmesh)
+			{
+				ele[idx].vids = Int3(m_T.at(f->getIndex()));
+				int pos = -1;
+				for (int k = 0; k < 3; k++)
+				{
+					if (vid[idx] == ele[idx].vids[k])
+					{
+						pos = k;
+						break;
+					}
+				}
+				if (pos == -1)
+					throw std::exception("ClothManager::addStitchVert(), topology error");
+				ele[idx].innerCoords = Vec3(0);
+				ele[idx].innerCoords[pos] = ValueType(1);
+				break;
+			} // end for f
+		} // end for idx
+
+		m_stiches.push_back(std::make_pair(ele[0], ele[1]));
+	}
+
+	std::pair<Float3, Float3> ClothManager::getStitchPos(int i)const
+	{
+		const auto& stp = m_stiches.at(i);
+
+		std::pair<Float3, Float3> vp;
+		vp.first = m_X[stp.first.vids[0]] * stp.first.innerCoords[0] +
+			m_X[stp.first.vids[1]] * stp.first.innerCoords[1] +
+			m_X[stp.first.vids[2]] * stp.first.innerCoords[2];
+		vp.second = m_X[stp.second.vids[0]] * stp.second.innerCoords[0] +
+			m_X[stp.second.vids[1]] * stp.second.innerCoords[1] +
+			m_X[stp.second.vids[2]] * stp.second.innerCoords[2];
+		return vp;
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////
+	void ClothManager::buildTopology()
+	{
+		if (m_shouldMergePieces)
+			mergePieces();
 		m_V.resize(m_X.size());
 		std::fill(m_V.begin(), m_V.end(), ValueType(0));
 		m_fixed.resize(m_X.size());
 		std::fill(m_fixed.begin(), m_fixed.end(), ValueType(0));
 
-		// build connectivity
-		ldp::BMesh bmesh;
-		bmesh.init_triangles((int)m_X.size(), m_X.data()->ptr(), (int)m_T.size(), m_T.data()->ptr());
-
 		// set up all edges + bending edges
 		m_edgeWithBendEdge.clear();
 		m_allE.clear();
-		BMESH_ALL_EDGES(e, eiter, bmesh)
+		BMESH_ALL_EDGES(e, eiter, *m_bmesh)
 		{
-			ldp::Int2 vori(bmesh.vofe_first(e)->getIndex(),
-				bmesh.vofe_last(e)->getIndex());
+			ldp::Int2 vori(m_bmesh->vofe_first(e)->getIndex(),
+				m_bmesh->vofe_last(e)->getIndex());
 			m_allE.push_back(vori);
 			m_allE.push_back(ldp::Int2(vori[1], vori[0]));
-			if (bmesh.fofe_count(e) > 2)
+			if (m_bmesh->fofe_count(e) > 2)
 				throw std::exception("error: non-manifold mesh found!");
 			ldp::Int2 vbend = -1;
 			int vcnt = 0;
-			BMESH_F_OF_E(f, e, fiter, bmesh)
+			BMESH_F_OF_E(f, e, fiter, *m_bmesh)
 			{
 				int vsum = 0;
-				BMESH_V_OF_F(v, f, viter, bmesh)
+				BMESH_V_OF_F(v, f, viter, *m_bmesh)
 				{
 					vsum += v->getIndex();
 				}

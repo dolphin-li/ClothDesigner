@@ -128,6 +128,10 @@ void GlobalDataHolder::debug_4()
 	piece->mesh3dInit().cloneFrom(&piece->mesh3d());
 	m_clothManager->addClothPiece(std::shared_ptr<ldp::ClothPiece>(piece));
 
+	// in this example, the first 12 verts should be stithed
+	for (int k = 0; k < 12; k++)
+		m_clothManager->addStitchVert(m_clothManager->clothPiece(0), k, m_clothManager->clothPiece(1), k);
+
 	// debug create levelset
 	try
 	{

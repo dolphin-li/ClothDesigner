@@ -67,6 +67,7 @@ protected:
 	void renderTrackBall(bool idxMode);
 	void timerEvent(QTimerEvent* ev);
 	void renderMeshForSelection();
+	void renderStitches();
 protected:
 	ldp::Camera m_camera;
 	QPoint m_lastPos;
