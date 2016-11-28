@@ -113,7 +113,8 @@ public:
         ClothDesignerClass->setStatusBar(statusBar);
         dockWidgetRight = new QDockWidget(ClothDesignerClass);
         dockWidgetRight->setObjectName(QStringLiteral("dockWidgetRight"));
-        dockWidgetRight->setMinimumSize(QSize(326, 459));
+        dockWidgetRight->setMinimumSize(QSize(150, 459));
+        dockWidgetRight->setMaximumSize(QSize(250, 524287));
         dockWidgetRight->setFeatures(QDockWidget::NoDockWidgetFeatures);
         dockWidgetContentsRight = new QWidget();
         dockWidgetContentsRight->setObjectName(QStringLiteral("dockWidgetContentsRight"));

@@ -77,7 +77,7 @@ void ClothDesigner::addLeftDockWidgetButton(Abstract3dEventHandle::ProcessorType
 	icon.addFile(handle->iconFile(), QSize(), QIcon::Selected);
 	icon.addFile(handle->inactiveIconFile(), QSize(), QIcon::Normal);
 	QSharedPointer<QPushButton> btn(new QPushButton(ui.dockWidgetLeft));
-	btn->setIconSize(QSize(80, 80));
+	btn->setIconSize(QSize(30, 30));
 	btn->setIcon(icon);
 	btn->setCheckable(true);
 	btn->setStyleSheet(colorStr);
