@@ -59,6 +59,30 @@
     <Filter Include="event_handle">
       <UniqueIdentifier>{eca3fb3e-8d28-4240-bedb-ca9cc79064ce}</UniqueIdentifier>
     </Filter>
+    <Filter Include="algorithm\svgpp">
+      <UniqueIdentifier>{d42d5c11-4c40-4af7-a44d-08b117081341}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="algorithm\svgpp\nvprsvg">
+      <UniqueIdentifier>{a0c256dd-817e-4b22-a21f-94e2816f4259}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="algorithm\tinyxml">
+      <UniqueIdentifier>{c05d38b2-c3af-4b0e-8522-ea9b0af7cc36}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="algorithm\svgpp\nvprsvg\common">
+      <UniqueIdentifier>{6f45ea97-e4f2-4ecb-a235-f3f0ff441ec6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="algorithm\svgpp\nvprsvg\stb">
+      <UniqueIdentifier>{98db4efb-3d10-4bb0-8b41-6aed1ce67576}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="algorithm\svgpp\nvprsvg\stc">
+      <UniqueIdentifier>{88ff6030-16e8-48af-ba78-29f81d0def38}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="algorithm\svgpp\nvprsvg\nvpr">
+      <UniqueIdentifier>{8ee12c03-d053-4439-879a-b67f12656d39}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="algorithm\svgpp\nvprsvg\cg">
+      <UniqueIdentifier>{eb6d9ce6-f5f9-42e4-b765-0a8e47613d6b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -177,6 +201,396 @@
     </ClCompile>
     <ClCompile Include="event_handles\Abstract2dEventHandle.cpp">
       <Filter>event_handle</Filter>
+    </ClCompile>
+    <ClCompile Include="algorithm\svgpp\nvprsvg\ActiveControlPoint.cpp">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClCompile>
+    <ClCompile Include="algorithm\svgpp\nvprsvg\color_names.cpp">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClCompile>
+    <ClCompile Include="algorithm\svgpp\nvprsvg\freetype2_loader.cpp">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClCompile>
+    <ClCompile Include="algorithm\svgpp\nvprsvg\glmatrix.cpp">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClCompile>
+    <ClCompile Include="algorithm\svgpp\nvprsvg\path.cpp">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClCompile>
+    <ClCompile Include="algorithm\svgpp\nvprsvg\path_data.cpp">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClCompile>
+    <ClCompile Include="algorithm\svgpp\nvprsvg\path_parse_svg.cpp">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClCompile>
+    <ClCompile Include="algorithm\svgpp\nvprsvg\path_process.cpp">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClCompile>
+    <ClCompile Include="algorithm\svgpp\nvprsvg\renderer.cpp">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClCompile>
+    <ClCompile Include="algorithm\svgpp\nvprsvg\scene.cpp">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClCompile>
+    <ClCompile Include="algorithm\svgpp\nvprsvg\sRGB_vector.cpp">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClCompile>
+    <ClCompile Include="algorithm\svgpp\nvprsvg\svg_files.cpp">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClCompile>
+    <ClCompile Include="algorithm\svgpp\nvprsvg\svg_loader.cpp">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClCompile>
+    <ClCompile Include="algorithm\svgpp\SvgManager.cpp">
+      <Filter>algorithm\svgpp</Filter>
+    </ClCompile>
+    <ClCompile Include="algorithm\svgpp\SvgAbstractObject.cpp">
+      <Filter>algorithm\svgpp</Filter>
+    </ClCompile>
+    <ClCompile Include="algorithm\svgpp\SvgAttribute.cpp">
+      <Filter>algorithm\svgpp</Filter>
+    </ClCompile>
+    <ClCompile Include="algorithm\svgpp\SvgPath.cpp">
+      <Filter>algorithm\svgpp</Filter>
+    </ClCompile>
+    <ClCompile Include="algorithm\svgpp\SvgText.cpp">
+      <Filter>algorithm\svgpp</Filter>
+    </ClCompile>
+    <ClCompile Include="algorithm\svgpp\SvgGroup.cpp">
+      <Filter>algorithm\svgpp</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\SvgPolyPath.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\tinyxml\tinystr.cpp">
+      <Filter>algorithm\tinyxml</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\tinyxml\tinyxml.cpp">
+      <Filter>algorithm\tinyxml</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\tinyxml\tinyxmlerror.cpp">
+      <Filter>algorithm\tinyxml</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\tinyxml\tinyxmlparser.cpp">
+      <Filter>algorithm\tinyxml</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\common\dsa_emulate.c">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\common\mjkimage.c">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\common\nvpr_init.c">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\common\render_font.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\common\request_vsync.c">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\common\showfps.c">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\common\sRGB_math.c">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\common\tiger.c">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\common\trackball.c">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\common\welsh_dragon.c">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\common\xform.c">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\common\xform_cpp.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\stb\stb_image.c">
+      <Filter>algorithm\svgpp\nvprsvg\stb</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\stc\renderer_stc.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\stc</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\stc\scene_stc.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\stc</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\nvpr\renderer_nvpr.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\nvpr</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\nvpr\renderer_nvpr_path.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\nvpr</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\nvpr\renderer_nvpr_shader.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\nvpr</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\abs.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\acos.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\all.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\any.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\asin.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\atan.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\atan2.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\ceil.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\clamp.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\cos.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\cosh.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\cross.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\degrees.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\determinant.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\distance.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\dot.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\exp.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\exp2.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\faceforward.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\floatToIntBits.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\floatToRawIntBits.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\floor.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\fmod.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\frac.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\fresnel.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\frexp.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\intBitsToFloat.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\inverse.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\iostream.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\isfinite.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\isinf.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\isnan.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\ldexp.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\length.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\lerp.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\lit.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\log.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\log2.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\log10.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\max.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\min.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\modf.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\mul.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\normalize.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\pow.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\radians.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\reflect.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\refract.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\round.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\rsqrt.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\sampler_gl.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\sampler_state.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\sampler1D.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\sampler1DARRAY.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\sampler2D.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\sampler2DARRAY.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\sampler3D.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\samplerBUF.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\samplerCUBE.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\samplerRECT.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\saturate.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\sign.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\sin.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\sincos.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\sinh.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\smoothstep.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\sqrt.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\step.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\tan.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\tanh.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\transpose.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\trunc.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\upper1x1.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\upper1x2.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\upper1x3.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\upper1x4.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\upper2x1.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\upper2x2.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\upper2x3.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\upper2x4.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\upper3x1.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\upper3x2.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\upper3x3.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\upper3x4.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\upper4x1.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\upper4x2.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\upper4x3.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\upper4x4.cpp">
+      <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -349,6 +763,159 @@
     </ClInclude>
     <ClInclude Include="event_handles\Abstract2dEventHandle.h">
       <Filter>event_handle</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\SvgAbstractObject.h">
+      <Filter>algorithm\svgpp</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\SvgAttribute.h">
+      <Filter>algorithm\svgpp</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\SvgGroup.h">
+      <Filter>algorithm\svgpp</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\SvgManager.h">
+      <Filter>algorithm\svgpp</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\SvgPath.h">
+      <Filter>algorithm\svgpp</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\SvgPolyPath.h">
+      <Filter>algorithm\svgpp</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\SvgText.h">
+      <Filter>algorithm\svgpp</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\ActiveControlPoint.hpp">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\boar_colors.h">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\boar_paths.h">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\color_names.hpp">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\countof.h">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\freetype2_loader.hpp">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\glmatrix.hpp">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\misc_math.hpp">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\nvpr_svg_config.h">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\path.hpp">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\path_data.h">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\path_parse_svg.h">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\path_process.hpp">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\path_stats.hpp">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\PathStyle.hpp">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\renderer.hpp">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\scene.hpp">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\sRGB_vector.hpp">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\svg_files.hpp">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\svg_loader.hpp">
+      <Filter>algorithm\svgpp\nvprsvg</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\tinyxml\tinystr.h">
+      <Filter>algorithm\tinyxml</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\tinyxml\tinyxml.h">
+      <Filter>algorithm\tinyxml</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\common\brick_image.h">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\common\countof.h">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\common\dsa_emulate.h">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\common\mjkimage.h">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\common\nvpr_init.h">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\common\render_font.hpp">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\common\request_vsync.h">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\common\showfps.h">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\common\sRGB_math.h">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\common\tiger.h">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\common\tiger_paths.h">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\common\tiger_style.h">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\common\trackball.h">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\common\welsh_dragon.h">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\common\welsh_dragon_colors.h">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\common\welsh_dragon_paths.h">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\common\xform.h">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\common\xform.hpp">
+      <Filter>algorithm\svgpp\nvprsvg\common</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\stb\stb_image.h">
+      <Filter>algorithm\svgpp\nvprsvg\stb</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\stc\renderer_stc.hpp">
+      <Filter>algorithm\svgpp\nvprsvg\stc</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\stc\scene_stc.hpp">
+      <Filter>algorithm\svgpp\nvprsvg\stc</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\svgpp\nvprsvg\nvpr\renderer_nvpr.hpp">
+      <Filter>algorithm\svgpp\nvprsvg\nvpr</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

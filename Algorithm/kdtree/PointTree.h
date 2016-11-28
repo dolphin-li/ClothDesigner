@@ -1,6 +1,6 @@
 #pragma once
 #include "nanoflann.hpp"
-#include "ldp_basic_vec.h"
+#include "ldpMat\ldp_basic_vec.h"
 namespace ldp
 {
 
