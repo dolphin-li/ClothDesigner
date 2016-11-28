@@ -22,6 +22,8 @@ public:
 	void timerEvent(QTimerEvent* ev);
 
 	void updateUiByParam();
+	Viewer2d* viewer2d() { return m_widget2d; }
+	Viewer3d* viewer3d() { return m_widget3d; }
 	public slots:
 	void on_pbResetSimulation_clicked();
 	void on_sbSparamOuterIter_valueChanged(int v);

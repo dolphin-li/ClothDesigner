@@ -5,6 +5,7 @@
 #include "Camera\camera.h"
 #include "event_handles\Abstract2dEventHandle.h"
 #include "cloth\clothManager.h"
+class ClothDesigner;
 class Viewer2d : public QGLWidget
 {
 	Q_OBJECT
@@ -13,8 +14,9 @@ public:
 	Viewer2d(QWidget *parent);
 	~Viewer2d();
 
-	void init(ldp::ClothManager* clothManager);
+	void init(ldp::ClothManager* clothManager, ClothDesigner* ui);
 	ldp::ClothManager* getManager() { return m_clothManager; }
+	ClothDesigner* getMainUI() { return m_mainUI; }
 	const ldp::Camera& camera()const{ return m_camera; }
 	ldp::Camera& camera(){ return m_camera; }
 	void resetCamera();
@@ -56,5 +58,6 @@ protected:
 	Abstract2dEventHandle* m_currentEventHandle;
 	std::vector<std::shared_ptr<Abstract2dEventHandle>> m_eventHandles;
 	ldp::ClothManager* m_clothManager;
+	ClothDesigner* m_mainUI;
 };
 

@@ -4,6 +4,8 @@
 #include "Renderable\ObjMesh.h"
 #include "Translate3dEventHandle.h"
 
+#include "../clothdesigner.h"
+#include "../Viewer2d.h"
 
 Translate3dEventHandle::Translate3dEventHandle(Viewer3d* v) : Abstract3dEventHandle(v)
 {
@@ -118,6 +120,8 @@ void Translate3dEventHandle::mouseMoveEvent(QMouseEvent *ev)
 			m_pickInfo.mesh->translate(dir);
 			m_viewer->getManager()->updateCurrentClothsToInitial();
 			m_viewer->translateTrackBall(dir);
+			if (m_viewer->getMainUI())
+				m_viewer->getMainUI()->viewer2d()->updateGL();
 			valid_op = true;
 		} // end if getPickedMeshFrameInfo
 	} // end if initial_cloth and left button

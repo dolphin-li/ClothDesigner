@@ -80,6 +80,7 @@ Viewer3d::Viewer3d(QWidget *parent)
 	m_currentEventHandle = nullptr;
 	m_fbo = nullptr;
 	m_clothManager = nullptr;
+	m_mainUI = nullptr;
 
 	m_eventHandles.resize((size_t)Abstract3dEventHandle::ProcessorTypeEnd, nullptr);
 	for (size_t i = (size_t)Abstract3dEventHandle::ProcessorTypeGeneral;
@@ -98,9 +99,10 @@ Viewer3d::~Viewer3d()
 
 }
 
-void Viewer3d::init(ldp::ClothManager* clothManager)
+void Viewer3d::init(ldp::ClothManager* clothManager, ClothDesigner* ui)
 {
 	m_clothManager = clothManager;
+	m_mainUI = ui;
 	resetCamera();
 }
 

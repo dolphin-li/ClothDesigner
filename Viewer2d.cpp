@@ -3,6 +3,7 @@
 #include "Viewer2d.h"
 #include "ldpMat\Quaternion.h"
 #include "cloth\clothPiece.h"
+
 #pragma region --mat_utils
 
 inline int colorToSelectId(ldp::Float4 c)
@@ -30,6 +31,7 @@ Viewer2d::Viewer2d(QWidget *parent)
 	m_currentEventHandle = nullptr;
 	m_fbo = nullptr;
 	m_clothManager = nullptr;
+	m_mainUI = nullptr;
 
 	m_eventHandles.resize((size_t)Abstract2dEventHandle::ProcessorTypeEnd, nullptr);
 	for (size_t i = (size_t)Abstract2dEventHandle::ProcessorTypeGeneral;
@@ -46,9 +48,10 @@ Viewer2d::~Viewer2d()
 
 }
 
-void Viewer2d::init(ldp::ClothManager* clothManager)
+void Viewer2d::init(ldp::ClothManager* clothManager, ClothDesigner* ui)
 {
 	m_clothManager = clothManager;
+	m_mainUI = ui;
 	resetCamera();
 }
 
@@ -57,26 +60,29 @@ void Viewer2d::resetCamera()
 	m_camera.setViewPort(0, width(), 0, height());
 	m_camera.enableOrtho(true);
 	const float as = float(width()) / float(height());
-	m_camera.setFrustum(-as, as, -1, 1, -1, 1);
+	m_camera.setFrustum(-as, as, -1, 1, -100, 100);
 	m_camera.lookAt(ldp::Float3(0, 0, 0), ldp::Float3(0, 0, -1), ldp::Float3(0, 1, 0));
-	if (m_clothManager)
-	{
-		ldp::Float2 bmin, bmax;
-		m_clothManager->get2dBound(bmin, bmax);
-		float x0 = bmin[0], x1 = bmax[0], y0 = bmin[1], y1 = bmax[1];
-		float bw = (x1 - x0) / 2, bh = (y1 - y0) / 2, mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
-		if (bw / bh < as)
-		{
-			x0 = mx - bh * as;
-			x1 = mx + bh * as;
-		}
-		else
-		{
-			y0 = my - bw / as;
-			y1 = my + bw / as;
-		}
-		m_camera.setFrustum(x0, x1, y0, y1, -1, 1);
-	}
+	//if (m_clothManager)
+	//{
+	//	ldp::Float2 bmin, bmax;
+	//	m_clothManager->get2dBound(bmin, bmax);
+	//	if (bmin != bmax)
+	//	{
+	//		float x0 = bmin[0], x1 = bmax[0], y0 = bmin[1], y1 = bmax[1];
+	//		float bw = (x1 - x0) / 2, bh = (y1 - y0) / 2, mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+	//		if (bw / bh < as)
+	//		{
+	//			x0 = mx - bh * as;
+	//			x1 = mx + bh * as;
+	//		}
+	//		else
+	//		{
+	//			y0 = my - bw / as;
+	//			y1 = my + bw / as;
+	//		}
+	//		m_camera.setFrustum(x0, x1, y0, y1, -1, 1);
+	//	}
+	//}
 }
 
 void Viewer2d::initializeGL()
@@ -120,7 +126,8 @@ void Viewer2d::resizeGL(int w, int h)
 	const float ny1 = m_camera.getFrustumBottom();
 	const float nxc = -(nx0 + nx1) / 2 + xc;
 	const float nyc = -(ny0 + ny1) / 2 + yc;
-	m_camera.setFrustum(nx0 + nxc, nx1 + nxc, ny0 + nyc, ny1 + nyc, -1, 1);
+	m_camera.setFrustum(nx0 + nxc, nx1 + nxc, ny0 + nyc, ny1 + nyc, 
+		m_camera.getFrustumNear(), m_camera.getFrustumFar());
 
 	if (m_fbo)
 		delete m_fbo;
@@ -147,7 +154,6 @@ void Viewer2d::paintGL()
 
 	if (m_clothManager)
 	{
-		m_clothManager->bodyMesh()->render(m_showType);
 		for (int i = 0; i < m_clothManager->numClothPieces(); i++)
 			m_clothManager->clothPiece(i)->mesh2d().render(m_showType);
 	}
@@ -207,6 +213,19 @@ void Viewer2d::renderBackground()
 	glVertex2f(lt[0], 0);
 	glVertex2f(rb[0], 0);
 	glEnd();
+
+	// render the body as two d
+	glEnable(GL_DEPTH_TEST);
+	glPushMatrix();
+	m_camera.apply();
+	glRotatef(90, 1, 0, 0);
+	glTranslatef(0, -50, 0);
+	glColor3f(0.6, 0.6, 0.6);
+	if (m_clothManager)
+	{
+		m_clothManager->bodyMesh()->render(Renderable::SW_F | Renderable::SW_SMOOTH);
+	}
+	glPopMatrix();
 
 	glPopAttrib();
 }

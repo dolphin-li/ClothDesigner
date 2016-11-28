@@ -21,7 +21,8 @@ ClothDesigner::ClothDesigner(QWidget *parent)
 	initLeftDockActions();
 
 	g_dataholder.init();
-	m_widget3d->init(g_dataholder.m_clothManager.get());
+	m_widget3d->init(g_dataholder.m_clothManager.get(), this);
+	m_widget2d->init(g_dataholder.m_clothManager.get(), this);
 
 	updateUiByParam();
 	m_simulateTimer = startTimer(1);

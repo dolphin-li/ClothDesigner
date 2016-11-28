@@ -5,6 +5,8 @@
 #include "Rotate3dEventHandle.h"
 #include "Renderable\ObjMesh.h"
 #include "cloth\clothManager.h"
+#include "../clothdesigner.h"
+#include "../Viewer2d.h"
 
 Rotate3dEventHandle::Rotate3dEventHandle(Viewer3d* v) : Abstract3dEventHandle(v)
 {
@@ -149,6 +151,8 @@ void Rotate3dEventHandle::mouseMoveEvent(QMouseEvent *ev)
 			m_viewer->rotateTrackBall(R*lastR.trans());
 			m_viewer->getManager()->updateCurrentClothsToInitial();
 			m_accumulatedRots[m_pickInfo.mesh] = R;
+			if (m_viewer->getMainUI())
+				m_viewer->getMainUI()->viewer2d()->updateGL();
 			valid_op = true;
 		} // end if getPickedMeshFrameInfo
 	} // end if initial_cloth and left button
