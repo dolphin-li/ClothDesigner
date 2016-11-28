@@ -166,6 +166,18 @@
     <ClCompile Include="Algorithm\cloth\device_memory.cpp">
       <Filter>algorithm\cloth</Filter>
     </ClCompile>
+    <ClCompile Include="Viewer2d.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Debug\moc_Viewer2d.cpp">
+      <Filter>Generated Files\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Release\moc_Viewer2d.cpp">
+      <Filter>Generated Files\Release</Filter>
+    </ClCompile>
+    <ClCompile Include="event_handles\Abstract2dEventHandle.cpp">
+      <Filter>event_handle</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">
@@ -181,6 +193,9 @@
       <Filter>Source Files</Filter>
     </CustomBuild>
     <CustomBuild Include="viewer3d.h">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Viewer2d.h">
       <Filter>Source Files</Filter>
     </CustomBuild>
   </ItemGroup>
@@ -331,6 +346,9 @@
     </ClInclude>
     <ClInclude Include="Algorithm\cloth\helper_math.h">
       <Filter>algorithm\cloth</Filter>
+    </ClInclude>
+    <ClInclude Include="event_handles\Abstract2dEventHandle.h">
+      <Filter>event_handle</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

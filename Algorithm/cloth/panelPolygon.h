@@ -14,12 +14,14 @@ namespace ldp
 		};
 	public:
 		virtual Type getType()const = 0;
-	private:
+		virtual Point startPoint()const = 0;
+		virtual Point endPoint()const = 0;
+	protected:
 	};
 
 	class Line : public AbstractShape
 	{
-
+		
 	};
 
 	class Cubic : public AbstractShape

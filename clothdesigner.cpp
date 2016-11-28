@@ -2,6 +2,7 @@
 #include <QGridLayout>
 #include "global_data_holder.h"
 
+#include "viewer2d.h"
 #include "viewer3d.h"
 
 ClothDesigner::ClothDesigner(QWidget *parent)
@@ -12,7 +13,7 @@ ClothDesigner::ClothDesigner(QWidget *parent)
 	ui.centralWidget->setLayout(new QGridLayout());
 	m_splitter = new QSplitter(ui.centralWidget);
 	ui.centralWidget->layout()->addWidget(m_splitter);
-	m_widget2d = new QWidget(m_splitter);
+	m_widget2d = new Viewer2d(m_splitter);
 	m_widget3d = new Viewer3d(m_splitter);
 	m_splitter->addWidget(m_widget3d);
 	m_splitter->addWidget(m_widget2d);

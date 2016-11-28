@@ -10,6 +10,7 @@
 #include "ldpMat\ldp_basic_mat.h"
 #include "event_handles\Abstract3dEventHandle.h"
 class Viewer3d;
+class Viewer2d;
 class ClothDesigner : public QMainWindow
 {
 	Q_OBJECT
@@ -41,7 +42,7 @@ public:
 private:
 	Ui::ClothDesignerClass ui;
 	QSplitter* m_splitter;
-	QWidget* m_widget2d;
+	Viewer2d* m_widget2d;
 	Viewer3d* m_widget3d;
 	int m_simulateTimer;
 	int m_fpsTimer;
