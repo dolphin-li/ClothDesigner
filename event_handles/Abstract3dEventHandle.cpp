@@ -186,13 +186,15 @@ void Abstract3dEventHandle::mouseMoveEvent(QMouseEvent *ev)
 
 void Abstract3dEventHandle::wheelEvent(QWheelEvent *ev)
 {
-	float s = 1.1;
+	float s = 1.2;
 	if (ev->delta() < 0)
 		s = 1.f / s;
 
-	float fov = std::max(1e-3f, std::min(160.f, m_viewer->camera().getFov()*s));
-	m_viewer->camera().setPerspective(fov, m_viewer->camera().getAspect(),
-		m_viewer->camera().getFrustumNear(), m_viewer->camera().getFrustumFar());
+	m_viewer->camera().scale(s);
+
+	//float fov = std::max(1e-3f, std::min(160.f, m_viewer->camera().getFov()*s));
+	//m_viewer->camera().setPerspective(fov, m_viewer->camera().getAspect(),
+	//	m_viewer->camera().getFrustumNear(), m_viewer->camera().getFrustumFar());
 }
 
 void Abstract3dEventHandle::keyPressEvent(QKeyEvent *ev)

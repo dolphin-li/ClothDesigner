@@ -174,8 +174,12 @@ void Viewer3d::paintGL()
 	glClearColor(0.3f, 0.3f, 0.3f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	ldp::Float3 light = 0.6 * m_camera.getScalar().length();
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, light.ptr());
+
 	// show cloth simulation=============================
 	m_camera.apply();
+	renderGroupPlane();
 	if (m_clothManager)
 	{
 		m_clothManager->bodyMesh()->render(m_showType);
@@ -185,6 +189,39 @@ void Viewer3d::paintGL()
 	}
 	renderTrackBall(false);
 	renderDragBox();
+}
+
+
+void Viewer3d::renderGroupPlane()
+{
+	glPushAttrib(GL_ALL_ATTRIB_BITS);
+
+	glDisable(GL_LIGHTING);
+	const float bg = -3, ed = 3, grid=0.1;
+	glColor3f(0.4, 0.4, 0.4);
+	glLineWidth(1);
+	glBegin(GL_LINES);
+	for (float x = bg; x <= ed; x += grid)
+	{
+		glVertex2f(x, bg);
+		glVertex2f(x, ed);
+	}
+	for (float y = bg; y < ed; y += grid)
+	{
+		glVertex2f(bg, y);
+		glVertex2f(ed, y);
+	}
+	glEnd();
+	glLineWidth(2);
+	glColor3f(0.5, 0.5, 0.5);
+	glBegin(GL_LINES);
+	glVertex2f(0, bg);
+	glVertex2f(0, ed);
+	glVertex2f(bg, 0);
+	glVertex2f(ed, 0);
+	glEnd();
+
+	glPopAttrib();
 }
 
 void Viewer3d::renderStitches()

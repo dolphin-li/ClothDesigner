@@ -68,6 +68,7 @@ protected:
 	void timerEvent(QTimerEvent* ev);
 	void renderMeshForSelection();
 	void renderStitches();
+	void renderGroupPlane();
 protected:
 	ldp::Camera m_camera;
 	QPoint m_lastPos;
