@@ -5,6 +5,8 @@
 #include <fstream>
 #include "PROGRESSING_BAR.h"
 #include "Renderable\ObjMesh.h"
+#include <eigen\Dense>
+#include <eigen\Sparse>
 #define ENABLE_DEBUG_DUMPING
 
 namespace ldp
@@ -33,7 +35,11 @@ namespace ldp
 		m_fps = 0;
 		m_avgArea = 0;
 		m_avgEdgeLength = 0;
+		m_curStitchRatio = 0;
 		m_shouldMergePieces = false;
+		m_shouldTopologyUpdate = false;
+		m_shouldNumericUpdate = false;
+		m_shouldStitchUpdate = false;
 	}
 
 	ClothManager::~ClothManager()
@@ -60,7 +66,7 @@ namespace ldp
 
 		m_fps = 0;
 
-		clearStiches();
+		clearstitches();
 		clearClothPieces();
 	}
 
@@ -103,11 +109,13 @@ namespace ldp
 			return;
 		for (size_t i = 0; i < m_clothPieces.size(); i++)
 			m_clothPieces[i]->mesh3d().cloneFrom(&m_clothPieces[i]->mesh3dInit());
+		m_dev_phi.upload(m_bodyLvSet->value(), m_bodyLvSet->sizeXYZ());
 		m_shouldMergePieces = true;
+		m_curStitchRatio = 1;
+		mergePieces();
 		buildTopology();
-		allocateGpuMemory();
 		buildNumerical();
-		copyToGpuMatrix();
+		buildStitch();
 		m_simulationMode = SimulationPause;
 	}
 
@@ -117,6 +125,15 @@ namespace ldp
 			return;
 		if (m_X.size() == 0)
 			return;
+
+		if (m_shouldMergePieces)
+			mergePieces();
+		if (m_shouldTopologyUpdate)
+			buildTopology();
+		if (m_shouldNumericUpdate)
+			buildNumerical();
+		if (m_shouldStitchUpdate)
+			buildStitch();
 
 		gtime_t t_begin = ldp::gtime_now();
 
@@ -131,6 +148,9 @@ namespace ldp
 				if (dir_length>0.1)	dir_length = 0.1;
 				m_curDragInfo.dir *= dir_length;
 			}
+
+			m_curStitchRatio = std::max(0.f, m_curStitchRatio - 
+				m_simulationParam.stitch_ratio * m_simulationParam.time_step);
 
 			// backup
 			m_dev_X.copyTo(m_dev_old_X);
@@ -194,7 +214,6 @@ namespace ldp
 	{
 		m_simulationMode = SimulationNotInit;
 		updateInitialClothsToCurrent();
-		//releaseGpuMemory();
 	}
 
 	void ClothManager::setSimulationMode(SimulationMode mode)
@@ -227,22 +246,12 @@ namespace ldp
 			m_simulationParam.gravity[1], m_simulationParam.gravity[2]);
 #endif
 		
-		bool matrixNumericUpdate = false;
 		if (fabs(lastParam.spring_k - m_simulationParam.spring_k) >= std::numeric_limits<float>::epsilon())
-			matrixNumericUpdate = true;
+			m_shouldNumericUpdate = true;
 		if (fabs(lastParam.bending_k - m_simulationParam.bending_k) >= std::numeric_limits<float>::epsilon())
-			matrixNumericUpdate = true;
+			m_shouldNumericUpdate = true;
 		if (fabs(lastParam.stitch_k - m_simulationParam.stitch_k) >= std::numeric_limits<float>::epsilon())
-			matrixNumericUpdate = true;
-
-		// some parameter changes will have effects on the precompuated matrix..
-		if (matrixNumericUpdate)
-		{
-			buildNumerical();
-			m_dev_all_VL.upload(m_allVL);
-			m_dev_all_VW.upload(m_allVW);
-			m_dev_all_VC.upload(m_allVC);
-		} // end if spring_k updated
+			m_shouldStitchUpdate = true;
 	}
 
 	SimulationParam::SimulationParam()
@@ -259,11 +268,12 @@ namespace ldp
 		bending_k = 10;
 		spring_k_raw = 1000;
 		spring_k = 0;//will be updated after built topology
-		stitch_k_raw = 1000;
+		stitch_k_raw = 150000;
 		stitch_k = 0;//will be updated after built topology
 		out_iter = 8;
 		inner_iter = 40;
 		time_step = 1.0 / 240.0;
+		stitch_ratio = 10;
 		control_mag = 400;
 		gravity = ldp::Float3(0, 0, -9.8);
 	}
@@ -355,11 +365,17 @@ namespace ldp
 		}
 
 		m_shouldMergePieces = false;
+		m_shouldTopologyUpdate = true;
 	}
 
-	void ClothManager::clearStiches()
+	void ClothManager::clearstitches()
 	{
-		m_stiches.clear();
+		m_stitches.clear();
+		m_stitchVV.clear();
+		m_stitchVV_num.clear();
+		m_stitchVC.clear();
+		m_stitchVW.clear();
+		m_stitchVL.clear();
 	}
 
 	void ClothManager::addStitchVert(const ClothPiece* cloth1, int mesh_vid1, const ClothPiece* cloth2, int mesh_vid2)
@@ -367,51 +383,88 @@ namespace ldp
 		if (m_shouldMergePieces)
 			mergePieces();
 
-		int vid[2] = { 0 };
+		Int2 vid;
 
 		// convert from mesh id to global id
 		vid[0] = mesh_vid1 + m_clothVertBegin.at(&cloth1->mesh3d());
 		vid[1] = mesh_vid2 + m_clothVertBegin.at(&cloth2->mesh3d());
 
-		StitchEle ele[2];
-		for (int idx = 0; idx < 2; idx++)
-		{
-			auto v = m_bmeshVerts.at(vid[idx]);
-			BMESH_F_OF_V(f, v, viter, *m_bmesh)
-			{
-				ele[idx].vids = Int3(m_T.at(f->getIndex()));
-				int pos = -1;
-				for (int k = 0; k < 3; k++)
-				{
-					if (vid[idx] == ele[idx].vids[k])
-					{
-						pos = k;
-						break;
-					}
-				}
-				if (pos == -1)
-					throw std::exception("ClothManager::addStitchVert(), topology error");
-				ele[idx].innerCoords = Vec3(0);
-				ele[idx].innerCoords[pos] = ValueType(1);
-				break;
-			} // end for f
-		} // end for idx
+		m_stitches.push_back(vid);
 
-		m_stiches.push_back(std::make_pair(ele[0], ele[1]));
+		m_shouldStitchUpdate = true;
 	}
 
 	std::pair<Float3, Float3> ClothManager::getStitchPos(int i)const
 	{
-		const auto& stp = m_stiches.at(i);
+		const auto& stp = m_stitches.at(i);
 
 		std::pair<Float3, Float3> vp;
-		vp.first = m_X[stp.first.vids[0]] * stp.first.innerCoords[0] +
-			m_X[stp.first.vids[1]] * stp.first.innerCoords[1] +
-			m_X[stp.first.vids[2]] * stp.first.innerCoords[2];
-		vp.second = m_X[stp.second.vids[0]] * stp.second.innerCoords[0] +
-			m_X[stp.second.vids[1]] * stp.second.innerCoords[1] +
-			m_X[stp.second.vids[2]] * stp.second.innerCoords[2];
+		vp.first = m_X[stp[0]];
+		vp.second = m_X[stp[1]];
 		return vp;
+	}
+
+	void ClothManager::buildStitch()
+	{
+		if (m_shouldNumericUpdate)
+			buildNumerical();
+		m_simulationParam.stitch_k = m_simulationParam.stitch_k_raw / m_avgArea;
+
+		// build edges
+		auto edges = m_stitches;
+		for (const auto& s : m_stitches)
+			edges.push_back(Int2(s[1], s[0]));
+		std::sort(edges.begin(), edges.end());
+		edges.resize(std::unique(edges.begin(), edges.end()) - edges.begin());
+
+		// setup one-ring vertex info
+		size_t eIdx = 0;
+		m_stitchVV_num.clear();
+		m_stitchVV_num.reserve(m_X.size() + 1);
+		m_stitchVV.clear();
+		for (size_t i = 0; i<m_X.size(); i++)
+		{
+			m_stitchVV_num.push_back(m_stitchVV.size());
+			for (; eIdx<edges.size(); eIdx++)
+			{
+				const auto& e = edges[eIdx];
+				if (e[0] != i)
+					break;		// not in the right vertex
+				if (eIdx != 0 && e[1] == e[0])
+					continue;	// duplicate
+				m_stitchVV.push_back(e[1]);
+			}
+		} // end for i
+		m_stitchVV_num.push_back(m_stitchVV.size());
+
+		// compute matrix related values
+		m_stitchVL.resize(m_stitchVV.size());
+		m_stitchVW.resize(m_stitchVV.size());
+		m_stitchVC.resize(m_X.size());
+		std::fill(m_stitchVL.begin(), m_stitchVL.end(), ValueType(-1));
+		std::fill(m_stitchVW.begin(), m_stitchVW.end(), ValueType(0));
+		std::fill(m_stitchVC.begin(), m_stitchVC.end(), ValueType(0));
+		for (size_t iv = 0; iv < m_stitches.size(); iv++)
+		{
+			const auto& v = m_stitches[iv];
+
+			// first, handle spring length			
+			ValueType l = (m_X[v[0]] - m_X[v[1]]).length();
+			m_stitchVL[findStitchNeighbor(v[0], v[1])] = l;
+			m_stitchVL[findStitchNeighbor(v[1], v[0])] = l;
+			m_stitchVC[v[0]] += m_simulationParam.stitch_k;
+			m_stitchVC[v[1]] += m_simulationParam.stitch_k;
+			m_stitchVW[findStitchNeighbor(v[0], v[1])] -= m_simulationParam.stitch_k;
+			m_stitchVW[findStitchNeighbor(v[1], v[0])] -= m_simulationParam.stitch_k;
+		} // end for all edges
+
+		// copy to GPU
+		m_dev_stitch_VV.upload(m_stitchVV);
+		m_dev_stitch_VV_num.upload(m_stitchVV_num);
+		m_dev_stitch_VC.upload(m_stitchVC);
+		m_dev_stitch_VW.upload(m_stitchVW);
+		m_dev_stitch_VL.upload(m_stitchVL);
+		m_shouldStitchUpdate = false;
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////
@@ -432,10 +485,10 @@ namespace ldp
 			ldp::Int2 vori(m_bmesh->vofe_first(e)->getIndex(),
 				m_bmesh->vofe_last(e)->getIndex());
 			m_allE.push_back(vori);
-			m_allE.push_back(ldp::Int2(vori[1], vori[0]));
+			m_allE.push_back(Int2(vori[1], vori[0]));
 			if (m_bmesh->fofe_count(e) > 2)
 				throw std::exception("error: non-manifold mesh found!");
-			ldp::Int2 vbend = -1;
+			Int2 vbend = -1;
 			int vcnt = 0;
 			BMESH_F_OF_E(f, e, fiter, *m_bmesh)
 			{
@@ -450,15 +503,19 @@ namespace ldp
 			if (vbend[0] >= 0 && vbend[1] >= 0)
 			{
 				m_allE.push_back(vbend);
-				m_allE.push_back(ldp::Int2(vbend[1], vbend[0]));
+				m_allE.push_back(Int2(vbend[1], vbend[0]));
 			}
-			m_edgeWithBendEdge.push_back(ldp::Int4(vori[0], vori[1], vbend[0], vbend[1]));
+			m_edgeWithBendEdge.push_back(Int4(vori[0], vori[1], vbend[0], vbend[1]));
 		} // end for all edges
+
+		// sort edges
 		std::sort(m_allE.begin(), m_allE.end());
 		m_allE.resize(std::unique(m_allE.begin(), m_allE.end()) - m_allE.begin());
 
 		// setup one-ring vertex info
 		size_t eIdx = 0;
+		m_allVV_num.clear();
+		m_allVV.clear();
 		m_allVV_num.reserve(m_X.size()+1);
 		for (size_t i = 0; i<m_X.size(); i++)
 		{
@@ -475,12 +532,21 @@ namespace ldp
 		} // end for i
 		m_allVV_num.push_back(m_allVV.size());
 
+		// copy to GPU
+		m_dev_T.upload((const int*)m_T.data(), m_T.size() * 3);
+		m_dev_all_VV.upload(m_allVV);
+		m_dev_all_vv_num.upload(m_allVV_num);
+
+		// parameter
 		m_simulationParam.spring_k = m_simulationParam.spring_k_raw / m_avgArea;
-		m_simulationParam.stitch_k = m_simulationParam.stitch_k_raw / m_avgArea;
+		m_shouldTopologyUpdate = false;
+		m_shouldNumericUpdate = true;
 	}
 
 	void ClothManager::buildNumerical()
 	{
+		if (m_shouldTopologyUpdate)
+			buildTopology();
 		// compute matrix related values
 		m_allVL.resize(m_allVV.size());
 		m_allVW.resize(m_allVV.size());
@@ -528,6 +594,24 @@ namespace ldp
 					m_allVW[findNeighbor(v[i], v[j])] += k[i] * k[j] * m_simulationParam.bending_k*weight;
 			}
 		} // end for all edges
+
+		// copy to GPU
+		m_dev_X.upload((const ValueType*)m_X.data(), m_X.size() * 3);
+		m_dev_old_X.upload((const ValueType*)m_X.data(), m_X.size() * 3);
+		m_dev_next_X.upload((const ValueType*)m_X.data(), m_X.size() * 3);
+		m_dev_prev_X.upload((const ValueType*)m_X.data(), m_X.size() * 3);
+		m_dev_fixed.upload(m_fixed);
+		m_dev_more_fixed.upload(m_fixed);
+		m_dev_V.upload((const ValueType*)m_V.data(), m_V.size() * 3);
+		m_dev_init_B.create(m_X.size()*3);
+		cudaMemset(m_dev_init_B.ptr(), 0, m_dev_init_B.sizeBytes());
+		m_dev_all_VL.upload(m_allVL);
+		m_dev_all_VW.upload(m_allVW);
+		m_dev_all_VC.upload(m_allVC);
+
+		// parameter
+		m_shouldNumericUpdate = false;
+		m_shouldStitchUpdate = true;
 	}
 
 	int ClothManager::findNeighbor(int i, int j)const
@@ -539,67 +623,13 @@ namespace ldp
 		return -1;
 	}
 
-	void ClothManager::allocateGpuMemory()
+	int ClothManager::findStitchNeighbor(int i, int j)const
 	{
-		const int nverts = (int)m_X.size();
-		const int ntris = (int)m_T.size();
-		const int nvv = m_allVV_num.back();
-		m_dev_X.create(nverts * 3);
-		m_dev_old_X.create(nverts * 3);
-		m_dev_next_X.create(nverts * 3);
-		m_dev_prev_X.create(nverts * 3);
-		m_dev_fixed.create(nverts);
-		m_dev_more_fixed.create(nverts);
-		m_dev_V.create(nverts * 3);
-		m_dev_init_B.create(nverts * 3);
-		m_dev_T.create(ntris * 3);
-		m_dev_all_VV.create(nvv);
-		m_dev_all_vv_num.create(nverts + 1);
-		m_dev_all_VL.create(nvv);
-		m_dev_all_VW.create(nvv);
-		m_dev_all_VC.create(nverts);
-		m_dev_new_VC.create(nverts);
-		m_dev_phi.create(m_bodyLvSet->sizeXYZ());
-	}
-
-	void ClothManager::releaseGpuMemory()
-	{
-		m_dev_X.release();			
-		m_dev_old_X.release();
-		m_dev_next_X.release();
-		m_dev_prev_X.release();
-		m_dev_fixed.release();
-		m_dev_more_fixed.release();
-		m_dev_V.release();
-		m_dev_init_B.release();
-		m_dev_T.release();
-		m_dev_all_VV.release();
-		m_dev_all_vv_num.release();
-		m_dev_all_VL.release();
-		m_dev_all_VW.release();
-		m_dev_all_VC.release();
-		m_dev_new_VC.release();
-		m_dev_phi.release();
-	}
-
-	void ClothManager::copyToGpuMatrix()
-	{
-		m_dev_X.upload((const ValueType*)m_X.data(), m_X.size() * 3);
-		m_dev_old_X.upload((const ValueType*)m_X.data(), m_X.size() * 3);
-		m_dev_next_X.upload((const ValueType*)m_X.data(), m_X.size() * 3);
-		m_dev_prev_X.upload((const ValueType*)m_X.data(), m_X.size() * 3);
-		m_dev_fixed.upload(m_fixed);
-		cudaMemset(m_dev_more_fixed, 0, m_dev_fixed.sizeBytes());
-		m_dev_V.upload((const ValueType*)m_V.data(), m_V.size() * 3);
-		cudaMemset(m_dev_init_B.ptr(), 0, m_dev_init_B.sizeBytes());
-		m_dev_T.upload((const int*)m_T.data(), m_T.size() * 3);
-		m_dev_all_VV.upload(m_allVV);
-		m_dev_all_vv_num.upload(m_allVV_num);
-		m_dev_all_VL.upload(m_allVL);
-		m_dev_all_VW.upload(m_allVW);
-		m_dev_all_VC.upload(m_allVC);
-		cudaMemset(m_dev_new_VC.ptr(), 0, m_dev_new_VC.sizeBytes());
-		m_dev_phi.upload(m_bodyLvSet->value(), m_bodyLvSet->sizeXYZ());
+		for (int index = m_stitchVV_num[i]; index<m_stitchVV_num[i + 1]; index++)
+		if (m_stitchVV[index] == j)
+			return index;
+		printf("ERROR: failed to find the neighbor in stich_VV.\n"); getchar();
+		return -1;
 	}
 
 	void ClothManager::debug_save_values()

@@ -132,33 +132,63 @@ namespace ldp
 #pragma region --constrain1
 	__global__ void Constraint_1_Kernel(const float* X, const float* init_B,
 		float* next_X, const int* all_VV, const float* all_VL, const float* all_VW, 
-		const float* new_VC, const int* all_vv_num, const float spring_k, const int number)
+		const float* new_VC, const int* all_vv_num, const float spring_k, const int number,
+		const int* stitch_VV, const float* stitch_VW, const float* stitch_VC, const int* stitch_vv_num,
+		const float* stitch_VL, float stitch_k, float stitch_ratio)
 	{
-		int i = blockDim.x * blockIdx.x + threadIdx.x;
+		const int i = blockDim.x * blockIdx.x + threadIdx.x;
 		if (i >= number)	return;
 
 		float3 b = make_float3(init_B[i * 3 + 0], init_B[i * 3 + 1], init_B[i * 3 + 2]);
 		float3 k = make_float3(0, 0, 0);
-		float3 xi = make_float3(X[i * 3 + 0], X[i * 3 + 1], X[i * 3 + 2]);
+		const float3 xi = make_float3(X[i * 3 + 0], X[i * 3 + 1], X[i * 3 + 2]);
+		float diag = new_VC[i];
 
 		const int bg = all_vv_num[i], ed = all_vv_num[i + 1];
 		for (int index = bg; index<ed; index++)
 		{
-			int j = all_VV[index];
+			const int j = all_VV[index];
 			float jl = all_VL[index];
-			float3 xj = make_float3(X[j * 3 + 0], X[j * 3 + 1], X[j * 3 + 2]);
+			const float3 xj = make_float3(X[j * 3 + 0], X[j * 3 + 1], X[j * 3 + 2]);
 
 			// Remove the off-diagonal (Jacobi method)
 			b -= all_VW[index] * xj;
 
 			// Add the other part of b: spring-length constraint
 			jl *= (jl != -1); //the same as if (jl == -1)	continue;
-			float3 d = normalize(xi - xj);
+			const float3 d = normalize(xi - xj);
 			b += d * spring_k* jl;
 			k += (d * d + max(0., 1.-jl) * (1 - d * d) - 1) * spring_k; // ldp: what is this? cannot understand
 		}
 
-		float3 nxi = xi + (b - new_VC[i] * xi) / (new_VC[i] + k);
+		// handel stitch
+		if (stitch_VV)
+		{
+			const int bg = stitch_vv_num[i], ed = stitch_vv_num[i + 1];
+			for (int index = bg; index<ed; index++)
+			{
+				const int j = stitch_VV[index];
+				float jl = stitch_VL[index];
+				const float3 xj = make_float3(X[j * 3 + 0], X[j * 3 + 1], X[j * 3 + 2]);
+
+				// Remove the off-diagonal (Jacobi method)
+				b -= stitch_VW[index] * xj;
+
+				// Add the other part of b: spring-length constraint
+				jl *= (jl != -1) * stitch_ratio; //the same as if (jl == -1)	continue;
+				float3 d = xi - xj;
+				float d_len = length(xi - xj);
+				if (d_len < 1e-16)
+					d = make_float3(0, 0, 0);
+				else
+					d /= d_len;
+				b += d * stitch_k* jl;
+				k += (d * d + max(0., 1. - jl) * (1 - d * d) - 1) * stitch_k; // ldp: what is this? cannot understand
+			}
+			diag += stitch_VC[i];
+		} // end if stitch_VV
+
+		const float3 nxi = xi + (b - diag * xi) / (diag + k);
 
 		next_X[i * 3 + 0] = nxi.x;
 		next_X[i * 3 + 1] = nxi.y;
@@ -171,7 +201,9 @@ namespace ldp
 		Constraint_1_Kernel << <blocksPerGrid, threadsPerBlock >> >(
 			m_dev_X.ptr(), m_dev_init_B.ptr(), m_dev_next_X.ptr(), 
 			m_dev_all_VV.ptr(), m_dev_all_VL.ptr(), m_dev_all_VW.ptr(), m_dev_new_VC.ptr(), 
-			m_dev_all_vv_num.ptr(), m_simulationParam.spring_k, m_X.size());
+			m_dev_all_vv_num.ptr(), m_simulationParam.spring_k, m_X.size(),
+			m_dev_stitch_VV.ptr(), m_dev_stitch_VW.ptr(), m_dev_stitch_VC.ptr(), m_dev_stitch_VV_num.ptr(),
+			m_dev_stitch_VL.ptr(), m_simulationParam.stitch_k, m_curStitchRatio);
 		cudaSafeCall(cudaGetLastError(), "constrain1");
 	}
 #pragma endregion

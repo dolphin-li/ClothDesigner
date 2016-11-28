@@ -23,6 +23,7 @@ namespace ldp
 		float spring_k_raw;		// spring_k_raw / avgArea = spring_k
 		float stitch_k;			// stiffness of stithed vertex, for sewing
 		float stitch_k_raw;		// stitch_k_raw / avgArea = stitch_k
+		float stitch_ratio;		// for each stitch, the length will -= ratio*time_step each update
 		int out_iter;			// number of iterations
 		int inner_iter;			// number of iterations
 		float control_mag;		// for dragging, the stiffness of dragged point
@@ -55,6 +56,7 @@ namespace ldp
 	public:
 		typedef float ValueType;
 		typedef ldp::ldp_basic_vec3<float> Vec3;
+		typedef ldp::ldp_basic_vec2<float> Vec2;
 		enum SimulationMode
 		{
 			SimulationNotInit,
@@ -72,14 +74,6 @@ namespace ldp
 				vert_id = -1;
 			}
 		};
-
-		struct StitchEle
-		{
-			Int3 vids;
-			Vec3 innerCoords;
-		};
-
-		typedef std::pair<StitchEle, StitchEle> StitchElePair;
 	public:
 		ClothManager();
 		~ClothManager();
@@ -105,7 +99,7 @@ namespace ldp
 		void updateInitialClothsToCurrent();
 
 		/// stitch related
-		void clearStiches();
+		void clearstitches();
 		void addStitchVert(const ClothPiece* cloth1, int mesh_vid1, const ClothPiece* cloth2, int mesh_vid2);
 
 		/// getters
@@ -122,7 +116,7 @@ namespace ldp
 		void addClothPiece(std::shared_ptr<ClothPiece> piece);
 		void removeClothPiece(int i);
 		SimulationParam getSimulationParam()const { return m_simulationParam; }
-		int numStitches()const { return (int)m_stiches.size(); }
+		int numStitches()const { return (int)m_stitches.size(); }
 		std::pair<Float3, Float3> getStitchPos(int i)const;
 	private:
 		std::vector<std::shared_ptr<ClothPiece>> m_clothPieces;
@@ -134,13 +128,18 @@ namespace ldp
 		ValueType m_avgEdgeLength;
 		ValueType m_fps;
 		bool m_shouldMergePieces;
+		bool m_shouldTopologyUpdate;
+		bool m_shouldNumericUpdate;
+		bool m_shouldStitchUpdate;
 		DragInfoInternal m_curDragInfo;
 		// Topology related--------------------------------------------------------------
 	protected:
 		void mergePieces();
 		void buildTopology();
 		void buildNumerical();
+		void buildStitch();
 		int findNeighbor(int i, int j)const;
+		int findStitchNeighbor(int i, int j)const;
 	private:
 		std::shared_ptr<BMesh> m_bmesh;					// topology mesh
 		std::vector<BMVert*> m_bmeshVerts;				// topology mesh
@@ -156,12 +155,15 @@ namespace ldp
 		std::vector<int> m_allVV_num;					// num of one-ring vertex of each vertex
 		std::vector<ValueType> m_fixed;					// fix constraints of vertices
 		std::vector<Int4> m_edgeWithBendEdge;			// original edges + beding edges, before sorted and unique.
-		std::vector<StitchElePair> m_stiches;			// the elements that must be stiched together, for sewing
+		std::vector<Int2> m_stitches;					// the elements that must be stitched together, for sewing
+		std::vector<int> m_stitchVV;
+		std::vector<int> m_stitchVV_num;
+		std::vector<ValueType> m_stitchVW;
+		std::vector<ValueType> m_stitchVC;
+		std::vector<ValueType> m_stitchVL;		
+		ValueType m_curStitchRatio;
 		// GPU related-------------------------------------------------------------------
 	protected:
-		void allocateGpuMemory();
-		void releaseGpuMemory();
-		void copyToGpuMatrix();
 		void debug_save_values();
 
 		///// kernel wrappers
@@ -190,6 +192,11 @@ namespace ldp
 		DeviceArray<ValueType> m_dev_all_VC;		// diagnal values
 		DeviceArray<ValueType> m_dev_new_VC;		// diagnal values 
 		DeviceArray<ValueType> m_dev_phi;			// level set values
+		DeviceArray<int> m_dev_stitch_VV;
+		DeviceArray<int> m_dev_stitch_VV_num;
+		DeviceArray<ValueType> m_dev_stitch_VW;
+		DeviceArray<ValueType> m_dev_stitch_VC;
+		DeviceArray<ValueType> m_dev_stitch_VL;
 #ifdef ENABLE_SELF_COLLISION
 		COLLISION_HANDLER<ValueType> m_collider;
 #endif

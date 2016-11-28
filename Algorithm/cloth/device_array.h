@@ -282,8 +282,8 @@ template<class T> inline size_t DeviceArray<T>::size() const { return sizeBytes(
 template<class T> inline       T* DeviceArray<T>::ptr()       { return DeviceMemory::ptr<T>(); }
 template<class T> inline const T* DeviceArray<T>::ptr() const { return DeviceMemory::ptr<T>(); }
 
-template<class T> template<class A> inline void DeviceArray<T>::upload(const std::vector<T, A>& data) { upload(&data[0], data.size()); }
-template<class T> template<class A> inline void DeviceArray<T>::download(std::vector<T, A>& data) const { data.resize(size()); if (!data.empty()) download(&data[0]); }
+template<class T> template<class A> inline void DeviceArray<T>::upload(const std::vector<T, A>& data) { upload(data.data(), data.size()); }
+template<class T> template<class A> inline void DeviceArray<T>::download(std::vector<T, A>& data) const { data.resize(size()); if (!data.empty()) download(data.data()); }
 
 /////////////////////  Inline implementations of DeviceArray2D ////////////////////////////////////////////
 
@@ -307,10 +307,14 @@ template<class T> inline void DeviceArray2D<T>::download(void *host_ptr, size_t 
 { DeviceMemory2D::download( host_ptr, host_step ); }
 
 template<class T> template<class A> inline void DeviceArray2D<T>::upload(const std::vector<T, A>& data, int cols) 
-{ upload(&data[0], cols * elem_size, data.size()/cols, cols); }
+{
+	upload(data.data(), cols * elem_size, data.size() / cols, cols);
+}
 
 template<class T> template<class A> inline void DeviceArray2D<T>::download(std::vector<T, A>& data, int& elem_step) const 
-{ elem_step = cols(); data.resize(cols() * rows()); if (!data.empty()) download(&data[0], colsBytes());  }
+{
+	elem_step = cols(); data.resize(cols() * rows()); if (!data.empty()) download(data.data(), colsBytes());
+}
 
 template<class T> void  DeviceArray2D<T>::swap(DeviceArray2D& other_arg) { DeviceMemory2D::swap(other_arg); }
 
