@@ -151,11 +151,11 @@ namespace ldp
 			// Remove the off-diagonal (Jacobi method)
 			b -= all_VW[index] * xj;
 
-			// Add the other part of b
-			jl *= (jl != -1); //if (jl == -1)	continue;
+			// Add the other part of b: spring-length constraint
+			jl *= (jl != -1); //the same as if (jl == -1)	continue;
 			float3 d = normalize(xi - xj);
 			b += d * spring_k* jl;
-			k += (d * d + max(0., 1.-jl) * (1 - d * d) - 1) * spring_k;
+			k += (d * d + max(0., 1.-jl) * (1 - d * d) - 1) * spring_k; // ldp: what is this? cannot understand
 		}
 
 		float3 nxi = xi + (b - new_VC[i] * xi) / (new_VC[i] + k);

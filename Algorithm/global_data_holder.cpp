@@ -8,7 +8,7 @@ void GlobalDataHolder::init()
 {
 	m_clothManager.reset(new ldp::ClothManager);
 
-	debug_4();
+	debug_2();
 
 	m_clothManager->simulationInit();
 }
