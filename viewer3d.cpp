@@ -108,6 +108,7 @@ void Viewer3d::init(ldp::ClothManager* clothManager, ClothDesigner* ui)
 
 void Viewer3d::resetCamera()
 {
+	m_camera.setModelViewMatrix(ldp::Mat4f().eye());
 	m_camera.setPerspective(60, float(width()) / float(height()), 0.1, 10000);
 	ldp::Float3 c = 0.f;
 	float l = 1.f;

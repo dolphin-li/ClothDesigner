@@ -7,6 +7,8 @@
 #include "Renderable\ObjMesh.h"
 #include <eigen\Dense>
 #include <eigen\Sparse>
+#include "svgpp\SvgManager.h"
+#include "svgpp\SvgPolyPath.h"
 #define ENABLE_DEBUG_DUMPING
 
 namespace ldp
@@ -689,5 +691,16 @@ namespace ldp
 			}
 		}
 		return;
+	}
+
+
+	//////////////////////////////////////////////////////////////////////////////////
+	void ClothManager::loadPiecesFromSvg(std::string filename)
+	{
+		svg::SvgManager svgManager;
+		svgManager.load(filename.c_str());
+
+		auto polyPaths = svgManager.collectPolyPaths(false);
+		auto edgeGroups = svgManager.collectEdgeGroups(false);
 	}
 }

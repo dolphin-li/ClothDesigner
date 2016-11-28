@@ -46,6 +46,23 @@ void ClothDesigner::timerEvent(QTimerEvent* ev)
 		setWindowTitle(QString().sprintf("fps: %f", g_dataholder.m_clothManager->getFps()));
 }
 
+
+void ClothDesigner::on_actionLoad_svg_triggered()
+{
+	try
+	{
+		g_dataholder.debug_5();
+		g_dataholder.m_clothManager->simulationInit();
+		m_widget3d->init(g_dataholder.m_clothManager.get(), this);
+		m_widget2d->init(g_dataholder.m_clothManager.get(), this);
+		m_widget2d->updateGL();
+		m_widget3d->updateGL();
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+}
+
 void ClothDesigner::initLeftDockActions()
 {
 	m_ldbSignalMapper.reset(new QSignalMapper(this));

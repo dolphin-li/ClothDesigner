@@ -31,6 +31,7 @@
     <addaction name="actionOpen_body_mesh"/>
     <addaction name="actionImport_cloth_mesh"/>
     <addaction name="actionSave_project"/>
+    <addaction name="actionLoad_svg"/>
    </widget>
    <addaction name="menuFile"/>
   </widget>
@@ -46,7 +47,7 @@
   <widget class="QDockWidget" name="dockWidgetRight">
    <property name="minimumSize">
     <size>
-     <width>150</width>
+     <width>250</width>
      <height>459</height>
     </size>
    </property>
@@ -359,6 +360,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+S</string>
+   </property>
+  </action>
+  <action name="actionLoad_svg">
+   <property name="text">
+    <string>load svg</string>
    </property>
   </action>
  </widget>

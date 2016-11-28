@@ -80,6 +80,9 @@ namespace ldp
 
 		void clear();
 
+		// load cloth pieces from svg of my format.
+		void loadPiecesFromSvg(std::string filename);
+
 		/// simulation main functions
 		void simulationInit();							// must be called after the body and all cloths ready.
 		void simulationUpdate();

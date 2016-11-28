@@ -1,3 +1,4 @@
+#include "gl\glew.h"
 #include "clothdesigner.h"
 #include <QtWidgets/QApplication>
 #include <QFile>

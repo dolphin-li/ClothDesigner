@@ -87,6 +87,7 @@ void Viewer2d::resetCamera()
 
 void Viewer2d::initializeGL()
 {
+	glewInit();
 	glDisable(GL_TEXTURE_2D);
 	glEnable(GL_MULTISAMPLE);
 	glEnable(GL_DEPTH_TEST);
@@ -102,13 +103,6 @@ void Viewer2d::initializeGL()
 		| Renderable::SW_LIGHTING;
 
 	resetCamera();
-
-	// fbo
-	QGLFramebufferObjectFormat fmt;
-	fmt.setAttachment(QGLFramebufferObject::CombinedDepthStencil);
-	m_fbo = new QGLFramebufferObject(width(), height(), fmt);
-	if (!m_fbo->isValid())
-		printf("error: invalid depth fbo!\n");
 }
 
 void Viewer2d::resizeGL(int w, int h)

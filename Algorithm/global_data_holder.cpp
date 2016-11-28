@@ -7,10 +7,6 @@ GlobalDataHolder g_dataholder;
 void GlobalDataHolder::init()
 {
 	m_clothManager.reset(new ldp::ClothManager);
-
-	debug_4();
-
-	m_clothManager->simulationInit();
 }
 
 void GlobalDataHolder::debug_1()
@@ -149,5 +145,44 @@ void GlobalDataHolder::debug_4()
 		m_clothManager->bodyLevelSet()->create(res, start, step);
 		m_clothManager->bodyLevelSet()->fromMesh(*body);
 		m_clothManager->bodyLevelSet()->save("data/debug4_body.set");
+	}
+}
+
+void GlobalDataHolder::debug_5()
+{
+	m_clothManager->bodyMesh()->loadObj("data/wm2_15k.obj", true, false);
+
+	auto body = m_clothManager->bodyMesh();
+
+	body->translate((body->boundingBox[0]+body->boundingBox[1])*-0.5f);
+	body->rotateByCenter(ldp::QuaternionF().fromAngles(ldp::Float3(ldp::PI_S/2, 0, ldp::PI_S)).toRotationMatrix3());
+	body->scaleByCenter(2.619848);
+
+	auto mat = body->default_material;
+	mat.diff = ldp::Float3(0.5, 0.7, 0.8);
+	body->material_list.clear();
+	body->material_list.push_back(mat);
+	for (auto& f : body->face_list)
+		f.material_index = 0;
+
+	m_clothManager->loadPiecesFromSvg("data/Basic_Blouse_10_2016.svg");
+
+	// debug create levelset
+	try
+	{
+		m_clothManager->bodyLevelSet()->load("data/wm2_15k.set");
+	} catch (std::exception e)
+	{
+		const float step = 0.003;
+		auto bmin = body->boundingBox[0];
+		auto bmax = body->boundingBox[1];
+		auto brag = bmax - bmin;
+		bmin -= 0.1f * brag;
+		bmax += 0.1f * brag;
+		ldp::Int3 res = (bmax - bmin) / step;
+		ldp::Float3 start = bmin;
+		m_clothManager->bodyLevelSet()->create(res, start, step);
+		m_clothManager->bodyLevelSet()->fromMesh(*body);
+		m_clothManager->bodyLevelSet()->save("data/wm2_15k.set");
 	}
 }

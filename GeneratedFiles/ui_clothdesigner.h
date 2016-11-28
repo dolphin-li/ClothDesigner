@@ -38,6 +38,7 @@ public:
     QAction *actionOpen_body_mesh;
     QAction *actionImport_cloth_mesh;
     QAction *actionSave_project;
+    QAction *actionLoad_svg;
     QWidget *centralWidget;
     QMenuBar *menuBar;
     QMenu *menuFile;
@@ -96,6 +97,8 @@ public:
         actionImport_cloth_mesh->setObjectName(QStringLiteral("actionImport_cloth_mesh"));
         actionSave_project = new QAction(ClothDesignerClass);
         actionSave_project->setObjectName(QStringLiteral("actionSave_project"));
+        actionLoad_svg = new QAction(ClothDesignerClass);
+        actionLoad_svg->setObjectName(QStringLiteral("actionLoad_svg"));
         centralWidget = new QWidget(ClothDesignerClass);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
         ClothDesignerClass->setCentralWidget(centralWidget);
@@ -113,7 +116,7 @@ public:
         ClothDesignerClass->setStatusBar(statusBar);
         dockWidgetRight = new QDockWidget(ClothDesignerClass);
         dockWidgetRight->setObjectName(QStringLiteral("dockWidgetRight"));
-        dockWidgetRight->setMinimumSize(QSize(150, 459));
+        dockWidgetRight->setMinimumSize(QSize(250, 459));
         dockWidgetRight->setMaximumSize(QSize(250, 524287));
         dockWidgetRight->setFeatures(QDockWidget::NoDockWidgetFeatures);
         dockWidgetContentsRight = new QWidget();
@@ -324,6 +327,7 @@ public:
         menuFile->addAction(actionOpen_body_mesh);
         menuFile->addAction(actionImport_cloth_mesh);
         menuFile->addAction(actionSave_project);
+        menuFile->addAction(actionLoad_svg);
 
         retranslateUi(ClothDesignerClass);
 
@@ -339,6 +343,7 @@ public:
         actionImport_cloth_mesh->setText(QApplication::translate("ClothDesignerClass", "import cloth mesh", 0));
         actionSave_project->setText(QApplication::translate("ClothDesignerClass", "save project", 0));
         actionSave_project->setShortcut(QApplication::translate("ClothDesignerClass", "Ctrl+S", 0));
+        actionLoad_svg->setText(QApplication::translate("ClothDesignerClass", "load svg", 0));
         menuFile->setTitle(QApplication::translate("ClothDesignerClass", "file", 0));
         groupBox->setTitle(QApplication::translate("ClothDesignerClass", "Simulation Param", 0));
         label_13->setText(QApplication::translate("ClothDesignerClass", "stitch speed", 0));

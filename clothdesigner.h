@@ -25,6 +25,7 @@ public:
 	Viewer2d* viewer2d() { return m_widget2d; }
 	Viewer3d* viewer3d() { return m_widget3d; }
 	public slots:
+	void on_actionLoad_svg_triggered();
 	void on_pbResetSimulation_clicked();
 	void on_sbSparamOuterIter_valueChanged(int v);
 	void on_sbSparamInnerIter_valueChanged(int v);
