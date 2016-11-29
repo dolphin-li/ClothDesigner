@@ -799,7 +799,7 @@ namespace ldp
 				points.push_back(p);
 			} // end for i
 			if (points.size() >= 2)
-				group.push_back(ShapePtr(AbstractShape::create(points)));
+				AbstractShape::create(group, points, m_clothDesignParam.curveFittingThre);
 		}
 	}
 
@@ -837,6 +837,7 @@ namespace ldp
 		pointMergeDistThre = 1e-4;				// in meters
 		curveSampleStep = 5e-3;					// in meters
 		pointInsidePolyThre = 1e-3;				// in meters
+		curveFittingThre = 1e-3;				// in meters
 	}
 
 	SimulationParam::SimulationParam()

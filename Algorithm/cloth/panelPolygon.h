@@ -81,7 +81,8 @@ namespace ldp
 			m_lastSampleStep = 0;
 		}
 		static AbstractShape* create(Type type);
-		static AbstractShape* create(const std::vector<Float2>& keyPoints);
+		static void create(std::vector<std::shared_ptr<AbstractShape>>& curves,
+			const std::vector<Float2>& keyPoints, float fittingThre);
 		AbstractShape(const std::vector<KeyPoint>& keyPoints) : AbstractShape()
 		{
 			m_keyPoints.clear();
@@ -203,6 +204,8 @@ namespace ldp
 		Line() : AbstractShape()
 		{
 			m_keyPoints.resize(2);
+			for (size_t k = 0; k < m_keyPoints.size(); k++)
+				m_keyPoints[k].reset(new KeyPoint());
 		}
 		Line(const std::vector<KeyPoint>& keyPoints) : AbstractShape(keyPoints)
 		{
@@ -222,6 +225,8 @@ namespace ldp
 		Quadratic() : AbstractShape()
 		{
 			m_keyPoints.resize(3);
+			for (size_t k = 0; k < m_keyPoints.size(); k++)
+				m_keyPoints[k].reset(new KeyPoint());
 		}
 		Quadratic(const std::vector<KeyPoint>& keyPoints) : AbstractShape(keyPoints)
 		{
@@ -241,6 +246,8 @@ namespace ldp
 		Cubic() : AbstractShape()
 		{
 			m_keyPoints.resize(4);
+			for (size_t k = 0; k < m_keyPoints.size(); k++)
+				m_keyPoints[k].reset(new KeyPoint());
 		}
 		Cubic(const std::vector<KeyPoint>& keyPoints) : AbstractShape(keyPoints)
 		{

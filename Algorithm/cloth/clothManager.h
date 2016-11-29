@@ -43,6 +43,7 @@ namespace ldp
 		float pointMergeDistThre;				// in meters
 		float curveSampleStep;					// in meters; each curve is discreated via this step
 		float pointInsidePolyThre;				// in meters
+		float curveFittingThre;					// in meters
 
 		ClothDesignParam();
 		void setDefaultParam();

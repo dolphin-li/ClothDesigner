@@ -1,5 +1,5 @@
 #include "panelPolygon.h"
-
+#include <eigen\Dense>
 namespace ldp
 {
 
@@ -21,7 +21,190 @@ namespace ldp
 		}
 	}
 
-	AbstractShape* AbstractShape::create(const std::vector<Float2>& keyPoints)
+	static std::pair<int, float> lineFitting(const std::vector<Float2>& pts, Line& line)
+	{
+		ldp::Float2 dir = (pts.back() - pts[0]).normalize();
+		ldp::Float2 ct = (pts.back() + pts[0]) * 0.5f;
+
+		int pos = -1;
+		float err = -1;
+		for (size_t i = 0; i < pts.size(); i++)
+		{
+			auto p = pts[i];
+			auto p0 = (p - ct).dot(dir) * dir + ct;
+			float dif = (p0 - p).length();
+			if (dif > err)
+			{
+				err = dif;
+				pos = i;
+			}
+			err = std::max(err, (p0 - p).length());
+		}
+
+		KeyPoint kp = line.getKeyPoint(0);
+		kp.position = (pts[0] - ct).dot(dir) * dir + ct;
+		line.setKeyPoint(0, kp);
+		kp = line.getKeyPoint(1);
+		kp.position = (pts.back() - ct).dot(dir) * dir + ct;
+		line.setKeyPoint(1, kp);
+
+		return std::make_pair(pos, err);
+	}
+
+	// bezier params
+	inline float B0(float u)
+	{
+		return (1 - u)*(1 - u)*(1 - u);
+	}
+
+	inline float B1(float u)
+	{
+		return 3 * u * (1-u) * (1 - u);
+	}
+
+	inline float B2(float u)
+	{
+		return 3 * u * u * (1 - u);
+	}
+
+	inline float B3(float u)
+	{
+		return u*u*u;
+	}
+
+	static std::pair<int, float> quadraticFitting(const std::vector<Float2>& pts, Quadratic& curve)
+	{
+		const Float2 lTan = (pts[1] - pts[0]).normalize();
+		const Float2 rTan = (pts[pts.size() - 2] - pts[pts.size() - 1]).normalize();
+		std::vector<float> paramLen(pts.size(), 0);
+		for (size_t i = 1; i < pts.size(); i++)
+			paramLen[i] = (pts[i] - pts[i - 1]).length() + paramLen[i - 1];
+		for (auto& l : paramLen)
+			l /= paramLen.back();
+
+		ldp::Float2 bezCurve[3] = {pts[0], 0, pts.back()};
+		float area = rTan.cross(lTan);
+		if (area == 0.f)
+			bezCurve[1] = (pts[0] + pts.back()) * 0.5f;
+		else
+		{
+			float tr = Float2(pts[0] - pts.back()).cross(lTan) / area;
+			bezCurve[1] = pts.back() + tr * rTan;
+		}
+
+		for (int i = 0; i < curve.numKeyPoints(); i++)
+		{
+			KeyPoint kp = curve.getKeyPoint(i);
+			kp.position = bezCurve[i];
+			curve.setKeyPoint(i, kp);
+		}
+
+		// calculate distance
+		int pos = -1;
+		float err = -1;
+		for (size_t i = 0; i < pts.size(); i++)
+		{
+			auto p0 = curve.getPointByParam(paramLen[i]);
+			float dif = (p0 - pts[i]).length();
+			if (dif > err)
+			{
+				err = dif;
+				pos = i;
+			}
+			err = std::max(err, (p0 - pts[i]).length());
+		}
+
+		return std::make_pair(pos, err);
+	}
+
+	static std::pair<int, float> cubicFitting(const std::vector<Float2>& pts, Cubic& curve)
+	{
+		const Float2 lTan = (pts[1] - pts[0]).normalize();
+		const Float2 rTan = (pts[pts.size()-2] - pts[pts.size()-1]).normalize();
+		std::vector<float> paramLen(pts.size(), 0);
+		for (size_t i = 1; i < pts.size(); i++)
+			paramLen[i] = (pts[i] - pts[i - 1]).length() + paramLen[i-1];
+		for (auto& l : paramLen)
+			l /= paramLen.back();
+
+		// create C and X matrices
+		Mat2f C = Mat2f().zeros();
+		Float2 X = Float2(0);
+		for (size_t i = 0; i < pts.size(); i++)
+		{
+			const auto v0 = lTan * B1(paramLen[i]);
+			const auto v1 = rTan * rTan * B2(paramLen[i]);
+			C(0, 0) += v0.dot(v0);
+			C(1, 0) += v1.dot(v0);
+			C(1, 1) += v1.dot(v1);
+			C(0, 1) += v0.dot(v1);
+			const auto tmp = pts[i] - B0(paramLen[i])*pts[0] - B1(paramLen[i])*pts[0] -
+				B2(paramLen[i])*pts.back() - B3(paramLen[i])*pts.back();
+			X[0] += v0.dot(tmp);
+			X[1] += v1.dot(tmp);
+		}
+
+		// compute the determinants of C and X
+		float det_C0_C1 = C.det();
+		const float det_C0_X = C(0, 0) * X[1] - C(0, 1) * X[0];
+		const float det_X_C1 = X[0] * C(1, 1) - X[1] * C(0, 1);
+		if (det_C0_C1 == 0.f)
+			det_C0_C1 = C(0, 0) * C(1, 1) * 1e-6f;
+		const float alpha_l = det_X_C1 / det_C0_C1;
+		const float alpha_r = det_C0_X / det_C0_C1;
+
+		ldp::Float2 bezCurve[4];
+		//If alpha negative, use the Wu/Barsky heuristic (see text)
+		//(if alpha is 0, you get coincident control points that lead to
+		//divide by zero in any subsequent NewtonRaphsonRootFind() call.
+		if (alpha_l < 1.0e-6 || alpha_r < 1.0e-6)
+		{
+			float dist = (pts[0]-pts.back()).length() / 3.f;
+
+			bezCurve[0] = pts[0];
+			bezCurve[3] = pts.back();
+			bezCurve[1] = bezCurve[0] + lTan * dist;
+			bezCurve[2] = bezCurve[3] + rTan * dist;
+		}
+		else
+		{
+			//  First and last control points of the Bezier curve are
+			//  positioned exactly at the first and last data points
+			//  Control points 1 and 2 are positioned an alpha distance out
+			//  on the tangent vectors, left and right, respectively
+			bezCurve[0] = pts[0];
+			bezCurve[3] = pts.back();
+			bezCurve[1] = bezCurve[0] + lTan * alpha_l;
+			bezCurve[2] = bezCurve[3] + rTan * alpha_r;
+		}
+
+		for (int i = 0; i < curve.numKeyPoints(); i++)
+		{
+			KeyPoint kp = curve.getKeyPoint(i);
+			kp.position = bezCurve[i];
+			curve.setKeyPoint(i, kp);
+		}
+
+		// calculate distance
+		int pos = -1;
+		float err = -1;
+		for (size_t i = 0; i < pts.size(); i++)
+		{
+			auto p0 = curve.getPointByParam(paramLen[i]);
+			float dif = (p0 - pts[i]).length();
+			if (dif > err)
+			{
+				err = dif;
+				pos = i;
+			}
+			err = std::max(err, (p0 - pts[i]).length());
+		}
+
+		return std::make_pair(pos, err);
+	}
+
+	void AbstractShape::create(std::vector<std::shared_ptr<AbstractShape>>& curves, 
+		const std::vector<Float2>& keyPoints, float thre)
 	{
 		std::vector<KeyPoint> pts;
 		for (const auto& p : keyPoints)
@@ -30,21 +213,35 @@ namespace ldp
 			kp.position = p;
 			pts.push_back(kp);
 		}
-		switch (keyPoints.size())
-		{
-		case 0:
-		case 1:
-			assert(0);
-			return nullptr;
-		case 2:
-			return new Line(pts);
-		case 3:
-			return new Quadratic(pts);
-		case 4:
-			return new Cubic(pts);
-		default:
-			return new GeneralCurve(pts);
-		}
+
+		assert(keyPoints.size() >= 2);
+
+		if (keyPoints.size() == 2)
+			return curves.push_back(ShapePtr(new Line(pts)));
+
+		// 1. fitting line
+		Line line;
+		auto err = lineFitting(keyPoints, line);
+		if (err.second < thre)
+			return curves.push_back(ShapePtr(new Line(line)));
+
+		// 2. quadratic fitting
+		Quadratic quad;
+		err = quadraticFitting(keyPoints, quad);
+		if (err.second < thre)
+			return curves.push_back(ShapePtr(new Quadratic(quad)));
+
+		// 3. cubic fitting
+		Cubic cub;
+		err = cubicFitting(keyPoints, cub);
+		if (err.second < thre)
+			return curves.push_back(ShapePtr(new Cubic(cub)));
+
+		// 4. recursive fitting
+		std::vector<Float2> left(keyPoints.begin(), keyPoints.begin() + err.first + 1);
+		std::vector<Float2> right(keyPoints.begin() + err.first, keyPoints.end());
+		create(curves, left, thre);
+		create(curves, right, thre);
 	}
 
 	AbstractShape* AbstractShape::clone()const
