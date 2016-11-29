@@ -420,14 +420,28 @@ void Viewer2d::renderClothsPanels_Edge(const ldp::ClothPiece* piece, bool idxMod
 	if (!(m_showType & Renderable::SW_E))
 		return;
 	const float step = m_clothManager->getClothDesignParam().curveSampleStep;
-	const auto& panel = piece->panel();
+	auto& panel = piece->panel();
 	const auto& poly = panel.outerPoly();
+	const auto& darts = panel.darts();
+	const auto& lines = panel.innerLines();
+
+	std::vector<const ldp::AbstractShape*> shapes;
+	for (const auto& shape : poly)
+		shapes.push_back(shape.get());
+	for (auto dart : darts)
+	for (const auto& shape : dart)
+		shapes.push_back(shape.get());
+	for (auto line : lines)
+	for (const auto& shape : line)
+		shapes.push_back(shape.get());
+
+
 	if (idxMode)
 		glLineWidth(4);
 	else
 		glLineWidth(2);
 	glBegin(GL_LINES);
-	for (const auto& shape : poly)
+	for (const auto& shape : shapes)
 	{
 		if (!idxMode)
 		{
@@ -457,12 +471,24 @@ void Viewer2d::renderClothsPanels_KeyPoint(const ldp::ClothPiece* piece, bool id
 	const float step = m_clothManager->getClothDesignParam().curveSampleStep;
 	const auto& panel = piece->panel();
 	const auto& poly = panel.outerPoly();
+	const auto& darts = panel.darts();
+	const auto& lines = panel.innerLines();
+
+	std::vector<const ldp::AbstractShape*> shapes;
+	for (const auto& shape : poly)
+		shapes.push_back(shape.get());
+	for (auto dart : darts)
+	for (const auto& shape : dart)
+		shapes.push_back(shape.get());
+	for (auto line : lines)
+	for (const auto& shape : line)
+		shapes.push_back(shape.get());
 	if (idxMode)
 		glPointSize(5);
 	else
 		glPointSize(5);
 	glBegin(GL_POINTS);
-	for (const auto& shape : poly)
+	for (auto shape : shapes)
 	{
 		for (int i = 0; i < shape->numKeyPoints(); i++)
 		{

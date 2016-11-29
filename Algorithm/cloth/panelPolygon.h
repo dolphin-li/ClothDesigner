@@ -15,6 +15,7 @@ namespace ldp
 			TypeCubic = 0x08,
 			TypeGroup = 0x20,
 			TypePanelPolygon = 0x40,
+			TypeAll = 0xffffffff
 		};
 		enum SelectOp
 		{
@@ -41,7 +42,8 @@ namespace ldp
 		void setHighlighted(bool s) { m_highlighted = s; }
 		bool isHighlighted()const { return m_highlighted; }
 		virtual Type getType()const = 0;
-		virtual void collectObject(std::vector<AbstractPanelObject*>& objs)=0;
+		virtual void collectObject(std::vector<AbstractPanelObject*>& objs) = 0;
+		virtual void collectObject(std::vector<const AbstractPanelObject*>& objs)const = 0;
 	protected:
 		int m_idxStart;
 		bool m_selected;
@@ -65,6 +67,10 @@ namespace ldp
 		}
 		Type getType()const { return TypeKeyPoint; }
 		virtual void collectObject(std::vector<AbstractPanelObject*>& objs)
+		{
+			objs.push_back(this);
+		}
+		virtual void collectObject(std::vector<const AbstractPanelObject*>& objs)const
 		{
 			objs.push_back(this);
 		}
@@ -109,7 +115,7 @@ namespace ldp
 		{
 			return *m_keyPoints.back();
 		}
-		int numKeyPoints()
+		int numKeyPoints()const
 		{
 			return (int)m_keyPoints.size();
 		}
@@ -185,6 +191,12 @@ namespace ldp
 			}
 		}
 		virtual void collectObject(std::vector<AbstractPanelObject*>& objs)
+		{
+			objs.push_back(this);
+			for (auto p : m_keyPoints)
+				p->collectObject(objs);
+		}
+		virtual void collectObject(std::vector<const AbstractPanelObject*>& objs)const
 		{
 			objs.push_back(this);
 			for (auto p : m_keyPoints)
@@ -341,7 +353,7 @@ namespace ldp
 			for (size_t i = 0; i < size(); i++)
 			{
 				const auto& sp = (*this)[i];
-				auto ps = sp->samplePointsOnShape(step);
+				const auto& ps = sp->samplePointsOnShape(step);
 				for (int j = 0; j < ps.size(); j++)
 				{
 					if (pts.size())
@@ -349,11 +361,17 @@ namespace ldp
 						if ((pts.back() - ps[j]).length() < distThre)
 							continue;
 					}
-					pts.push_back(sp->getKeyPoint(j).position);
+					pts.push_back(ps[j]);
 				} // end for j
 			} // end for i
 		}
 		virtual void collectObject(std::vector<AbstractPanelObject*>& objs)
+		{
+			objs.push_back(this);
+			for (auto p : (*this))
+				p->collectObject(objs);
+		}
+		virtual void collectObject(std::vector<const AbstractPanelObject*>& objs)const
 		{
 			objs.push_back(this);
 			for (auto p : (*this))
@@ -369,6 +387,7 @@ namespace ldp
 	public:
 		typedef ShapeGroup Polygon;
 		typedef ShapeGroup Dart;
+		typedef ShapeGroup InnerLine;
 	public:
 		PanelPolygon();
 		~PanelPolygon();
@@ -378,9 +397,9 @@ namespace ldp
 		virtual Type getType()const { return TypePanelPolygon; }
 		void create(const Polygon& outerPoly, int idxStart);
 		void addDart(Dart& dart);
-		void addInnerLine(std::shared_ptr<AbstractShape> line);
+		void addInnerLine(InnerLine& line);
 		const std::vector<Dart>& darts()const { return m_darts; }
-		const std::vector<ShapePtr>& innerLines()const { return m_innerLines; }
+		const std::vector<InnerLine>& innerLines()const { return m_innerLines; }
 		const Polygon& outerPoly()const { return m_outerPoly; }
 
 		// update the index of all units, starting from the given
@@ -393,12 +412,12 @@ namespace ldp
 
 		void updateBound(Float2& bmin, Float2& bmax);
 		const Float2* bound()const { return m_bbox; }
-	protected:
 		virtual void collectObject(std::vector<AbstractPanelObject*>& objs);
+		virtual void collectObject(std::vector<const AbstractPanelObject*>& objs)const;
 	private:
 		Polygon m_outerPoly;		// p0p1p2...pnp0
 		std::vector<Dart> m_darts;
-		std::vector<ShapePtr> m_innerLines;
+		std::vector<InnerLine> m_innerLines;
 		ldp::Float2 m_bbox[2];
 		std::vector<AbstractPanelObject*> m_tmpbufferObj;
 	};

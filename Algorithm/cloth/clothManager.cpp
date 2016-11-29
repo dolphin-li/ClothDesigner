@@ -685,7 +685,8 @@ namespace ldp
 
 		// 1.1 add closed polygons as loops ----------------------------------------------
 		std::vector<ShapeGroup> groups;
-		std::vector<ShapePtr> lines;
+		std::vector<ShapeGroup> lines;
+		ObjConvertMap objMap;
 		for (auto polyPath : polyPaths)
 		{
 			polyPath->findCorners();
@@ -693,11 +694,12 @@ namespace ldp
 			if (polyPath->isClosed())
 			{
 				groups.push_back(ShapeGroup());
-				polyPathToShape(polyPath, groups.back(), pixel2meter);
+				polyPathToShape(polyPath, groups.back(), pixel2meter, objMap);
 			} // end if closed
 			else
 			{
-				polyPathToShape(polyPath, lines, pixel2meter);
+				lines.push_back(ShapeGroup());
+				polyPathToShape(polyPath, lines.back(), pixel2meter, objMap);
 			} // end if not closed
 		} // end for polyPath
 
@@ -708,13 +710,13 @@ namespace ldp
 		for (size_t ipoly = 0; ipoly < groups.size(); ipoly++)
 		{
 			ipts.clear();
-			groups[ipoly].collectKeyPoints(ipts);
+			groups[ipoly].collectSamplePoints(ipts, m_clothDesignParam.curveSampleStep);
 			for (size_t jpoly = 0; jpoly < groups.size(); jpoly++)
 			{
 				if (jpoly == ipoly)
 					continue;
 				jpts.clear();
-				groups[jpoly].collectKeyPoints(jpts);
+				groups[jpoly].collectSamplePoints(jpts, m_clothDesignParam.curveSampleStep);
 				bool allIn = true;
 				for (const auto& pj : jpts)
 				{
@@ -730,10 +732,11 @@ namespace ldp
 			for (size_t jpoly = 0; jpoly < lines.size(); jpoly++)
 			{
 				jpts.clear();
+				lines[jpoly].collectSamplePoints(jpts, m_clothDesignParam.curveSampleStep);
 				bool allIn = true;
-				for (int k = 0; k < lines[jpoly]->numKeyPoints(); k++)
+				for (const auto& pj : jpts)
 				{
-					if (!this->pointInPolygon((int)ipts.size()-1, ipts.data(), lines[jpoly]->getKeyPoint(k).position))
+					if (!this->pointInPolygon((int)ipts.size() - 1, ipts.data(), pj))
 					{
 						allIn = false;
 						break;
@@ -783,7 +786,7 @@ namespace ldp
 	}
 
 	void ClothManager::polyPathToShape(const svg::SvgPolyPath* polyPath, 
-		std::vector<ShapePtr>& group, float pixel2meter)
+		std::vector<ShapePtr>& group, float pixel2meter, ObjConvertMap& map)
 	{
 		for (size_t iCorner = 0; iCorner < polyPath->numCornerEdges(); iCorner++)
 		{
@@ -799,7 +802,15 @@ namespace ldp
 				points.push_back(p);
 			} // end for i
 			if (points.size() >= 2)
+			{
+				auto key = std::make_pair(polyPath, (int)iCorner);
+				map.insert(std::make_pair(key, std::set<AbstractShape*>()));
+				auto mapIter = map.find(key);
+				size_t lastSize = group.size();
 				AbstractShape::create(group, points, m_clothDesignParam.curveFittingThre);
+				for (size_t sz = lastSize; sz < group.size(); sz++)
+					mapIter->second.insert(group[sz].get());
+			}
 		}
 	}
 
@@ -835,8 +846,8 @@ namespace ldp
 	void ClothDesignParam::setDefaultParam()
 	{
 		pointMergeDistThre = 1e-4;				// in meters
-		curveSampleStep = 5e-3;					// in meters
-		pointInsidePolyThre = 1e-3;				// in meters
+		curveSampleStep = 1e-2;					// in meters
+		pointInsidePolyThre = 1e-2;				// in meters
 		curveFittingThre = 1e-3;				// in meters
 	}
 

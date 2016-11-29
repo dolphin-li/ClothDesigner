@@ -320,9 +320,10 @@ namespace ldp
 		updateIndex(m_idxStart);
 	}
 
-	void PanelPolygon::addInnerLine(std::shared_ptr<AbstractShape> line)
+	void PanelPolygon::addInnerLine(InnerLine& line)
 	{
-		m_innerLines.push_back(ShapePtr(line->clone()));
+		m_innerLines.push_back(InnerLine());
+		line.cloneTo(m_innerLines.back());
 		updateIndex(m_idxStart);
 	}
 
@@ -339,15 +340,15 @@ namespace ldp
 		}
 		for (auto& ln : m_innerLines)
 		{
-			ln->updateIndex(idx);
-			idx = ln->getIdxEnd();
+			ln.updateIndex(idx);
+			idx = ln.getIdxEnd();
 		}
 	}
 
 	int PanelPolygon::getIdxEnd()const
 	{
 		if (m_innerLines.size())
-			return m_innerLines.back()->getIdxEnd();
+			return m_innerLines.back().getIdxEnd();
 		if (m_darts.size())
 			return m_darts.back().getIdxEnd();
 		return m_outerPoly.getIdxEnd();
@@ -361,7 +362,7 @@ namespace ldp
 		for (auto& dart : m_darts)
 			dart.updateBound(m_bbox[0], m_bbox[1]);
 		for (auto& ln : m_innerLines)
-			ln->unionBound(m_bbox[0], m_bbox[1]);
+			ln.updateBound(m_bbox[0], m_bbox[1]);
 		for (int k = 0; k < bmin.size(); k++)
 		{
 			bmin[k] = std::min(bmin[k], m_bbox[0][k]);
@@ -437,6 +438,16 @@ namespace ldp
 		for (auto& dart : m_darts)
 			dart.collectObject(objs);
 		for (auto& sp : m_innerLines)
-			sp->collectObject(objs);
+			sp.collectObject(objs);
+	}
+
+	void PanelPolygon::collectObject(std::vector<const AbstractPanelObject*>& objs)const
+	{
+		objs.push_back(this);
+		m_outerPoly.collectObject(objs);
+		for (auto& dart : m_darts)
+			dart.collectObject(objs);
+		for (auto& sp : m_innerLines)
+			sp.collectObject(objs);
 	}
 }

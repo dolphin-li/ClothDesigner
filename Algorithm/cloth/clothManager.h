@@ -5,6 +5,7 @@
 #include "device_array.h"
 #include "ldpMat\ldp_basic_vec.h"
 #include <map>
+#include <set>
 //#define ENABLE_SELF_COLLISION
 #ifdef ENABLE_SELF_COLLISION
 #include "COLLISION_HANDLER.h"
@@ -164,8 +165,10 @@ namespace ldp
 	protected:
 		bool pointInPolygon(int n, const Vec2* pts, Vec2 p);
 		void triangulate();
+		typedef std::map<std::pair<const svg::SvgPolyPath*, int>, std::set<AbstractShape*>> ObjConvertMap;
 		void polyPathToShape(const svg::SvgPolyPath* polyPath,
-			std::vector<std::shared_ptr<AbstractShape>>& group, float pixel2meter);
+			std::vector<std::shared_ptr<AbstractShape>>& group, 
+			float pixel2meter, ObjConvertMap& map);
 	protected:
 		// Topology related--------------------------------------------------------------
 	protected:
