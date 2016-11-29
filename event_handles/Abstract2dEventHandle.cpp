@@ -10,8 +10,6 @@
 Abstract2dEventHandle::Abstract2dEventHandle(Viewer2d* v)
 {
 	m_viewer = v;
-	m_lastHighlightShapeId = -1;
-	m_currentSelectedId = -1;
 	m_cursor = QCursor(Qt::CursorShape::ArrowCursor);
 	m_iconFile = "";
 	m_inactiveIconFile = "";
@@ -39,6 +37,8 @@ void Abstract2dEventHandle::handleEnter()
 }
 void Abstract2dEventHandle::handleLeave()
 {
+	m_highLightInfo.clear();
+	m_pickInfo.clear();
 	m_viewer->clearFocus();
 }
 
@@ -53,7 +53,29 @@ void Abstract2dEventHandle::pick(QPoint pos)
 	if (manager == nullptr)
 		return;
 
-	int renderedId = m_viewer->fboRenderedIndex(pos);
+	m_pickInfo.renderId = m_viewer->fboRenderedIndex(pos);
+}
+
+void Abstract2dEventHandle::highLight(QPoint pos)
+{
+	auto manager = m_viewer->getManager();
+	if (manager == nullptr)
+		return;
+
+	m_highLightInfo.renderId = m_viewer->fboRenderedIndex(pos);
+
+	if (m_highLightInfo.curObj)
+	{
+		m_highLightInfo.curObj->setHighlighted(false);
+		m_highLightInfo.curObj = nullptr;
+	}
+
+	for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
+	{
+		auto piece = manager->clothPiece(iPiece);
+		auto& panel = piece->panel();
+		panel.highLight(m_highLightInfo.renderId);
+	} // end for iPiece
 }
 
 Abstract2dEventHandle* Abstract2dEventHandle::create(ProcessorType type, Viewer2d* v)
@@ -104,6 +126,9 @@ void Abstract2dEventHandle::mouseMoveEvent(QMouseEvent *ev)
 			m_viewer->camera().getFrustumNear(),
 			m_viewer->camera().getFrustumFar());
 	}
+
+	if (ev->buttons() == Qt::NoButton)
+		highLight(ev->pos());
 }
 
 void Abstract2dEventHandle::wheelEvent(QWheelEvent *ev)

@@ -1,5 +1,5 @@
 #include "panelPolygon.h"
-
+#include <set>
 namespace ldp
 {
 
@@ -21,8 +21,15 @@ namespace ldp
 		}
 	}
 
-	AbstractShape* AbstractShape::create(const std::vector<Point>& keyPoints)
+	AbstractShape* AbstractShape::create(const std::vector<Float2>& keyPoints)
 	{
+		std::vector<KeyPoint> pts;
+		for (const auto& p : keyPoints)
+		{
+			KeyPoint kp;
+			kp.position = p;
+			pts.push_back(kp);
+		}
 		switch (keyPoints.size())
 		{
 		case 0:
@@ -30,17 +37,36 @@ namespace ldp
 			assert(0);
 			return nullptr;
 		case 2:
-			return new Line(keyPoints);
+			return new Line(pts);
 		case 3:
-			return new Quadratic(keyPoints);
+			return new Quadratic(pts);
 		case 4:
-			return new Cubic(keyPoints);
+			return new Cubic(pts);
 		default:
-			return new GeneralCurve(keyPoints);
+			return new GeneralCurve(pts);
 		}
 	}
 
-	const std::vector<AbstractShape::Point>& AbstractShape::samplePointsOnShape(float step)const
+	AbstractShape* AbstractShape::clone()const
+	{
+		auto shape = create(getType());
+		shape->m_keyPoints = m_keyPoints;
+		for (auto p : shape->m_keyPoints)
+			p.reset(p->clone());
+		shape->m_idxStart = m_idxStart;
+		shape->m_selected = m_selected;
+		shape->m_highlighted = m_highlighted;
+		return shape;
+	}
+
+	AbstractShape* GeneralCurve::clone()const
+	{
+		auto shape = (GeneralCurve*)AbstractShape::clone();
+		shape->m_params = m_params;
+		return shape;
+	}
+
+	const std::vector<Float2>& AbstractShape::samplePointsOnShape(float step)const
 	{
 		if (m_lastSampleStep != step)
 		{
@@ -59,14 +85,13 @@ namespace ldp
 		return m_samplePoints;
 	}
 
-	GeneralCurve::GeneralCurve(const std::vector<Point>& keyPoints) : AbstractShape()
+	GeneralCurve::GeneralCurve(const std::vector<KeyPoint>& keyPoints) : AbstractShape(keyPoints)
 	{
-		m_keyPoints = keyPoints;
 		m_params.resize(m_keyPoints.size(), 0);
 		float totalLen = 0;
 		for (int i = 0; i < (int)m_keyPoints.size() - 1; i++)
 		{
-			float len = (m_keyPoints[i + 1].length() - m_keyPoints[i]).length();
+			float len = (m_keyPoints[i + 1]->position - m_keyPoints[i]->position).length();
 			m_params[i + 1] = m_params[i] + len;
 			totalLen += len;
 		}
@@ -74,7 +99,7 @@ namespace ldp
 			p /= totalLen;
 	}
 
-	GeneralCurve::Point GeneralCurve::getPointByParam(float t)const
+	Float2 GeneralCurve::getPointByParam(float t)const
 	{
 		t = std::min(1.f, std::max(0.f, t));
 
@@ -98,14 +123,14 @@ namespace ldp
 		assert(m_params[id] <= t && t <= m_params[id + 1]);
 		float w1 = t - m_params[id];
 		float w2 = m_params[id + 1] - t;
-		return (m_keyPoints[id] * w2 + m_keyPoints[id + 1] * w1) / (w1 + w2);
+		return (m_keyPoints[id]->position * w2 + m_keyPoints[id + 1]->position * w1) / (w1 + w2);
 	}
 
 	float GeneralCurve::calcLength()const
 	{
 		float len = 0;
 		for (size_t i = 1; i < m_keyPoints.size(); i++)
-			len += (m_keyPoints[i] - m_keyPoints[i - 1]).length();
+			len += (m_keyPoints[i]->position - m_keyPoints[i - 1]->position).length();
 		return len;
 	}
 
@@ -124,9 +149,10 @@ namespace ldp
 		return len;
 	}
 
-	PanelPolygon::PanelPolygon()
+	PanelPolygon::PanelPolygon() : AbstractPanelObject()
 	{
-		m_idxStart = 0;
+		m_bbox[0] = FLT_MAX;
+		m_bbox[1] = -FLT_MAX;
 	}
 
 	PanelPolygon::~PanelPolygon()
@@ -179,12 +205,7 @@ namespace ldp
 		}
 	}
 
-	int PanelPolygon::getIndexBegin()const
-	{
-		return m_idxStart;
-	}
-
-	int PanelPolygon::getIndexEnd()const
+	int PanelPolygon::getIdxEnd()const
 	{
 		if (m_innerLines.size())
 			return m_innerLines.back()->getIdxEnd();
@@ -193,7 +214,7 @@ namespace ldp
 		return m_outerPoly.getIdxEnd();
 	}
 
-	void PanelPolygon::updateBound(Point& bmin, Point& bmax)
+	void PanelPolygon::updateBound(Float2& bmin, Float2& bmax)
 	{
 		m_bbox[0] = FLT_MAX;
 		m_bbox[1] = FLT_MIN;
@@ -207,5 +228,89 @@ namespace ldp
 			bmin[k] = std::min(bmin[k], m_bbox[0][k]);
 			bmax[k] = std::max(bmax[k], m_bbox[1][k]);
 		}
+	}
+
+	void PanelPolygon::select(int idx, SelectOp op)
+	{
+		m_tmpbufferObj.clear();
+		collectObject(m_tmpbufferObj);
+		for (auto obj : m_tmpbufferObj)
+		{
+			switch (op)
+			{
+			case ldp::AbstractPanelObject::SelectThis:
+				obj->setSelected(idx == obj->getIdxBegin());
+				break;
+			case ldp::AbstractPanelObject::SelectUnion:
+				if (idx == obj->getIdxBegin())
+					obj->setSelected(idx == obj->getIdxBegin());
+				break;
+			case ldp::AbstractPanelObject::SelectAll:
+				obj->setSelected(true);
+				break;
+			case ldp::AbstractPanelObject::SelectNone:
+				obj->setSelected(false);
+				break;
+			case ldp::AbstractPanelObject::SelectInverse:
+				obj->setSelected(!obj->isSelected());
+				break;
+			default:
+				break;
+			}
+		}
+	}
+
+	void PanelPolygon::select(const std::vector<int>& indices, SelectOp op)
+	{
+		std::set<int> idxSet;
+		for (auto idx : indices)
+			idxSet.insert(idx);
+		m_tmpbufferObj.clear();
+		collectObject(m_tmpbufferObj);
+		for (auto obj : m_tmpbufferObj)
+		{
+			switch (op)
+			{
+			case ldp::AbstractPanelObject::SelectThis:
+				if (idxSet.find(obj->getIdxBegin()) != idxSet.end())
+					obj->setSelected(true);
+				else
+					obj->setSelected(false);
+				break;
+			case ldp::AbstractPanelObject::SelectUnion:
+				if (idxSet.find(obj->getIdxBegin()) != idxSet.end())
+					obj->setSelected(true);
+				break;
+			case ldp::AbstractPanelObject::SelectAll:
+				obj->setSelected(true);
+				break;
+			case ldp::AbstractPanelObject::SelectNone:
+				obj->setSelected(false);
+				break;
+			case ldp::AbstractPanelObject::SelectInverse:
+				obj->setSelected(!obj->isSelected());
+				break;
+			default:
+				break;
+			}
+		}
+	}
+
+	void PanelPolygon::highLight(int idx)
+	{
+		m_tmpbufferObj.clear();
+		collectObject(m_tmpbufferObj);
+		for (auto obj : m_tmpbufferObj)
+			obj->setHighlighted(idx == obj->getIdxBegin());
+	}
+
+	void PanelPolygon::collectObject(std::vector<AbstractPanelObject*>& objs)
+	{
+		objs.push_back(this);
+		m_outerPoly.collectObject(objs);
+		for (auto& dart : m_darts)
+			dart.collectObject(objs);
+		for (auto& sp : m_innerLines)
+			sp->collectObject(objs);
 	}
 }

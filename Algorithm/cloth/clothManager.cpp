@@ -733,7 +733,7 @@ namespace ldp
 				bool allIn = true;
 				for (int k = 0; k < lines[jpoly]->numKeyPoints(); k++)
 				{
-					if (!this->pointInPolygon((int)ipts.size()-1, ipts.data(), lines[jpoly]->getKeyPoint(k)))
+					if (!this->pointInPolygon((int)ipts.size()-1, ipts.data(), lines[jpoly]->getKeyPoint(k).position))
 					{
 						allIn = false;
 						break;
@@ -745,7 +745,7 @@ namespace ldp
 		} // end for ipoly
 
 		// 1.3 create outter panels
-		int idxStart = ClothIdxBegin;
+		int idxStart = PanelIdxBegin;
 		for (size_t ipoly = 0; ipoly < groups.size(); ipoly++)
 		{
 			if (polyInsideId[ipoly] >= 0)
@@ -770,7 +770,7 @@ namespace ldp
 				piece->panel().addInnerLine(lines[jpoly]);
 			} // end for jpoly
 
-			idxStart = piece->panel().getIndexEnd();
+			idxStart = piece->panel().getIdxEnd();
 		} // end for ipoly
 
 		// 2. triangluation

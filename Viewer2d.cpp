@@ -162,6 +162,7 @@ void Viewer2d::renderSelectionOnFbo()
 
 	m_camera.apply();
 
+	renderClothsPanels(true);
 
 	m_fboImage = m_fbo->toImage();
 	m_fbo->release();
@@ -411,7 +412,6 @@ void Viewer2d::renderClothsPanels(bool idxMode)
 	glPopAttrib();
 }
 
-
 void Viewer2d::renderClothsPanels_Edge(const ldp::ClothPiece* piece, bool idxMode)
 {
 	const float step = m_clothManager->getClothDesignParam().curveSampleStep;
@@ -466,7 +466,7 @@ void Viewer2d::renderClothsPanels_KeyPoint(const ldp::ClothPiece* piece, bool id
 		else
 			glColor4fv(selectIdToColor(shape->getIdxBegin()).ptr());
 		for (int i = 0; i < shape->numKeyPoints(); i++)
-			glVertex2fv(shape->getKeyPoint(i).ptr());
+			glVertex2fv(shape->getKeyPoint(i).position.ptr());
 	} // end for shape
 	glEnd();
 }

@@ -8,9 +8,6 @@
 Edit2dPatternEventHandle::Edit2dPatternEventHandle(Viewer2d* v)
 : Abstract2dEventHandle(v)
 {
-	m_viewer = v;
-	m_lastHighlightShapeId = -1;
-	m_currentSelectedId = -1;
 	m_cursor = QCursor(Qt::CursorShape::CrossCursor);
 	m_iconFile = "icons/groupArrow.png";
 	m_inactiveIconFile = "icons/groupArrow.png";
@@ -36,6 +33,11 @@ void Edit2dPatternEventHandle::handleLeave()
 void Edit2dPatternEventHandle::mousePressEvent(QMouseEvent *ev)
 {
 	Abstract2dEventHandle::mousePressEvent(ev);
+
+	if (ev->buttons() == Qt::LeftButton)
+	{
+
+	} // end if left button
 }
 
 void Edit2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)

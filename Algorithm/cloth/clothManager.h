@@ -72,7 +72,7 @@ namespace ldp
 	public:
 		enum
 		{
-			ClothIdxBegin = 1
+			PanelIdxBegin = 1
 		};
 		typedef float ValueType;
 		typedef ldp::ldp_basic_vec3<float> Vec3;
@@ -165,6 +165,7 @@ namespace ldp
 		void triangulate();
 		void polyPathToShape(const svg::SvgPolyPath* polyPath,
 			std::vector<std::shared_ptr<AbstractShape>>& group, float pixel2meter);
+	protected:
 		// Topology related--------------------------------------------------------------
 	protected:
 		void mergePieces();

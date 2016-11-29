@@ -9,11 +9,39 @@ class QMouseEvent;
 class QWheelEvent;
 class QKeyEvent;
 class ObjMesh;
+namespace ldp
+{
+	class AbstractPanelObject;
+}
 class Abstract2dEventHandle
 {
 public:
 	struct PickInfo
 	{
+		int renderId;
+		PickInfo()
+		{
+			clear();
+		}
+
+		void clear()
+		{
+			renderId = 0;
+		}
+	};
+	struct HighLightInfo
+	{
+		ldp::AbstractPanelObject* curObj;
+		int renderId;
+		HighLightInfo()
+		{
+			clear();
+		}
+		void clear()
+		{
+			curObj = nullptr;
+			renderId = 0;
+		}
 	};
 	enum ProcessorType{
 		ProcessorTypeGeneral = 0,
@@ -32,7 +60,9 @@ public:
 	QString toolTips()const;
 
 	void pick(QPoint pos);
+	void highLight(QPoint pos);
 	const PickInfo& pickInfo()const { return m_pickInfo; }
+	const HighLightInfo& highLightInfo()const { return m_highLightInfo; }
 
 	virtual void mousePressEvent(QMouseEvent *);
 	virtual void mouseReleaseEvent(QMouseEvent *);
@@ -45,8 +75,6 @@ public:
 	virtual void handleLeave();
 protected:
 	Viewer2d* m_viewer;
-	int m_lastHighlightShapeId;
-	int m_currentSelectedId;
 	QPoint m_mouse_press_pt;
 	QCursor m_cursor;
 	QString m_iconFile;
@@ -54,4 +82,5 @@ protected:
 	QString m_toolTips;
 
 	PickInfo m_pickInfo;
+	HighLightInfo m_highLightInfo;
 };
