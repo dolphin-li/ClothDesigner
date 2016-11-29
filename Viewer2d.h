@@ -6,6 +6,10 @@
 #include "event_handles\Abstract2dEventHandle.h"
 #include "cloth\clothManager.h"
 class ClothDesigner;
+namespace ldp
+{
+	class ClothPiece;
+}
 class Viewer2d : public QGLWidget
 {
 	Q_OBJECT
@@ -46,6 +50,9 @@ protected:
 	void renderDragBox();
 	void renderSelectionOnFbo();
 	void renderBackground();
+	void renderClothsPanels(bool idxMode);
+	void renderClothsPanels_Edge(const ldp::ClothPiece* piece, bool idxMode);
+	void renderClothsPanels_KeyPoint(const ldp::ClothPiece* piece, bool idxMode);
 protected:
 	ldp::Camera m_camera;
 	QPoint m_lastPos;

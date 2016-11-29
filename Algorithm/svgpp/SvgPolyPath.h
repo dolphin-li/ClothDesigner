@@ -116,11 +116,11 @@ namespace svg
 		void set3dRot(ldp::QuaternionF r){ m_3dRot = r; }
 		bool getCylinderDir()const { return m_cylinderDir; }
 		void setCylinderDir(bool b) { m_cylinderDir = b; }
+		void updateEdgeRenderData();
 	protected:
 		void cacheNvPaths();
 		void renderSelection(bool idxMode = false);
 		void configNvParams();
-		void updateEdgeRenderData();
 		bool removeCorner(int corner_arrayId);
 		bool splitSelectedEdgeMidPoint(int edge_arrayId);
 	protected:

@@ -24,6 +24,7 @@ inline ldp::Float4 selectIdToColor(unsigned int id)
 #pragma endregion
 
 Viewer2d::Viewer2d(QWidget *parent)
+: QGLWidget(QGLFormat(QGL::SampleBuffers), parent)
 {
 	setMouseTracking(true);
 	m_buttons = Qt::MouseButton::NoButton;
@@ -89,19 +90,10 @@ void Viewer2d::initializeGL()
 {
 	glewInit();
 	glDisable(GL_TEXTURE_2D);
-	glEnable(GL_MULTISAMPLE);
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_LIGHTING);
-	glDisable(GL_LIGHT0);
 	glEnable(GL_FRONT_AND_BACK);
-	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
-	glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
-	glEnable(GL_POLYGON_OFFSET_FILL);
-	glPolygonOffset(1, 1);
-
-	m_showType = Renderable::SW_F | Renderable::SW_SMOOTH | Renderable::SW_TEXTURE
-		| Renderable::SW_LIGHTING;
-
+	m_showType = Renderable::SW_F | Renderable::SW_E | Renderable::SW_TEXTURE;
 	resetCamera();
 }
 
@@ -146,11 +138,13 @@ void Viewer2d::paintGL()
 
 	renderBackground();
 
-	if (m_clothManager)
+	m_camera.apply();
+	if (m_clothManager && (m_showType & Renderable::SW_F))
 	{
 		for (int i = 0; i < m_clothManager->numClothPieces(); i++)
 			m_clothManager->clothPiece(i)->mesh2d().render(m_showType);
 	}
+	renderClothsPanels(false);
 	renderDragBox();
 }
 
@@ -185,27 +179,31 @@ void Viewer2d::renderBackground()
 
 	glPushAttrib(GL_ALL_ATTRIB_BITS);
 
-	glColor3f(0.7, 0.7, 0.7);
+	glColor4f(0.7, 0.7, 0.7, 1);
 	glLineWidth(1);
 	glBegin(GL_LINES);
 	for (float x = std::floor(lt[0]/gridSz)*gridSz; x < std::ceil(rb[0]/gridSz)*gridSz; x += gridSz)
 	{
-		glVertex2f(x, lt[1]);
-		glVertex2f(x, rb[1]);
+		if (fabs(x) < gridSz*0.01)
+			continue;
+		glVertex3f(x, lt[1], -10);
+		glVertex3f(x, rb[1], -10);
 	}
 	for (float y = std::floor(lt[1] / gridSz)*gridSz; y < std::ceil(rb[1] / gridSz)*gridSz;y += gridSz)
 	{
-		glVertex2f(lt[0], y);
-		glVertex2f(rb[0], y);
+		if (fabs(y) < gridSz*0.01)
+			continue;
+		glVertex3f(lt[0], y, -10);
+		glVertex3f(rb[0], y, -10);
 	}
 	glEnd();
-	glLineWidth(2);
-	glColor3f(0.6, 0.6, 0.6);
+	glLineWidth(3);
+	glColor4f(0.5, 0.5, 0.5, 1);
 	glBegin(GL_LINES);
-	glVertex2f(0, lt[1]);
-	glVertex2f(0, rb[1]);
-	glVertex2f(lt[0], 0);
-	glVertex2f(rb[0], 0);
+	glVertex3f(0, lt[1], -10);
+	glVertex3f(0, rb[1], -10);
+	glVertex3f(lt[0], 0, -10);
+	glVertex3f(rb[0], 0, -10);
 	glEnd();
 
 	// render the body as two d
@@ -378,4 +376,97 @@ int Viewer2d::fboRenderedIndex(QPoint p)const
 		return colorToSelectId(ldp::Float4(qRed(c), qGreen(c), qBlue(c), qAlpha(c))/255.f);
 	}
 	return 0;
+}
+
+void Viewer2d::renderClothsPanels(bool idxMode)
+{
+	if (!m_clothManager)
+		return;
+
+	glPushAttrib(GL_ALL_ATTRIB_BITS);
+
+	if (!idxMode)
+	{
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glEnable(GL_BLEND);
+		glEnable(GL_LINE_SMOOTH);
+		glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+		glEnable(GL_MULTISAMPLE);
+	}
+	else
+	{
+		glDisable(GL_BLEND);
+		glDisable(GL_LINE_SMOOTH);
+		glDisable(GL_MULTISAMPLE);
+		glHint(GL_LINE_SMOOTH_HINT, GL_NEAREST);
+	}
+
+	for (int iPiece = 0; iPiece < m_clothManager->numClothPieces(); iPiece++)
+	{
+		const auto piece = m_clothManager->clothPiece(iPiece);
+		renderClothsPanels_Edge(piece, idxMode);
+		renderClothsPanels_KeyPoint(piece, idxMode);
+	} // end for iPiece
+
+	glPopAttrib();
+}
+
+
+void Viewer2d::renderClothsPanels_Edge(const ldp::ClothPiece* piece, bool idxMode)
+{
+	const float step = m_clothManager->getClothDesignParam().curveSampleStep;
+	const auto& panel = piece->panel();
+	const auto& poly = panel.outerPoly();
+	if (idxMode)
+		glLineWidth(5);
+	else
+		glLineWidth(2);
+	glBegin(GL_LINES);
+	for (const auto& shape : poly)
+	{
+		if (!idxMode)
+		{
+			if (shape->isSelected())
+				glColor4f(1, 1, 0, 1);
+			else if (shape->isHighlighted())
+				glColor4f(0, 1, 1, 1);
+			else
+				glColor4f(0, 0, 0, 1);
+		}
+		else
+			glColor4fv(selectIdToColor(shape->getIdxBegin()).ptr());
+		const auto& pts = shape->samplePointsOnShape(step / shape->calcLength());
+		for (size_t i = 1; i < pts.size(); i++)
+		{
+			glVertex2fv(pts[i - 1].ptr());
+			glVertex2fv(pts[i].ptr());
+		}
+	} // end for shape
+	glEnd();
+}
+
+void Viewer2d::renderClothsPanels_KeyPoint(const ldp::ClothPiece* piece, bool idxMode)
+{
+	const float step = m_clothManager->getClothDesignParam().curveSampleStep;
+	const auto& panel = piece->panel();
+	const auto& poly = panel.outerPoly();
+	glPointSize(6);
+	glBegin(GL_POINTS);
+	for (const auto& shape : poly)
+	{
+		if (!idxMode)
+		{
+			if (shape->isSelected())
+				glColor4f(1, 1, 0, 1);
+			else if (shape->isHighlighted())
+				glColor4f(0, 1, 1, 1);
+			else
+				glColor4f(0, 0, 0, 1);
+		}
+		else
+			glColor4fv(selectIdToColor(shape->getIdxBegin()).ptr());
+		for (int i = 0; i < shape->numKeyPoints(); i++)
+			glVertex2fv(shape->getKeyPoint(i).ptr());
+	} // end for shape
+	glEnd();
 }

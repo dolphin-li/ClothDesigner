@@ -9,6 +9,7 @@
 #include <eigen\Sparse>
 #include "svgpp\SvgManager.h"
 #include "svgpp\SvgPolyPath.h"
+#include "ldputil.h"
 #define ENABLE_DEBUG_DUMPING
 
 namespace ldp
@@ -254,30 +255,6 @@ namespace ldp
 			m_shouldNumericUpdate = true;
 		if (fabs(lastParam.stitch_k - m_simulationParam.stitch_k) >= std::numeric_limits<float>::epsilon())
 			m_shouldStitchUpdate = true;
-	}
-
-	SimulationParam::SimulationParam()
-	{
-		setDefaultParam();
-	}
-
-	void SimulationParam::setDefaultParam()
-	{
-		rho = 0.996;
-		under_relax = 0.5;
-		lap_damping = 4;
-		air_damping = 0.999;
-		bending_k = 10;
-		spring_k_raw = 1000;
-		spring_k = 0;//will be updated after built topology
-		stitch_k_raw = 150000;
-		stitch_k = 0;//will be updated after built topology
-		out_iter = 8;
-		inner_iter = 40;
-		time_step = 1.0 / 240.0;
-		stitch_ratio = 10;
-		control_mag = 400;
-		gravity = ldp::Float3(0, 0, -9.8);
 	}
 
 	void ClothManager::updateCurrentClothsToInitial()
@@ -697,10 +674,192 @@ namespace ldp
 	//////////////////////////////////////////////////////////////////////////////////
 	void ClothManager::loadPiecesFromSvg(std::string filename)
 	{
+		m_clothPieces.clear();
+
 		svg::SvgManager svgManager;
 		svgManager.load(filename.c_str());
 
 		auto polyPaths = svgManager.collectPolyPaths(false);
 		auto edgeGroups = svgManager.collectEdgeGroups(false);
+		const float pixel2meter = svgManager.getPixelToMeters();
+
+		// 1.1 add closed polygons as loops ----------------------------------------------
+		std::vector<ShapeGroup> groups;
+		std::vector<ShapePtr> lines;
+		for (auto polyPath : polyPaths)
+		{
+			polyPath->findCorners();
+			polyPath->updateEdgeRenderData();
+			if (polyPath->isClosed())
+			{
+				groups.push_back(ShapeGroup());
+				polyPathToShape(polyPath, groups.back(), pixel2meter);
+			} // end if closed
+			else
+			{
+				polyPathToShape(polyPath, lines, pixel2meter);
+			} // end if not closed
+		} // end for polyPath
+
+		// 1.2 mark inside/outside of polygons
+		std::vector<int> polyInsideId(groups.size(), -1);
+		std::vector<int> lineInsideId(lines.size(), -1);
+		std::vector<Vec2> ipts, jpts;
+		for (size_t ipoly = 0; ipoly < groups.size(); ipoly++)
+		{
+			ipts.clear();
+			groups[ipoly].collectKeyPoints(ipts);
+			for (size_t jpoly = 0; jpoly < groups.size(); jpoly++)
+			{
+				if (jpoly == ipoly)
+					continue;
+				jpts.clear();
+				groups[jpoly].collectKeyPoints(jpts);
+				bool allIn = true;
+				for (const auto& pj : jpts)
+				{
+					if (!this->pointInPolygon((int)ipts.size()-1, ipts.data(), pj))
+					{
+						allIn = false;
+						break;
+					}
+				} // end for pj
+				if (allIn)
+					polyInsideId[jpoly] = ipoly;
+			} // end for jpoly
+			for (size_t jpoly = 0; jpoly < lines.size(); jpoly++)
+			{
+				jpts.clear();
+				bool allIn = true;
+				for (int k = 0; k < lines[jpoly]->numKeyPoints(); k++)
+				{
+					if (!this->pointInPolygon((int)ipts.size()-1, ipts.data(), lines[jpoly]->getKeyPoint(k)))
+					{
+						allIn = false;
+						break;
+					}
+				} // end for pj
+				if (allIn)
+					lineInsideId[jpoly] = ipoly;
+			} // end for jpoly
+		} // end for ipoly
+
+		// 1.3 create outter panels
+		int idxStart = ClothIdxBegin;
+		for (size_t ipoly = 0; ipoly < groups.size(); ipoly++)
+		{
+			if (polyInsideId[ipoly] >= 0)
+				continue;
+			m_clothPieces.push_back(std::shared_ptr<ClothPiece>(new ClothPiece()));
+			const auto& piece = m_clothPieces.back();
+			piece->panel().create(groups[ipoly], idxStart);
+
+			// add dart
+			for (size_t jpoly = 0; jpoly < groups.size(); jpoly++)
+			{
+				if (polyInsideId[jpoly] != ipoly)
+					continue;
+				piece->panel().addDart(groups[jpoly]);
+			} // end for jpoly
+
+			// add inner lines
+			for (size_t jpoly = 0; jpoly < lines.size(); jpoly++)
+			{
+				if (lineInsideId[jpoly] != ipoly)
+					continue;
+				piece->panel().addInnerLine(lines[jpoly]);
+			} // end for jpoly
+
+			idxStart = piece->panel().getIndexEnd();
+		} // end for ipoly
+
+		// 2. triangluation
+		triangulate();
+	}
+
+	void ClothManager::triangulate()
+	{
+
+	}
+
+	void ClothManager::polyPathToShape(const svg::SvgPolyPath* polyPath, 
+		std::vector<ShapePtr>& group, float pixel2meter)
+	{
+		for (size_t iCorner = 0; iCorner < polyPath->numCornerEdges(); iCorner++)
+		{
+			std::vector<Vec2> points;
+			const auto& coords = polyPath->getEdgeCoords(iCorner);
+			assert(coords.size() >= 4);
+			for (size_t i = 0; i < coords.size() - 1; i += 2)
+			{
+				ldp::Float2 p(coords[i] * pixel2meter, coords[i + 1] * pixel2meter);
+				if (points.size())
+				if ((p - points.back()).length() < m_clothDesignParam.pointMergeDistThre)
+					continue;
+				points.push_back(p);
+			} // end for i
+			if (points.size() >= 2)
+				group.push_back(ShapePtr(AbstractShape::create(points)));
+		}
+	}
+
+	bool ClothManager::pointInPolygon(int n, const Vec2* v, Vec2 p)
+	{
+		float d = -1;
+		const float x = p[0], y = p[1];
+		float minDist = FLT_MAX;
+		for (int i = 0, j = n - 1; i < n; j = i++)
+		{
+			const float xi = v[i][0], yi = v[i][1], xj = v[j][0], yj = v[j][1];
+			const float inv_k = (xj - xi) / (yj - yi);
+			if ((yi>y) != (yj > y) && x - xi < inv_k * (y - yi))
+				d = -d;
+			// project point to line
+			ldp::Float2 pvi = p - v[i];
+			ldp::Float2 dji = v[j] - v[i];
+			float t = pvi.dot(dji) / dji.length();
+			t = std::min(1.f, std::max(0.f, t));
+			ldp::Float2 p0 = v[i] + t * dji;
+			minDist = std::min(minDist, (p-p0).length());
+		}
+		minDist *= d;
+		return minDist >= -m_clothDesignParam.pointInsidePolyThre;
+	}
+
+	////Params//////////////////////////////////////////////////////////////////////////////////
+	ClothDesignParam::ClothDesignParam()
+	{
+		setDefaultParam();
+	}
+
+	void ClothDesignParam::setDefaultParam()
+	{
+		pointMergeDistThre = 1e-4;				// in meters
+		curveSampleStep = 5e-3;					// in meters
+		pointInsidePolyThre = 1e-3;				// in meters
+	}
+
+	SimulationParam::SimulationParam()
+	{
+		setDefaultParam();
+	}
+
+	void SimulationParam::setDefaultParam()
+	{
+		rho = 0.996;
+		under_relax = 0.5;
+		lap_damping = 4;
+		air_damping = 0.999;
+		bending_k = 10;
+		spring_k_raw = 1000;
+		spring_k = 0;//will be updated after built topology
+		stitch_k_raw = 150000;
+		stitch_k = 0;//will be updated after built topology
+		out_iter = 8;
+		inner_iter = 40;
+		time_step = 1.0 / 240.0;
+		stitch_ratio = 10;
+		control_mag = 400;
+		gravity = ldp::Float3(0, 0, -9.8);
 	}
 }

@@ -72,6 +72,7 @@ inline ldp::Float4 selectIdToColor(unsigned int id)
 #pragma endregion
 
 Viewer3d::Viewer3d(QWidget *parent)
+: QGLWidget(QGLFormat(QGL::SampleBuffers), parent)
 {
 	setMouseTracking(true);
 	m_buttons = Qt::MouseButton::NoButton;

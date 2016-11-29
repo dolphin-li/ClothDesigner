@@ -10,26 +10,41 @@
 #include "COLLISION_HANDLER.h"
 #endif
 class ObjMesh;
+namespace svg
+{
+	class SvgManager;
+	class SvgPolyPath;
+}
 namespace ldp
 {
 	struct SimulationParam
 	{
-		float rho;				// for chebshev accereration
-		float under_relax;		// jacobi relax param
-		int lap_damping;		// loops of laplacian damping
-		float air_damping;		// damping of the air
-		float bending_k;		// related to the thickness of the cloth
-		float spring_k;			// related to the elasticity of the cloth
-		float spring_k_raw;		// spring_k_raw / avgArea = spring_k
-		float stitch_k;			// stiffness of stithed vertex, for sewing
-		float stitch_k_raw;		// stitch_k_raw / avgArea = stitch_k
-		float stitch_ratio;		// for each stitch, the length will -= ratio*time_step each update
-		int out_iter;			// number of iterations
-		int inner_iter;			// number of iterations
-		float control_mag;		// for dragging, the stiffness of dragged point
-		float time_step;		// simulation time step
+		float rho;						// for chebshev accereration
+		float under_relax;				// jacobi relax param
+		int lap_damping;				// loops of laplacian damping
+		float air_damping;				// damping of the air
+		float bending_k;				// related to the thickness of the cloth
+		float spring_k;					// related to the elasticity of the cloth
+		float spring_k_raw;				// spring_k_raw / avgArea = spring_k
+		float stitch_k;					// stiffness of stithed vertex, for sewing
+		float stitch_k_raw;				// stitch_k_raw / avgArea = stitch_k
+		float stitch_ratio;				// for each stitch, the length will -= ratio*time_step each update
+		int out_iter;					// number of iterations
+		int inner_iter;					// number of iterations
+		float control_mag;				// for dragging, the stiffness of dragged point
+		float time_step;				// simulation time step
 		ldp::Float3 gravity;	
 		SimulationParam();
+		void setDefaultParam();
+	};
+
+	struct ClothDesignParam
+	{
+		float pointMergeDistThre;				// in meters
+		float curveSampleStep;					// in meters; each curve is discreated via this step
+		float pointInsidePolyThre;				// in meters
+
+		ClothDesignParam();
 		void setDefaultParam();
 	};
 
@@ -48,12 +63,17 @@ namespace ldp
 
 	class ClothPiece;
 	class PanelPolygon;
+	class AbstractShape;
 	class LevelSet3D;
 	class BMesh;
 	class BMVert;
 	class ClothManager
 	{
 	public:
+		enum
+		{
+			ClothIdxBegin = 1
+		};
 		typedef float ValueType;
 		typedef ldp::ldp_basic_vec3<float> Vec3;
 		typedef ldp::ldp_basic_vec2<float> Vec2;
@@ -96,6 +116,7 @@ namespace ldp
 		/// parameters related
 		void setSimulationMode(SimulationMode mode);
 		void setSimulationParam(SimulationParam param);
+		void setClothDesignParam(ClothDesignParam param);
 
 		/// mesh backup related
 		void updateCurrentClothsToInitial();
@@ -108,6 +129,8 @@ namespace ldp
 		/// getters
 		float getFps()const { return m_fps; }
 		SimulationMode getSimulationMode()const { return m_simulationMode; }
+		SimulationParam getSimulationParam()const { return m_simulationParam; }
+		ClothDesignParam getClothDesignParam()const { return m_clothDesignParam; }
 		const ObjMesh* bodyMesh()const { return m_bodyMesh.get(); }
 		ObjMesh* bodyMesh() { return m_bodyMesh.get(); }
 		const LevelSet3D* bodyLevelSet()const { return m_bodyLvSet.get(); }
@@ -118,7 +141,6 @@ namespace ldp
 		void clearClothPieces();
 		void addClothPiece(std::shared_ptr<ClothPiece> piece);
 		void removeClothPiece(int i);
-		SimulationParam getSimulationParam()const { return m_simulationParam; }
 		int numStitches()const { return (int)m_stitches.size(); }
 		std::pair<Float3, Float3> getStitchPos(int i)const;
 		void get2dBound(ldp::Float2& bmin, ldp::Float2& bmax)const;
@@ -128,6 +150,7 @@ namespace ldp
 		std::shared_ptr<LevelSet3D> m_bodyLvSet;
 		SimulationMode m_simulationMode;
 		SimulationParam m_simulationParam;
+		ClothDesignParam m_clothDesignParam;
 		ValueType m_avgArea;
 		ValueType m_avgEdgeLength;
 		ValueType m_fps;
@@ -136,6 +159,12 @@ namespace ldp
 		bool m_shouldNumericUpdate;
 		bool m_shouldStitchUpdate;
 		DragInfoInternal m_curDragInfo;
+		// 2D-3D triangulation related---------------------------------------------------
+	protected:
+		bool pointInPolygon(int n, const Vec2* pts, Vec2 p);
+		void triangulate();
+		void polyPathToShape(const svg::SvgPolyPath* polyPath,
+			std::vector<std::shared_ptr<AbstractShape>>& group, float pixel2meter);
 		// Topology related--------------------------------------------------------------
 	protected:
 		void mergePieces();
