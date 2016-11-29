@@ -178,14 +178,14 @@ namespace ldp
 			for (size_t i = 0; i < m_keyPoints.size(); i++)
 			{
 				m_keyPoints[i]->setIdxBegin(idx);
-				idx += m_keyPoints[i]->getIdxEnd();
+				idx = m_keyPoints[i]->getIdxEnd();
 			}
 		}
 		virtual void collectObject(std::vector<AbstractPanelObject*>& objs)
 		{
 			objs.push_back(this);
 			for (auto p : m_keyPoints)
-				objs.push_back(p.get());
+				p->collectObject(objs);
 		}
 	protected:
 		std::vector<std::shared_ptr<KeyPoint>> m_keyPoints;
@@ -318,7 +318,7 @@ namespace ldp
 			idx++;	//self
 			for (size_t i = 0; i < size(); i++)
 			{
-				(*this)[i]->setIdxBegin(idx);
+				(*this)[i]->updateIndex(idx);
 				idx = (*this)[i]->getIdxEnd();
 			}
 		}
@@ -365,7 +365,7 @@ namespace ldp
 		{
 			objs.push_back(this);
 			for (auto p : (*this))
-				objs.push_back(p.get());
+				p->collectObject(objs);
 		}
 	protected:
 		Float2 m_bbox[2];

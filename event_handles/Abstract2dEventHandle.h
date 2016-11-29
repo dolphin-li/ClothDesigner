@@ -31,7 +31,6 @@ public:
 	};
 	struct HighLightInfo
 	{
-		ldp::AbstractPanelObject* curObj;
 		int renderId;
 		HighLightInfo()
 		{
@@ -39,7 +38,6 @@ public:
 		}
 		void clear()
 		{
-			curObj = nullptr;
 			renderId = 0;
 		}
 	};

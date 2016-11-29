@@ -93,7 +93,7 @@ void Viewer2d::initializeGL()
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_LIGHTING);
 	glEnable(GL_FRONT_AND_BACK);
-	m_showType = Renderable::SW_F | Renderable::SW_E | Renderable::SW_TEXTURE;
+	m_showType = Renderable::SW_V | Renderable::SW_F | Renderable::SW_E | Renderable::SW_TEXTURE;
 	resetCamera();
 }
 
@@ -414,6 +414,8 @@ void Viewer2d::renderClothsPanels(bool idxMode)
 
 void Viewer2d::renderClothsPanels_Edge(const ldp::ClothPiece* piece, bool idxMode)
 {
+	if (!(m_showType & Renderable::SW_E))
+		return;
 	const float step = m_clothManager->getClothDesignParam().curveSampleStep;
 	const auto& panel = piece->panel();
 	const auto& poly = panel.outerPoly();
@@ -426,9 +428,9 @@ void Viewer2d::renderClothsPanels_Edge(const ldp::ClothPiece* piece, bool idxMod
 	{
 		if (!idxMode)
 		{
-			if (shape->isSelected())
+			if (shape->isSelected() || panel.isSelected())
 				glColor4f(1, 1, 0, 1);
-			else if (shape->isHighlighted())
+			else if (shape->isHighlighted() || panel.isHighlighted())
 				glColor4f(0, 1, 1, 1);
 			else
 				glColor4f(0, 0, 0, 1);
@@ -447,26 +449,35 @@ void Viewer2d::renderClothsPanels_Edge(const ldp::ClothPiece* piece, bool idxMod
 
 void Viewer2d::renderClothsPanels_KeyPoint(const ldp::ClothPiece* piece, bool idxMode)
 {
+	if (!(m_showType & Renderable::SW_V))
+		return;
 	const float step = m_clothManager->getClothDesignParam().curveSampleStep;
 	const auto& panel = piece->panel();
 	const auto& poly = panel.outerPoly();
-	glPointSize(6);
+	if (idxMode)
+		glPointSize(10);
+	else
+		glPointSize(7);
 	glBegin(GL_POINTS);
 	for (const auto& shape : poly)
 	{
-		if (!idxMode)
-		{
-			if (shape->isSelected())
-				glColor4f(1, 1, 0, 1);
-			else if (shape->isHighlighted())
-				glColor4f(0, 1, 1, 1);
-			else
-				glColor4f(0, 0, 0, 1);
-		}
-		else
-			glColor4fv(selectIdToColor(shape->getIdxBegin()).ptr());
 		for (int i = 0; i < shape->numKeyPoints(); i++)
-			glVertex2fv(shape->getKeyPoint(i).position.ptr());
+		{
+			const auto& p = shape->getKeyPoint(i);
+			if (!idxMode)
+			{
+				if (p.isSelected() || shape->isSelected() || panel.isSelected())
+					glColor4f(1, 1, 0, 1);
+				else if (p.isHighlighted() || shape->isHighlighted() || panel.isHighlighted())
+					glColor4f(0, 1, 1, 1);
+				else
+					glColor4f(0, 0, 0, 1);
+			}
+			else
+				glColor4fv(selectIdToColor(p.getIdxBegin()).ptr());
+			const auto& x = p.position;
+			glVertex3f(x[0], x[1], 0.1);
+		}
 	} // end for shape
 	glEnd();
 }

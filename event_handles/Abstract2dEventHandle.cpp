@@ -63,13 +63,6 @@ void Abstract2dEventHandle::highLight(QPoint pos)
 		return;
 
 	m_highLightInfo.renderId = m_viewer->fboRenderedIndex(pos);
-
-	if (m_highLightInfo.curObj)
-	{
-		m_highLightInfo.curObj->setHighlighted(false);
-		m_highLightInfo.curObj = nullptr;
-	}
-
 	for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
 	{
 		auto piece = manager->clothPiece(iPiece);

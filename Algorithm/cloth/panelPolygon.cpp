@@ -200,7 +200,7 @@ namespace ldp
 		}
 		for (auto& ln : m_innerLines)
 		{
-			ln->setIdxBegin(idx);
+			ln->updateIndex(idx);
 			idx = ln->getIdxEnd();
 		}
 	}
@@ -301,7 +301,12 @@ namespace ldp
 		m_tmpbufferObj.clear();
 		collectObject(m_tmpbufferObj);
 		for (auto obj : m_tmpbufferObj)
-			obj->setHighlighted(idx == obj->getIdxBegin());
+		{
+			if (idx == obj->getIdxBegin())
+				obj->setHighlighted(true);
+			else
+				obj->setHighlighted(false);
+		}
 	}
 
 	void PanelPolygon::collectObject(std::vector<AbstractPanelObject*>& objs)
