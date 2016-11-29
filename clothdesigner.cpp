@@ -18,7 +18,8 @@ ClothDesigner::ClothDesigner(QWidget *parent)
 	m_splitter->addWidget(m_widget3d);
 	m_splitter->addWidget(m_widget2d);
 
-	initLeftDockActions();
+	init3dActions();
+	init2dActions();
 
 	g_dataholder.init();
 	m_widget3d->init(g_dataholder.m_clothManager.get(), this);
@@ -46,7 +47,6 @@ void ClothDesigner::timerEvent(QTimerEvent* ev)
 		setWindowTitle(QString().sprintf("fps: %f", g_dataholder.m_clothManager->getFps()));
 }
 
-
 void ClothDesigner::on_actionLoad_svg_triggered()
 {
 	try
@@ -61,56 +61,6 @@ void ClothDesigner::on_actionLoad_svg_triggered()
 	{
 		std::cout << e.what() << std::endl;
 	}
-}
-
-void ClothDesigner::initLeftDockActions()
-{
-	m_ldbSignalMapper.reset(new QSignalMapper(this));
-	connect(m_ldbSignalMapper.data(), SIGNAL(mapped(int)), this, SLOT(leftDocButtonsClicked(int)));
-	ui.dockWidgetContentsLeft->setLayout(new QGridLayout(ui.dockWidgetContentsLeft));
-	ui.dockWidgetContentsLeft->layout()->setAlignment(Qt::AlignTop);
-
-	// add buttons
-	for (size_t i = (size_t)Abstract3dEventHandle::ProcessorTypeGeneral + 1;
-		i < (size_t)Abstract3dEventHandle::ProcessorTypeEnd; i++)
-	{
-		auto type = Abstract3dEventHandle::ProcessorType(i);
-		addLeftDockWidgetButton(type);
-	}
-	m_widget3d->setEventHandleType(Abstract3dEventHandle::ProcessorTypeSelect);
-
-	// do connections
-	for (auto it : m_leftDockButtons.toStdMap())
-	{
-		m_ldbSignalMapper->setMapping(it.second.data(), it.first);
-		connect(it.second.data(), SIGNAL(clicked()), m_ldbSignalMapper.data(), SLOT(map()));
-	}
-}
-
-void ClothDesigner::addLeftDockWidgetButton(Abstract3dEventHandle::ProcessorType type)
-{
-	auto handle = m_widget3d->getEventHandle(type);
-	auto colorStr = QString("background-color: rgb(73, 73, 73)");
-	QIcon icon;
-	icon.addFile(handle->iconFile(), QSize(), QIcon::Active);
-	icon.addFile(handle->iconFile(), QSize(), QIcon::Selected);
-	icon.addFile(handle->inactiveIconFile(), QSize(), QIcon::Normal);
-	QSharedPointer<QPushButton> btn(new QPushButton(ui.dockWidgetLeft));
-	btn->setIconSize(QSize(30, 30));
-	btn->setIcon(icon);
-	btn->setCheckable(true);
-	btn->setStyleSheet(colorStr);
-	btn->setAutoExclusive(true);
-	btn->setToolTip(handle->toolTips());
-	m_leftDockButtons.insert(type, btn);
-	ui.dockWidgetContentsLeft->layout()->addWidget(btn.data());
-}
-
-void ClothDesigner::leftDocButtonsClicked(int i)
-{
-	Abstract3dEventHandle::ProcessorType type = (Abstract3dEventHandle::ProcessorType)i;
-	m_widget3d->setEventHandleType(type);
-	m_leftDockButtons[type]->setChecked(true);
 }
 
 void ClothDesigner::updateUiByParam()
@@ -343,5 +293,77 @@ void ClothDesigner::on_sbSparamGravityZ_valueChanged(double v)
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////////
+void ClothDesigner::resizeEvent(QResizeEvent* ev)
+{
+
+}
+
+void ClothDesigner::init3dActions()
+{
+	// add buttons
+	for (size_t i = (size_t)Abstract3dEventHandle::ProcessorTypeGeneral + 1;
+		i < (size_t)Abstract3dEventHandle::ProcessorTypeEnd; i++)
+	{
+		auto type = Abstract3dEventHandle::ProcessorType(i);
+		add3dButton(type);
+	}
+	m_widget3d->setEventHandleType(Abstract3dEventHandle::ProcessorTypeSelect);
+}
+
+void ClothDesigner::add3dButton(Abstract3dEventHandle::ProcessorType type)
+{
+	auto handle = m_widget3d->getEventHandle(type);
+	auto colorStr = QString("background-color: rgb(73, 73, 73)");
+	QIcon icon;
+	icon.addFile(handle->iconFile());
+	QAction* action = new QAction(icon, QString().sprintf("%d", type), ui.mainToolBar);
+	action->setToolTip(handle->toolTips());
+	ui.mainToolBar->addAction(action);
+}
+
+void ClothDesigner::init2dActions()
+{
+	ui.mainToolBar->addSeparator();
+	// add buttons
+	for (size_t i = (size_t)Abstract2dEventHandle::ProcessorTypeGeneral + 1;
+		i < (size_t)Abstract2dEventHandle::ProcessorTypeEnd; i++)
+	{
+		auto type = Abstract2dEventHandle::ProcessorType(i);
+		add2dButton(type);
+	}
+	m_widget2d->setEventHandleType(Abstract2dEventHandle::ProcessorTypeEditPattern);
+}
+
+void ClothDesigner::add2dButton(Abstract2dEventHandle::ProcessorType type)
+{
+	auto handle = m_widget2d->getEventHandle(type);
+	auto colorStr = QString("background-color: rgb(73, 73, 73)");
+	QIcon icon;
+	icon.addFile(handle->iconFile(), QSize(), QIcon::Active);
+	icon.addFile(handle->iconFile(), QSize(), QIcon::Selected);
+	icon.addFile(handle->inactiveIconFile(), QSize(), QIcon::Normal);
+	QAction* action = new QAction(icon, QString().sprintf("%d", 
+		type+Abstract3dEventHandle::ProcessorTypeEnd), ui.mainToolBar);
+	action->setToolTip(handle->toolTips());
+	ui.mainToolBar->addAction(action);
+}
+
+void ClothDesigner::on_mainToolBar_actionTriggered(QAction* action)
+{
+	int id = action->text().toInt();
+	if (id < Abstract3dEventHandle::ProcessorTypeEnd)
+	{
+		Abstract3dEventHandle::ProcessorType type = (Abstract3dEventHandle::ProcessorType)id;
+		m_widget3d->setEventHandleType(type);
+	}
+	else
+	{
+		Abstract2dEventHandle::ProcessorType type = (Abstract2dEventHandle::ProcessorType)
+			(id-Abstract3dEventHandle::ProcessorTypeEnd);
+		m_widget2d->setEventHandleType(type);
 	}
 }

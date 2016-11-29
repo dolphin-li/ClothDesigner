@@ -5,6 +5,8 @@
 #include "cloth\clothPiece.h"
 
 #include "Abstract2dEventHandle.h"
+#include "Edit2dPatternEventHandle.h"
+
 Abstract2dEventHandle::Abstract2dEventHandle(Viewer2d* v)
 {
 	m_viewer = v;
@@ -60,6 +62,8 @@ Abstract2dEventHandle* Abstract2dEventHandle::create(ProcessorType type, Viewer2
 	{
 	case Abstract2dEventHandle::ProcessorTypeGeneral:
 		return new Abstract2dEventHandle(v);
+	case Abstract2dEventHandle::ProcessorTypeEditPattern:
+		return new Edit2dPatternEventHandle(v);
 	case Abstract2dEventHandle::ProcessorTypeEnd:
 	default:
 		return nullptr;

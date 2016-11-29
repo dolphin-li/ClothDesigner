@@ -302,6 +302,7 @@
     <ClCompile Include="clothdesigner.cpp" />
     <ClCompile Include="event_handles\Abstract2dEventHandle.cpp" />
     <ClCompile Include="event_handles\Abstract3dEventHandle.cpp" />
+    <ClCompile Include="event_handles\Edit2dPatternEventHandle.cpp" />
     <ClCompile Include="event_handles\Rotate3dEventHandle.cpp" />
     <ClCompile Include="event_handles\Select3dEventHandle.cpp" />
     <ClCompile Include="event_handles\Translate3dEventHandle.cpp" />
@@ -491,6 +492,7 @@
     <ClInclude Include="Algorithm\triangle\triangleWrapper.h" />
     <ClInclude Include="event_handles\Abstract2dEventHandle.h" />
     <ClInclude Include="event_handles\Abstract3dEventHandle.h" />
+    <ClInclude Include="event_handles\Edit2dPatternEventHandle.h" />
     <ClInclude Include="event_handles\Rotate3dEventHandle.h" />
     <ClInclude Include="event_handles\Select3dEventHandle.h" />
     <ClInclude Include="event_handles\Translate3dEventHandle.h" />

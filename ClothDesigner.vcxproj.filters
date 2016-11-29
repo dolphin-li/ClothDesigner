@@ -592,6 +592,9 @@
     <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\upper4x4.cpp">
       <Filter>algorithm\svgpp\nvprsvg\cg</Filter>
     </ClCompile>
+    <ClCompile Include="event_handles\Edit2dPatternEventHandle.cpp">
+      <Filter>event_handle</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">
@@ -916,6 +919,9 @@
     </ClInclude>
     <ClInclude Include="Algorithm\svgpp\nvprsvg\nvpr\renderer_nvpr.hpp">
       <Filter>algorithm\svgpp\nvprsvg\nvpr</Filter>
+    </ClInclude>
+    <ClInclude Include="event_handles\Edit2dPatternEventHandle.h">
+      <Filter>event_handle</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

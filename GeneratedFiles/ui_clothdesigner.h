@@ -81,8 +81,6 @@ public:
     QPushButton *pbResetSimulation;
     QDockWidget *dockWidgetLower;
     QWidget *dockWidgetContentsLower;
-    QDockWidget *dockWidgetLeft;
-    QWidget *dockWidgetContentsLeft;
 
     void setupUi(QMainWindow *ClothDesignerClass)
     {
@@ -313,14 +311,6 @@ public:
         dockWidgetContentsLower->setObjectName(QStringLiteral("dockWidgetContentsLower"));
         dockWidgetLower->setWidget(dockWidgetContentsLower);
         ClothDesignerClass->addDockWidget(static_cast<Qt::DockWidgetArea>(8), dockWidgetLower);
-        dockWidgetLeft = new QDockWidget(ClothDesignerClass);
-        dockWidgetLeft->setObjectName(QStringLiteral("dockWidgetLeft"));
-        dockWidgetLeft->setFeatures(QDockWidget::NoDockWidgetFeatures);
-        dockWidgetLeft->setAllowedAreas(Qt::NoDockWidgetArea);
-        dockWidgetContentsLeft = new QWidget();
-        dockWidgetContentsLeft->setObjectName(QStringLiteral("dockWidgetContentsLeft"));
-        dockWidgetLeft->setWidget(dockWidgetContentsLeft);
-        ClothDesignerClass->addDockWidget(static_cast<Qt::DockWidgetArea>(1), dockWidgetLeft);
 
         menuBar->addAction(menuFile->menuAction());
         menuFile->addAction(actionLoad_project);

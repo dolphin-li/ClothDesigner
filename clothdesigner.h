@@ -9,6 +9,7 @@
 #include <QSignalMapper>
 #include "ldpMat\ldp_basic_mat.h"
 #include "event_handles\Abstract3dEventHandle.h"
+#include "event_handles\Abstract2dEventHandle.h"
 class Viewer3d;
 class Viewer2d;
 class ClothDesigner : public QMainWindow
@@ -20,6 +21,7 @@ public:
 	~ClothDesigner();
 
 	void timerEvent(QTimerEvent* ev);
+	virtual void resizeEvent(QResizeEvent* ev);
 
 	void updateUiByParam();
 	Viewer2d* viewer2d() { return m_widget2d; }
@@ -44,19 +46,19 @@ public:
 	void on_sbSparamGravityZ_valueChanged(double v);
 private:
 	Ui::ClothDesignerClass ui;
-	QSplitter* m_splitter;
 	Viewer2d* m_widget2d;
 	Viewer3d* m_widget3d;
 	int m_simulateTimer;
 	int m_fpsTimer;
 	//////////////////////////////////////////////////////////////////////////
 protected:
-	QMap<Abstract3dEventHandle::ProcessorType, QSharedPointer<QPushButton>> m_leftDockButtons;
-	QSharedPointer<QSignalMapper> m_ldbSignalMapper;
-	void initLeftDockActions();
-	void addLeftDockWidgetButton(Abstract3dEventHandle::ProcessorType type);
+	QSplitter* m_splitter;
+	void init3dActions();
+	void add3dButton(Abstract3dEventHandle::ProcessorType type);
+	void init2dActions();
+	void add2dButton(Abstract2dEventHandle::ProcessorType type);
 	public slots:
-	void leftDocButtonsClicked(int i);
+	void on_mainToolBar_actionTriggered(QAction* action);
 };
 
 #endif // CLOTHDESIGNER_H
