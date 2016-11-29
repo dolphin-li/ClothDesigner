@@ -1,5 +1,6 @@
 #pragma once
 #include "ldpMat\ldp_basic_mat.h"
+#include <set>
 namespace ldp
 {
 #pragma region --units
@@ -20,9 +21,11 @@ namespace ldp
 		{
 			SelectThis,
 			SelectUnion,
+			SelectUnionInverse,
 			SelectAll,
 			SelectNone,
-			SelectInverse
+			SelectInverse,
+			SelectEnd
 		};
 	public:
 		AbstractPanelObject()
@@ -396,7 +399,7 @@ namespace ldp
 		virtual int getIdxEnd()const;
 
 		void select(int idx, SelectOp op);
-		void select(const std::vector<int>& indices, SelectOp op);
+		void select(const std::set<int>& indices, SelectOp op);
 		void highLight(int idx);
 
 		void updateBound(Float2& bmin, Float2& bmax);

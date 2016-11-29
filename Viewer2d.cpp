@@ -249,6 +249,9 @@ void Viewer2d::keyPressEvent(QKeyEvent*ev)
 	case Qt::Key_T:
 		m_showType ^= Renderable::SW_TEXTURE;
 		break;
+	case Qt::Key_V:
+		m_showType ^= Renderable::SW_V;
+		break;
 	}
 	m_currentEventHandle->keyPressEvent(ev);
 	updateGL();
@@ -420,7 +423,7 @@ void Viewer2d::renderClothsPanels_Edge(const ldp::ClothPiece* piece, bool idxMod
 	const auto& panel = piece->panel();
 	const auto& poly = panel.outerPoly();
 	if (idxMode)
-		glLineWidth(5);
+		glLineWidth(4);
 	else
 		glLineWidth(2);
 	glBegin(GL_LINES);
@@ -455,9 +458,9 @@ void Viewer2d::renderClothsPanels_KeyPoint(const ldp::ClothPiece* piece, bool id
 	const auto& panel = piece->panel();
 	const auto& poly = panel.outerPoly();
 	if (idxMode)
-		glPointSize(10);
+		glPointSize(5);
 	else
-		glPointSize(7);
+		glPointSize(5);
 	glBegin(GL_POINTS);
 	for (const auto& shape : poly)
 	{

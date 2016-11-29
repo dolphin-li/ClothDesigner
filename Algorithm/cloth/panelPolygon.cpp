@@ -1,5 +1,5 @@
 #include "panelPolygon.h"
-#include <set>
+
 namespace ldp
 {
 
@@ -232,39 +232,17 @@ namespace ldp
 
 	void PanelPolygon::select(int idx, SelectOp op)
 	{
-		m_tmpbufferObj.clear();
-		collectObject(m_tmpbufferObj);
-		for (auto obj : m_tmpbufferObj)
-		{
-			switch (op)
-			{
-			case ldp::AbstractPanelObject::SelectThis:
-				obj->setSelected(idx == obj->getIdxBegin());
-				break;
-			case ldp::AbstractPanelObject::SelectUnion:
-				if (idx == obj->getIdxBegin())
-					obj->setSelected(idx == obj->getIdxBegin());
-				break;
-			case ldp::AbstractPanelObject::SelectAll:
-				obj->setSelected(true);
-				break;
-			case ldp::AbstractPanelObject::SelectNone:
-				obj->setSelected(false);
-				break;
-			case ldp::AbstractPanelObject::SelectInverse:
-				obj->setSelected(!obj->isSelected());
-				break;
-			default:
-				break;
-			}
-		}
+		if (op == SelectEnd)
+			return;
+		std::set<int> idxSet;
+		idxSet.insert(idx);
+		select(idxSet, op);
 	}
 
-	void PanelPolygon::select(const std::vector<int>& indices, SelectOp op)
+	void PanelPolygon::select(const std::set<int>& idxSet, SelectOp op)
 	{
-		std::set<int> idxSet;
-		for (auto idx : indices)
-			idxSet.insert(idx);
+		if (op == SelectEnd)
+			return;
 		m_tmpbufferObj.clear();
 		collectObject(m_tmpbufferObj);
 		for (auto obj : m_tmpbufferObj)
@@ -280,6 +258,10 @@ namespace ldp
 			case ldp::AbstractPanelObject::SelectUnion:
 				if (idxSet.find(obj->getIdxBegin()) != idxSet.end())
 					obj->setSelected(true);
+				break;
+			case ldp::AbstractPanelObject::SelectUnionInverse:
+				if (idxSet.find(obj->getIdxBegin()) != idxSet.end())
+					obj->setSelected(!obj->isSelected());
 				break;
 			case ldp::AbstractPanelObject::SelectAll:
 				obj->setSelected(true);
