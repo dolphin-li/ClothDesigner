@@ -13,8 +13,6 @@ namespace ldp
 			return new Quadratic();
 		case ldp::AbstractShape::TypeCubic:
 			return new Cubic();
-		case ldp::AbstractShape::TypeGeneralCurve:
-			return new GeneralCurve();
 		default:
 			assert(0);
 			return nullptr;
@@ -256,13 +254,6 @@ namespace ldp
 		return shape;
 	}
 
-	AbstractShape* GeneralCurve::clone()const
-	{
-		auto shape = (GeneralCurve*)AbstractShape::clone();
-		shape->m_params = m_params;
-		return shape;
-	}
-
 	const std::vector<Float2>& AbstractShape::samplePointsOnShape(float step)const
 	{
 		if (m_lastSampleStep != step)
@@ -280,55 +271,6 @@ namespace ldp
 		}
 		m_invalid = false;
 		return m_samplePoints;
-	}
-
-	GeneralCurve::GeneralCurve(const std::vector<KeyPoint>& keyPoints) : AbstractShape(keyPoints)
-	{
-		m_params.resize(m_keyPoints.size(), 0);
-		float totalLen = 0;
-		for (int i = 0; i < (int)m_keyPoints.size() - 1; i++)
-		{
-			float len = (m_keyPoints[i + 1]->position - m_keyPoints[i]->position).length();
-			m_params[i + 1] = m_params[i] + len;
-			totalLen += len;
-		}
-		for (auto& p : m_params)
-			p /= totalLen;
-	}
-
-	Float2 GeneralCurve::getPointByParam(float t)const
-	{
-		t = std::min(1.f, std::max(0.f, t));
-
-		int bg = 0, ed = (int)m_params.size() - 1;
-		int id = 0;
-		for (; bg < ed;)
-		{
-			id = (bg + ed) / 2;
-			if (t <= m_params[id])
-			{
-				ed = id;
-			}
-			else
-			{
-				if (t <= m_params[id + 1])
-					break;
-				else
-					bg = id;
-			}
-		} // end for binary search
-		assert(m_params[id] <= t && t <= m_params[id + 1]);
-		float w1 = t - m_params[id];
-		float w2 = m_params[id + 1] - t;
-		return (m_keyPoints[id]->position * w2 + m_keyPoints[id + 1]->position * w1) / (w1 + w2);
-	}
-
-	float GeneralCurve::calcLength()const
-	{
-		float len = 0;
-		for (size_t i = 1; i < m_keyPoints.size(); i++)
-			len += (m_keyPoints[i]->position - m_keyPoints[i - 1]->position).length();
-		return len;
 	}
 
 	float AbstractShape::calcLength()const

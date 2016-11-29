@@ -13,7 +13,6 @@ namespace ldp
 			TypeLine = 0x02,
 			TypeQuadratic = 0x04,
 			TypeCubic = 0x08,
-			TypeGeneralCurve = 0x10,
 			TypeGroup = 0x20,
 			TypePanelPolygon = 0x40,
 		};
@@ -264,28 +263,11 @@ namespace ldp
 		}
 	};
 
-	class GeneralCurve : public AbstractShape
-	{
-	public:
-		GeneralCurve() : AbstractShape()
-		{
-			
-		}
-		GeneralCurve(const std::vector<KeyPoint>& keyPoints);
-		virtual AbstractShape* clone()const;
-		virtual Type getType()const { return TypeGeneralCurve; }
-		virtual Float2 getPointByParam(float t)const;
-		virtual float calcLength()const;
-	protected:
-		std::vector<float> m_params;
-	};
-
 	typedef std::shared_ptr<KeyPoint> KeyPointPtr;
 	typedef std::shared_ptr<AbstractShape> ShapePtr;
 	typedef std::shared_ptr<Line> LinePtr;
 	typedef std::shared_ptr<Quadratic> QaudraticPtr;
 	typedef std::shared_ptr<Cubic> CubicPtr;
-	typedef std::shared_ptr<GeneralCurve> GeneralCurvePtr;
 
 	class ShapeGroup : public std::vector<ShapePtr>, public AbstractPanelObject
 	{
