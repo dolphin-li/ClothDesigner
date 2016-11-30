@@ -685,8 +685,8 @@ namespace ldp
 		const float pixel2meter = svgManager.getPixelToMeters();
 
 		// 1.1 add closed polygons as loops ----------------------------------------------
-		std::vector<ShapeGroup> groups;
-		std::vector<ShapeGroup> lines;
+		std::vector<ShapeGroupPtr> groups;
+		std::vector<ShapeGroupPtr> lines;
 		ObjConvertMap objMap;
 		for (auto polyPath : polyPaths)
 		{
@@ -694,12 +694,12 @@ namespace ldp
 			polyPath->updateEdgeRenderData();
 			if (polyPath->isClosed())
 			{
-				groups.push_back(ShapeGroup());
+				groups.push_back(ShapeGroupPtr(new ShapeGroup()));
 				polyPathToShape(polyPath, groups.back(), pixel2meter, objMap);
 			} // end if closed
 			else
 			{
-				lines.push_back(ShapeGroup());
+				lines.push_back(ShapeGroupPtr(new ShapeGroup()));
 				polyPathToShape(polyPath, lines.back(), pixel2meter, objMap);
 			} // end if not closed
 		} // end for polyPath
@@ -711,13 +711,13 @@ namespace ldp
 		for (size_t ipoly = 0; ipoly < groups.size(); ipoly++)
 		{
 			ipts.clear();
-			groups[ipoly].collectSamplePoints(ipts, m_clothDesignParam.curveSampleStep);
+			groups[ipoly]->collectSamplePoints(ipts, m_clothDesignParam.curveSampleStep);
 			for (size_t jpoly = 0; jpoly < groups.size(); jpoly++)
 			{
 				if (jpoly == ipoly)
 					continue;
 				jpts.clear();
-				groups[jpoly].collectSamplePoints(jpts, m_clothDesignParam.curveSampleStep);
+				groups[jpoly]->collectSamplePoints(jpts, m_clothDesignParam.curveSampleStep);
 				bool allIn = true;
 				for (const auto& pj : jpts)
 				{
@@ -733,7 +733,7 @@ namespace ldp
 			for (size_t jpoly = 0; jpoly < lines.size(); jpoly++)
 			{
 				jpts.clear();
-				lines[jpoly].collectSamplePoints(jpts, m_clothDesignParam.curveSampleStep);
+				lines[jpoly]->collectSamplePoints(jpts, m_clothDesignParam.curveSampleStep);
 				bool allIn = true;
 				for (const auto& pj : jpts)
 				{
@@ -748,7 +748,7 @@ namespace ldp
 			} // end for jpoly
 		} // end for ipoly
 
-		// 1.3 create outter panels
+		// 1.3 create outter panels, darts and inner lines
 		for (size_t ipoly = 0; ipoly < groups.size(); ipoly++)
 		{
 			if (polyInsideId[ipoly] >= 0)
@@ -774,6 +774,35 @@ namespace ldp
 			} // end for jpoly
 		} // end for ipoly
 
+		// 1.4 make sewing
+		for (const auto& eg : edgeGroups)
+		{
+			const auto& first = objMap[std::make_pair(eg->group.begin()->first, eg->group.begin()->second)];
+			std::vector<Sewing::Unit> funits, sunits;
+			for (const auto& f : first)
+			{
+				assert(Sewing::getPtrById(f->getId()));
+				funits.push_back(Sewing::Unit(f->getId(), false));
+			}
+			for (auto iter = eg->group.begin(); iter != eg->group.end(); ++iter)
+			{
+				if (iter == eg->group.begin())
+					continue;
+				m_sewings.push_back(SewingPtr(new Sewing()));
+
+				m_sewings.back()->addFirsts(funits);
+
+				const auto& second = objMap[std::make_pair(iter->first, iter->second)];
+				sunits.clear();
+				for (const auto& s : second)
+				{
+					assert(Sewing::getPtrById(s->getId()));
+					sunits.push_back(Sewing::Unit(s->getId(), false));
+				}
+				m_sewings.back()->addSeconds(sunits);
+			}
+		} // end for eg
+
 		// 2. triangluation
 		triangulate();
 	}
@@ -784,7 +813,7 @@ namespace ldp
 	}
 
 	void ClothManager::polyPathToShape(const svg::SvgPolyPath* polyPath, 
-		std::vector<ShapePtr>& group, float pixel2meter, ObjConvertMap& map)
+		std::shared_ptr<ldp::ShapeGroup>& group, float pixel2meter, ObjConvertMap& map)
 	{
 		for (size_t iCorner = 0; iCorner < polyPath->numCornerEdges(); iCorner++)
 		{
@@ -802,12 +831,12 @@ namespace ldp
 			if (points.size() >= 2)
 			{
 				auto key = std::make_pair(polyPath, (int)iCorner);
-				map.insert(std::make_pair(key, std::set<AbstractShape*>()));
+				map.insert(std::make_pair(key, std::vector<AbstractShape*>()));
 				auto mapIter = map.find(key);
-				size_t lastSize = group.size();
-				AbstractShape::create(group, points, m_clothDesignParam.curveFittingThre);
-				for (size_t sz = lastSize; sz < group.size(); sz++)
-					mapIter->second.insert(group[sz].get());
+				size_t lastSize = group->size();
+				AbstractShape::create(*group, points, m_clothDesignParam.curveFittingThre);
+				for (size_t sz = lastSize; sz < group->size(); sz++)
+					mapIter->second.push_back(group->at(sz).get());
 			}
 		}
 	}

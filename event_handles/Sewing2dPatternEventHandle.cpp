@@ -26,9 +26,11 @@ void Sewing2dPatternEventHandle::handleEnter()
 {
 	Abstract2dEventHandle::handleEnter();
 	m_viewer->setFocus();
+	m_viewer->beginSewingMode();
 }
 void Sewing2dPatternEventHandle::handleLeave()
 {
+	m_viewer->endSewingMode();
 	m_viewer->clearFocus();
 	m_viewer->endDragBox();
 	Abstract2dEventHandle::handleLeave();
@@ -61,12 +63,8 @@ void Sewing2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 			op = ldp::AbstractPanelObject::SelectUnionInverse;
 		if (ev->pos() == m_mouse_press_pt)
 		{
-			for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
-			{
-				auto piece = manager->clothPiece(iPiece);
-				auto& panel = piece->panel();
-				panel.select(pickInfo().renderId, op);
-			} // end for iPiece
+			for (size_t iSewing = 0; iSewing < manager->numSewings(); iSewing++)
+				manager->sewing(iSewing)->select(pickInfo().renderId, op);
 		}
 		else
 		{
@@ -81,12 +79,8 @@ void Sewing2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 			{
 				ids.insert(m_viewer->fboRenderedIndex(QPoint(x,y)));
 			}
-			for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
-			{
-				auto piece = manager->clothPiece(iPiece);
-				auto& panel = piece->panel();
-				panel.select(ids, op);
-			} // end for iPiece
+			for (size_t iSewing = 0; iSewing < manager->numSewings(); iSewing++)
+				manager->sewing(iSewing)->select(ids, op);
 		}
 	}
 	m_viewer->endDragBox();
@@ -133,12 +127,8 @@ void Sewing2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 		break;
 	}
 
-	for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
-	{
-		auto piece = manager->clothPiece(iPiece);
-		auto& panel = piece->panel();
-		panel.select(0, op);
-	} // end for iPiece
+	for (size_t iSewing = 0; iSewing < manager->numSewings(); iSewing++)
+		manager->sewing(iSewing)->select(0, op);
 }
 
 void Sewing2dPatternEventHandle::keyReleaseEvent(QKeyEvent *ev)

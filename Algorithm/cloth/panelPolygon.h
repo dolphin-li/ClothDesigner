@@ -429,6 +429,8 @@ namespace ldp
 	protected:
 		Float2 m_bbox[2];
 	};
+
+	typedef std::shared_ptr<ShapeGroup> ShapeGroupPtr;
 #pragma endregion
 
 	class PanelPolygon : public AbstractPanelObject
@@ -449,9 +451,9 @@ namespace ldp
 
 		virtual Type getType()const { return TypePanelPolygon; }
 		virtual AbstractPanelObject* clone()const;
-		void create(const Polygon& outerPoly);
-		void addDart(Dart& dart);
-		void addInnerLine(InnerLine& line);
+		void create(PolygonPtr outerPoly);
+		void addDart(DartPtr dart);
+		void addInnerLine(InnerLinePtr line);
 		const std::vector<DartPtr>& darts()const { return m_darts; }
 		const std::vector<InnerLinePtr>& innerLines()const { return m_innerLines; }
 		const PolygonPtr& outerPoly()const { return m_outerPoly; }
@@ -477,10 +479,10 @@ namespace ldp
 	public:
 		struct Unit
 		{
-			AbstractShape* shape;
+			size_t id;
 			bool direction;
-			Unit() :shape(nullptr), direction(false) {}
-			Unit(AbstractShape* s, bool d) :shape(s), direction(d) {}
+			Unit() :id(0), direction(false) {}
+			Unit(size_t i, bool d) :id(i), direction(d) {}
 		};
 	public:
 		void clear();
@@ -491,14 +493,20 @@ namespace ldp
 		void addSecond(Unit unit);
 		void addFirsts(const std::vector<Unit>& unit);
 		void addSeconds(const std::vector<Unit>& unit);
-		void remove(AbstractShape* s);
-		void remove(std::set<AbstractShape*> s);
+		void remove(size_t id);
+		void remove(const std::set<size_t>& s);
 		virtual Type getType()const { return TypeSewing; }
 		virtual void collectObject(std::vector<AbstractPanelObject*>& objs) { objs.push_back(this); }
 		virtual void collectObject(std::vector<const AbstractPanelObject*>& objs)const { objs.push_back(this); }
-		virtual Sewing* clone() const { return new Sewing(*this); }
+		virtual Sewing* clone() const;
+		void select(int idx, SelectOp op);
+		void select(const std::set<int>& indices, SelectOp op);
+		void highLight(int idx, int lastIdx);
 	protected:
 		std::vector<Unit> m_firsts;
 		std::vector<Unit> m_seconds;
+		std::vector<AbstractPanelObject*> m_tmpbufferObj;
 	};
+
+	typedef std::shared_ptr<Sewing> SewingPtr;
 }

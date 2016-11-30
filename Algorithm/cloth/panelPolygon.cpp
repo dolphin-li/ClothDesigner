@@ -315,19 +315,19 @@ namespace ldp
 		m_innerLines.clear();
 	}
 
-	void PanelPolygon::create(const Polygon& outerPoly)
+	void PanelPolygon::create(PolygonPtr outerPoly)
 	{
-		m_outerPoly.reset((Polygon*)outerPoly.clone());
+		m_outerPoly = outerPoly;
 	}
 
-	void PanelPolygon::addDart(Dart& dart)
+	void PanelPolygon::addDart(DartPtr dart)
 	{
-		m_darts.push_back(DartPtr((Dart*)dart.clone()));
+		m_darts.push_back(dart);
 	}
 
-	void PanelPolygon::addInnerLine(InnerLine& line)
+	void PanelPolygon::addInnerLine(InnerLinePtr line)
 	{
-		m_innerLines.push_back(InnerLinePtr((InnerLine*)line.clone()));
+		m_innerLines.push_back(line);
 	}
 
 	void PanelPolygon::updateBound(Float2& bmin, Float2& bmax)
@@ -469,28 +469,96 @@ namespace ldp
 		m_seconds.insert(m_seconds.end(), unit.begin(), unit.end());
 	}
 
-	void Sewing::remove(AbstractShape* s)
+	void Sewing::remove(size_t id)
 	{
-		std::set<AbstractShape*> shapes;
-		shapes.insert(s);
+		std::set<size_t> shapes;
+		shapes.insert(id);
 		remove(shapes);
 	}
 
-	void Sewing::remove(std::set<AbstractShape*> s)
+	void Sewing::remove(const std::set<size_t>& s)
 	{
 		auto tmp = m_firsts;
 		m_firsts.clear();
 		for (auto f : tmp)
 		{
-			if (s.find(f.shape) == s.end())
+			if (s.find(f.id) == s.end())
 				m_firsts.push_back(f);
 		}
 		tmp = m_seconds;
 		m_seconds.clear();
 		for (auto f : tmp)
 		{
-			if (s.find(f.shape) == s.end())
+			if (s.find(f.id) == s.end())
 				m_seconds.push_back(f);
 		}
+	}
+
+	void Sewing::select(int idx, SelectOp op)
+	{
+		if (op == SelectEnd)
+			return;
+		std::set<int> idxSet;
+		idxSet.insert(idx);
+		select(idxSet, op);
+	}
+
+	void Sewing::select(const std::set<int>& idxSet, SelectOp op)
+	{
+		if (op == SelectEnd)
+			return;
+		m_tmpbufferObj.clear();
+		collectObject(m_tmpbufferObj);
+		for (auto obj : m_tmpbufferObj)
+		{
+			switch (op)
+			{
+			case ldp::AbstractPanelObject::SelectThis:
+				if (idxSet.find(obj->getId()) != idxSet.end())
+					obj->setSelected(true);
+				else
+					obj->setSelected(false);
+				break;
+			case ldp::AbstractPanelObject::SelectUnion:
+				if (idxSet.find(obj->getId()) != idxSet.end())
+					obj->setSelected(true);
+				break;
+			case ldp::AbstractPanelObject::SelectUnionInverse:
+				if (idxSet.find(obj->getId()) != idxSet.end())
+					obj->setSelected(!obj->isSelected());
+				break;
+			case ldp::AbstractPanelObject::SelectAll:
+				obj->setSelected(true);
+				break;
+			case ldp::AbstractPanelObject::SelectNone:
+				obj->setSelected(false);
+				break;
+			case ldp::AbstractPanelObject::SelectInverse:
+				obj->setSelected(!obj->isSelected());
+				break;
+			default:
+				break;
+			}
+		}
+	}
+
+	void Sewing::highLight(int idx, int lastIdx)
+	{
+		auto cur = getPtrById(idx);
+		if (cur)
+			cur->setHighlighted(true);
+		if (idx != lastIdx)
+		{
+			auto pre = getPtrById(lastIdx);
+			if (pre)
+				pre->setHighlighted(false);
+		}
+	}
+
+	Sewing* Sewing::clone() const
+	{ 
+		auto r =  new Sewing(*this); 
+		r->m_tmpbufferObj.clear();
+		return r;
 	}
 }

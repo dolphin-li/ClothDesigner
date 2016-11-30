@@ -67,6 +67,7 @@ namespace ldp
 	class ClothPiece;
 	class PanelPolygon;
 	class AbstractShape;
+	class ShapeGroup;
 	class LevelSet3D;
 	class BMesh;
 	class BMVert;
@@ -124,7 +125,8 @@ namespace ldp
 		/// stitch related
 		void clearSewings();
 		int numSewings()const { return m_sewings.size(); }
-		const Sewing* getSewing(int i)const { return m_sewings.at(i).get(); }
+		const Sewing* sewing(int i)const { return m_sewings.at(i).get(); }
+		Sewing* sewing(int i) { return m_sewings.at(i).get(); }
 		void addSewing(std::shared_ptr<Sewing> sewing);
 		void addSewings(const std::vector<std::shared_ptr<Sewing>>& sewings);
 		void removeSewing(int arrayPos);
@@ -170,9 +172,9 @@ namespace ldp
 		void buildStitchesFromSewing();
 		bool pointInPolygon(int n, const Vec2* pts, Vec2 p);
 		void triangulate();
-		typedef std::map<std::pair<const svg::SvgPolyPath*, int>, std::set<AbstractShape*>> ObjConvertMap;
+		typedef std::map<std::pair<const svg::SvgPolyPath*, int>, std::vector<AbstractShape*>> ObjConvertMap;
 		void polyPathToShape(const svg::SvgPolyPath* polyPath,
-			std::vector<std::shared_ptr<AbstractShape>>& group, 
+			std::shared_ptr<ShapeGroup>& group, 
 			float pixel2meter, ObjConvertMap& map);
 	protected:
 		// Topology related--------------------------------------------------------------

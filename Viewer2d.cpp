@@ -6,6 +6,13 @@
 
 #pragma region --mat_utils
 
+const static float BODY_Z = -50;
+const static float BACK_Z = -10;
+const static float EDGE_Z = 0;
+const static float SEW_EDGE_Z = 1;
+const static float KEYPT_Z = 2;
+const static float DRAGBOX_Z = 50;
+
 inline int colorToSelectId(ldp::Float4 c)
 {
 	ldp::UInt4 cl = c*255.f;
@@ -233,24 +240,24 @@ void Viewer2d::renderBackground()
 	{
 		if (fabs(x) < gridSz*0.01)
 			continue;
-		glVertex3f(x, lt[1], -10);
-		glVertex3f(x, rb[1], -10);
+		glVertex3f(x, lt[1], BACK_Z);
+		glVertex3f(x, rb[1], BACK_Z);
 	}
 	for (float y = std::floor(lt[1] / gridSz)*gridSz; y < std::ceil(rb[1] / gridSz)*gridSz;y += gridSz)
 	{
 		if (fabs(y) < gridSz*0.01)
 			continue;
-		glVertex3f(lt[0], y, -10);
-		glVertex3f(rb[0], y, -10);
+		glVertex3f(lt[0], y, BACK_Z);
+		glVertex3f(rb[0], y, BACK_Z);
 	}
 	glEnd();
 	glLineWidth(3);
 	glColor4f(0.5, 0.5, 0.5, 1);
 	glBegin(GL_LINES);
-	glVertex3f(0, lt[1], -10);
-	glVertex3f(0, rb[1], -10);
-	glVertex3f(lt[0], 0, -10);
-	glVertex3f(rb[0], 0, -10);
+	glVertex3f(0, lt[1], BACK_Z);
+	glVertex3f(0, rb[1], BACK_Z);
+	glVertex3f(lt[0], 0, BACK_Z);
+	glVertex3f(rb[0], 0, BACK_Z);
 	glEnd();
 
 	// render the body as two d
@@ -258,7 +265,7 @@ void Viewer2d::renderBackground()
 	glPushMatrix();
 	m_camera.apply();
 	glRotatef(90, 1, 0, 0);
-	glTranslatef(0, -50, 0);
+	glTranslatef(0, BODY_Z, 0);
 	glColor3f(0.6, 0.6, 0.6);
 	if (m_clothManager)
 	{
@@ -398,10 +405,10 @@ void Viewer2d::renderDragBox()
 	//glEnable(GL_LINE_STIPPLE);
 	glLineStipple(0xAAAA, 1);
 	glBegin(GL_LINE_LOOP);
-	glVertex2f(x0, y0);
-	glVertex2f(x0, y1);
-	glVertex2f(x1, y1);
-	glVertex2f(x1, y0);
+	glVertex3f(x0, y0, DRAGBOX_Z);
+	glVertex3f(x0, y1, DRAGBOX_Z);
+	glVertex3f(x1, y1, DRAGBOX_Z);
+	glVertex3f(x1, y0, DRAGBOX_Z);
 	glEnd();
 
 	glPopAttrib();
@@ -506,8 +513,8 @@ void Viewer2d::renderClothsPanels_Edge(const ldp::ClothPiece* piece, bool idxMod
 		const auto& pts = shape->samplePointsOnShape(step / shape->getLength());
 		for (size_t i = 1; i < pts.size(); i++)
 		{
-			glVertex2fv(pts[i - 1].ptr());
-			glVertex2fv(pts[i].ptr());
+			glVertex3f(pts[i - 1][0], pts[i-1][1], EDGE_Z);
+			glVertex3f(pts[i][0], pts[i][1], EDGE_Z);
 		}
 	} // end for shape
 	glEnd();
@@ -555,7 +562,7 @@ void Viewer2d::renderClothsPanels_KeyPoint(const ldp::ClothPiece* piece, bool id
 			else
 				glColor4fv(selectIdToColor(p.getId()).ptr());
 			const auto& x = p.position;
-			glVertex3f(x[0], x[1], 0.1);
+			glVertex3f(x[0], x[1], KEYPT_Z);
 		}
 	} // end for shape
 	glEnd();
@@ -581,9 +588,10 @@ void Viewer2d::renderClothsSewing(bool idxMode)
 	glLineWidth(4);
 	const float step = m_clothManager->getClothDesignParam().curveSampleStep;
 	std::vector<float> lLens, rLens;
+	glBegin(GL_LINES);
 	for (int iSewing = 0; iSewing < m_clothManager->numSewings(); iSewing++)
 	{
-		const auto sew = m_clothManager->getSewing(iSewing);
+		const auto sew = m_clothManager->sewing(iSewing);
 		const auto& firsts = sew->firsts();
 		const auto& seconds = sew->seconds();
 
@@ -602,23 +610,27 @@ void Viewer2d::renderClothsSewing(bool idxMode)
 		else
 			glColor4fv(selectIdToColor(sew->getId()).ptr());
 
-		for (const auto& shape : firsts)
+		for (const auto& f : firsts)
 		{
-			const auto& pts = shape.shape->samplePointsOnShape(step / shape.shape->getLength());
+			const auto& shape = (const ldp::AbstractShape*)ldp::AbstractPanelObject::getPtrById(f.id);
+			assert(shape);
+			const auto& pts = shape->samplePointsOnShape(step / shape->getLength());
 			for (size_t i = 1; i < pts.size(); i++)
 			{
-				glVertex2fv(pts[i - 1].ptr());
-				glVertex2fv(pts[i].ptr());
+				glVertex3f(pts[i - 1][0], pts[i - 1][1], SEW_EDGE_Z);
+				glVertex3f(pts[i][0], pts[i][1], SEW_EDGE_Z);
 			}
 		}
-		for (const auto& shape : seconds)
+		for (const auto& s : seconds)
 		{
-			const auto& pts = shape.shape->samplePointsOnShape(step / shape.shape->getLength());
+			const auto& shape = (const ldp::AbstractShape*)ldp::AbstractPanelObject::getPtrById(s.id);
+			const auto& pts = shape->samplePointsOnShape(step / shape->getLength());
 			for (size_t i = 1; i < pts.size(); i++)
 			{
-				glVertex2fv(pts[i - 1].ptr());
-				glVertex2fv(pts[i].ptr());
+				glVertex3f(pts[i - 1][0], pts[i - 1][1], SEW_EDGE_Z);
+				glVertex3f(pts[i][0], pts[i][1], SEW_EDGE_Z);
 			}
 		}
 	}// end for iSewing
+	glEnd();
 }
