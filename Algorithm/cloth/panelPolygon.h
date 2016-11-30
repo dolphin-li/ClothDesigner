@@ -480,9 +480,9 @@ namespace ldp
 		struct Unit
 		{
 			size_t id;
-			bool direction;
-			Unit() :id(0), direction(false) {}
-			Unit(size_t i, bool d) :id(i), direction(d) {}
+			bool reverse;
+			Unit() :id(0), reverse(false) {}
+			Unit(size_t i, bool d) :id(i), reverse(d) {}
 		};
 	public:
 		void clear();

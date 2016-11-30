@@ -782,8 +782,9 @@ namespace ldp
 			for (const auto& f : first)
 			{
 				assert(Sewing::getPtrById(f->getId()));
-				funits.push_back(Sewing::Unit(f->getId(), false));
+				funits.push_back(Sewing::Unit(f->getId(), true));
 			}
+			std::reverse(funits.begin(), funits.end());
 			for (auto iter = eg->group.begin(); iter != eg->group.end(); ++iter)
 			{
 				if (iter == eg->group.begin())

@@ -10,8 +10,10 @@ const static float BODY_Z = -50;
 const static float BACK_Z = -10;
 const static float EDGE_Z = 0;
 const static float SEW_EDGE_Z = 1;
+const static float SEW_CONTACT_Z = 1.1;
 const static float KEYPT_Z = 2;
 const static float DRAGBOX_Z = 50;
+const static float VERT_SEW_BAR_LEN = 0.01;//1cm
 
 inline int colorToSelectId(ldp::Float4 c)
 {
@@ -399,11 +401,8 @@ void Viewer2d::renderDragBox()
 	float y0 = std::min(m_dragBoxBegin.y(), m_lastPos.y()) / float(height()) * (b - t) + t;
 	float y1 = std::max(m_dragBoxBegin.y(), m_lastPos.y()) / float(height()) * (b - t) + t;
 
-	glDisable(GL_STENCIL_TEST);
 	glColor3f(0, 1, 0);
 	glLineWidth(2);
-	//glEnable(GL_LINE_STIPPLE);
-	glLineStipple(0xAAAA, 1);
 	glBegin(GL_LINE_LOOP);
 	glVertex3f(x0, y0, DRAGBOX_Z);
 	glVertex3f(x0, y1, DRAGBOX_Z);
@@ -585,13 +584,16 @@ void Viewer2d::renderClothsSewing(bool idxMode)
 	if (!m_clothManager)
 		return;
 
-	glLineWidth(4);
 	const float step = m_clothManager->getClothDesignParam().curveSampleStep;
 	std::vector<float> lLens, rLens;
+	glLineWidth(4);
 	glBegin(GL_LINES);
 	for (int iSewing = 0; iSewing < m_clothManager->numSewings(); iSewing++)
 	{
 		const auto sew = m_clothManager->sewing(iSewing);
+		if (sew->empty())
+			continue;
+
 		const auto& firsts = sew->firsts();
 		const auto& seconds = sew->seconds();
 
@@ -610,26 +612,82 @@ void Viewer2d::renderClothsSewing(bool idxMode)
 		else
 			glColor4fv(selectIdToColor(sew->getId()).ptr());
 
-		for (const auto& f : firsts)
+		ldp::Float2 fb, fe, sb, se;
+
+		// draw the first sew
+		for (size_t iShape = 0; iShape < firsts.size(); iShape++)
 		{
-			const auto& shape = (const ldp::AbstractShape*)ldp::AbstractPanelObject::getPtrById(f.id);
+			const auto& f = firsts[iShape];
+			const auto& shape = (const ldp::AbstractShape*)ldp::Sewing::getPtrById(f.id);
 			assert(shape);
+
+			// extract b/e
+			if (iShape == 0)
+				fb = f.reverse? shape->getEndPoint().position : shape->getStartPoint().position;
+			if (iShape + 1 == firsts.size())
+				fe = f.reverse ? shape->getStartPoint().position : shape->getEndPoint().position;
+
+			// draw self
 			const auto& pts = shape->samplePointsOnShape(step / shape->getLength());
 			for (size_t i = 1; i < pts.size(); i++)
 			{
 				glVertex3f(pts[i - 1][0], pts[i - 1][1], SEW_EDGE_Z);
 				glVertex3f(pts[i][0], pts[i][1], SEW_EDGE_Z);
 			}
+
+			// draw vertical bar
+			const float t = f.reverse ? 0.8 : 0.2;
+			ldp::Float2 ct = shape->getPointByParam(t);
+			ldp::Float2 pre = shape->getPointByParam(t - 0.1);
+			ldp::Float2 nxt = shape->getPointByParam(t + 0.1);
+			ldp::Float2 dir = (pre - nxt).normalize();
+			dir = ldp::Float2(-dir[1], dir[0]);
+			glVertex3f(ct[0] - dir[0] * VERT_SEW_BAR_LEN, ct[1] - dir[1] * VERT_SEW_BAR_LEN, SEW_EDGE_Z);
+			glVertex3f(ct[0] + dir[0] * VERT_SEW_BAR_LEN, ct[1] + dir[1] * VERT_SEW_BAR_LEN, SEW_EDGE_Z);
 		}
-		for (const auto& s : seconds)
+
+		// draw the second sew
+		for (size_t iShape = 0; iShape < seconds.size(); iShape++)
 		{
-			const auto& shape = (const ldp::AbstractShape*)ldp::AbstractPanelObject::getPtrById(s.id);
+			const auto& s = seconds[iShape];
+			const auto& shape = (const ldp::AbstractShape*)ldp::Sewing::getPtrById(s.id);
+			assert(shape);
+			// extract b/e
+			if (iShape == 0)
+				sb = s.reverse ? shape->getEndPoint().position : shape->getStartPoint().position;
+			if (iShape + 1 == seconds.size())
+				se = s.reverse ? shape->getStartPoint().position : shape->getEndPoint().position;
+
+			// draw self
 			const auto& pts = shape->samplePointsOnShape(step / shape->getLength());
 			for (size_t i = 1; i < pts.size(); i++)
 			{
 				glVertex3f(pts[i - 1][0], pts[i - 1][1], SEW_EDGE_Z);
 				glVertex3f(pts[i][0], pts[i][1], SEW_EDGE_Z);
 			}
+
+			// draw vertical bar
+			const float t = s.reverse ? 0.8 : 0.2;
+			ldp::Float2 ct = shape->getPointByParam(t);
+			ldp::Float2 pre = shape->getPointByParam(t - 0.1);
+			ldp::Float2 nxt = shape->getPointByParam(t + 0.1);
+			ldp::Float2 dir = (pre - nxt).normalize();
+			dir = ldp::Float2(-dir[1], dir[0]);
+			glVertex3f(ct[0] - dir[0] * VERT_SEW_BAR_LEN, ct[1] - dir[1] * VERT_SEW_BAR_LEN, SEW_EDGE_Z);
+			glVertex3f(ct[0] + dir[0] * VERT_SEW_BAR_LEN, ct[1] + dir[1] * VERT_SEW_BAR_LEN, SEW_EDGE_Z);
+		}
+
+		// draw contacts
+		if ((sew->isSelected() || sew->isHighlighted()) && !idxMode)
+		{
+			if (sew->isSelected())
+				glColor4f(0, 1, 0, 1);
+			else
+				glColor4f(0, 1, 0, 0.5);
+			glVertex3f(fb[0], fb[1], SEW_CONTACT_Z);
+			glVertex3f(sb[0], sb[1], SEW_CONTACT_Z);
+			glVertex3f(fe[0], fe[1], SEW_CONTACT_Z);
+			glVertex3f(se[0], se[1], SEW_CONTACT_Z);
 		}
 	}// end for iSewing
 	glEnd();
