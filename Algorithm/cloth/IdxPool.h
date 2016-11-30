@@ -1,6 +1,6 @@
 #pragma once
 
-#include <hash_map>
+#include <hash_set>
 #include <exception>
 #include <string>
 #include <algorithm>
@@ -28,16 +28,12 @@ namespace ldp
 			if (m_disableInc)
 			{
 				m_nextIdx = std::max(oldIdx + 1, m_nextIdx);
-				auto& iter = m_usedIdxCount.find(oldIdx);
-				if (iter == m_usedIdxCount.end())
-					m_usedIdxCount.insert(std::make_pair(oldIdx, 1));
-				else
-					iter->second++;
+				m_usedIdxCount.insert(oldIdx);
 				return oldIdx;
 			}
 			else
 			{
-				m_usedIdxCount.insert(std::make_pair(m_nextIdx, 1));
+				m_usedIdxCount.insert(m_nextIdx);
 				return m_nextIdx++;
 			}
 		}
@@ -47,9 +43,7 @@ namespace ldp
 			if (iter == m_usedIdxCount.end())
 				throw std::exception(std::string("IdxPool, freeIdx not existed: "
 				+ std::to_string(idx)).c_str());
-			iter->second--;
-			if (iter->second == 0)
-				m_usedIdxCount.erase(iter);
+			m_usedIdxCount.erase(iter);
 		}
 		static void disableIdxIncrement()
 		{
@@ -60,7 +54,7 @@ namespace ldp
 			m_disableInc = false;
 		}
 	protected:
-		static std::hash_map<size_t, size_t> m_usedIdxCount;
+		static std::hash_set<size_t> m_usedIdxCount;
 		static size_t m_nextIdx;
 		static bool m_disableInc;
 	};

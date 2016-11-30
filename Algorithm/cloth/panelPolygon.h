@@ -34,20 +34,24 @@ namespace ldp
 		AbstractPanelObject()
 		{
 			m_id = IdxPool::requireIdx(0);
+			s_globalIdxMap.insert(std::make_pair(m_id, this));
 		}
 		AbstractPanelObject(size_t id)
 		{
 			m_id = IdxPool::requireIdx(id);
+			s_globalIdxMap.insert(std::make_pair(m_id, this));
 		}
 		AbstractPanelObject(const AbstractPanelObject& rhs)
 		{
 			m_id = IdxPool::requireIdx(rhs.m_id);
 			m_highlighted = rhs.m_highlighted;
 			m_selected = rhs.m_selected;
+			s_globalIdxMap.insert(std::make_pair(m_id, this));
 		}
 		virtual ~AbstractPanelObject()
 		{
 			IdxPool::freeIdx(m_id);
+			s_globalIdxMap.erase(s_globalIdxMap.find(m_id));
 		}
 		size_t getId()const { return m_id; }
 		void setSelected(bool s) { m_selected = s; }
@@ -58,11 +62,20 @@ namespace ldp
 		virtual void collectObject(std::vector<AbstractPanelObject*>& objs) = 0;
 		virtual void collectObject(std::vector<const AbstractPanelObject*>& objs)const = 0;
 		virtual AbstractPanelObject* clone()const = 0;
+		static AbstractPanelObject* getPtrById(size_t id) 
+		{
+			auto iter = s_globalIdxMap.find(id);
+			if (iter != s_globalIdxMap.end())
+				return iter->second;
+			return nullptr;
+		}
+	protected:
 		virtual AbstractPanelObject& operator = (const AbstractPanelObject& rhs)
 		{
 			m_id = IdxPool::requireIdx(rhs.getId());
 			m_selected = rhs.m_selected;
 			m_highlighted = rhs.m_highlighted;
+			s_globalIdxMap.insert(std::make_pair(m_id, this));
 			return *this;
 		}
 	protected:
@@ -70,6 +83,8 @@ namespace ldp
 		bool m_highlighted = false;
 	private:
 		size_t m_id = 0;
+	private:
+		static std::hash_map<size_t, AbstractPanelObject*> s_globalIdxMap;
 	};
 
 	class KeyPoint : public AbstractPanelObject
@@ -199,6 +214,16 @@ namespace ldp
 			objs.push_back(this);
 			for (auto p : m_keyPoints)
 				p->collectObject(objs);
+		}
+	protected:
+		virtual AbstractShape& operator = (const AbstractShape& rhs)
+		{
+			AbstractPanelObject::operator=(rhs);
+			m_keyPoints = rhs.m_keyPoints;
+			m_samplePoints = rhs.m_samplePoints;
+			m_invalid = rhs.m_invalid;
+			m_lastSampleStep = rhs.m_lastSampleStep;
+			return *this;
 		}
 	protected:
 		std::vector<std::shared_ptr<KeyPoint>> m_keyPoints;
@@ -415,7 +440,7 @@ namespace ldp
 
 		void select(int idx, SelectOp op);
 		void select(const std::set<int>& indices, SelectOp op);
-		void highLight(int idx);
+		void highLight(int idx, int lastIdx);
 
 		void updateBound(Float2& bmin, Float2& bmax);
 		const Float2* bound()const { return m_bbox; }

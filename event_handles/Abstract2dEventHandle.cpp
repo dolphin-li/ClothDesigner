@@ -42,6 +42,16 @@ void Abstract2dEventHandle::handleLeave()
 	m_highLightInfo.clear();
 	m_pickInfo.clear();
 	m_viewer->clearFocus();
+
+	auto manager = m_viewer->getManager();
+	if (manager == nullptr)
+		return;
+	for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
+	{
+		auto piece = manager->clothPiece(iPiece);
+		auto& panel = piece->panel();
+		panel.highLight(0, m_highLightInfo.lastId);
+	} // end for iPiece
 }
 
 QString Abstract2dEventHandle::toolTips()const
@@ -64,12 +74,13 @@ void Abstract2dEventHandle::highLight(QPoint pos)
 	if (manager == nullptr)
 		return;
 
+	m_highLightInfo.lastId = m_highLightInfo.renderId;
 	m_highLightInfo.renderId = m_viewer->fboRenderedIndex(pos);
 	for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
 	{
 		auto piece = manager->clothPiece(iPiece);
 		auto& panel = piece->panel();
-		panel.highLight(m_highLightInfo.renderId);
+		panel.highLight(m_highLightInfo.renderId, m_highLightInfo.lastId);
 	} // end for iPiece
 }
 

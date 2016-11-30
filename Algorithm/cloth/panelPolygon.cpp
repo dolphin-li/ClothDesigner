@@ -3,6 +3,8 @@
 #include <exception>
 namespace ldp
 {
+	std::hash_map<size_t, AbstractPanelObject*> AbstractPanelObject::s_globalIdxMap;
+
 	AbstractShape* AbstractShape::create(Type type, size_t id)
 	{
 		switch (type)
@@ -392,16 +394,16 @@ namespace ldp
 		}
 	}
 
-	void PanelPolygon::highLight(int idx)
+	void PanelPolygon::highLight(int idx, int lastIdx)
 	{
-		m_tmpbufferObj.clear();
-		collectObject(m_tmpbufferObj);
-		for (auto obj : m_tmpbufferObj)
+		auto cur = getPtrById(idx);
+		if (cur)
+			cur->setHighlighted(true);
+		if (idx != lastIdx)
 		{
-			if (idx == obj->getId())
-				obj->setHighlighted(true);
-			else
-				obj->setHighlighted(false);
+			auto pre = getPtrById(lastIdx);
+			if (pre)
+				pre->setHighlighted(false);
 		}
 	}
 

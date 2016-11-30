@@ -31,6 +31,7 @@ public:
 	};
 	struct HighLightInfo
 	{
+		int lastId;
 		int renderId;
 		HighLightInfo()
 		{
@@ -39,6 +40,7 @@ public:
 		void clear()
 		{
 			renderId = 0;
+			lastId = 0;
 		}
 	};
 	enum ProcessorType{
