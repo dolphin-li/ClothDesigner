@@ -15,7 +15,8 @@ namespace ldp
 	public:
 		static void clear()
 		{
-			m_usedIdxCount.clear();
+			m_usedIdx.clear();
+			m_freeIdx.clear();
 			m_nextIdx = 1;
 		}
 		static size_t requireIdx(size_t oldIdx)
@@ -28,22 +29,33 @@ namespace ldp
 			if (m_disableInc)
 			{
 				m_nextIdx = std::max(oldIdx + 1, m_nextIdx);
-				m_usedIdxCount.insert(oldIdx);
+				m_usedIdx.insert(oldIdx);
 				return oldIdx;
 			}
 			else
 			{
-				m_usedIdxCount.insert(m_nextIdx);
-				return m_nextIdx++;
+				if (!m_freeIdx.empty())
+				{
+					int id = *m_freeIdx.begin();
+					m_usedIdx.insert(id);
+					m_freeIdx.erase(m_freeIdx.begin());
+					return id;
+				}
+				else
+				{
+					m_usedIdx.insert(m_nextIdx);
+					return m_nextIdx++;
+				}
 			}
 		}
 		static void freeIdx(size_t idx)
 		{
-			auto& iter = m_usedIdxCount.find(idx);
-			if (iter == m_usedIdxCount.end())
+			auto& iter = m_usedIdx.find(idx);
+			if (iter == m_usedIdx.end())
 				throw std::exception(std::string("IdxPool, freeIdx not existed: "
 				+ std::to_string(idx)).c_str());
-			m_usedIdxCount.erase(iter);
+			m_usedIdx.erase(iter);
+			m_freeIdx.insert(idx);
 		}
 		static void disableIdxIncrement()
 		{
@@ -54,7 +66,8 @@ namespace ldp
 			m_disableInc = false;
 		}
 	protected:
-		static std::hash_set<size_t> m_usedIdxCount;
+		static std::hash_set<size_t> m_usedIdx;
+		static std::hash_set<size_t> m_freeIdx;
 		static size_t m_nextIdx;
 		static bool m_disableInc;
 	};

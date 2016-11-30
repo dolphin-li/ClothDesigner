@@ -124,11 +124,11 @@ namespace ldp
 			m_keyPoints.clear();
 			for (const auto& p : keyPoints)
 				m_keyPoints.push_back(std::shared_ptr<KeyPoint>(new KeyPoint(p)));
+			m_invalid = true;
 		}
 		virtual AbstractShape* clone()const;
 		virtual Type getType()const = 0;
 		virtual Float2 getPointByParam(float t)const = 0; // t \in [0, 1]
-		virtual float calcLength()const;
 		const KeyPoint& getStartPoint()const
 		{
 			return *m_keyPoints[0];
@@ -155,26 +155,31 @@ namespace ldp
 		{
 			for (auto& p : m_keyPoints)
 				p->position += t;
+			m_invalid = true;
 		}
 		void rotate(const ldp::Mat2f& R)
 		{
 			for (auto& p : m_keyPoints)
 				p->position = R * p->position;
+			m_invalid = true;
 		}
 		void rotateBy(const ldp::Mat2f& R, Float2 c)
 		{
 			for (auto& p : m_keyPoints)
 				p->position = R * (p->position - c) + c;
+			m_invalid = true;
 		}
 		void scale(Float2 s)
 		{
 			for (auto& p : m_keyPoints)
 				p->position *= s;
+			m_invalid = true;
 		}
 		void scaleBy(Float2 s, Float2 c)
 		{
 			for (auto& p : m_keyPoints)
 				p->position = s*(p->position - c) + c;
+			m_invalid = true;
 		}
 		void transform(const ldp::Mat3f& M)
 		{
@@ -185,6 +190,7 @@ namespace ldp
 				p->position[0] = p3[0] / p3[2];
 				p->position[1] = p3[1] / p3[2];
 			}
+			m_invalid = true;
 		}
 		void unionBound(Float2& bmin, Float2& bmax)
 		{
@@ -215,7 +221,15 @@ namespace ldp
 			for (auto p : m_keyPoints)
 				p->collectObject(objs);
 		}
+		float getLength()const 
+		{ 
+			if (m_lengthInvalid)
+				m_length = calcLength();
+			m_lengthInvalid = false;
+			return m_length; 
+		}
 	protected:
+		virtual float calcLength()const;
 		virtual AbstractShape& operator = (const AbstractShape& rhs)
 		{
 			AbstractPanelObject::operator=(rhs);
@@ -223,13 +237,16 @@ namespace ldp
 			m_samplePoints = rhs.m_samplePoints;
 			m_invalid = rhs.m_invalid;
 			m_lastSampleStep = rhs.m_lastSampleStep;
+			m_length = rhs.m_length;
 			return *this;
 		}
 	protected:
 		std::vector<std::shared_ptr<KeyPoint>> m_keyPoints;
 		mutable std::vector<Float2> m_samplePoints;
 		mutable bool m_invalid = true;
+		mutable bool m_lengthInvalid = true;
 		mutable float m_lastSampleStep = 0;
+		mutable float m_length = 0;
 	};
 
 	class Line : public AbstractShape
@@ -256,6 +273,7 @@ namespace ldp
 		{
 			return m_keyPoints[0]->position * (1 - t) + m_keyPoints[1]->position * t;
 		}
+	protected:
 		virtual float calcLength()const { return (m_keyPoints[1]->position - m_keyPoints[0]->position).length(); }
 	};
 

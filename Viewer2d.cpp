@@ -21,6 +21,51 @@ inline ldp::Float4 selectIdToColor(unsigned int id)
 	return ldp::Float4(r, g, b, a) / 255.f;
 }
 
+static std::vector<ldp::Float3> create_color_table()
+{
+	std::vector<ldp::Float3> table;
+	table.push_back(ldp::Float3(0.8, 0.6, 0.4));
+	table.push_back(ldp::Float3(0.8, 0.4, 0.6));
+	table.push_back(ldp::Float3(0.6, 0.8, 0.4));
+	table.push_back(ldp::Float3(0.6, 0.4, 0.8));
+	table.push_back(ldp::Float3(0.4, 0.6, 0.8));
+	table.push_back(ldp::Float3(0.4, 0.8, 0.6));
+
+	table.push_back(ldp::Float3(0.2, 0.4, 0.6));
+	table.push_back(ldp::Float3(0.2, 0.6, 0.4));
+	table.push_back(ldp::Float3(0.4, 0.2, 0.6));
+	table.push_back(ldp::Float3(0.4, 0.6, 0.2));
+	table.push_back(ldp::Float3(0.6, 0.2, 0.4));
+	table.push_back(ldp::Float3(0.6, 0.4, 0.2));
+
+	table.push_back(ldp::Float3(0.7, 0.4, 0.1));
+	table.push_back(ldp::Float3(0.7, 0.1, 0.4));
+	table.push_back(ldp::Float3(0.4, 0.1, 0.7));
+	table.push_back(ldp::Float3(0.4, 0.7, 0.1));
+	table.push_back(ldp::Float3(0.1, 0.7, 0.4));
+	table.push_back(ldp::Float3(0.1, 0.4, 0.7));
+
+	table.push_back(ldp::Float3(0.7, 0.8, 0.9));
+	table.push_back(ldp::Float3(0.7, 0.9, 0.8));
+	table.push_back(ldp::Float3(0.9, 0.8, 0.7));
+	table.push_back(ldp::Float3(0.9, 0.7, 0.8));
+	table.push_back(ldp::Float3(0.8, 0.7, 0.9));
+	table.push_back(ldp::Float3(0.8, 0.9, 0.7));
+
+	return table;
+}
+static ldp::Float3 color_table(int i)
+{
+	static std::vector<ldp::Float3> table = create_color_table();
+	return table.at(i%table.size());
+}
+
+static ldp::Float3 color_table()
+{
+	static int a = 0;
+	return color_table(a++);
+}
+
 #pragma endregion
 
 Viewer2d::Viewer2d(QWidget *parent)
@@ -146,7 +191,6 @@ void Viewer2d::paintGL()
 			m_clothManager->clothPiece(i)->mesh2d().render(m_showType);
 	}
 	renderClothsPanels(false);
-	renderClothsSewing(false);
 	renderDragBox();
 }
 
@@ -165,7 +209,6 @@ void Viewer2d::renderSelectionOnFbo()
 	m_camera.apply();
 
 	renderClothsPanels(true);
-	renderClothsSewing(true);
 
 	m_fboImage = m_fbo->toImage();
 	m_fbo->release();
@@ -415,6 +458,8 @@ void Viewer2d::renderClothsPanels(bool idxMode)
 		renderClothsPanels_KeyPoint(piece, idxMode);
 	} // end for iPiece
 
+	renderClothsSewing(idxMode);
+
 	glPopAttrib();
 }
 
@@ -458,7 +503,7 @@ void Viewer2d::renderClothsPanels_Edge(const ldp::ClothPiece* piece, bool idxMod
 		}
 		else
 			glColor4fv(selectIdToColor(shape->getId()).ptr());
-		const auto& pts = shape->samplePointsOnShape(step / shape->calcLength());
+		const auto& pts = shape->samplePointsOnShape(step / shape->getLength());
 		for (size_t i = 1; i < pts.size(); i++)
 		{
 			glVertex2fv(pts[i - 1].ptr());
@@ -528,5 +573,52 @@ void Viewer2d::endSewingMode()
 
 void Viewer2d::renderClothsSewing(bool idxMode)
 {
+	if (!m_isSewingMode)
+		return;
+	if (!m_clothManager)
+		return;
 
+	glLineWidth(4);
+	const float step = m_clothManager->getClothDesignParam().curveSampleStep;
+	std::vector<float> lLens, rLens;
+	for (int iSewing = 0; iSewing < m_clothManager->numSewings(); iSewing++)
+	{
+		const auto sew = m_clothManager->getSewing(iSewing);
+		const auto& firsts = sew->firsts();
+		const auto& seconds = sew->seconds();
+
+		if (!idxMode)
+		{
+			if (sew->isSelected())
+				glColor4f(1, 1, 0, 1);
+			else if (sew->isHighlighted())
+				glColor4f(0, 1, 1, 1);
+			else
+			{
+				auto c = color_table(sew->getId());
+				glColor4f(c[0], c[1], c[2], 1);
+			}
+		}
+		else
+			glColor4fv(selectIdToColor(sew->getId()).ptr());
+
+		for (const auto& shape : firsts)
+		{
+			const auto& pts = shape.shape->samplePointsOnShape(step / shape.shape->getLength());
+			for (size_t i = 1; i < pts.size(); i++)
+			{
+				glVertex2fv(pts[i - 1].ptr());
+				glVertex2fv(pts[i].ptr());
+			}
+		}
+		for (const auto& shape : seconds)
+		{
+			const auto& pts = shape.shape->samplePointsOnShape(step / shape.shape->getLength());
+			for (size_t i = 1; i < pts.size(); i++)
+			{
+				glVertex2fv(pts[i - 1].ptr());
+				glVertex2fv(pts[i].ptr());
+			}
+		}
+	}// end for iSewing
 }

@@ -252,7 +252,7 @@ namespace ldp
 		for (auto p : shape->m_keyPoints)
 			p.reset((KeyPoint*)p->clone());
 		shape->m_selected = m_selected;
-		shape->m_highlighted = m_highlighted;
+		shape->m_highlighted = false;
 		return shape;
 	}
 
@@ -271,6 +271,7 @@ namespace ldp
 			float t1 = std::min(1.f, t);
 			m_samplePoints.push_back(getPointByParam(t1));
 		}
+		m_length = getLength();
 		m_invalid = false;
 		return m_samplePoints;
 	}
