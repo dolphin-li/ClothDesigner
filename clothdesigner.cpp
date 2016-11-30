@@ -53,6 +53,7 @@ void ClothDesigner::on_actionLoad_svg_triggered()
 	try
 	{
 		g_dataholder.debug_5();
+		g_dataholder.m_historyStack->push("init", ldp::HistoryStack::TypeGeneral);
 		g_dataholder.m_clothManager->simulationInit();
 
 		m_widget3d->init(g_dataholder.m_clothManager.get(), this);

@@ -2,10 +2,11 @@
 
 #include <set>
 #include <string>
-#include "ldpMat\ldp_basic_mat.h"
+#include <memory>
 class ObjMesh;
 namespace ldp
 {
+	class TransformInfo;
 	class PanelPolygon;
 	class ClothPiece
 	{
@@ -21,6 +22,8 @@ namespace ldp
 		ObjMesh& mesh2d() { return *m_mesh2d; }
 		const PanelPolygon& panel()const { return *m_panel; }
 		PanelPolygon& panel() { return *m_panel; }
+		const TransformInfo& transformInfo()const { return *m_transfromInfo; }
+		TransformInfo& transformInfo() { return *m_transfromInfo; }
 
 		std::string getName()const { return m_name; }
 		std::string setName(std::string name); // return a unique name
@@ -34,7 +37,7 @@ namespace ldp
 		std::shared_ptr<ObjMesh> m_mesh3dInit;
 		std::shared_ptr<ObjMesh> m_mesh2d;
 		std::shared_ptr<PanelPolygon> m_panel;
-		ldp::Mat4f m_transfrom;
+		std::shared_ptr<TransformInfo> m_transfromInfo;
 		std::string m_name;
 		static std::set<std::string> s_nameSet;
 	};

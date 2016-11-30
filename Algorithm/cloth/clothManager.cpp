@@ -1,6 +1,7 @@
 #include "clothManager.h"
 #include "LevelSet3D.h"
 #include "clothPiece.h"
+#include "TransformInfo.h"
 #include "panelPolygon.h"
 #include "PROGRESSING_BAR.h"
 #include <cuda_runtime_api.h>
@@ -11,6 +12,9 @@
 #include "svgpp\SvgManager.h"
 #include "svgpp\SvgPolyPath.h"
 #include "ldputil.h"
+extern "C"{
+#include "triangle\triangle.h"
+};
 #define ENABLE_DEBUG_DUMPING
 
 namespace ldp
@@ -44,6 +48,7 @@ namespace ldp
 		m_shouldTopologyUpdate = false;
 		m_shouldNumericUpdate = false;
 		m_shouldStitchUpdate = false;
+		m_shouldTriangulate = false;
 	}
 
 	ClothManager::~ClothManager()
@@ -114,8 +119,9 @@ namespace ldp
 		for (size_t i = 0; i < m_clothPieces.size(); i++)
 			m_clothPieces[i]->mesh3d().cloneFrom(&m_clothPieces[i]->mesh3dInit());
 		m_dev_phi.upload(m_bodyLvSet->value(), m_bodyLvSet->sizeXYZ());
-		m_shouldMergePieces = true;
+		m_shouldTriangulate = true;
 		m_curStitchRatio = 1;
+		triangulate();
 		mergePieces();
 		buildTopology();
 		buildNumerical();
@@ -130,14 +136,10 @@ namespace ldp
 		if (m_X.size() == 0)
 			return;
 
-		if (m_shouldMergePieces)
-			mergePieces();
-		if (m_shouldTopologyUpdate)
-			buildTopology();
-		if (m_shouldNumericUpdate)
-			buildNumerical();
-		if (m_shouldStitchUpdate)
-			buildStitch();
+		mergePieces();
+		buildTopology();
+		buildNumerical();
+		buildStitch();
 
 		gtime_t t_begin = ldp::gtime_now();
 
@@ -164,9 +166,6 @@ namespace ldp
 			updateAfterLap();
 			constrain0();
 
-			//cudaThreadSynchronize();
-			//ldp::tic();
-
 			// 3. perform inner loops
 			ValueType omega = 0;
 			for (int iter = 0; iter<m_simulationParam.inner_iter; iter++)
@@ -186,9 +185,6 @@ namespace ldp
 				m_dev_X.swap(m_dev_prev_X);
 				m_dev_X.swap(m_dev_next_X);
 			} // end for iter
-
-			//cudaThreadSynchronize();
-			//ldp::toc();
 
 			constrain3();
 
@@ -292,6 +288,7 @@ namespace ldp
 	{ 
 		m_clothPieces.push_back(piece); 
 		m_shouldMergePieces = true;
+		m_shouldTriangulate = true;
 	}
 
 	void ClothManager::removeClothPiece(int i) 
@@ -302,6 +299,8 @@ namespace ldp
 
 	void ClothManager::mergePieces()
 	{
+		if (m_shouldTriangulate)
+			triangulate();
 		if (!m_shouldMergePieces)
 			return;
 		m_X.clear();
@@ -389,6 +388,8 @@ namespace ldp
 	{
 		if (m_shouldNumericUpdate)
 			buildNumerical();
+		if (!m_shouldStitchUpdate)
+			return;
 		m_simulationParam.stitch_k = m_simulationParam.stitch_k_raw / m_avgArea;
 
 		// build edges
@@ -453,6 +454,8 @@ namespace ldp
 	{
 		if (m_shouldMergePieces)
 			mergePieces();
+		if (!m_shouldTopologyUpdate)
+			return;
 		m_V.resize(m_X.size());
 		std::fill(m_V.begin(), m_V.end(), ValueType(0));
 		m_fixed.resize(m_X.size());
@@ -528,6 +531,8 @@ namespace ldp
 	{
 		if (m_shouldTopologyUpdate)
 			buildTopology();
+		if (!m_shouldNumericUpdate)
+			return;
 		// compute matrix related values
 		m_allVL.resize(m_allVV.size());
 		m_allVW.resize(m_allVV.size());
@@ -809,9 +814,160 @@ namespace ldp
 		triangulate();
 	}
 
+#pragma region -- triangle
+	static void destroyMem_trianglulateio(struct triangulateio *io)
+	{
+		if (io->pointlist)  free(io->pointlist);                                               /* In / out */
+		if (io->pointattributelist) free(io->pointattributelist);                                      /* In / out */
+		if (io->pointmarkerlist) free(io->pointmarkerlist);                                          /* In / out */
+
+		if (io->trianglelist) free(io->trianglelist);                                             /* In / out */
+		if (io->triangleattributelist) free(io->triangleattributelist);                                   /* In / out */
+		if (io->trianglearealist) free(io->trianglearealist);                                    /* In only */
+		if (io->neighborlist) free(io->neighborlist);                                           /* Out only */
+
+		if (io->segmentlist) free(io->segmentlist);                                              /* In / out */
+		if (io->segmentmarkerlist) free(io->segmentmarkerlist);                             /* In / out */
+
+		if (io->holelist) free(io->holelist);                        /* In / pointer to array copied out */
+
+		if (io->regionlist) free(io->regionlist);                      /* In / pointer to array copied out */
+
+		if (io->edgelist) free(io->edgelist);                                                 /* Out only */
+		if (io->edgemarkerlist) free(io->edgemarkerlist);           /* Not used with Voronoi diagram; out only */
+		if (io->normlist) free(io->normlist);              /* Used only with Voronoi diagram; out only */
+
+		//all set to 0
+		init_trianglulateio(io);
+	}
+
+	static void init_triangulateIO_from_poly(triangulateio *pIO, const std::vector<ldp::Double2> &poly, int close_flag)
+	{
+		init_trianglulateio(pIO);
+		pIO->numberofpoints = (int)poly.size();
+		pIO->pointlist = (REAL *)malloc(pIO->numberofpoints * 2 * sizeof(REAL));
+		for (int i = 0; i<pIO->numberofpoints; i++)
+		{
+			pIO->pointlist[i * 2] = poly[i][0];
+			pIO->pointlist[i * 2 + 1] = poly[i][1];
+		}
+		/*********input segments************/
+		pIO->numberofsegments = (int)poly.size() - 1;
+		if (close_flag) pIO->numberofsegments++;
+		pIO->segmentlist = (int *)malloc(pIO->numberofsegments * 2 * sizeof(int));
+		for (int i = 0; i<(int)poly.size() - 1; i++)
+		{
+			pIO->segmentlist[i * 2] = i;
+			pIO->segmentlist[i * 2 + 1] = i + 1;
+		}
+		if (close_flag)
+		{
+			pIO->segmentlist[pIO->numberofsegments * 2 - 2] = (int)poly.size() - 1;
+			pIO->segmentlist[pIO->numberofsegments * 2 - 1] = 0;
+		}
+	}
+
+	static int tess_poly_2D(const std::vector<ldp::Double2> &poly,
+		std::vector<ldp::Float2>& triVerts, std::vector<ldp::Int3> &vTriangle,
+		int close_flag, double triAreaWanted)
+	{
+		vTriangle.resize(0);
+
+		triangulateio input, triout, vorout;
+
+		// Define input points
+		init_triangulateIO_from_poly(&input, poly, close_flag);
+
+		// Make necessary initializations so that Triangle can return a 
+		// triangulation in `mid' and a voronoi diagram in `vorout'.  
+		init_trianglulateio(&triout);
+		init_trianglulateio(&vorout);
+
+		// triangulate
+		char cmd[1024];
+		// p: polygon mode
+		// z: zero based indexing
+		// q%d: minimum angle %d
+		// D: delauney
+		// a%f: maximum triangle area %f
+		sprintf_s(cmd, "pzq%dDa%f", 30, triAreaWanted);
+		triangulate(cmd, &input, &triout, &vorout);
+		vTriangle.resize(triout.numberoftriangles);
+		memcpy(vTriangle.data(), triout.trianglelist, sizeof(int)*triout.numberoftriangles * 3);
+		const ldp::Double2* vptr = (const ldp::Double2*)triout.pointlist;
+		triVerts.resize(triout.numberofpoints);
+		for (int i = 0; i < triout.numberofpoints; i++)
+			triVerts[i] = vptr[i];
+		destroyMem_trianglulateio(&input);
+		destroyMem_trianglulateio(&triout);
+		destroyMem_trianglulateio(&vorout);
+		return vTriangle.size();
+	}
+#pragma endregion
+
 	void ClothManager::triangulate()
 	{
+		if (!m_shouldTriangulate)
+			return;
 
+		if (m_clothPieces.empty())
+			return;
+
+		const float step = m_clothDesignParam.triangulateThre;
+		const float thre = m_clothDesignParam.pointMergeDistThre;
+		const float wantedTriArea = 0.5f * ldp::sqr(step);
+		std::vector<Double2> polyPoints;
+		std::vector<Float2> triVerts;
+		std::vector<Int3> tris;
+		for (auto& piece : m_clothPieces)
+		{
+			const auto& poly = piece->panel().outerPoly();
+			auto& mesh2d = piece->mesh2d();
+			auto& mesh3d = piece->mesh3d();
+			auto& mesh3dInit = piece->mesh3dInit();
+			auto& transInfo = piece->transformInfo();
+			if (piece->panel().outerPoly()->empty())
+				continue;
+			polyPoints.clear();
+			for (const auto& shape : *poly)
+			{
+				const auto& pts = shape->samplePointsOnShape(step/shape->getLength());
+				for (const auto& p : pts)
+				{
+					if (polyPoints.size())
+					{
+						if ((polyPoints.back() - p).length() < thre || (polyPoints[0] - p).length() < thre)
+							continue;
+					}
+					polyPoints.push_back(p);
+				} // end for p
+			} // end for shape
+			tess_poly_2D(polyPoints, triVerts, tris, true, wantedTriArea);
+
+			mesh2d.vertex_list.clear();
+			for (const auto& v : triVerts)
+				mesh2d.vertex_list.push_back(ldp::Float3(v[0], v[1], 0));
+			mesh2d.face_list.clear();
+			mesh2d.material_list.clear();
+			mesh2d.material_list.push_back(ObjMesh::obj_material());
+			for (const auto& t : tris)
+			{
+				ObjMesh::obj_face f;
+				f.vertex_count = 3;
+				f.material_index = 0;
+				for (int k = 0; k < f.vertex_count; k++)
+					f.vertex_index[k] = t[k];
+				mesh2d.face_list.push_back(f);
+			}
+			mesh2d.updateNormals();
+			mesh2d.updateBoundingBox();		
+			mesh3dInit.cloneFrom(&mesh2d);
+			transInfo.apply(mesh3dInit);
+			mesh3d.cloneFrom(&mesh3dInit);
+		} // end for piece
+
+		m_shouldTriangulate = false;
+		m_shouldMergePieces = true;
 	}
 
 	void ClothManager::polyPathToShape(const svg::SvgPolyPath* polyPath, 
@@ -866,7 +1022,6 @@ namespace ldp
 		return minDist >= -m_clothDesignParam.pointInsidePolyThre;
 	}
 
-
 	////sewings/////////////////////////////////////////////////////////////////////////////////
 	void ClothManager::addSewing(std::shared_ptr<Sewing> sewing)
 	{
@@ -919,6 +1074,7 @@ namespace ldp
 		curveSampleStep = 1e-2;					// in meters
 		pointInsidePolyThre = 1e-2;				// in meters
 		curveFittingThre = 1e-3;				// in meters
+		triangulateThre = 3e-2;					// in meters
 	}
 
 	SimulationParam::SimulationParam()

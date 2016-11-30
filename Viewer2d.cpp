@@ -10,6 +10,7 @@
 
 const static float BODY_Z = -50;
 const static float BACK_Z = -10;
+const static float MESH_Z = -1;
 const static float EDGE_Z = 0;
 const static float SEW_EDGE_Z = 1;
 const static float SEW_CONTACT_Z = 1.1;
@@ -196,11 +197,8 @@ void Viewer2d::paintGL()
 	renderBackground();
 
 	m_camera.apply();
-	if (m_clothManager && (m_showType & Renderable::SW_F))
-	{
-		for (int i = 0; i < m_clothManager->numClothPieces(); i++)
-			m_clothManager->clothPiece(i)->mesh2d().render(m_showType);
-	}
+	renderMeshes(false);
+	m_camera.apply();
 	renderClothsPanels(false);
 	renderDragBox();
 }
@@ -219,6 +217,7 @@ void Viewer2d::renderSelectionOnFbo()
 
 	m_camera.apply();
 
+	renderMeshes(true);
 	renderClothsPanels(true);
 
 	m_fboImage = m_fbo->toImage();
@@ -473,8 +472,6 @@ void Viewer2d::renderClothsPanels(bool idxMode)
 
 void Viewer2d::renderClothsPanels_Edge(const ldp::ClothPiece* piece, bool idxMode)
 {
-	if (!(m_showType & Renderable::SW_E))
-		return;
 	const float step = m_clothManager->getClothDesignParam().curveSampleStep;
 	auto& panel = piece->panel();
 	const auto& poly = panel.outerPoly();
@@ -694,4 +691,72 @@ void Viewer2d::renderClothsSewing(bool idxMode)
 		}
 	}// end for iSewing
 	glEnd();
+}
+
+void Viewer2d::renderMeshes(bool idxMode)
+{
+	if (!m_clothManager)
+		return;
+	if (!(m_showType & Renderable::SW_F))
+		return;
+
+	glPushAttrib(GL_ALL_ATTRIB_BITS);
+
+	if (!idxMode)
+	{
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glEnable(GL_BLEND);
+		glEnable(GL_LINE_SMOOTH);
+		glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+		glEnable(GL_MULTISAMPLE);
+		glDisable(GL_LIGHTING);
+		glColor4f(0.8, 0.8, 0.8, 0.8);
+	}
+	else
+	{
+		glDisable(GL_BLEND);
+		glDisable(GL_LINE_SMOOTH);
+		glDisable(GL_MULTISAMPLE);
+		glHint(GL_LINE_SMOOTH_HINT, GL_NEAREST);
+		glDisable(GL_LIGHTING);
+		glColor4f(0, 0, 0, 1);
+	}
+
+	glTranslatef(0, 0, MESH_Z);
+
+	if (!idxMode)
+	{
+		for (int iMesh = 0; iMesh < m_clothManager->numClothPieces(); iMesh++)
+		{
+			auto piece = m_clothManager->clothPiece(iMesh);
+			auto& mesh = piece->mesh2d();
+			if (piece->panel().isHighlighted())
+				glColor4f(0.8, 0.8, 0, 0.6);
+			else
+				glColor4f(0.8, 0.8, 0.8, 0.8);
+			int showType = ((m_showType|Renderable::SW_V)^Renderable::SW_V);
+			mesh.render(showType);
+		}
+	} // end if not idxMode
+	else
+	{
+		glBegin(GL_TRIANGLES);
+		for (int iMesh = 0; iMesh < m_clothManager->numClothPieces(); iMesh++)
+		{
+			auto piece = m_clothManager->clothPiece(iMesh);
+			auto& mesh = piece->mesh2d();
+			const auto& v = mesh.vertex_list;
+			auto id = piece->panel().getId();
+			glColor4fv(selectIdToColor(id).ptr());
+			for (const auto& f : mesh.face_list)
+			{
+				glVertex3fv(v[f.vertex_index[0]].ptr());
+				glVertex3fv(v[f.vertex_index[1]].ptr());
+				glVertex3fv(v[f.vertex_index[2]].ptr());
+			} // end for f
+		} // end for iMesh
+		glEnd();
+	} // end else idxMode
+
+	glPopAttrib();
 }

@@ -56,6 +56,7 @@ protected:
 	void renderClothsPanels_Edge(const ldp::ClothPiece* piece, bool idxMode);
 	void renderClothsPanels_KeyPoint(const ldp::ClothPiece* piece, bool idxMode);
 	void renderClothsSewing(bool idxMode);
+	void renderMeshes(bool idxMode);
 protected:
 	ldp::Camera m_camera;
 	QPoint m_lastPos;

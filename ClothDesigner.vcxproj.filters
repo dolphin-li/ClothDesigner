@@ -607,6 +607,9 @@
     <ClCompile Include="Algorithm\cloth\HistoryStack.cpp">
       <Filter>algorithm\cloth</Filter>
     </ClCompile>
+    <ClCompile Include="Algorithm\cloth\TransformInfo.cpp">
+      <Filter>algorithm\cloth</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">
@@ -945,6 +948,9 @@
       <Filter>algorithm\cloth</Filter>
     </ClInclude>
     <ClInclude Include="Algorithm\cloth\HistoryStack.h">
+      <Filter>algorithm\cloth</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\TransformInfo.h">
       <Filter>algorithm\cloth</Filter>
     </ClInclude>
   </ItemGroup>

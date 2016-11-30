@@ -155,6 +155,7 @@
     <ClCompile Include="Algorithm\cloth\IdxPool.cpp" />
     <ClCompile Include="Algorithm\cloth\LevelSet3D.cpp" />
     <ClCompile Include="Algorithm\cloth\panelPolygon.cpp" />
+    <ClCompile Include="Algorithm\cloth\TransformInfo.cpp" />
     <ClCompile Include="Algorithm\conv\ConvolutionPyramid.cpp" />
     <ClCompile Include="Algorithm\conv\Convolution_Helper.cpp" />
     <ClCompile Include="Algorithm\conv\ImageData.cpp" />
@@ -415,6 +416,7 @@
     <ClInclude Include="Algorithm\cloth\LevelSet3D.h" />
     <ClInclude Include="Algorithm\cloth\LEVEL_SET_COLLISION.h" />
     <ClInclude Include="Algorithm\cloth\panelPolygon.h" />
+    <ClInclude Include="Algorithm\cloth\TransformInfo.h" />
     <ClInclude Include="Algorithm\conv\ConvolutionPyramid.h" />
     <ClInclude Include="Algorithm\conv\Convolution_Helper.h" />
     <ClInclude Include="Algorithm\conv\ImageData.h" />

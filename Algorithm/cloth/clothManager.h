@@ -41,10 +41,11 @@ namespace ldp
 
 	struct ClothDesignParam
 	{
-		float pointMergeDistThre;				// in meters
-		float curveSampleStep;					// in meters; each curve is discreated via this step
+		float pointMergeDistThre;				// ignore two close points, in meters
+		float curveSampleStep;					// sample points on curves, in meters
 		float pointInsidePolyThre;				// in meters
-		float curveFittingThre;					// in meters
+		float curveFittingThre;					// fitting inputs into cubics, in meters
+		float triangulateThre;					// size of triangle edges, in meters
 
 		ClothDesignParam();
 		void setDefaultParam();
@@ -121,6 +122,7 @@ namespace ldp
 		/// mesh backup related
 		void updateCurrentClothsToInitial();
 		void updateInitialClothsToCurrent();
+		void triangulate();
 
 		/// stitch related
 		void clearSewings();
@@ -162,6 +164,7 @@ namespace ldp
 		ValueType m_avgArea;
 		ValueType m_avgEdgeLength;
 		ValueType m_fps;
+		bool m_shouldTriangulate;
 		bool m_shouldMergePieces;
 		bool m_shouldTopologyUpdate;
 		bool m_shouldNumericUpdate;
@@ -171,7 +174,6 @@ namespace ldp
 	protected:
 		void buildStitchesFromSewing();
 		bool pointInPolygon(int n, const Vec2* pts, Vec2 p);
-		void triangulate();
 		typedef std::map<std::pair<const svg::SvgPolyPath*, int>, std::vector<AbstractShape*>> ObjConvertMap;
 		void polyPathToShape(const svg::SvgPolyPath* polyPath,
 			std::shared_ptr<ShapeGroup>& group, 

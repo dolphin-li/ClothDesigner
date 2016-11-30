@@ -2,6 +2,7 @@
 
 #include "Renderable\ObjMesh.h"
 #include "panelPolygon.h"
+#include "TransformInfo.h"
 namespace ldp
 {
 	std::set<std::string> ClothPiece::s_nameSet;
@@ -13,6 +14,7 @@ namespace ldp
 		m_mesh3d.reset(new ObjMesh);
 		m_mesh3dInit.reset(new ObjMesh);
 		m_panel.reset(new PanelPolygon);
+		m_transfromInfo.reset(new TransformInfo);
 	}
 
 	ClothPiece::~ClothPiece()
@@ -55,6 +57,7 @@ namespace ldp
 		piece->m_mesh3d->cloneFrom(m_mesh3d.get());
 		piece->m_mesh3dInit->cloneFrom(m_mesh3dInit.get());
 		piece->m_panel.reset((PanelPolygon*)m_panel->clone());
+		piece->m_transfromInfo.reset(new TransformInfo(*m_transfromInfo));
 		return piece;
 	}
 
