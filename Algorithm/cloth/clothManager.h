@@ -206,7 +206,7 @@ namespace ldp
 		std::vector<ValueType> m_stitchVW;
 		std::vector<ValueType> m_stitchVC;
 		std::vector<ValueType> m_stitchVL;		
-		ValueType m_curStitchRatio;
+		ValueType m_curStitchRatio;						// the stitchEdge * ratio is the current stitched length
 		// GPU related-------------------------------------------------------------------
 	protected:
 		void debug_save_values();

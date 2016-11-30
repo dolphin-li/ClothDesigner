@@ -1,9 +1,10 @@
 #include "clothManager.h"
 #include "LevelSet3D.h"
 #include "clothPiece.h"
+#include "panelPolygon.h"
+#include "PROGRESSING_BAR.h"
 #include <cuda_runtime_api.h>
 #include <fstream>
-#include "PROGRESSING_BAR.h"
 #include "Renderable\ObjMesh.h"
 #include <eigen\Dense>
 #include <eigen\Sparse>

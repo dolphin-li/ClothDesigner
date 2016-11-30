@@ -3,6 +3,7 @@
 #include "Viewer3d.h"
 #include "cloth\clothManager.h"
 #include "cloth\clothPiece.h"
+#include "Renderable\ObjMesh.h"
 
 #include "Abstract3dEventHandle.h"
 #include "Translate3dEventHandle.h"

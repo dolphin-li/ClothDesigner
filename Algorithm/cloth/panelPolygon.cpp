@@ -4,6 +4,7 @@
 namespace ldp
 {
 	std::hash_map<size_t, AbstractPanelObject*> AbstractPanelObject::s_globalIdxMap;
+	bool AbstractPanelObject::s_disableIdxMapUpdate = false;
 
 	AbstractShape* AbstractShape::create(Type type, size_t id)
 	{
@@ -249,7 +250,7 @@ namespace ldp
 	{
 		auto shape = create(getType(), getId());
 		shape->m_keyPoints = m_keyPoints;
-		for (auto p : shape->m_keyPoints)
+		for (auto& p : shape->m_keyPoints)
 			p.reset((KeyPoint*)p->clone());
 		shape->m_selected = m_selected;
 		shape->m_highlighted = false;
@@ -347,23 +348,25 @@ namespace ldp
 		}
 	}
 
-	void PanelPolygon::select(int idx, SelectOp op)
+	bool PanelPolygon::select(int idx, SelectOp op)
 	{
 		if (op == SelectEnd)
-			return;
+			return false;
 		std::set<int> idxSet;
 		idxSet.insert(idx);
-		select(idxSet, op);
+		return select(idxSet, op);
 	}
 
-	void PanelPolygon::select(const std::set<int>& idxSet, SelectOp op)
+	bool PanelPolygon::select(const std::set<int>& idxSet, SelectOp op)
 	{
 		if (op == SelectEnd)
-			return;
+			return false;
 		m_tmpbufferObj.clear();
 		collectObject(m_tmpbufferObj);
-		for (auto obj : m_tmpbufferObj)
+		bool changed = false;
+		for (auto& obj : m_tmpbufferObj)
 		{
+			bool oldSel = obj->isSelected();
 			switch (op)
 			{
 			case ldp::AbstractPanelObject::SelectThis:
@@ -392,7 +395,11 @@ namespace ldp
 			default:
 				break;
 			}
-		}
+			bool newSel = obj->isSelected();
+			if (oldSel != newSel)
+				changed = true;
+		} // end for obj
+		return changed;
 	}
 
 	void PanelPolygon::highLight(int idx, int lastIdx)
@@ -480,37 +487,39 @@ namespace ldp
 	{
 		auto tmp = m_firsts;
 		m_firsts.clear();
-		for (auto f : tmp)
+		for (auto& f : tmp)
 		{
 			if (s.find(f.id) == s.end())
 				m_firsts.push_back(f);
 		}
 		tmp = m_seconds;
 		m_seconds.clear();
-		for (auto f : tmp)
+		for (auto& f : tmp)
 		{
 			if (s.find(f.id) == s.end())
 				m_seconds.push_back(f);
 		}
 	}
 
-	void Sewing::select(int idx, SelectOp op)
+	bool Sewing::select(int idx, SelectOp op)
 	{
 		if (op == SelectEnd)
-			return;
+			return false;
 		std::set<int> idxSet;
 		idxSet.insert(idx);
-		select(idxSet, op);
+		return select(idxSet, op);
 	}
 
-	void Sewing::select(const std::set<int>& idxSet, SelectOp op)
+	bool Sewing::select(const std::set<int>& idxSet, SelectOp op)
 	{
 		if (op == SelectEnd)
-			return;
+			return false;
 		m_tmpbufferObj.clear();
 		collectObject(m_tmpbufferObj);
-		for (auto obj : m_tmpbufferObj)
+		bool changed = false;
+		for (auto& obj : m_tmpbufferObj)
 		{
+			bool oldSel = obj->isSelected();
 			switch (op)
 			{
 			case ldp::AbstractPanelObject::SelectThis:
@@ -539,7 +548,11 @@ namespace ldp
 			default:
 				break;
 			}
-		}
+			bool newSel = obj->isSelected();
+			if (oldSel != newSel)
+				changed = true;
+		} // end for obj
+		return changed;
 	}
 
 	void Sewing::highLight(int idx, int lastIdx)

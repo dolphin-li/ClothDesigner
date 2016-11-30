@@ -604,6 +604,9 @@
     <ClCompile Include="Algorithm\cloth\IdxPool.cpp">
       <Filter>algorithm\cloth</Filter>
     </ClCompile>
+    <ClCompile Include="Algorithm\cloth\HistoryStack.cpp">
+      <Filter>algorithm\cloth</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">
@@ -939,6 +942,9 @@
       <Filter>event_handle</Filter>
     </ClInclude>
     <ClInclude Include="Algorithm\cloth\IdxPool.h">
+      <Filter>algorithm\cloth</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\HistoryStack.h">
       <Filter>algorithm\cloth</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,5 +1,7 @@
 #include "clothPiece.h"
 
+#include "Renderable\ObjMesh.h"
+#include "panelPolygon.h"
 namespace ldp
 {
 	std::set<std::string> ClothPiece::s_nameSet;
@@ -7,6 +9,10 @@ namespace ldp
 	ClothPiece::ClothPiece()
 	{
 		m_name = generateUniqueName("default");
+		m_mesh2d.reset(new ObjMesh);
+		m_mesh3d.reset(new ObjMesh);
+		m_mesh3dInit.reset(new ObjMesh);
+		m_panel.reset(new PanelPolygon);
 	}
 
 	ClothPiece::~ClothPiece()
@@ -40,5 +46,22 @@ namespace ldp
 			}
 		} // end for k
 		throw std::exception("ClothPiece : cannot generate a unique name!");
+	}
+
+	ClothPiece* ClothPiece::clone()const
+	{
+		ClothPiece* piece = new ClothPiece(*this);
+		piece->m_mesh2d->cloneFrom(m_mesh2d.get());
+		piece->m_mesh3d->cloneFrom(m_mesh3d.get());
+		piece->m_mesh3dInit->cloneFrom(m_mesh3dInit.get());
+		piece->m_panel.reset((PanelPolygon*)m_panel->clone());
+		return piece;
+	}
+
+	ClothPiece* ClothPiece::lightClone()const
+	{
+		ClothPiece* piece = new ClothPiece(*this);
+		piece->m_panel.reset((PanelPolygon*)m_panel->clone());
+		return piece;
 	}
 }

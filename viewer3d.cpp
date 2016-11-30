@@ -3,6 +3,7 @@
 #include "Viewer3d.h"
 #include "ldpMat\Quaternion.h"
 #include "cloth\clothPiece.h"
+#include "Renderable\ObjMesh.h"
 #pragma region --mat_utils
 
 inline ldp::Mat3f angles2rot(ldp::Float3 v)

@@ -33,7 +33,21 @@
     <addaction name="actionSave_project"/>
     <addaction name="actionLoad_svg"/>
    </widget>
+   <widget class="QMenu" name="menuEdit">
+    <property name="title">
+     <string>edit</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="menuHistory">
+    <property name="title">
+     <string>history</string>
+    </property>
+    <addaction name="actionPrev"/>
+    <addaction name="actionNext"/>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuEdit"/>
+   <addaction name="menuHistory"/>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
    <attribute name="toolBarArea">
@@ -353,6 +367,22 @@
   <action name="actionLoad_svg">
    <property name="text">
     <string>load svg</string>
+   </property>
+  </action>
+  <action name="actionPrev">
+   <property name="text">
+    <string>prev</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Z</string>
+   </property>
+  </action>
+  <action name="actionNext">
+   <property name="text">
+    <string>next</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+Z</string>
    </property>
   </action>
  </widget>

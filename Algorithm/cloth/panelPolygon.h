@@ -46,12 +46,21 @@ namespace ldp
 			m_id = IdxPool::requireIdx(rhs.m_id);
 			m_highlighted = rhs.m_highlighted;
 			m_selected = rhs.m_selected;
-			s_globalIdxMap.insert(std::make_pair(m_id, this));
+			if (!isIdxMapUpdateDisabled())
+				s_globalIdxMap.insert(std::make_pair(m_id, this));
 		}
 		virtual ~AbstractPanelObject()
 		{
 			IdxPool::freeIdx(m_id);
-			s_globalIdxMap.erase(s_globalIdxMap.find(m_id));
+			if (!isIdxMapUpdateDisabled())
+			{
+				auto iter = s_globalIdxMap.find(m_id);
+				if (iter != s_globalIdxMap.end())
+				{
+					if (iter->second == this)
+						s_globalIdxMap.erase(iter);
+				}
+			}
 		}
 		size_t getId()const { return m_id; }
 		void setSelected(bool s) { m_selected = s; }
@@ -85,6 +94,11 @@ namespace ldp
 		size_t m_id = 0;
 	private:
 		static std::hash_map<size_t, AbstractPanelObject*> s_globalIdxMap;
+		static bool s_disableIdxMapUpdate;
+	public:
+		static void disableIdxMapUpdate() { s_disableIdxMapUpdate = true; }
+		static void enableIdxMapUpdate() { s_disableIdxMapUpdate = false; }
+		static bool isIdxMapUpdateDisabled() { return s_disableIdxMapUpdate; }
 	};
 
 	class KeyPoint : public AbstractPanelObject
@@ -94,6 +108,7 @@ namespace ldp
 		KeyPoint(size_t id) : AbstractPanelObject(id) {}
 		KeyPoint(const Float2& p) : AbstractPanelObject(), position(p) {}
 		KeyPoint(size_t id, const Float2& p) : AbstractPanelObject(id), position(p) {}
+		KeyPoint(const KeyPoint& rhs) : AbstractPanelObject(rhs) { position = rhs.position; }
 		virtual AbstractPanelObject* clone()const
 		{
 			return (AbstractPanelObject*)new KeyPoint(*this);
@@ -458,8 +473,8 @@ namespace ldp
 		const std::vector<InnerLinePtr>& innerLines()const { return m_innerLines; }
 		const PolygonPtr& outerPoly()const { return m_outerPoly; }
 
-		void select(int idx, SelectOp op);
-		void select(const std::set<int>& indices, SelectOp op);
+		bool select(int idx, SelectOp op);
+		bool select(const std::set<int>& indices, SelectOp op);
 		void highLight(int idx, int lastIdx);
 
 		void updateBound(Float2& bmin, Float2& bmax);
@@ -499,8 +514,8 @@ namespace ldp
 		virtual void collectObject(std::vector<AbstractPanelObject*>& objs) { objs.push_back(this); }
 		virtual void collectObject(std::vector<const AbstractPanelObject*>& objs)const { objs.push_back(this); }
 		virtual Sewing* clone() const;
-		void select(int idx, SelectOp op);
-		void select(const std::set<int>& indices, SelectOp op);
+		bool select(int idx, SelectOp op);
+		bool select(const std::set<int>& indices, SelectOp op);
 		void highLight(int idx, int lastIdx);
 	protected:
 		std::vector<Unit> m_firsts;

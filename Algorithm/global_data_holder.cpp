@@ -2,11 +2,15 @@
 #include "cloth\clothManager.h"
 #include "cloth\clothPiece.h"
 #include "cloth\LevelSet3D.h"
+#include "cloth\HistoryStack.h"
+#include "Renderable\ObjMesh.h"
 GlobalDataHolder g_dataholder;
 
 void GlobalDataHolder::init()
 {
 	m_clothManager.reset(new ldp::ClothManager);
+	m_historyStack.reset(new ldp::HistoryStack);
+	m_historyStack->init(m_clothManager.get());
 }
 
 void GlobalDataHolder::debug_1()

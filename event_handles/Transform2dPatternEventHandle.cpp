@@ -3,6 +3,7 @@
 #include "Viewer2d.h"
 #include "cloth\clothManager.h"
 #include "cloth\clothPiece.h"
+#include "cloth\panelPolygon.h"
 
 #include "Transform2dPatternEventHandle.h"
 Transform2dPatternEventHandle::Transform2dPatternEventHandle(Viewer2d* v)

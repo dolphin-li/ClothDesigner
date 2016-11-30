@@ -10,6 +10,7 @@
 #include "ldpMat\ldp_basic_mat.h"
 #include "event_handles\Abstract3dEventHandle.h"
 #include "event_handles\Abstract2dEventHandle.h"
+#include "cloth\HistoryStack.h"
 class Viewer3d;
 class Viewer2d;
 class ClothDesigner : public QMainWindow
@@ -26,8 +27,12 @@ public:
 	void updateUiByParam();
 	Viewer2d* viewer2d() { return m_widget2d; }
 	Viewer3d* viewer3d() { return m_widget3d; }
+
+	void pushHistory(QString name, ldp::HistoryStack::Type type);
 	public slots:
 	void on_actionLoad_svg_triggered();
+	void on_actionPrev_triggered();
+	void on_actionNext_triggered();
 	void on_pbResetSimulation_clicked();
 	void on_sbSparamOuterIter_valueChanged(int v);
 	void on_sbSparamInnerIter_valueChanged(int v);

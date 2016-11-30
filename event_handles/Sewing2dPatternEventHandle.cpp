@@ -3,7 +3,9 @@
 #include "Viewer2d.h"
 #include "cloth\clothManager.h"
 #include "cloth\clothPiece.h"
-
+#include "Renderable\ObjMesh.h"
+#include "cloth\panelPolygon.h"
+#include "../clothdesigner.h"
 #include "Sewing2dPatternEventHandle.h"
 Sewing2dPatternEventHandle::Sewing2dPatternEventHandle(Viewer2d* v)
 : Abstract2dEventHandle(v)
@@ -63,8 +65,13 @@ void Sewing2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 			op = ldp::AbstractPanelObject::SelectUnionInverse;
 		if (ev->pos() == m_mouse_press_pt)
 		{
+			bool changed = false;
 			for (size_t iSewing = 0; iSewing < manager->numSewings(); iSewing++)
-				manager->sewing(iSewing)->select(pickInfo().renderId, op);
+			if (manager->sewing(iSewing)->select(pickInfo().renderId, op))
+				changed = true;
+			if (m_viewer->getMainUI() && changed)
+				m_viewer->getMainUI()->pushHistory(QString().sprintf("sew select: %d",
+				pickInfo().renderId), ldp::HistoryStack::TypePatternSelect);
 		}
 		else
 		{
@@ -76,11 +83,14 @@ void Sewing2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 			float y1 = std::min(I.height() - 1, std::max(m_mouse_press_pt.y(), ev->pos().y()));
 			for (int y = y0; y <= y1; y++)
 			for (int x = x0; x <= x1; x++)
-			{
-				ids.insert(m_viewer->fboRenderedIndex(QPoint(x,y)));
-			}
+				ids.insert(m_viewer->fboRenderedIndex(QPoint(x, y)));
+			bool changed = false;
 			for (size_t iSewing = 0; iSewing < manager->numSewings(); iSewing++)
-				manager->sewing(iSewing)->select(ids, op);
+			if (manager->sewing(iSewing)->select(ids, op))
+				changed = true;
+			if (m_viewer->getMainUI() && changed)
+				m_viewer->getMainUI()->pushHistory(QString().sprintf("sew select: %d",
+				pickInfo().renderId), ldp::HistoryStack::TypePatternSelect);
 		}
 	}
 	m_viewer->endDragBox();
@@ -127,8 +137,14 @@ void Sewing2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 		break;
 	}
 
+	bool changed = false;
 	for (size_t iSewing = 0; iSewing < manager->numSewings(); iSewing++)
-		manager->sewing(iSewing)->select(0, op);
+	if (manager->sewing(iSewing)->select(0, op))
+		changed = true;
+
+	if (m_viewer->getMainUI() && changed)
+		m_viewer->getMainUI()->pushHistory(QString().sprintf("sew select: all(%d)",
+		op), ldp::HistoryStack::TypePatternSelect);
 }
 
 void Sewing2dPatternEventHandle::keyReleaseEvent(QKeyEvent *ev)

@@ -39,9 +39,13 @@ public:
     QAction *actionImport_cloth_mesh;
     QAction *actionSave_project;
     QAction *actionLoad_svg;
+    QAction *actionPrev;
+    QAction *actionNext;
     QWidget *centralWidget;
     QMenuBar *menuBar;
     QMenu *menuFile;
+    QMenu *menuEdit;
+    QMenu *menuHistory;
     QToolBar *mainToolBar;
     QStatusBar *statusBar;
     QDockWidget *dockWidgetRight;
@@ -97,6 +101,10 @@ public:
         actionSave_project->setObjectName(QStringLiteral("actionSave_project"));
         actionLoad_svg = new QAction(ClothDesignerClass);
         actionLoad_svg->setObjectName(QStringLiteral("actionLoad_svg"));
+        actionPrev = new QAction(ClothDesignerClass);
+        actionPrev->setObjectName(QStringLiteral("actionPrev"));
+        actionNext = new QAction(ClothDesignerClass);
+        actionNext->setObjectName(QStringLiteral("actionNext"));
         centralWidget = new QWidget(ClothDesignerClass);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
         ClothDesignerClass->setCentralWidget(centralWidget);
@@ -105,6 +113,10 @@ public:
         menuBar->setGeometry(QRect(0, 0, 1123, 21));
         menuFile = new QMenu(menuBar);
         menuFile->setObjectName(QStringLiteral("menuFile"));
+        menuEdit = new QMenu(menuBar);
+        menuEdit->setObjectName(QStringLiteral("menuEdit"));
+        menuHistory = new QMenu(menuBar);
+        menuHistory->setObjectName(QStringLiteral("menuHistory"));
         ClothDesignerClass->setMenuBar(menuBar);
         mainToolBar = new QToolBar(ClothDesignerClass);
         mainToolBar->setObjectName(QStringLiteral("mainToolBar"));
@@ -313,11 +325,15 @@ public:
         ClothDesignerClass->addDockWidget(static_cast<Qt::DockWidgetArea>(8), dockWidgetLower);
 
         menuBar->addAction(menuFile->menuAction());
+        menuBar->addAction(menuEdit->menuAction());
+        menuBar->addAction(menuHistory->menuAction());
         menuFile->addAction(actionLoad_project);
         menuFile->addAction(actionOpen_body_mesh);
         menuFile->addAction(actionImport_cloth_mesh);
         menuFile->addAction(actionSave_project);
         menuFile->addAction(actionLoad_svg);
+        menuHistory->addAction(actionPrev);
+        menuHistory->addAction(actionNext);
 
         retranslateUi(ClothDesignerClass);
 
@@ -334,7 +350,13 @@ public:
         actionSave_project->setText(QApplication::translate("ClothDesignerClass", "save project", 0));
         actionSave_project->setShortcut(QApplication::translate("ClothDesignerClass", "Ctrl+S", 0));
         actionLoad_svg->setText(QApplication::translate("ClothDesignerClass", "load svg", 0));
+        actionPrev->setText(QApplication::translate("ClothDesignerClass", "prev", 0));
+        actionPrev->setShortcut(QApplication::translate("ClothDesignerClass", "Ctrl+Z", 0));
+        actionNext->setText(QApplication::translate("ClothDesignerClass", "next", 0));
+        actionNext->setShortcut(QApplication::translate("ClothDesignerClass", "Ctrl+Shift+Z", 0));
         menuFile->setTitle(QApplication::translate("ClothDesignerClass", "file", 0));
+        menuEdit->setTitle(QApplication::translate("ClothDesignerClass", "edit", 0));
+        menuHistory->setTitle(QApplication::translate("ClothDesignerClass", "history", 0));
         groupBox->setTitle(QApplication::translate("ClothDesignerClass", "Simulation Param", 0));
         label_13->setText(QApplication::translate("ClothDesignerClass", "stitch speed", 0));
         label->setText(QApplication::translate("ClothDesignerClass", "outer iter", 0));

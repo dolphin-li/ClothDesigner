@@ -3,7 +3,10 @@
 #include "Viewer2d.h"
 #include "cloth\clothManager.h"
 #include "cloth\clothPiece.h"
-
+#include "cloth\panelPolygon.h"
+#include "cloth\HistoryStack.h"
+#include "Renderable\ObjMesh.h"
+#include "..\clothdesigner.h"
 #include "Edit2dPatternEventHandle.h"
 Edit2dPatternEventHandle::Edit2dPatternEventHandle(Viewer2d* v)
 : Abstract2dEventHandle(v)
@@ -61,13 +64,18 @@ void Edit2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 			op = ldp::AbstractPanelObject::SelectUnionInverse;
 		if (ev->pos() == m_mouse_press_pt)
 		{
+			bool changed = false;
 			for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
 			{
 				auto piece = manager->clothPiece(iPiece);
 				auto& panel = piece->panel();
-				panel.select(pickInfo().renderId, op);
+				if (panel.select(pickInfo().renderId, op))
+					changed = true;
 			} // end for iPiece
-		}
+			if (m_viewer->getMainUI() && changed)
+				m_viewer->getMainUI()->pushHistory(QString().sprintf("pattern select: %d",
+				pickInfo().renderId), ldp::HistoryStack::TypePatternSelect);
+		} // end if single selection
 		else
 		{
 			const QImage& I = m_viewer->fboImage();
@@ -78,16 +86,19 @@ void Edit2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 			float y1 = std::min(I.height() - 1, std::max(m_mouse_press_pt.y(), ev->pos().y()));
 			for (int y = y0; y <= y1; y++)
 			for (int x = x0; x <= x1; x++)
-			{
-				ids.insert(m_viewer->fboRenderedIndex(QPoint(x,y)));
-			}
+				ids.insert(m_viewer->fboRenderedIndex(QPoint(x, y)));
+			bool changed = false;
 			for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
 			{
 				auto piece = manager->clothPiece(iPiece);
 				auto& panel = piece->panel();
-				panel.select(ids, op);
+				if (panel.select(ids, op))
+					changed = true;
 			} // end for iPiece
-		}
+			if (m_viewer->getMainUI() && changed)
+				m_viewer->getMainUI()->pushHistory(QString().sprintf("pattern select: %d...",
+				*ids.begin()), ldp::HistoryStack::TypePatternSelect);
+		} // end else group selection
 	}
 	m_viewer->endDragBox();
 	Abstract2dEventHandle::mouseReleaseEvent(ev);
@@ -133,12 +144,17 @@ void Edit2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 		break;
 	}
 
+	bool changed = false;
 	for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
 	{
 		auto piece = manager->clothPiece(iPiece);
 		auto& panel = piece->panel();
-		panel.select(0, op);
+		if (panel.select(0, op))
+			changed = true;
 	} // end for iPiece
+	if (m_viewer->getMainUI() && changed)
+		m_viewer->getMainUI()->pushHistory(QString().sprintf("pattern select: all(%d)",
+		op), ldp::HistoryStack::TypePatternSelect);
 }
 
 void Edit2dPatternEventHandle::keyReleaseEvent(QKeyEvent *ev)

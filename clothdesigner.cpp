@@ -1,9 +1,10 @@
 #include "clothdesigner.h"
 #include <QGridLayout>
 #include "global_data_holder.h"
-
+#include <exception>
 #include "viewer2d.h"
 #include "viewer3d.h"
+#include "cloth\HistoryStack.h"
 
 ClothDesigner::ClothDesigner(QWidget *parent)
 	: QMainWindow(parent)
@@ -56,6 +57,44 @@ void ClothDesigner::on_actionLoad_svg_triggered()
 
 		m_widget3d->init(g_dataholder.m_clothManager.get(), this);
 		m_widget2d->init(g_dataholder.m_clothManager.get(), this);
+		m_widget2d->updateGL();
+		m_widget3d->updateGL();
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+}
+
+void ClothDesigner::pushHistory(QString name, ldp::HistoryStack::Type type)
+{
+	try
+	{
+		g_dataholder.m_historyStack->push(name.toStdString(), type);
+	} 
+	catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+}
+
+void ClothDesigner::on_actionPrev_triggered()
+{
+	try
+	{
+		g_dataholder.m_historyStack->stepBackward();
+		m_widget2d->updateGL();
+		m_widget3d->updateGL();
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+}
+
+void ClothDesigner::on_actionNext_triggered()
+{
+	try
+	{
+		g_dataholder.m_historyStack->stepForward();
 		m_widget2d->updateGL();
 		m_widget3d->updateGL();
 	} catch (std::exception e)

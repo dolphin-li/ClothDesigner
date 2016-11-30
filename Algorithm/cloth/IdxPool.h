@@ -50,12 +50,19 @@ namespace ldp
 		}
 		static void freeIdx(size_t idx)
 		{
-			auto& iter = m_usedIdx.find(idx);
-			if (iter == m_usedIdx.end())
-				throw std::exception(std::string("IdxPool, freeIdx not existed: "
-				+ std::to_string(idx)).c_str());
-			m_usedIdx.erase(iter);
-			m_freeIdx.insert(idx);
+			if (m_disableInc)
+			{
+
+			}
+			else
+			{
+				auto& iter = m_usedIdx.find(idx);
+				if (iter == m_usedIdx.end())
+					throw std::exception(std::string("IdxPool, freeIdx not existed: "
+					+ std::to_string(idx)).c_str());
+				m_usedIdx.erase(iter);
+				m_freeIdx.insert(idx);
+			}
 		}
 		static void disableIdxIncrement()
 		{
@@ -64,6 +71,10 @@ namespace ldp
 		static void enableIdxIncrement()
 		{
 			m_disableInc = false;
+		}
+		static bool isIdxIncrementDisabled()
+		{
+			return m_disableInc;
 		}
 	protected:
 		static std::hash_set<size_t> m_usedIdx;

@@ -3,6 +3,8 @@
 #include "Viewer2d.h"
 #include "ldpMat\Quaternion.h"
 #include "cloth\clothPiece.h"
+#include "cloth\panelPolygon.h"
+#include "Renderable\ObjMesh.h"
 
 #pragma region --mat_utils
 
@@ -549,6 +551,7 @@ void Viewer2d::renderClothsPanels_KeyPoint(const ldp::ClothPiece* piece, bool id
 		for (int i = 0; i < shape->numKeyPoints(); i++)
 		{
 			const auto& p = shape->getKeyPoint(i);
+
 			if (!idxMode)
 			{
 				if (p.isSelected() || shape->isSelected() || panel.isSelected())
