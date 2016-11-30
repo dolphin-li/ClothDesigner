@@ -64,6 +64,7 @@ namespace ldp
 
 		if (pos < 0 || pos >= size())
 			return;
+
 		m_rollPos = (m_rollHead + pos) % MAX_ROLLBACK_STEP;
 
 		IdxPool::disableIdxIncrement();

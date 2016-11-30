@@ -25,7 +25,6 @@ namespace ldp
 
 		void init(ClothManager* manager);
 		void push(std::string name, Type);
-		void stepTo(int pos);
 		void stepBackward();
 		void stepForward();
 
@@ -33,6 +32,7 @@ namespace ldp
 		int size()const;
 	protected:
 		void clear();
+		void stepTo(int pos);
 	private:
 		enum
 		{
@@ -42,6 +42,8 @@ namespace ldp
 		{
 			Type type;
 			std::string name;
+
+			// for TypeGeneral
 			std::vector<std::shared_ptr<Sewing>> sewings;
 			std::vector<std::shared_ptr<ClothPiece>> pieces;
 		};
