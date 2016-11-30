@@ -44,6 +44,8 @@ public:
 	enum ProcessorType{
 		ProcessorTypeGeneral = 0,
 		ProcessorTypeEditPattern,
+		ProcessorTypeTransformPattern,
+		ProcessorTypeSewingPattern,
 		ProcessorTypeEnd, // the end, no processor for this
 	};
 public:

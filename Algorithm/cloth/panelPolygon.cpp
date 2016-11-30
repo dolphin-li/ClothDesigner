@@ -450,4 +450,56 @@ namespace ldp
 		for (auto& sp : m_innerLines)
 			sp.collectObject(objs);
 	}
+
+	//////////////////////////////////////////////////////////////////////////////////
+	void Sewing::clear()
+	{
+		m_firsts.clear();
+		m_seconds.clear();
+	}
+
+	void Sewing::addFirst(Unit unit)
+	{
+		m_firsts.push_back(unit);
+	}
+
+	void Sewing::addSecond(Unit unit)
+	{
+		m_seconds.push_back(unit);
+	}
+
+	void Sewing::addFirsts(const std::vector<Unit>& unit)
+	{
+		m_firsts.insert(m_firsts.end(), unit.begin(), unit.end());
+	}
+
+	void Sewing::addSeconds(const std::vector<Unit>& unit)
+	{
+		m_seconds.insert(m_seconds.end(), unit.begin(), unit.end());
+	}
+
+	void Sewing::remove(AbstractShape* s)
+	{
+		std::set<AbstractShape*> shapes;
+		shapes.insert(s);
+		remove(shapes);
+	}
+
+	void Sewing::remove(std::set<AbstractShape*> s)
+	{
+		auto tmp = m_firsts;
+		m_firsts.clear();
+		for (auto f : tmp)
+		{
+			if (s.find(f.shape) == s.end())
+				m_firsts.push_back(f);
+		}
+		tmp = m_seconds;
+		m_seconds.clear();
+		for (auto f : tmp)
+		{
+			if (s.find(f.shape) == s.end())
+				m_seconds.push_back(f);
+		}
+	}
 }

@@ -415,10 +415,36 @@ namespace ldp
 		virtual void collectObject(std::vector<AbstractPanelObject*>& objs);
 		virtual void collectObject(std::vector<const AbstractPanelObject*>& objs)const;
 	private:
-		Polygon m_outerPoly;		// p0p1p2...pnp0
+		Polygon m_outerPoly;		
 		std::vector<Dart> m_darts;
 		std::vector<InnerLine> m_innerLines;
 		ldp::Float2 m_bbox[2];
 		std::vector<AbstractPanelObject*> m_tmpbufferObj;
+	};
+
+	class Sewing : public AbstractPanelObject
+	{
+	public:
+		struct Unit
+		{
+			AbstractShape* shape;
+			bool direction;
+			Unit() :shape(nullptr), direction(false) {}
+			Unit(AbstractShape* s, bool d) :shape(s), direction(d) {}
+		};
+	public:
+		void clear();
+		bool empty()const { return m_firsts.size() == 0 || m_seconds.size() == 0; }
+		const std::vector<Unit>& firsts()const { return m_firsts; }
+		const std::vector<Unit>& seconds()const { return m_seconds; }
+		void addFirst(Unit unit);
+		void addSecond(Unit unit);
+		void addFirsts(const std::vector<Unit>& unit);
+		void addSeconds(const std::vector<Unit>& unit);
+		void remove(AbstractShape* s);
+		void remove(std::set<AbstractShape*> s);
+	protected:
+		std::vector<Unit> m_firsts;
+		std::vector<Unit> m_seconds;
 	};
 }

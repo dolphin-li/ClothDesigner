@@ -595,6 +595,12 @@
     <ClCompile Include="event_handles\Edit2dPatternEventHandle.cpp">
       <Filter>event_handle</Filter>
     </ClCompile>
+    <ClCompile Include="event_handles\Transform2dPatternEventHandle.cpp">
+      <Filter>event_handle</Filter>
+    </ClCompile>
+    <ClCompile Include="event_handles\Sewing2dPatternEventHandle.cpp">
+      <Filter>event_handle</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">
@@ -921,6 +927,12 @@
       <Filter>algorithm\svgpp\nvprsvg\nvpr</Filter>
     </ClInclude>
     <ClInclude Include="event_handles\Edit2dPatternEventHandle.h">
+      <Filter>event_handle</Filter>
+    </ClInclude>
+    <ClInclude Include="event_handles\Transform2dPatternEventHandle.h">
+      <Filter>event_handle</Filter>
+    </ClInclude>
+    <ClInclude Include="event_handles\Sewing2dPatternEventHandle.h">
       <Filter>event_handle</Filter>
     </ClInclude>
   </ItemGroup>

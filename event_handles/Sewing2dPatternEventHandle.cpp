@@ -4,11 +4,11 @@
 #include "cloth\clothManager.h"
 #include "cloth\clothPiece.h"
 
-#include "Edit2dPatternEventHandle.h"
-Edit2dPatternEventHandle::Edit2dPatternEventHandle(Viewer2d* v)
+#include "Sewing2dPatternEventHandle.h"
+Sewing2dPatternEventHandle::Sewing2dPatternEventHandle(Viewer2d* v)
 : Abstract2dEventHandle(v)
 {
-	QString name = "icons/pattern_edit.png";
+	QString name = "icons/pattern_sewing.png";
 	QPixmap img(name);
 	img = img.scaledToWidth(32, Qt::TransformationMode::SmoothTransformation);
 	m_cursor = QCursor(img, 1, 1);
@@ -17,24 +17,24 @@ Edit2dPatternEventHandle::Edit2dPatternEventHandle(Viewer2d* v)
 	m_toolTips = "edit pattern";
 }
 
-Edit2dPatternEventHandle::~Edit2dPatternEventHandle()
+Sewing2dPatternEventHandle::~Sewing2dPatternEventHandle()
 {
 
 }
 
-void Edit2dPatternEventHandle::handleEnter()
+void Sewing2dPatternEventHandle::handleEnter()
 {
 	Abstract2dEventHandle::handleEnter();
 	m_viewer->setFocus();
 }
-void Edit2dPatternEventHandle::handleLeave()
+void Sewing2dPatternEventHandle::handleLeave()
 {
 	m_viewer->clearFocus();
 	m_viewer->endDragBox();
 	Abstract2dEventHandle::handleLeave();
 }
 
-void Edit2dPatternEventHandle::mousePressEvent(QMouseEvent *ev)
+void Sewing2dPatternEventHandle::mousePressEvent(QMouseEvent *ev)
 {
 	Abstract2dEventHandle::mousePressEvent(ev);
 
@@ -46,7 +46,7 @@ void Edit2dPatternEventHandle::mousePressEvent(QMouseEvent *ev)
 	} // end if left button
 }
 
-void Edit2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
+void Sewing2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 {
 	auto manager = m_viewer->getManager();
 	if (manager == nullptr)
@@ -93,22 +93,22 @@ void Edit2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 	Abstract2dEventHandle::mouseReleaseEvent(ev);
 }
 
-void Edit2dPatternEventHandle::mouseDoubleClickEvent(QMouseEvent *ev)
+void Sewing2dPatternEventHandle::mouseDoubleClickEvent(QMouseEvent *ev)
 {
 	Abstract2dEventHandle::mouseDoubleClickEvent(ev);
 }
 
-void Edit2dPatternEventHandle::mouseMoveEvent(QMouseEvent *ev)
+void Sewing2dPatternEventHandle::mouseMoveEvent(QMouseEvent *ev)
 {
 	Abstract2dEventHandle::mouseMoveEvent(ev);
 }
 
-void Edit2dPatternEventHandle::wheelEvent(QWheelEvent *ev)
+void Sewing2dPatternEventHandle::wheelEvent(QWheelEvent *ev)
 {
 	Abstract2dEventHandle::wheelEvent(ev);
 }
 
-void Edit2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
+void Sewing2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 {
 	Abstract2dEventHandle::keyPressEvent(ev);
 	auto manager = m_viewer->getManager();
@@ -141,7 +141,7 @@ void Edit2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 	} // end for iPiece
 }
 
-void Edit2dPatternEventHandle::keyReleaseEvent(QKeyEvent *ev)
+void Sewing2dPatternEventHandle::keyReleaseEvent(QKeyEvent *ev)
 {
 	Abstract2dEventHandle::keyReleaseEvent(ev);
 }
