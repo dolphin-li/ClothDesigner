@@ -186,3 +186,5 @@ void GlobalDataHolder::debug_5()
 		m_clothManager->bodyLevelSet()->save("data/wm2_15k.set");
 	}
 }
+
+

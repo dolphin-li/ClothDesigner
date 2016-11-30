@@ -69,7 +69,7 @@ namespace ldp
 
 		m_fps = 0;
 
-		clearstitches();
+		clearSewings();
 		clearClothPieces();
 	}
 
@@ -347,8 +347,9 @@ namespace ldp
 		m_shouldTopologyUpdate = true;
 	}
 
-	void ClothManager::clearstitches()
+	void ClothManager::clearSewings()
 	{
+		m_sewings.clear();
 		m_stitches.clear();
 		m_stitchVV.clear();
 		m_stitchVV_num.clear();
@@ -748,14 +749,13 @@ namespace ldp
 		} // end for ipoly
 
 		// 1.3 create outter panels
-		int idxStart = PanelIdxBegin;
 		for (size_t ipoly = 0; ipoly < groups.size(); ipoly++)
 		{
 			if (polyInsideId[ipoly] >= 0)
 				continue;
 			m_clothPieces.push_back(std::shared_ptr<ClothPiece>(new ClothPiece()));
 			const auto& piece = m_clothPieces.back();
-			piece->panel().create(groups[ipoly], idxStart);
+			piece->panel().create(groups[ipoly]);
 
 			// add dart
 			for (size_t jpoly = 0; jpoly < groups.size(); jpoly++)
@@ -772,8 +772,6 @@ namespace ldp
 					continue;
 				piece->panel().addInnerLine(lines[jpoly]);
 			} // end for jpoly
-
-			idxStart = piece->panel().getIdxEnd();
 		} // end for ipoly
 
 		// 2. triangluation
@@ -835,6 +833,47 @@ namespace ldp
 		}
 		minDist *= d;
 		return minDist >= -m_clothDesignParam.pointInsidePolyThre;
+	}
+
+
+	////sewings/////////////////////////////////////////////////////////////////////////////////
+	void ClothManager::addSewing(std::shared_ptr<Sewing> sewing)
+	{
+		m_sewings.push_back(std::shared_ptr<Sewing>(sewing->clone()));
+		buildStitchesFromSewing();
+	}
+
+	void ClothManager::addSewings(const std::vector<std::shared_ptr<Sewing>>& sewings)
+	{
+		for (const auto& s : sewings)
+			m_sewings.push_back(std::shared_ptr<Sewing>(s->clone()));
+		buildStitchesFromSewing();
+	}
+
+	void ClothManager::removeSewing(int arrayPos)
+	{
+		m_sewings.erase(m_sewings.begin() + arrayPos);
+		buildStitchesFromSewing();
+	}
+
+	void ClothManager::removeSewingById(int id)
+	{
+		for (size_t i = 0; i < m_sewings.size(); i++)
+		{
+			if (m_sewings[i]->getId() == id)
+			{
+				m_sewings.erase(m_sewings.begin() + i);
+				buildStitchesFromSewing();
+				break;
+			}
+		}
+	}
+
+	void ClothManager::buildStitchesFromSewing()
+	{
+
+		// finally. require stitch rebuilt
+		m_shouldStitchUpdate = true;
 	}
 
 	////Params//////////////////////////////////////////////////////////////////////////////////

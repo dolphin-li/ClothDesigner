@@ -33,6 +33,7 @@ Viewer2d::Viewer2d(QWidget *parent)
 	m_fbo = nullptr;
 	m_clothManager = nullptr;
 	m_mainUI = nullptr;
+	m_isSewingMode = false;
 
 	m_eventHandles.resize((size_t)Abstract2dEventHandle::ProcessorTypeEnd, nullptr);
 	for (size_t i = (size_t)Abstract2dEventHandle::ProcessorTypeGeneral;
@@ -145,6 +146,7 @@ void Viewer2d::paintGL()
 			m_clothManager->clothPiece(i)->mesh2d().render(m_showType);
 	}
 	renderClothsPanels(false);
+	renderClothsSewing(false);
 	renderDragBox();
 }
 
@@ -163,6 +165,7 @@ void Viewer2d::renderSelectionOnFbo()
 	m_camera.apply();
 
 	renderClothsPanels(true);
+	renderClothsSewing(true);
 
 	m_fboImage = m_fbo->toImage();
 	m_fbo->release();
@@ -426,13 +429,14 @@ void Viewer2d::renderClothsPanels_Edge(const ldp::ClothPiece* piece, bool idxMod
 	const auto& lines = panel.innerLines();
 
 	std::vector<const ldp::AbstractShape*> shapes;
-	for (const auto& shape : poly)
+	if (poly)
+	for (const auto& shape : *poly)
 		shapes.push_back(shape.get());
 	for (auto dart : darts)
-	for (const auto& shape : dart)
+	for (const auto& shape : *dart)
 		shapes.push_back(shape.get());
 	for (auto line : lines)
-	for (const auto& shape : line)
+	for (const auto& shape : *line)
 		shapes.push_back(shape.get());
 
 
@@ -453,7 +457,7 @@ void Viewer2d::renderClothsPanels_Edge(const ldp::ClothPiece* piece, bool idxMod
 				glColor4f(0, 0, 0, 1);
 		}
 		else
-			glColor4fv(selectIdToColor(shape->getIdxBegin()).ptr());
+			glColor4fv(selectIdToColor(shape->getId()).ptr());
 		const auto& pts = shape->samplePointsOnShape(step / shape->calcLength());
 		for (size_t i = 1; i < pts.size(); i++)
 		{
@@ -475,13 +479,14 @@ void Viewer2d::renderClothsPanels_KeyPoint(const ldp::ClothPiece* piece, bool id
 	const auto& lines = panel.innerLines();
 
 	std::vector<const ldp::AbstractShape*> shapes;
-	for (const auto& shape : poly)
+	if (poly)
+	for (const auto& shape : *poly)
 		shapes.push_back(shape.get());
 	for (auto dart : darts)
-	for (const auto& shape : dart)
+	for (const auto& shape : *dart)
 		shapes.push_back(shape.get());
 	for (auto line : lines)
-	for (const auto& shape : line)
+	for (const auto& shape : *line)
 		shapes.push_back(shape.get());
 	if (idxMode)
 		glPointSize(5);
@@ -503,10 +508,25 @@ void Viewer2d::renderClothsPanels_KeyPoint(const ldp::ClothPiece* piece, bool id
 					glColor4f(0, 0, 0, 1);
 			}
 			else
-				glColor4fv(selectIdToColor(p.getIdxBegin()).ptr());
+				glColor4fv(selectIdToColor(p.getId()).ptr());
 			const auto& x = p.position;
 			glVertex3f(x[0], x[1], 0.1);
 		}
 	} // end for shape
 	glEnd();
+}
+
+void Viewer2d::beginSewingMode()
+{
+	m_isSewingMode = true;
+}
+
+void Viewer2d::endSewingMode()
+{
+	m_isSewingMode = false;
+}
+
+void Viewer2d::renderClothsSewing(bool idxMode)
+{
+
 }

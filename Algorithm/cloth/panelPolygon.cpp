@@ -1,18 +1,18 @@
 #include "panelPolygon.h"
 #include <eigen\Dense>
+#include <exception>
 namespace ldp
 {
-
-	AbstractShape* AbstractShape::create(Type type)
+	AbstractShape* AbstractShape::create(Type type, size_t id)
 	{
 		switch (type)
 		{
 		case ldp::AbstractShape::TypeLine:
-			return new Line();
+			return new Line(id);
 		case ldp::AbstractShape::TypeQuadratic:
-			return new Quadratic();
+			return new Quadratic(id);
 		case ldp::AbstractShape::TypeCubic:
-			return new Cubic();
+			return new Cubic(id);
 		default:
 			assert(0);
 			return nullptr;
@@ -204,18 +204,19 @@ namespace ldp
 	void AbstractShape::create(std::vector<std::shared_ptr<AbstractShape>>& curves, 
 		const std::vector<Float2>& keyPoints, float thre)
 	{
-		std::vector<KeyPoint> pts;
-		for (const auto& p : keyPoints)
-		{
-			KeyPoint kp;
-			kp.position = p;
-			pts.push_back(kp);
-		}
-
 		assert(keyPoints.size() >= 2);
 
 		if (keyPoints.size() == 2)
+		{
+			std::vector<KeyPoint> pts;
+			for (const auto& p : keyPoints)
+			{
+				KeyPoint kp;
+				kp.position = p;
+				pts.push_back(kp);
+			}
 			return curves.push_back(ShapePtr(new Line(pts)));
+		}
 
 		// 1. fitting line
 		Line line;
@@ -244,11 +245,10 @@ namespace ldp
 
 	AbstractShape* AbstractShape::clone()const
 	{
-		auto shape = create(getType());
+		auto shape = create(getType(), getId());
 		shape->m_keyPoints = m_keyPoints;
 		for (auto p : shape->m_keyPoints)
-			p.reset(p->clone());
-		shape->m_idxStart = m_idxStart;
+			p.reset((KeyPoint*)p->clone());
 		shape->m_selected = m_selected;
 		shape->m_highlighted = m_highlighted;
 		return shape;
@@ -294,6 +294,12 @@ namespace ldp
 		m_bbox[1] = -FLT_MAX;
 	}
 
+	PanelPolygon::PanelPolygon(size_t id) : AbstractPanelObject(id)
+	{
+		m_bbox[0] = FLT_MAX;
+		m_bbox[1] = -FLT_MAX;
+	}
+
 	PanelPolygon::~PanelPolygon()
 	{
 	
@@ -301,68 +307,36 @@ namespace ldp
 
 	void PanelPolygon::clear()
 	{
-		m_outerPoly.clear();
+		m_outerPoly.reset((Polygon*)nullptr);
 		m_darts.clear();
 		m_innerLines.clear();
-		m_idxStart = 0;
 	}
 
-	void PanelPolygon::create(const Polygon& outerPoly, int idxStart)
+	void PanelPolygon::create(const Polygon& outerPoly)
 	{
-		outerPoly.cloneTo(m_outerPoly);
-		updateIndex(idxStart);
+		m_outerPoly.reset((Polygon*)outerPoly.clone());
 	}
 
 	void PanelPolygon::addDart(Dart& dart)
 	{
-		m_darts.push_back(Dart());
-		dart.cloneTo(m_darts.back());
-		updateIndex(m_idxStart);
+		m_darts.push_back(DartPtr((Dart*)dart.clone()));
 	}
 
 	void PanelPolygon::addInnerLine(InnerLine& line)
 	{
-		m_innerLines.push_back(InnerLine());
-		line.cloneTo(m_innerLines.back());
-		updateIndex(m_idxStart);
-	}
-
-	void PanelPolygon::updateIndex(int idx)
-	{
-		m_idxStart = idx;
-		idx++;	//self
-		m_outerPoly.updateIndex(idx);
-		idx = m_outerPoly.getIdxEnd();
-		for (auto& dart : m_darts)
-		{
-			dart.updateIndex(idx);
-			idx = dart.getIdxEnd();
-		}
-		for (auto& ln : m_innerLines)
-		{
-			ln.updateIndex(idx);
-			idx = ln.getIdxEnd();
-		}
-	}
-
-	int PanelPolygon::getIdxEnd()const
-	{
-		if (m_innerLines.size())
-			return m_innerLines.back().getIdxEnd();
-		if (m_darts.size())
-			return m_darts.back().getIdxEnd();
-		return m_outerPoly.getIdxEnd();
+		m_innerLines.push_back(InnerLinePtr((InnerLine*)line.clone()));
 	}
 
 	void PanelPolygon::updateBound(Float2& bmin, Float2& bmax)
 	{
 		m_bbox[0] = FLT_MAX;
 		m_bbox[1] = FLT_MIN;
-		m_outerPoly.updateBound(m_bbox[0], m_bbox[1]);
+		if (m_outerPoly)
+			m_outerPoly->updateBound(m_bbox[0], m_bbox[1]);
 		for (auto& dart : m_darts)
-			dart.updateBound(m_bbox[0], m_bbox[1]);
+			dart->updateBound(m_bbox[0], m_bbox[1]);
 		for (auto& ln : m_innerLines)
-			ln.updateBound(m_bbox[0], m_bbox[1]);
+			ln->updateBound(m_bbox[0], m_bbox[1]);
 		for (int k = 0; k < bmin.size(); k++)
 		{
 			bmin[k] = std::min(bmin[k], m_bbox[0][k]);
@@ -390,17 +364,17 @@ namespace ldp
 			switch (op)
 			{
 			case ldp::AbstractPanelObject::SelectThis:
-				if (idxSet.find(obj->getIdxBegin()) != idxSet.end())
+				if (idxSet.find(obj->getId()) != idxSet.end())
 					obj->setSelected(true);
 				else
 					obj->setSelected(false);
 				break;
 			case ldp::AbstractPanelObject::SelectUnion:
-				if (idxSet.find(obj->getIdxBegin()) != idxSet.end())
+				if (idxSet.find(obj->getId()) != idxSet.end())
 					obj->setSelected(true);
 				break;
 			case ldp::AbstractPanelObject::SelectUnionInverse:
-				if (idxSet.find(obj->getIdxBegin()) != idxSet.end())
+				if (idxSet.find(obj->getId()) != idxSet.end())
 					obj->setSelected(!obj->isSelected());
 				break;
 			case ldp::AbstractPanelObject::SelectAll:
@@ -424,7 +398,7 @@ namespace ldp
 		collectObject(m_tmpbufferObj);
 		for (auto obj : m_tmpbufferObj)
 		{
-			if (idx == obj->getIdxBegin())
+			if (idx == obj->getId())
 				obj->setHighlighted(true);
 			else
 				obj->setHighlighted(false);
@@ -434,21 +408,35 @@ namespace ldp
 	void PanelPolygon::collectObject(std::vector<AbstractPanelObject*>& objs)
 	{
 		objs.push_back(this);
-		m_outerPoly.collectObject(objs);
+		if (m_outerPoly)
+			m_outerPoly->collectObject(objs);
 		for (auto& dart : m_darts)
-			dart.collectObject(objs);
+			dart->collectObject(objs);
 		for (auto& sp : m_innerLines)
-			sp.collectObject(objs);
+			sp->collectObject(objs);
 	}
 
 	void PanelPolygon::collectObject(std::vector<const AbstractPanelObject*>& objs)const
 	{
 		objs.push_back(this);
-		m_outerPoly.collectObject(objs);
+		m_outerPoly->collectObject(objs);
 		for (auto& dart : m_darts)
-			dart.collectObject(objs);
+			dart->collectObject(objs);
 		for (auto& sp : m_innerLines)
-			sp.collectObject(objs);
+			sp->collectObject(objs);
+	}
+
+	AbstractPanelObject* PanelPolygon::clone()const
+	{
+		PanelPolygon* obj = new PanelPolygon(*this);
+		obj->m_tmpbufferObj.clear();
+		if (obj->m_outerPoly)
+			obj->m_outerPoly.reset((Polygon*)obj->m_outerPoly->clone());
+		for (auto& p : obj->m_darts)
+			p.reset((Dart*)p->clone());
+		for (auto& p : obj->m_innerLines)
+			p.reset((InnerLine*)p->clone());
+		return obj;
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////

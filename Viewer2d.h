@@ -36,6 +36,8 @@ public:
 	Abstract2dEventHandle* getEventHandle(Abstract2dEventHandle::ProcessorType type);
 	void beginDragBox(QPoint p);
 	void endDragBox();
+	void beginSewingMode();
+	void endSewingMode();
 
 	int fboRenderedIndex(QPoint p)const;
 	void getModelBound(ldp::Float3& bmin, ldp::Float3& bmax)const;
@@ -53,6 +55,7 @@ protected:
 	void renderClothsPanels(bool idxMode);
 	void renderClothsPanels_Edge(const ldp::ClothPiece* piece, bool idxMode);
 	void renderClothsPanels_KeyPoint(const ldp::ClothPiece* piece, bool idxMode);
+	void renderClothsSewing(bool idxMode);
 protected:
 	ldp::Camera m_camera;
 	QPoint m_lastPos;
@@ -62,6 +65,7 @@ protected:
 	QImage m_fboImage;
 	bool m_isDragBox;
 	QPoint m_dragBoxBegin;
+	bool m_isSewingMode;
 	Abstract2dEventHandle* m_currentEventHandle;
 	std::vector<std::shared_ptr<Abstract2dEventHandle>> m_eventHandles;
 	ldp::ClothManager* m_clothManager;

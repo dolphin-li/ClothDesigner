@@ -601,6 +601,9 @@
     <ClCompile Include="event_handles\Sewing2dPatternEventHandle.cpp">
       <Filter>event_handle</Filter>
     </ClCompile>
+    <ClCompile Include="Algorithm\cloth\IdxPool.cpp">
+      <Filter>algorithm\cloth</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">
@@ -934,6 +937,9 @@
     </ClInclude>
     <ClInclude Include="event_handles\Sewing2dPatternEventHandle.h">
       <Filter>event_handle</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\IdxPool.h">
+      <Filter>algorithm\cloth</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

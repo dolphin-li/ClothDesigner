@@ -151,6 +151,7 @@
     <ClCompile Include="Algorithm\cloth\clothManager.cpp" />
     <ClCompile Include="Algorithm\cloth\clothPiece.cpp" />
     <ClCompile Include="Algorithm\cloth\device_memory.cpp" />
+    <ClCompile Include="Algorithm\cloth\IdxPool.cpp" />
     <ClCompile Include="Algorithm\cloth\LevelSet3D.cpp" />
     <ClCompile Include="Algorithm\cloth\panelPolygon.cpp" />
     <ClCompile Include="Algorithm\conv\ConvolutionPyramid.cpp" />
@@ -407,6 +408,7 @@
     <ClInclude Include="Algorithm\cloth\device_memory.h" />
     <ClInclude Include="Algorithm\cloth\device_utils.h" />
     <ClInclude Include="Algorithm\cloth\helper_math.h" />
+    <ClInclude Include="Algorithm\cloth\IdxPool.h" />
     <ClInclude Include="Algorithm\cloth\kernel_containers.h" />
     <ClInclude Include="Algorithm\cloth\LevelSet3D.h" />
     <ClInclude Include="Algorithm\cloth\LEVEL_SET_COLLISION.h" />

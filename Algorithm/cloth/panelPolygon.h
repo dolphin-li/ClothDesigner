@@ -1,6 +1,8 @@
 #pragma once
 #include "ldpMat\ldp_basic_mat.h"
 #include <set>
+#include <hash_map>
+#include "IdxPool.h"
 namespace ldp
 {
 #pragma region --units
@@ -15,6 +17,7 @@ namespace ldp
 			TypeCubic = 0x08,
 			TypeGroup = 0x20,
 			TypePanelPolygon = 0x40,
+			TypeSewing = 0x80,
 			TypeAll = 0xffffffff
 		};
 		enum SelectOp
@@ -30,13 +33,23 @@ namespace ldp
 	public:
 		AbstractPanelObject()
 		{
-			m_idxStart = -1;
-			m_highlighted = false;
-			m_selected = false;
+			m_id = IdxPool::requireIdx(0);
 		}
-		void setIdxBegin(int i) { m_idxStart = i; }
-		int getIdxBegin()const { return m_idxStart; }
-		virtual int getIdxEnd()const = 0;
+		AbstractPanelObject(size_t id)
+		{
+			m_id = IdxPool::requireIdx(id);
+		}
+		AbstractPanelObject(const AbstractPanelObject& rhs)
+		{
+			m_id = IdxPool::requireIdx(rhs.m_id);
+			m_highlighted = rhs.m_highlighted;
+			m_selected = rhs.m_selected;
+		}
+		virtual ~AbstractPanelObject()
+		{
+			IdxPool::freeIdx(m_id);
+		}
+		size_t getId()const { return m_id; }
 		void setSelected(bool s) { m_selected = s; }
 		bool isSelected()const { return m_selected; }
 		void setHighlighted(bool s) { m_highlighted = s; }
@@ -44,28 +57,33 @@ namespace ldp
 		virtual Type getType()const = 0;
 		virtual void collectObject(std::vector<AbstractPanelObject*>& objs) = 0;
 		virtual void collectObject(std::vector<const AbstractPanelObject*>& objs)const = 0;
+		virtual AbstractPanelObject* clone()const = 0;
+		virtual AbstractPanelObject& operator = (const AbstractPanelObject& rhs)
+		{
+			m_id = IdxPool::requireIdx(rhs.getId());
+			m_selected = rhs.m_selected;
+			m_highlighted = rhs.m_highlighted;
+			return *this;
+		}
 	protected:
-		int m_idxStart;
-		bool m_selected;
-		bool m_highlighted;
+		bool m_selected = false;
+		bool m_highlighted = false;
+	private:
+		size_t m_id = 0;
 	};
 
 	class KeyPoint : public AbstractPanelObject
 	{
 	public:
-		KeyPoint() : AbstractPanelObject(){}
-		KeyPoint(const Float2& p) : AbstractPanelObject(), position(p){}
-		virtual int getIdxEnd()const { return getIdxBegin() + 1; }
-		KeyPoint* clone()const 
+		KeyPoint() : AbstractPanelObject() {}
+		KeyPoint(size_t id) : AbstractPanelObject(id) {}
+		KeyPoint(const Float2& p) : AbstractPanelObject(), position(p) {}
+		KeyPoint(size_t id, const Float2& p) : AbstractPanelObject(id), position(p) {}
+		virtual AbstractPanelObject* clone()const
 		{
-			KeyPoint* p = new KeyPoint();
-			p->m_highlighted = m_highlighted;
-			p->m_idxStart = m_idxStart;
-			p->m_selected = m_selected;
-			p->position = position;
-			return p;
+			return (AbstractPanelObject*)new KeyPoint(*this);
 		}
-		Type getType()const { return TypeKeyPoint; }
+		virtual Type getType()const { return TypeKeyPoint; }
 		virtual void collectObject(std::vector<AbstractPanelObject*>& objs)
 		{
 			objs.push_back(this);
@@ -74,36 +92,25 @@ namespace ldp
 		{
 			objs.push_back(this);
 		}
+	public:
 		Float2 position;
 	};
 
 	class AbstractShape : public AbstractPanelObject
 	{
 	public:
-		AbstractShape() : AbstractPanelObject()
-		{
-			m_invalid = true;
-			m_lastSampleStep = 0;
-		}
-		static AbstractShape* create(Type type);
+		AbstractShape() : AbstractPanelObject() {}
+		AbstractShape(size_t id) : AbstractPanelObject(id) {}
+		static AbstractShape* create(Type type, size_t id);
 		static void create(std::vector<std::shared_ptr<AbstractShape>>& curves,
 			const std::vector<Float2>& keyPoints, float fittingThre);
 		AbstractShape(const std::vector<KeyPoint>& keyPoints) : AbstractShape()
 		{
 			m_keyPoints.clear();
 			for (const auto& p : keyPoints)
-			{
 				m_keyPoints.push_back(std::shared_ptr<KeyPoint>(new KeyPoint(p)));
-			}
 		}
 		virtual AbstractShape* clone()const;
-		virtual int getIdxEnd()const 
-		{ 
-			if (m_keyPoints.size() == 0)
-				return m_idxStart + 1;
-			return
-				m_keyPoints.back()->getIdxEnd();
-		}
 		virtual Type getType()const = 0;
 		virtual Float2 getPointByParam(float t)const = 0; // t \in [0, 1]
 		virtual float calcLength()const;
@@ -119,7 +126,7 @@ namespace ldp
 		{
 			return (int)m_keyPoints.size();
 		}
-		void setKeyPoint(int i, KeyPoint p)
+		void setKeyPoint(int i, const KeyPoint& p)
 		{
 			m_invalid = true;
 			*m_keyPoints[i] = p;
@@ -181,15 +188,6 @@ namespace ldp
 			m_invalid = true;
 			return *this;
 		}
-		void updateIndex(int idx)
-		{
-			m_idxStart = idx++; // self
-			for (size_t i = 0; i < m_keyPoints.size(); i++)
-			{
-				m_keyPoints[i]->setIdxBegin(idx);
-				idx = m_keyPoints[i]->getIdxEnd();
-			}
-		}
 		virtual void collectObject(std::vector<AbstractPanelObject*>& objs)
 		{
 			objs.push_back(this);
@@ -205,14 +203,20 @@ namespace ldp
 	protected:
 		std::vector<std::shared_ptr<KeyPoint>> m_keyPoints;
 		mutable std::vector<Float2> m_samplePoints;
-		mutable bool m_invalid;
-		mutable float m_lastSampleStep;
+		mutable bool m_invalid = true;
+		mutable float m_lastSampleStep = 0;
 	};
 
 	class Line : public AbstractShape
 	{
 	public:
 		Line() : AbstractShape()
+		{
+			m_keyPoints.resize(2);
+			for (size_t k = 0; k < m_keyPoints.size(); k++)
+				m_keyPoints[k].reset(new KeyPoint());
+		}
+		Line(size_t id) : AbstractShape(id)
 		{
 			m_keyPoints.resize(2);
 			for (size_t k = 0; k < m_keyPoints.size(); k++)
@@ -239,6 +243,12 @@ namespace ldp
 			for (size_t k = 0; k < m_keyPoints.size(); k++)
 				m_keyPoints[k].reset(new KeyPoint());
 		}
+		Quadratic(size_t id) : AbstractShape(id)
+		{
+			m_keyPoints.resize(3);
+			for (size_t k = 0; k < m_keyPoints.size(); k++)
+				m_keyPoints[k].reset(new KeyPoint());
+		}
 		Quadratic(const std::vector<KeyPoint>& keyPoints) : AbstractShape(keyPoints)
 		{
 			assert(keyPoints.size() == 3);
@@ -255,6 +265,12 @@ namespace ldp
 	{
 	public:
 		Cubic() : AbstractShape()
+		{
+			m_keyPoints.resize(4);
+			for (size_t k = 0; k < m_keyPoints.size(); k++)
+				m_keyPoints[k].reset(new KeyPoint());
+		}
+		Cubic(size_t id) : AbstractShape(id)
 		{
 			m_keyPoints.resize(4);
 			for (size_t k = 0; k < m_keyPoints.size(); k++)
@@ -289,12 +305,18 @@ namespace ldp
 			m_bbox[0] = FLT_MAX;
 			m_bbox[1] = -FLT_MAX;
 		}
-		virtual Type getType()const { return TypeGroup; }
-		void cloneTo(ShapeGroup& rhs)const
+		ShapeGroup(size_t id) : AbstractPanelObject(id), std::vector<ShapePtr>()
 		{
-			rhs.resize(size());
-			for (size_t i = 0; i < rhs.size(); i++)
-				rhs[i].reset((*this)[i]->clone());
+			m_bbox[0] = FLT_MAX;
+			m_bbox[1] = -FLT_MAX;
+		}
+		virtual Type getType()const { return TypeGroup; }
+		virtual AbstractPanelObject* clone()const
+		{
+			ShapeGroup* g = new ShapeGroup(*this);
+			for (size_t i = 0; i < size(); i++)
+				(*g)[i].reset((AbstractShape*)(*this)[i]->clone());
+			return g;
 		}
 		void updateBound(Float2& bmin, Float2& bmax)
 		{
@@ -315,22 +337,6 @@ namespace ldp
 				(*this)[i]->reverse();
 			std::reverse(begin(), end());
 			return *this;
-		}
-		void updateIndex(int idx) 
-		{
-			m_idxStart = idx;
-			idx++;	//self
-			for (size_t i = 0; i < size(); i++)
-			{
-				(*this)[i]->updateIndex(idx);
-				idx = (*this)[i]->getIdxEnd();
-			}
-		}
-		virtual int getIdxEnd()const 
-		{ 
-			if (size())
-				return back()->getIdxEnd(); 
-			return m_idxStart+1;
 		}
 		void collectKeyPoints(std::vector<Float2>& pts, float distThre = 0)
 		{
@@ -388,23 +394,24 @@ namespace ldp
 		typedef ShapeGroup Polygon;
 		typedef ShapeGroup Dart;
 		typedef ShapeGroup InnerLine;
+		typedef std::shared_ptr<Polygon> PolygonPtr;
+		typedef std::shared_ptr<Dart> DartPtr;
+		typedef std::shared_ptr<InnerLine> InnerLinePtr;
 	public:
 		PanelPolygon();
+		PanelPolygon(size_t id);
 		~PanelPolygon();
 
 		void clear();
 
 		virtual Type getType()const { return TypePanelPolygon; }
-		void create(const Polygon& outerPoly, int idxStart);
+		virtual AbstractPanelObject* clone()const;
+		void create(const Polygon& outerPoly);
 		void addDart(Dart& dart);
 		void addInnerLine(InnerLine& line);
-		const std::vector<Dart>& darts()const { return m_darts; }
-		const std::vector<InnerLine>& innerLines()const { return m_innerLines; }
-		const Polygon& outerPoly()const { return m_outerPoly; }
-
-		// update the index of all units, starting from the given
-		void updateIndex(int idx);
-		virtual int getIdxEnd()const;
+		const std::vector<DartPtr>& darts()const { return m_darts; }
+		const std::vector<InnerLinePtr>& innerLines()const { return m_innerLines; }
+		const PolygonPtr& outerPoly()const { return m_outerPoly; }
 
 		void select(int idx, SelectOp op);
 		void select(const std::set<int>& indices, SelectOp op);
@@ -415,9 +422,9 @@ namespace ldp
 		virtual void collectObject(std::vector<AbstractPanelObject*>& objs);
 		virtual void collectObject(std::vector<const AbstractPanelObject*>& objs)const;
 	private:
-		Polygon m_outerPoly;		
-		std::vector<Dart> m_darts;
-		std::vector<InnerLine> m_innerLines;
+		PolygonPtr m_outerPoly;		
+		std::vector<DartPtr> m_darts;
+		std::vector<InnerLinePtr> m_innerLines;
 		ldp::Float2 m_bbox[2];
 		std::vector<AbstractPanelObject*> m_tmpbufferObj;
 	};
@@ -443,6 +450,10 @@ namespace ldp
 		void addSeconds(const std::vector<Unit>& unit);
 		void remove(AbstractShape* s);
 		void remove(std::set<AbstractShape*> s);
+		virtual Type getType()const { return TypeSewing; }
+		virtual void collectObject(std::vector<AbstractPanelObject*>& objs) { objs.push_back(this); }
+		virtual void collectObject(std::vector<const AbstractPanelObject*>& objs)const { objs.push_back(this); }
+		virtual Sewing* clone() const { return new Sewing(*this); }
 	protected:
 		std::vector<Unit> m_firsts;
 		std::vector<Unit> m_seconds;

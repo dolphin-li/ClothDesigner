@@ -63,6 +63,7 @@ namespace ldp
 		}
 	};
 
+	class Sewing;
 	class ClothPiece;
 	class PanelPolygon;
 	class AbstractShape;
@@ -72,10 +73,6 @@ namespace ldp
 	class ClothManager
 	{
 	public:
-		enum
-		{
-			PanelIdxBegin = 1
-		};
 		typedef float ValueType;
 		typedef ldp::ldp_basic_vec3<float> Vec3;
 		typedef ldp::ldp_basic_vec2<float> Vec2;
@@ -125,8 +122,16 @@ namespace ldp
 		void updateInitialClothsToCurrent();
 
 		/// stitch related
-		void clearstitches();
+		void clearSewings();
+		int numSewings()const { return m_sewings.size(); }
+		const Sewing* getSewing(int i)const { return m_sewings.at(i).get(); }
+		void addSewing(std::shared_ptr<Sewing> sewing);
+		void addSewings(const std::vector<std::shared_ptr<Sewing>>& sewings);
+		void removeSewing(int arrayPos);
+		void removeSewingById(int id);
 		void addStitchVert(const ClothPiece* cloth1, int mesh_vid1, const ClothPiece* cloth2, int mesh_vid2);
+		std::pair<Float3, Float3> getStitchPos(int i)const;
+		int numStitches()const { return (int)m_stitches.size(); }
 
 		/// getters
 		float getFps()const { return m_fps; }
@@ -143,10 +148,9 @@ namespace ldp
 		void clearClothPieces();
 		void addClothPiece(std::shared_ptr<ClothPiece> piece);
 		void removeClothPiece(int i);
-		int numStitches()const { return (int)m_stitches.size(); }
-		std::pair<Float3, Float3> getStitchPos(int i)const;
 		void get2dBound(ldp::Float2& bmin, ldp::Float2& bmax)const;
 	private:
+		std::vector<std::shared_ptr<Sewing>> m_sewings;
 		std::vector<std::shared_ptr<ClothPiece>> m_clothPieces;
 		std::shared_ptr<ObjMesh> m_bodyMesh;
 		std::shared_ptr<LevelSet3D> m_bodyLvSet;
@@ -163,6 +167,7 @@ namespace ldp
 		DragInfoInternal m_curDragInfo;
 		// 2D-3D triangulation related---------------------------------------------------
 	protected:
+		void buildStitchesFromSewing();
 		bool pointInPolygon(int n, const Vec2* pts, Vec2 p);
 		void triangulate();
 		typedef std::map<std::pair<const svg::SvgPolyPath*, int>, std::set<AbstractShape*>> ObjConvertMap;
