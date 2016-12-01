@@ -140,6 +140,7 @@ void ObjMesh::transform(ldp::Mat4f T)
 	auto t = T.getTranslationPart();
 	for (auto& v : vertex_list)
 		v = r * v + t;
+	updateNormals();
 	updateBoundingBox();
 	_fast_view_should_update = true;
 	if (m_bmesh)

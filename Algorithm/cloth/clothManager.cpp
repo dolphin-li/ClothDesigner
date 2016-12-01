@@ -693,6 +693,7 @@ namespace ldp
 		// 1.1 add closed polygons as loops ----------------------------------------------
 		std::vector<ShapeGroupPtr> groups;
 		std::vector<ShapeGroupPtr> lines;
+		std::vector<const svg::SvgPolyPath*> groupSvgPaths;
 		ObjConvertMap objMap;
 		for (auto polyPath : polyPaths)
 		{
@@ -700,6 +701,7 @@ namespace ldp
 			polyPath->updateEdgeRenderData();
 			if (polyPath->isClosed())
 			{
+				groupSvgPaths.push_back(polyPath);
 				groups.push_back(ShapeGroupPtr(new ShapeGroup()));
 				polyPathToShape(polyPath, groups.back(), pixel2meter, objMap);
 			} // end if closed
@@ -762,6 +764,21 @@ namespace ldp
 			m_clothPieces.push_back(std::shared_ptr<ClothPiece>(new ClothPiece()));
 			const auto& piece = m_clothPieces.back();
 			piece->panel().create(groups[ipoly]);
+
+			// copy transform:
+			// the 2D-to-3D transform defined in the SVG is:
+			// (x,y,0)-->R*(0,x-x0,y-y0)+t, where (x0,y0) is the 2d cener and t is the 3d cener
+			auto svg = groupSvgPaths[ipoly];
+			ldp::Mat4f T = ldp::Mat4f().eye();
+			ldp::Mat3f C = ldp::Mat3f().zeros();
+			C(0, 2) = C(1, 0) = C(2, 1) = 1;
+			auto R = svg->get3dRot().toRotationMatrix3();
+			auto t = svg->get3dCenter() * pixel2meter;
+			auto t2 = svg->getCenter() * pixel2meter;
+			T.setRotationPart(R*C);
+			auto tmp = C*ldp::Float3(t2[0], t2[1], 0);
+			T.setTranslationPart(t - R*C*ldp::Float3(t2[0], t2[1], 0));
+			//piece->transformInfo().transform() = T;
 
 			// add dart
 			for (size_t jpoly = 0; jpoly < groups.size(); jpoly++)

@@ -134,7 +134,7 @@ void Viewer3d::initializeGL()
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0);
 	glEnable(GL_FRONT_AND_BACK);
-	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
+	//glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
 	glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
 	glEnable(GL_POLYGON_OFFSET_FILL);
 	glPolygonOffset(1, 1);
