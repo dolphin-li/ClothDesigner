@@ -778,7 +778,7 @@ namespace ldp
 			T.setRotationPart(R*C);
 			auto tmp = C*ldp::Float3(t2[0], t2[1], 0);
 			T.setTranslationPart(t - R*C*ldp::Float3(t2[0], t2[1], 0));
-			//piece->transformInfo().transform() = T;
+			piece->transformInfo().transform() = T;
 
 			// add dart
 			for (size_t jpoly = 0; jpoly < groups.size(); jpoly++)
