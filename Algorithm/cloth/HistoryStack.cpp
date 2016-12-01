@@ -46,6 +46,7 @@ namespace ldp
 		auto& myData = m_rollBackControls[m_rollPos];
 		myData.type = type;
 		myData.name = name;
+		myData.dparam.reset(new ClothDesignParam(m_manager->getClothDesignParam()));
 		myData.pieces.clear();
 		for (int i = 0; i < m_manager->numClothPieces(); i++)
 			myData.pieces.push_back(std::shared_ptr<ClothPiece>(m_manager->clothPiece(i)->lightClone()));
@@ -70,6 +71,7 @@ namespace ldp
 		IdxPool::disableIdxIncrement();
 
 		const auto& myData = m_rollBackControls[m_rollPos];
+		m_manager->setClothDesignParam(*myData.dparam);
 		m_manager->clearClothPieces();
 		for (int i = 0; i < myData.pieces.size(); i++)
 			m_manager->addClothPiece(std::shared_ptr<ClothPiece>(myData.pieces[i]->lightClone()));

@@ -458,23 +458,71 @@ namespace ldp
 
 	void Sewing::addFirst(Unit unit)
 	{
-		m_firsts.push_back(unit);
+		auto iter_same = m_firsts.end();
+		for (auto iter = m_firsts.begin(); iter != m_firsts.end(); ++iter)
+		{
+			if (iter->id == unit.id)
+			{
+				iter_same = iter;
+				break;
+			}
+		}
+		if (iter_same == m_firsts.end())
+			m_firsts.push_back(unit);
+		else
+			iter_same->reverse = unit.reverse;
 	}
 
 	void Sewing::addSecond(Unit unit)
 	{
-		m_seconds.push_back(unit);
+		auto iter_same = m_seconds.end();
+		for (auto iter = m_seconds.begin(); iter != m_seconds.end(); ++iter)
+		{
+			if (iter->id == unit.id)
+			{
+				iter_same = iter;
+				break;
+			}
+		}
+		if (iter_same == m_seconds.end())
+			m_seconds.push_back(unit);
+		else
+			iter_same->reverse = unit.reverse;
 	}
 
 	void Sewing::addFirsts(const std::vector<Unit>& unit)
 	{
-		m_firsts.insert(m_firsts.end(), unit.begin(), unit.end());
+		for (const auto& u : unit)
+			addFirst(u);
 	}
 
 	void Sewing::addSeconds(const std::vector<Unit>& unit)
 	{
-		m_seconds.insert(m_seconds.end(), unit.begin(), unit.end());
+		for (const auto& u : unit)
+			addSecond(u);
 	}
+
+	bool Sewing::isSame_ignoreOrder(const Sewing& rhs)const
+	{
+		if (m_firsts.size() != rhs.m_firsts.size()
+			|| m_seconds.size() != rhs.m_seconds.size())
+			return false;
+		std::set<size_t> fset, sset;
+		for (const auto& f : m_firsts)
+			fset.insert(f.id);
+		for (const auto& s : m_seconds)
+			sset.insert(s.id);
+
+		for (const auto& f : rhs.m_firsts)
+		if (fset.find(f.id) == fset.end())
+			return false;
+		for (const auto& s : rhs.m_seconds)
+		if (sset.find(s.id) == sset.end())
+			return false;
+
+		return true;
+	}
+
 
 	void Sewing::remove(size_t id)
 	{

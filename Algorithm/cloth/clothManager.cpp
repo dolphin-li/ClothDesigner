@@ -4,6 +4,7 @@
 #include "TransformInfo.h"
 #include "panelPolygon.h"
 #include "PROGRESSING_BAR.h"
+#include "TriangleWrapper.h"
 #include <cuda_runtime_api.h>
 #include <fstream>
 #include "Renderable\ObjMesh.h"
@@ -11,10 +12,6 @@
 #include <eigen\Sparse>
 #include "svgpp\SvgManager.h"
 #include "svgpp\SvgPolyPath.h"
-#include "ldputil.h"
-extern "C"{
-#include "triangle\triangle.h"
-};
 #define ENABLE_DEBUG_DUMPING
 
 namespace ldp
@@ -39,6 +36,7 @@ namespace ldp
 	{
 		m_bodyMesh.reset(new ObjMesh);
 		m_bodyLvSet.reset(new LevelSet3D);
+		m_triWrapper.reset(new TriangleWrapper);
 		m_simulationMode = SimulationNotInit;
 		m_fps = 0;
 		m_avgArea = 0;
@@ -666,7 +664,6 @@ namespace ldp
 #endif
 	}
 
-	//////////////////////////////////////////////////////////////////////////////////
 	void ClothManager::get2dBound(ldp::Float2& bmin, ldp::Float2& bmax)const
 	{
 		bmin = FLT_MAX;
@@ -691,7 +688,6 @@ namespace ldp
 		}
 		return;
 	}
-
 
 	//////////////////////////////////////////////////////////////////////////////////
 	void ClothManager::loadPiecesFromSvg(std::string filename)
@@ -846,155 +842,17 @@ namespace ldp
 		triangulate();
 	}
 
-#pragma region -- triangle
-	static void destroyMem_trianglulateio(struct triangulateio *io)
-	{
-		if (io->pointlist)  free(io->pointlist);                                               /* In / out */
-		if (io->pointattributelist) free(io->pointattributelist);                                      /* In / out */
-		if (io->pointmarkerlist) free(io->pointmarkerlist);                                          /* In / out */
-
-		if (io->trianglelist) free(io->trianglelist);                                             /* In / out */
-		if (io->triangleattributelist) free(io->triangleattributelist);                                   /* In / out */
-		if (io->trianglearealist) free(io->trianglearealist);                                    /* In only */
-		if (io->neighborlist) free(io->neighborlist);                                           /* Out only */
-
-		if (io->segmentlist) free(io->segmentlist);                                              /* In / out */
-		if (io->segmentmarkerlist) free(io->segmentmarkerlist);                             /* In / out */
-
-		if (io->holelist) free(io->holelist);                        /* In / pointer to array copied out */
-
-		if (io->regionlist) free(io->regionlist);                      /* In / pointer to array copied out */
-
-		if (io->edgelist) free(io->edgelist);                                                 /* Out only */
-		if (io->edgemarkerlist) free(io->edgemarkerlist);           /* Not used with Voronoi diagram; out only */
-		if (io->normlist) free(io->normlist);              /* Used only with Voronoi diagram; out only */
-
-		//all set to 0
-		init_trianglulateio(io);
-	}
-
-	static void init_triangulateIO_from_poly(triangulateio *pIO, const std::vector<ldp::Double2> &poly, int close_flag)
-	{
-		init_trianglulateio(pIO);
-		pIO->numberofpoints = (int)poly.size();
-		pIO->pointlist = (REAL *)malloc(pIO->numberofpoints * 2 * sizeof(REAL));
-		for (int i = 0; i<pIO->numberofpoints; i++)
-		{
-			pIO->pointlist[i * 2] = poly[i][0];
-			pIO->pointlist[i * 2 + 1] = poly[i][1];
-		}
-		/*********input segments************/
-		pIO->numberofsegments = (int)poly.size() - 1;
-		if (close_flag) pIO->numberofsegments++;
-		pIO->segmentlist = (int *)malloc(pIO->numberofsegments * 2 * sizeof(int));
-		for (int i = 0; i<(int)poly.size() - 1; i++)
-		{
-			pIO->segmentlist[i * 2] = i;
-			pIO->segmentlist[i * 2 + 1] = i + 1;
-		}
-		if (close_flag)
-		{
-			pIO->segmentlist[pIO->numberofsegments * 2 - 2] = (int)poly.size() - 1;
-			pIO->segmentlist[pIO->numberofsegments * 2 - 1] = 0;
-		}
-	}
-
-	static int tess_poly_2D(const std::vector<ldp::Double2> &poly,
-		std::vector<ldp::Float2>& triVerts, std::vector<ldp::Int3> &vTriangle,
-		int close_flag, double triAreaWanted)
-	{
-		vTriangle.resize(0);
-
-		triangulateio input, triout, vorout;
-
-		// Define input points
-		init_triangulateIO_from_poly(&input, poly, close_flag);
-
-		// Make necessary initializations so that Triangle can return a 
-		// triangulation in `mid' and a voronoi diagram in `vorout'.  
-		init_trianglulateio(&triout);
-		init_trianglulateio(&vorout);
-
-		// triangulate
-		char cmd[1024];
-		// p: polygon mode
-		// z: zero based indexing
-		// q%d: minimum angle %d
-		// D: delauney
-		// a%f: maximum triangle area %f
-		sprintf_s(cmd, "pzq%dDa%f", 30, triAreaWanted);
-		triangulate(cmd, &input, &triout, &vorout);
-		vTriangle.resize(triout.numberoftriangles);
-		memcpy(vTriangle.data(), triout.trianglelist, sizeof(int)*triout.numberoftriangles * 3);
-		const ldp::Double2* vptr = (const ldp::Double2*)triout.pointlist;
-		triVerts.resize(triout.numberofpoints);
-		for (int i = 0; i < triout.numberofpoints; i++)
-			triVerts[i] = vptr[i];
-		destroyMem_trianglulateio(&input);
-		destroyMem_trianglulateio(&triout);
-		destroyMem_trianglulateio(&vorout);
-		return vTriangle.size();
-	}
-#pragma endregion
-
 	void ClothManager::triangulate()
 	{
 		if (m_clothPieces.empty())
 			return;
 
-		const float step = m_clothDesignParam.triangulateThre;
-		const float thre = m_clothDesignParam.pointMergeDistThre;
-		const float wantedTriArea = 0.5f * ldp::sqr(step);
-		std::vector<Double2> polyPoints;
-		std::vector<Float2> triVerts;
-		std::vector<Int3> tris;
-		for (auto& piece : m_clothPieces)
-		{
-			const auto& poly = piece->panel().outerPoly();
-			auto& mesh2d = piece->mesh2d();
-			auto& mesh3d = piece->mesh3d();
-			auto& mesh3dInit = piece->mesh3dInit();
-			auto& transInfo = piece->transformInfo();
-			if (piece->panel().outerPoly()->empty())
-				continue;
-			polyPoints.clear();
-			for (const auto& shape : *poly)
-			{
-				const auto& pts = shape->samplePointsOnShape(step/shape->getLength());
-				for (const auto& p : pts)
-				{
-					if (polyPoints.size())
-					{
-						if ((polyPoints.back() - p).length() < thre || (polyPoints[0] - p).length() < thre)
-							continue;
-					}
-					polyPoints.push_back(p);
-				} // end for p
-			} // end for shape
-			tess_poly_2D(polyPoints, triVerts, tris, true, wantedTriArea);
+		m_triWrapper->triangulate(m_clothPieces, m_sewings,
+			m_clothDesignParam.pointMergeDistThre,
+			m_clothDesignParam.triangulateThre,
+			m_clothDesignParam.pointInsidePolyThre);
 
-			mesh2d.vertex_list.clear();
-			for (const auto& v : triVerts)
-				mesh2d.vertex_list.push_back(ldp::Float3(v[0], v[1], 0));
-			mesh2d.face_list.clear();
-			mesh2d.material_list.clear();
-			mesh2d.material_list.push_back(ObjMesh::obj_material());
-			for (const auto& t : tris)
-			{
-				ObjMesh::obj_face f;
-				f.vertex_count = 3;
-				f.material_index = 0;
-				for (int k = 0; k < f.vertex_count; k++)
-					f.vertex_index[k] = t[k];
-				mesh2d.face_list.push_back(f);
-			}
-			mesh2d.updateNormals();
-			mesh2d.updateBoundingBox();		
-			mesh3dInit.cloneFrom(&mesh2d);
-			transInfo.apply(mesh3dInit);
-			mesh3d.cloneFrom(&mesh3dInit);
-		} // end for piece
-
+		// params
 		m_shouldTriangulate = false;
 		m_shouldMergePieces = true;
 	}
@@ -1055,20 +913,20 @@ namespace ldp
 	void ClothManager::addSewing(std::shared_ptr<Sewing> sewing)
 	{
 		m_sewings.push_back(std::shared_ptr<Sewing>(sewing->clone()));
-		buildStitchesFromSewing();
+		triangulate();
 	}
 
 	void ClothManager::addSewings(const std::vector<std::shared_ptr<Sewing>>& sewings)
 	{
 		for (const auto& s : sewings)
 			m_sewings.push_back(std::shared_ptr<Sewing>(s->clone()));
-		buildStitchesFromSewing();
+		triangulate();
 	}
 
 	void ClothManager::removeSewing(int arrayPos)
 	{
 		m_sewings.erase(m_sewings.begin() + arrayPos);
-		buildStitchesFromSewing();
+		triangulate();
 	}
 
 	void ClothManager::removeSewingById(int id)
@@ -1078,17 +936,10 @@ namespace ldp
 			if (m_sewings[i]->getId() == id)
 			{
 				m_sewings.erase(m_sewings.begin() + i);
-				buildStitchesFromSewing();
 				break;
 			}
 		}
-	}
-
-	void ClothManager::buildStitchesFromSewing()
-	{
-
-		// finally. require stitch rebuilt
-		m_shouldStitchUpdate = true;
+		triangulate();
 	}
 
 	////Params//////////////////////////////////////////////////////////////////////////////////

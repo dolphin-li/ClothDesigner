@@ -610,6 +610,9 @@
     <ClCompile Include="Algorithm\cloth\TransformInfo.cpp">
       <Filter>algorithm\cloth</Filter>
     </ClCompile>
+    <ClCompile Include="Algorithm\cloth\TriangleWrapper.cpp">
+      <Filter>algorithm\cloth</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">
@@ -951,6 +954,9 @@
       <Filter>algorithm\cloth</Filter>
     </ClInclude>
     <ClInclude Include="Algorithm\cloth\TransformInfo.h">
+      <Filter>algorithm\cloth</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\TriangleWrapper.h">
       <Filter>algorithm\cloth</Filter>
     </ClInclude>
   </ItemGroup>

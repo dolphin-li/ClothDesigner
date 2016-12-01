@@ -517,6 +517,8 @@ namespace ldp
 		bool select(int idx, SelectOp op);
 		bool select(const std::set<int>& indices, SelectOp op);
 		void highLight(int idx, int lastIdx);
+
+		bool isSame_ignoreOrder(const Sewing& rhs)const;
 	protected:
 		std::vector<Unit> m_firsts;
 		std::vector<Unit> m_seconds;

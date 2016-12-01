@@ -9,6 +9,7 @@ namespace ldp
 	class ClothManager;
 	class Sewing;
 	class ClothPiece;
+	class ClothDesignParam;
 	class HistoryStack
 	{
 	public:
@@ -46,6 +47,7 @@ namespace ldp
 			// for TypeGeneral
 			std::vector<std::shared_ptr<Sewing>> sewings;
 			std::vector<std::shared_ptr<ClothPiece>> pieces;
+			std::shared_ptr<ClothDesignParam> dparam;
 		};
 		std::vector<RollBackControl> m_rollBackControls;
 		int m_rollHead;

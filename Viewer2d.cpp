@@ -18,6 +18,17 @@ const static float KEYPT_Z = 2;
 const static float DRAGBOX_Z = 50;
 const static float VERT_SEW_BAR_LEN = 0.01;//1cm
 
+const static float EDGE_RENDER_WIDTH = 2;
+const static float EDGE_SELECT_WIDTH = 6;
+const static float KEYPT_RENDER_WIDTH = 5;
+const static float KEYPT_SELECT_WIDTH = 6;
+const static float SEW_RENDER_WIDTH = 4;
+const static float SEW_SELECT_WIDTH = 6;
+
+const static float SELECT_COLOR[4] = { 1, 1, 0, 1 };
+const static float HIGHLIGHT_COLOR[4] = { 0, 1, 1, 1 };
+const static float DEFAULT_COLOR[4] = { 0, 0, 0, 1 };
+
 inline int colorToSelectId(ldp::Float4 c)
 {
 	ldp::UInt4 cl = c*255.f;
@@ -491,20 +502,20 @@ void Viewer2d::renderClothsPanels_Edge(const ldp::ClothPiece* piece, bool idxMod
 
 
 	if (idxMode)
-		glLineWidth(4);
+		glLineWidth(EDGE_SELECT_WIDTH);
 	else
-		glLineWidth(2);
+		glLineWidth(EDGE_RENDER_WIDTH);
 	glBegin(GL_LINES);
 	for (const auto& shape : shapes)
 	{
 		if (!idxMode)
 		{
-			if (shape->isSelected() || panel.isSelected())
-				glColor4f(1, 1, 0, 1);
-			else if (shape->isHighlighted() || panel.isHighlighted())
-				glColor4f(0, 1, 1, 1);
+			if (shape->isHighlighted() || panel.isHighlighted())
+				glColor4fv(HIGHLIGHT_COLOR);
+			else if (shape->isSelected() || panel.isSelected())
+				glColor4fv(SELECT_COLOR);
 			else
-				glColor4f(0, 0, 0, 1);
+				glColor4fv(DEFAULT_COLOR);
 		}
 		else
 			glColor4fv(selectIdToColor(shape->getId()).ptr());
@@ -539,9 +550,9 @@ void Viewer2d::renderClothsPanels_KeyPoint(const ldp::ClothPiece* piece, bool id
 	for (const auto& shape : *line)
 		shapes.push_back(shape.get());
 	if (idxMode)
-		glPointSize(5);
+		glPointSize(KEYPT_SELECT_WIDTH);
 	else
-		glPointSize(5);
+		glPointSize(KEYPT_RENDER_WIDTH);
 	glBegin(GL_POINTS);
 	for (auto shape : shapes)
 	{
@@ -551,12 +562,12 @@ void Viewer2d::renderClothsPanels_KeyPoint(const ldp::ClothPiece* piece, bool id
 
 			if (!idxMode)
 			{
-				if (p.isSelected() || shape->isSelected() || panel.isSelected())
-					glColor4f(1, 1, 0, 1);
-				else if (p.isHighlighted() || shape->isHighlighted() || panel.isHighlighted())
-					glColor4f(0, 1, 1, 1);
+				if (p.isHighlighted() || shape->isHighlighted() || panel.isHighlighted())
+					glColor4fv(HIGHLIGHT_COLOR);
+				else if (p.isSelected() || shape->isSelected() || panel.isSelected())
+					glColor4fv(SELECT_COLOR);
 				else
-					glColor4f(0, 0, 0, 1);
+					glColor4fv(DEFAULT_COLOR);
 			}
 			else
 				glColor4fv(selectIdToColor(p.getId()).ptr());
@@ -586,7 +597,10 @@ void Viewer2d::renderClothsSewing(bool idxMode)
 
 	const float step = m_clothManager->getClothDesignParam().curveSampleStep;
 	std::vector<float> lLens, rLens;
-	glLineWidth(4);
+	if (idxMode)
+		glLineWidth(SEW_SELECT_WIDTH);
+	else
+		glLineWidth(SEW_RENDER_WIDTH);
 	glBegin(GL_LINES);
 	for (int iSewing = 0; iSewing < m_clothManager->numSewings(); iSewing++)
 	{
@@ -600,9 +614,9 @@ void Viewer2d::renderClothsSewing(bool idxMode)
 		if (!idxMode)
 		{
 			if (sew->isSelected())
-				glColor4f(1, 1, 0, 1);
+				glColor4fv(SELECT_COLOR);
 			else if (sew->isHighlighted())
-				glColor4f(0, 1, 1, 1);
+				glColor4fv(HIGHLIGHT_COLOR);
 			else
 			{
 				auto c = color_table(sew->getId());
@@ -731,9 +745,11 @@ void Viewer2d::renderMeshes(bool idxMode)
 			auto piece = m_clothManager->clothPiece(iMesh);
 			auto& mesh = piece->mesh2d();
 			if (piece->panel().isHighlighted())
-				glColor4f(0.8, 0.8, 0, 0.6);
+				glColor4f(HIGHLIGHT_COLOR[0], HIGHLIGHT_COLOR[1], HIGHLIGHT_COLOR[2], 0.3);
+			else if (piece->panel().isSelected())
+				glColor4f(SELECT_COLOR[0], SELECT_COLOR[1], SELECT_COLOR[2], 0.3);
 			else
-				glColor4f(0.8, 0.8, 0.8, 0.8);
+				glColor4f(DEFAULT_COLOR[0], DEFAULT_COLOR[1], DEFAULT_COLOR[2], 0.3);
 			int showType = ((m_showType|Renderable::SW_V)^Renderable::SW_V);
 			mesh.render(showType);
 		}

@@ -90,6 +90,7 @@ void ClothDesigner::on_actionPrev_triggered()
 		g_dataholder.m_historyStack->stepBackward();
 		m_widget2d->updateGL();
 		m_widget3d->updateGL();
+		updateUiByParam();
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
@@ -103,6 +104,7 @@ void ClothDesigner::on_actionNext_triggered()
 		g_dataholder.m_historyStack->stepForward();
 		m_widget2d->updateGL();
 		m_widget3d->updateGL();
+		updateUiByParam();
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;

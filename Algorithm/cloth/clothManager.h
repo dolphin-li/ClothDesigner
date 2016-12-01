@@ -72,6 +72,7 @@ namespace ldp
 	class LevelSet3D;
 	class BMesh;
 	class BMVert;
+	class TriangleWrapper;
 	class ClothManager
 	{
 	public:
@@ -172,8 +173,8 @@ namespace ldp
 		bool m_shouldStitchUpdate;
 		DragInfoInternal m_curDragInfo;
 		// 2D-3D triangulation related---------------------------------------------------
+		std::shared_ptr<TriangleWrapper> m_triWrapper;
 	protected:
-		void buildStitchesFromSewing();
 		bool pointInPolygon(int n, const Vec2* pts, Vec2 p);
 		typedef std::map<std::pair<const svg::SvgPolyPath*, int>, std::vector<AbstractShape*>> ObjConvertMap;
 		void polyPathToShape(const svg::SvgPolyPath* polyPath,
