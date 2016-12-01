@@ -5,13 +5,11 @@
 #include "panelPolygon.h"
 #include "PROGRESSING_BAR.h"
 #include "TriangleWrapper.h"
-#include <cuda_runtime_api.h>
-#include <fstream>
 #include "Renderable\ObjMesh.h"
-#include <eigen\Dense>
-#include <eigen\Sparse>
 #include "svgpp\SvgManager.h"
 #include "svgpp\SvgPolyPath.h"
+#include <cuda_runtime_api.h>
+#include <fstream>
 #define ENABLE_DEBUG_DUMPING
 
 namespace ldp
@@ -851,6 +849,8 @@ namespace ldp
 			m_clothDesignParam.pointMergeDistThre,
 			m_clothDesignParam.triangulateThre,
 			m_clothDesignParam.pointInsidePolyThre);
+
+		m_stitches = m_triWrapper->sewingVertPairs();
 
 		// params
 		m_shouldTriangulate = false;
