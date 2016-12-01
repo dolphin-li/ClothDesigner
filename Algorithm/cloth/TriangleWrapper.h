@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ldpMat\ldp_basic_vec.h"
+#include <hash_map>
 extern "C"{
 	struct triangulateio;
 }
@@ -10,6 +11,7 @@ namespace ldp
 	class Sewing;
 	class PanelPolygon;
 	class ShapeGroup;
+	class AbstractShape;
 	class TriangleWrapper
 	{
 	public:
@@ -36,6 +38,22 @@ namespace ldp
 		void generateMesh(ClothPiece& piece);
 		void postComputeSewing();
 	private:
+		struct SampleParam
+		{
+			float t;
+			int idx;
+			SampleParam(float tt, int ii) :t(tt), idx(ii) {}
+			SampleParam() :t(0), idx(0) {}
+		};
+		struct SampleParamVec
+		{
+			std::vector<SampleParam> params;
+			float step;
+			SampleParamVec() :step(0) {}
+		};
+		typedef std::shared_ptr<SampleParamVec> SampleParamVecPtr;
+		void addSampleParam(const AbstractShape* shape, float step);
+	private:
 		/// computing structure
 		triangulateio* m_in;
 		triangulateio* m_out;
@@ -60,5 +78,6 @@ namespace ldp
 
 		/// sewing related
 		std::vector<Int2> m_sewingVertPairs;
+		std::hash_map<const AbstractShape*, SampleParamVecPtr> m_sampleParams;
 	};
 }

@@ -77,7 +77,136 @@ namespace ldp
 
 	void TriangleWrapper::precomputeSewing()
 	{
+		m_sampleParams.clear();
+		m_sewingVertPairs.clear();
 
+		// 1. calc basic nums, without considering the sewings
+		const float step = m_triSize;
+		const float thre = m_ptMergeThre;
+		for (auto& piece : (*m_pieces))
+		{
+			const auto& panel = piece->panel();
+			for (const auto& shape : *panel.outerPoly())
+				addSampleParam(shape.get(), step / shape->getLength());
+			for (const auto& dart : panel.darts())
+			for (const auto& shape : *dart)
+				addSampleParam(shape.get(), step / shape->getLength());
+			for (const auto& line : panel.innerLines())
+			for (const auto& shape : *line)
+				addSampleParam(shape.get(), step / shape->getLength());
+		} // end for piece
+
+		// 2. considering the sewings, adjust the nums
+		std::vector<int> sew_valid(m_sewings->size(), 0);
+		for (size_t isew = 0; isew < m_sewings->size(); isew++)
+		{
+			const auto& sew = (*m_sewings)[isew];
+			if (sew->empty())
+				continue;
+			const auto& firsts = sew->firsts();
+			const auto& seconds = sew->seconds();
+			float fLen = 0, sLen = 0;
+			bool invalid_sewing = false;
+			for (const auto& f : firsts)
+			{
+				auto shape = (const ldp::AbstractShape*)Sewing::getPtrById(f.id);
+				fLen += shape->getLength();
+				if (m_sampleParams.find(shape) == m_sampleParams.end())
+				{
+					printf("warning: invalid sewing %d\n", shape->getId());
+					invalid_sewing = true;
+					break;
+				}
+			} // end for f
+			for (const auto& s : seconds)
+			{
+				auto shape = (const ldp::AbstractShape*)Sewing::getPtrById(s.id);
+				sLen += shape->getLength();
+				if (m_sampleParams.find(shape) == m_sampleParams.end())
+				{
+					printf("warning: invalid sewing %d\n", shape->getId());
+					invalid_sewing = true;
+					break;
+				}
+			} // end for f
+
+			if (invalid_sewing)
+				continue;
+
+			// make the step in the same range
+			const float newStep = std::min(step*fLen/sLen, std::min(step*sLen/fLen, step));
+			for (auto& f : firsts)
+			{
+				auto shape = (const AbstractShape*)Sewing::getPtrById(f.id);
+				addSampleParam(shape, newStep / shape->getLength());
+			}
+			for (auto& s : seconds)
+			{
+				auto shape = (const AbstractShape*)Sewing::getPtrById(s.id);
+				addSampleParam(shape, newStep / shape->getLength());
+			}
+			sew_valid[isew] = 1;
+		} // end for sew
+
+		// 3. consider param matching: if sewing.first[t] exist in sewing.second[t]
+		for (size_t isew = 0; isew < m_sewings->size(); isew++)
+		{
+			if (!sew_valid[isew])
+				continue;
+			const auto& sew = (*m_sewings)[isew];
+			const auto& firsts = sew->firsts();
+			const auto& seconds = sew->seconds();
+			std::vector<float> fLens, sLens;
+			fLens.push_back(0.f);
+			sLens.push_back(0.f);
+			for (const auto& f : firsts)
+			{
+				auto shape = (const ldp::AbstractShape*)Sewing::getPtrById(f.id);
+				fLens.push_back(fLens.back() + shape->getLength());
+			} // end for f
+			for (const auto& s : seconds)
+			{
+				auto shape = (const ldp::AbstractShape*)Sewing::getPtrById(s.id);
+				sLens.push_back(sLens.back() + shape->getLength());
+			} // end for f
+
+			// normalize
+			for (auto& l : fLens)
+				l /= fLens.back();
+			for (auto& l : sLens)
+				l /= sLens.back();
+
+			// make param conincident
+			size_t fPos = 0, sPos = 0;
+			for (; fPos < firsts.size() && sPos < seconds.size();)
+			{
+				const auto& f = firsts[fPos];
+				const auto& s = seconds[sPos];
+				auto fshape = (const AbstractShape*)Sewing::getPtrById(f.id);
+				auto sshape = (const AbstractShape*)Sewing::getPtrById(s.id);
+				auto fSample = m_sampleParams[fshape];
+				auto sSample = m_sampleParams[sshape];
+			} // end for fpos, spos
+		} // end for sew
+	}
+
+	void TriangleWrapper::addSampleParam(const AbstractShape* shape, float step)
+	{
+		auto iter = m_sampleParams.find(shape);
+		if (iter != m_sampleParams.end())
+		{
+			if (iter->second->step <= step)
+				return;
+			iter->second->params.clear();
+		}
+		else
+		{
+			m_sampleParams.insert(std::make_pair(shape, SampleParamVecPtr(new SampleParamVec())));
+			iter = m_sampleParams.find(shape);
+		}
+		iter->second->step = step;
+		for (float s = 0.f; s < 1 + step - 1e-8; s += step)
+			iter->second->params.push_back(SampleParam(std::min(1.f, s), 0));
 	}
 
 	void TriangleWrapper::addPolygon(const ShapeGroup& poly)
@@ -89,9 +218,10 @@ namespace ldp
 		// add points
 		for (const auto& shape : poly)
 		{
-			const auto& pts = shape->samplePointsOnShape(step / shape->getLength());
-			for (const auto& p : pts)
+			auto& spVec = m_sampleParams[shape.get()];
+			for (auto& sp : spVec->params)
 			{
+				auto p = shape->getPointByParam(sp.t);
 				if (m_points.size() != startIdx)
 				{
 					if ((m_points.back() - p).length() < thre || (m_points[startIdx] - p).length() < thre)
@@ -159,7 +289,7 @@ namespace ldp
 		// D: delauney
 		// a%f: maximum triangle area %f
 		// YY: do not allow additional points inserted on segment
-		sprintf_s(m_cmds, "Qpzq%dDa%fYY", 30, triAreaWanted);
+		sprintf_s(m_cmds, "Qpzq%da%fYY", 30, triAreaWanted);
 		::triangulate(m_cmds, m_in, m_out, m_vro);
 		m_triBuffer.resize(m_out->numberoftriangles);
 		memcpy(m_triBuffer.data(), m_out->trianglelist, sizeof(int)*m_out->numberoftriangles * 3);
