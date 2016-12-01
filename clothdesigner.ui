@@ -326,7 +326,7 @@
   <widget class="QDockWidget" name="dockWidgetLower">
    <property name="minimumSize">
     <size>
-     <width>80</width>
+     <width>183</width>
      <height>150</height>
     </size>
    </property>
@@ -336,7 +336,77 @@
    <attribute name="dockWidgetArea">
     <number>8</number>
    </attribute>
-   <widget class="QWidget" name="dockWidgetContentsLower"/>
+   <widget class="QWidget" name="dockWidgetContentsLower">
+    <layout class="QGridLayout" name="gridLayout_4">
+     <item row="0" column="0">
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>937</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item row="0" column="1">
+      <widget class="QGroupBox" name="groupBox_2">
+       <property name="title">
+        <string>Design Param</string>
+       </property>
+       <layout class="QGridLayout" name="gridLayout_3">
+        <item row="0" column="0">
+         <widget class="QLabel" name="label_14">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>25</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>triangle size (mm)</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QDoubleSpinBox" name="sbDparamTriangleSize">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>25</height>
+           </size>
+          </property>
+          <property name="decimals">
+           <number>0</number>
+          </property>
+          <property name="minimum">
+           <double>1.000000000000000</double>
+          </property>
+          <property name="maximum">
+           <double>1000.000000000000000</double>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QPushButton" name="pbFlipPolygon">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>25</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>flip polygon</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+    </layout>
+   </widget>
   </widget>
   <action name="actionLoad_project">
    <property name="text">

@@ -135,11 +135,14 @@ namespace ldp
 			return;
 		if (m_X.size() == 0)
 			return;
-
-		mergePieces();
-		buildTopology();
-		buildNumerical();
-		buildStitch();
+		if (m_shouldMergePieces)
+			mergePieces();
+		if (m_shouldTopologyUpdate)
+			buildTopology();
+		if (m_shouldNumericUpdate)
+			buildNumerical();
+		if (m_shouldStitchUpdate)
+			buildStitch();
 
 		gtime_t t_begin = ldp::gtime_now();
 
@@ -254,6 +257,15 @@ namespace ldp
 			m_shouldStitchUpdate = true;
 	}
 
+	void ClothManager::setClothDesignParam(ClothDesignParam param)
+	{
+		auto lastParam = m_clothDesignParam;
+		m_clothDesignParam = param;
+		if (fabs(lastParam.triangulateThre - m_clothDesignParam.triangulateThre) 
+			>= std::numeric_limits<float>::epsilon())
+			m_shouldTriangulate = true;
+	}
+
 	void ClothManager::updateCurrentClothsToInitial()
 	{
 		for (auto& cloth : m_clothPieces)
@@ -268,6 +280,17 @@ namespace ldp
 		{
 			cloth->mesh3d().cloneFrom(&cloth->mesh3dInit());
 		}
+	}
+
+	void ClothManager::updateCloths3dMeshBy2d()
+	{
+		for (auto& cloth : m_clothPieces)
+		{
+			cloth->mesh3dInit().cloneFrom(&cloth->mesh2d());
+			cloth->transformInfo().apply(cloth->mesh3dInit());
+			cloth->mesh3d().cloneFrom(&cloth->mesh3dInit());
+		}
+		m_shouldMergePieces = true;
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////
@@ -301,8 +324,6 @@ namespace ldp
 	{
 		if (m_shouldTriangulate)
 			triangulate();
-		if (!m_shouldMergePieces)
-			return;
 		m_X.clear();
 		m_T.clear();
 		m_clothVertBegin.clear();
@@ -388,8 +409,6 @@ namespace ldp
 	{
 		if (m_shouldNumericUpdate)
 			buildNumerical();
-		if (!m_shouldStitchUpdate)
-			return;
 		m_simulationParam.stitch_k = m_simulationParam.stitch_k_raw / m_avgArea;
 
 		// build edges
@@ -454,8 +473,6 @@ namespace ldp
 	{
 		if (m_shouldMergePieces)
 			mergePieces();
-		if (!m_shouldTopologyUpdate)
-			return;
 		m_V.resize(m_X.size());
 		std::fill(m_V.begin(), m_V.end(), ValueType(0));
 		m_fixed.resize(m_X.size());
@@ -531,8 +548,6 @@ namespace ldp
 	{
 		if (m_shouldTopologyUpdate)
 			buildTopology();
-		if (!m_shouldNumericUpdate)
-			return;
 		// compute matrix related values
 		m_allVL.resize(m_allVV.size());
 		m_allVW.resize(m_allVV.size());
@@ -924,9 +939,6 @@ namespace ldp
 
 	void ClothManager::triangulate()
 	{
-		if (!m_shouldTriangulate)
-			return;
-
 		if (m_clothPieces.empty())
 			return;
 

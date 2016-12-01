@@ -122,6 +122,7 @@ namespace ldp
 		/// mesh backup related
 		void updateCurrentClothsToInitial();
 		void updateInitialClothsToCurrent();
+		void updateCloths3dMeshBy2d();
 		void triangulate();
 
 		/// stitch related

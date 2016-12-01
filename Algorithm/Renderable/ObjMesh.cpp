@@ -704,6 +704,17 @@ void ObjMesh::updateBoundingBox()
 	}
 }
 
+void ObjMesh::flipNormals()
+{
+	for (auto& f : face_list)
+		std::reverse(f.vertex_index, f.vertex_index + f.vertex_count);
+	for (auto& v : face_normal_list)
+		v = 0.f - v;
+	for (auto& v : vertex_normal_list)
+		v = 0.f - v;
+	_fast_view_should_update = true;
+}
+
 void ObjMesh::updateNormals()
 {
 	if(face_normal_list.size() != face_list.size())

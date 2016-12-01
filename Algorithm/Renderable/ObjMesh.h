@@ -75,6 +75,7 @@ public:
 	virtual void saveObj(const char* path)const;
 	int loadOff(const char* filename, bool isNormalize);
 	void updateNormals();
+	void flipNormals();
 	void updateBoundingBox();
 	void normalizeModel();
 	void requireRenderUpdate();

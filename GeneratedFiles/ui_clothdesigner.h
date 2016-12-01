@@ -85,6 +85,13 @@ public:
     QPushButton *pbResetSimulation;
     QDockWidget *dockWidgetLower;
     QWidget *dockWidgetContentsLower;
+    QGridLayout *gridLayout_4;
+    QSpacerItem *horizontalSpacer;
+    QGroupBox *groupBox_2;
+    QGridLayout *gridLayout_3;
+    QLabel *label_14;
+    QDoubleSpinBox *sbDparamTriangleSize;
+    QPushButton *pbFlipPolygon;
 
     void setupUi(QMainWindow *ClothDesignerClass)
     {
@@ -317,10 +324,48 @@ public:
         ClothDesignerClass->addDockWidget(static_cast<Qt::DockWidgetArea>(2), dockWidgetRight);
         dockWidgetLower = new QDockWidget(ClothDesignerClass);
         dockWidgetLower->setObjectName(QStringLiteral("dockWidgetLower"));
-        dockWidgetLower->setMinimumSize(QSize(80, 150));
+        dockWidgetLower->setMinimumSize(QSize(183, 150));
         dockWidgetLower->setFeatures(QDockWidget::NoDockWidgetFeatures);
         dockWidgetContentsLower = new QWidget();
         dockWidgetContentsLower->setObjectName(QStringLiteral("dockWidgetContentsLower"));
+        gridLayout_4 = new QGridLayout(dockWidgetContentsLower);
+        gridLayout_4->setSpacing(6);
+        gridLayout_4->setContentsMargins(11, 11, 11, 11);
+        gridLayout_4->setObjectName(QStringLiteral("gridLayout_4"));
+        horizontalSpacer = new QSpacerItem(937, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+
+        gridLayout_4->addItem(horizontalSpacer, 0, 0, 1, 1);
+
+        groupBox_2 = new QGroupBox(dockWidgetContentsLower);
+        groupBox_2->setObjectName(QStringLiteral("groupBox_2"));
+        gridLayout_3 = new QGridLayout(groupBox_2);
+        gridLayout_3->setSpacing(6);
+        gridLayout_3->setContentsMargins(11, 11, 11, 11);
+        gridLayout_3->setObjectName(QStringLiteral("gridLayout_3"));
+        label_14 = new QLabel(groupBox_2);
+        label_14->setObjectName(QStringLiteral("label_14"));
+        label_14->setMinimumSize(QSize(0, 25));
+
+        gridLayout_3->addWidget(label_14, 0, 0, 1, 1);
+
+        sbDparamTriangleSize = new QDoubleSpinBox(groupBox_2);
+        sbDparamTriangleSize->setObjectName(QStringLiteral("sbDparamTriangleSize"));
+        sbDparamTriangleSize->setMinimumSize(QSize(0, 25));
+        sbDparamTriangleSize->setDecimals(0);
+        sbDparamTriangleSize->setMinimum(1);
+        sbDparamTriangleSize->setMaximum(1000);
+
+        gridLayout_3->addWidget(sbDparamTriangleSize, 0, 1, 1, 1);
+
+        pbFlipPolygon = new QPushButton(groupBox_2);
+        pbFlipPolygon->setObjectName(QStringLiteral("pbFlipPolygon"));
+        pbFlipPolygon->setMinimumSize(QSize(0, 25));
+
+        gridLayout_3->addWidget(pbFlipPolygon, 1, 0, 1, 1);
+
+
+        gridLayout_4->addWidget(groupBox_2, 0, 1, 1, 1);
+
         dockWidgetLower->setWidget(dockWidgetContentsLower);
         ClothDesignerClass->addDockWidget(static_cast<Qt::DockWidgetArea>(8), dockWidgetLower);
 
@@ -373,6 +418,9 @@ public:
         label_8->setText(QApplication::translate("ClothDesignerClass", "under relax", 0));
         pbResetSimulation->setText(QApplication::translate("ClothDesignerClass", "reset simulaton", 0));
         pbResetSimulation->setShortcut(QApplication::translate("ClothDesignerClass", "1", 0));
+        groupBox_2->setTitle(QApplication::translate("ClothDesignerClass", "Design Param", 0));
+        label_14->setText(QApplication::translate("ClothDesignerClass", "triangle size (mm)", 0));
+        pbFlipPolygon->setText(QApplication::translate("ClothDesignerClass", "flip polygon", 0));
     } // retranslateUi
 
 };

@@ -5,6 +5,11 @@
 #include "viewer2d.h"
 #include "viewer3d.h"
 #include "cloth\HistoryStack.h"
+#include "cloth\clothPiece.h"
+#include "cloth\clothManager.h"
+#include "cloth\panelPolygon.h"
+#include "cloth\TransformInfo.h"
+#include "Renderable\ObjMesh.h"
 
 ClothDesigner::ClothDesigner(QWidget *parent)
 	: QMainWindow(parent)
@@ -48,6 +53,7 @@ void ClothDesigner::timerEvent(QTimerEvent* ev)
 		setWindowTitle(QString().sprintf("fps: %f", g_dataholder.m_clothManager->getFps()));
 }
 
+//////main menu/////////////////////////////////////////////////////////////////////////////////
 void ClothDesigner::on_actionLoad_svg_triggered()
 {
 	try
@@ -55,7 +61,6 @@ void ClothDesigner::on_actionLoad_svg_triggered()
 		g_dataholder.debug_5();
 		g_dataholder.m_historyStack->push("init", ldp::HistoryStack::TypeGeneral);
 		g_dataholder.m_clothManager->simulationInit();
-
 		m_widget3d->init(g_dataholder.m_clothManager.get(), this);
 		m_widget2d->init(g_dataholder.m_clothManager.get(), this);
 		m_widget2d->updateGL();
@@ -104,6 +109,7 @@ void ClothDesigner::on_actionNext_triggered()
 	}
 }
 
+//////right dock///////////////////////////////////////////////////////////////////////////////
 void ClothDesigner::updateUiByParam()
 {
 	try
@@ -124,6 +130,9 @@ void ClothDesigner::updateUiByParam()
 		ui.sbSparamGravityX->setValue(param.gravity[0]);
 		ui.sbSparamGravityY->setValue(param.gravity[1]);
 		ui.sbSparamGravityZ->setValue(param.gravity[2]);
+		///
+		auto dparam = g_dataholder.m_clothManager->getClothDesignParam();
+		ui.sbDparamTriangleSize->setValue(dparam.triangulateThre * 1000);
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
@@ -337,7 +346,7 @@ void ClothDesigner::on_sbSparamGravityZ_valueChanged(double v)
 	}
 }
 
-/////////////////////////////////////////////////////////////////////////////////
+/////main tool bars////////////////////////////////////////////////////////////////////////////
 void ClothDesigner::resizeEvent(QResizeEvent* ev)
 {
 
@@ -406,5 +415,57 @@ void ClothDesigner::on_mainToolBar_actionTriggered(QAction* action)
 		Abstract2dEventHandle::ProcessorType type = (Abstract2dEventHandle::ProcessorType)
 			(id-Abstract3dEventHandle::ProcessorTypeEnd);
 		m_widget2d->setEventHandleType(type);
+	}
+}
+
+/////lower dock////////////////////////////////////////////////////////////////////////////////
+void ClothDesigner::on_pbFlipPolygon_clicked()
+{
+	try
+	{
+		auto& manager = g_dataholder.m_clothManager;
+		bool changed = false;
+		for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
+		{
+			auto piece = manager->clothPiece(iPiece);
+			auto& panel = piece->panel();
+			if (panel.isSelected())
+			{
+				panel.outerPoly()->reverse();
+				piece->transformInfo().flipNormal();
+				piece->mesh2d().flipNormals();
+				piece->mesh3d().flipNormals();
+				piece->mesh3dInit().flipNormals();
+				changed = true;
+			}
+		} // end for iPiece
+		if (changed)
+		{
+			//manager->updateCloths3dMeshBy2d();
+			m_widget2d->updateGL();
+			m_widget3d->updateGL();
+			pushHistory("flip polygons", ldp::HistoryStack::TypeGeneral);
+		}
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+}
+
+void ClothDesigner::on_sbDparamTriangleSize_valueChanged(double v)
+{
+	try
+	{
+		auto& manager = g_dataholder.m_clothManager;
+		auto param = manager->getClothDesignParam();
+		param.triangulateThre = v/1000;
+		manager->setClothDesignParam(param);
+		manager->triangulate();
+		m_widget2d->updateGL();
+		m_widget3d->updateGL();
+		pushHistory(QString().sprintf("triangulate: %f", v), ldp::HistoryStack::TypeGeneral);	
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
 	}
 }
