@@ -192,10 +192,13 @@ void Viewer3d::paintGL()
 		for (int i = 0; i < m_clothManager->numClothPieces(); i++)
 		{
 			const auto& piece = m_clothManager->clothPiece(i);
-			if (piece->panel().isHighlighted())
-				piece->mesh3d().material_list[0].diff = ldp::Float3(0.8, 0.6, 0);
-			else
-				piece->mesh3d().material_list[0].diff = ldp::Float3(1, 1, 1);
+			if (piece->mesh3d().material_list.size())
+			{
+				if (piece->panel().isHighlighted())
+					piece->mesh3d().material_list[0].diff = ldp::Float3(0.8, 0.6, 0);
+				else
+					piece->mesh3d().material_list[0].diff = ldp::Float3(1, 1, 1);
+			}
 			piece->mesh3d().render(m_showType);
 		}
 		renderStitches();

@@ -10,6 +10,8 @@
 #include "svgpp\SvgPolyPath.h"
 #include <cuda_runtime_api.h>
 #include <fstream>
+#include <eigen\Dense>
+#include <eigen\Sparse>
 #define ENABLE_DEBUG_DUMPING
 
 namespace ldp
@@ -407,10 +409,65 @@ namespace ldp
 			buildNumerical();
 		m_simulationParam.stitch_k = m_simulationParam.stitch_k_raw / m_avgArea;
 
+#if 0
+		typedef Eigen::SparseMatrix<ValueType> SpMat;
+		typedef Eigen::Matrix<ValueType, -1, -1> DMat;
+		typedef Eigen::Matrix<ValueType, -1, 1> DVec;
+		typedef Eigen::Map<DMat> DMatPtr;
+
+		std::vector<Eigen::Triplet<float>> cooSys;
+		int nRows = 0;
+		for (const auto& s : m_stitches)
+		{
+			cooSys.push_back(Eigen::Triplet<float>(s[0], s[0], 1));
+			cooSys.push_back(Eigen::Triplet<float>(s[0], s[1], -1));
+			nRows++;
+		}
+		SpMat A;
+		A.resize(nRows, m_X.size());
+		if (cooSys.size())
+			A.setFromTriplets(cooSys.begin(), cooSys.end());
+		SpMat AtA = A.transpose()*A;
+		DMat Ax = A*DMatPtr((ValueType*)m_X.data(), m_X.size(), 3);
+		DVec Ax_len(m_X.size());
+		for(int r = 0; r < Ax.rows(); r++)
+			Ax_len[r] = Ax.row(r).norm();
+		DVec L = A.transpose() * Ax_len;
+		m_stitchVV_num.clear();
+		m_stitchVV_num.reserve(m_X.size() + 1);
+		m_stitchVV.clear();
+		m_stitchVV.reserve(AtA.nonZeros());
+		m_stitchVW.reserve(AtA.nonZeros());
+		m_stitchVC.resize(m_X.size());
+		for(int c = 0; c < AtA.outerSize(); c++)
+		{
+			const int bg = AtA.outerIndexPtr()[c];
+			const int ed = AtA.outerIndexPtr()[c + 1];
+			m_stitchVV_num[c] = bg;
+			m_stitchVV_num[c + 1] = ed;
+			for(int pos=bg; pos<ed; pos++)
+			{
+				int r = AtA.innerIndexPtr()[pos];
+				ValueType v = AtA.valuePtr()[pos];
+				if(r != c)
+				{
+					m_stitchVV.push_back(r);
+					m_stitchVW.push_back(v * m_simulationParam.stitch_k);
+				}
+				else
+				{
+					m_stitchVC.push_back(v * m_simulationParam.stitch_k);
+				}
+			} // end for pos
+		} // end for c
+#else
 		// build edges
 		auto edges = m_stitches;
 		for (const auto& s : m_stitches)
+		{
 			edges.push_back(Int2(s[1], s[0]));
+			edges.push_back(Int2(s[0], s[1]));
+		}
 		std::sort(edges.begin(), edges.end());
 		edges.resize(std::unique(edges.begin(), edges.end()) - edges.begin());
 
@@ -454,7 +511,7 @@ namespace ldp
 			m_stitchVW[findStitchNeighbor(v[0], v[1])] -= m_simulationParam.stitch_k;
 			m_stitchVW[findStitchNeighbor(v[1], v[0])] -= m_simulationParam.stitch_k;
 		} // end for all edges
-
+#endif
 		// copy to GPU
 		m_dev_stitch_VV.upload(m_stitchVV);
 		m_dev_stitch_VV_num.upload(m_stitchVV_num);
@@ -844,6 +901,15 @@ namespace ldp
 	{
 		if (m_clothPieces.empty())
 			return;
+		bool noPanel = true;
+		for (const auto& piece : m_clothPieces)
+		{
+			if (piece->panel().outerPoly())
+				noPanel = false;
+		}
+		if (noPanel)
+			return;
+
 
 		m_triWrapper->triangulate(m_clothPieces, m_sewings,
 			m_clothDesignParam.pointMergeDistThre,

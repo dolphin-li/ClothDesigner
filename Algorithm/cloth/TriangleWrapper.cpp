@@ -54,7 +54,8 @@ namespace ldp
 		{
 			const auto& panel = piece->panel();
 			prepareTriangulation();
-			addPolygon(*panel.outerPoly().get());
+			if (panel.outerPoly())
+				addPolygon(*panel.outerPoly().get());
 			for (const auto& dart : panel.darts())
 				addDart(*dart.get());
 			for (const auto& line : panel.innerLines())
@@ -73,6 +74,8 @@ namespace ldp
 		m_points.clear();
 		m_segments.clear();
 		m_holeCenters.clear();
+		m_triBuffer.clear();
+		m_triVertsBuffer.clear();
 	}
 
 	void TriangleWrapper::precomputeSewing()
@@ -86,6 +89,7 @@ namespace ldp
 		for (auto& piece : (*m_pieces))
 		{
 			const auto& panel = piece->panel();
+			if (panel.outerPoly())
 			for (const auto& shape : *panel.outerPoly())
 				addSampleParam(shape.get(), step / shape->getLength());
 			for (const auto& dart : panel.darts())
@@ -95,6 +99,11 @@ namespace ldp
 			for (const auto& shape : *line)
 				addSampleParam(shape.get(), step / shape->getLength());
 		} // end for piece
+
+		//////////////////////////////////////////////////////////////////////
+		/// until this step, we can perform triangulation, but not good sewings...
+		//////////////////////////////////////////////////////////////////////
+		//return;
 
 		// 2. considering the sewings, adjust the nums
 		std::vector<int> sew_valid(m_sewings->size(), 0);
@@ -134,21 +143,32 @@ namespace ldp
 				continue;
 
 			// make the step in the same range
-			const float newStep = std::min(step*fLen/sLen, std::min(step*sLen/fLen, step));
+			float fStep = step, sStep = step;
+			if (fLen < sLen)
+				fStep *= fLen / sLen;
+			else
+				sStep *= sLen / fLen;
 			for (auto& f : firsts)
 			{
 				auto shape = (const AbstractShape*)Sewing::getPtrById(f.id);
-				addSampleParam(shape, newStep / shape->getLength());
+				addSampleParam(shape, fStep / shape->getLength());
 			}
 			for (auto& s : seconds)
 			{
 				auto shape = (const AbstractShape*)Sewing::getPtrById(s.id);
-				addSampleParam(shape, newStep / shape->getLength());
+				addSampleParam(shape, sStep / shape->getLength());
 			}
 			sew_valid[isew] = 1;
 		} // end for sew
 
+		//////////////////////////////////////////////////////////////////////
+		/// until this step, we can make the triangulation density similar w.r.t the sewing
+		//////////////////////////////////////////////////////////////////////
+		return;
+
 		// 3. consider param matching: if sewing.first[t] exist in sewing.second[t]
+		std::vector<float> fLens, sLens;
+		std::vector<SampleParam> tmpF, tmpS;
 		for (size_t isew = 0; isew < m_sewings->size(); isew++)
 		{
 			if (!sew_valid[isew])
@@ -156,7 +176,8 @@ namespace ldp
 			const auto& sew = (*m_sewings)[isew];
 			const auto& firsts = sew->firsts();
 			const auto& seconds = sew->seconds();
-			std::vector<float> fLens, sLens;
+			fLens.clear();
+			sLens.clear();
 			fLens.push_back(0.f);
 			sLens.push_back(0.f);
 			for (const auto& f : firsts)
@@ -177,15 +198,70 @@ namespace ldp
 				l /= sLens.back();
 
 			// make param conincident
-			size_t fPos = 0, sPos = 0;
+			size_t fPos = 0, sPos = 0, fPos_1=0, sPos_1=0;
 			for (; fPos < firsts.size() && sPos < seconds.size();)
 			{
 				const auto& f = firsts[fPos];
 				const auto& s = seconds[sPos];
 				auto fshape = (const AbstractShape*)Sewing::getPtrById(f.id);
 				auto sshape = (const AbstractShape*)Sewing::getPtrById(s.id);
-				auto fSample = m_sampleParams[fshape];
-				auto sSample = m_sampleParams[sshape];
+				auto& fparams = m_sampleParams[fshape]->params;
+				auto& sparams = m_sampleParams[sshape]->params;
+				const float fStart = fLens[fPos];
+				const float fLen = fLens[fPos + 1] - fStart;
+				const float sStart = sLens[sPos];
+				const float sLen = sLens[sPos + 1] - sStart;
+
+				// reverse before matching
+				//if (f.reverse)
+				//	std::reverse(fparams.begin(), fparams.end());
+				//if (s.reverse)
+				//	std::reverse(sparams.begin(), sparams.end());
+
+				// matching now
+				for (; fPos_1 < fparams.size() && sPos_1 < sparams.size();)
+				{
+					float ft = f.reverse ? 1 -1+ fparams[fPos_1].t : fparams[fPos_1].t;
+					float st = s.reverse ? 1 -1+ sparams[sPos_1].t : sparams[sPos_1].t;
+					ft = ft * fLen + fStart;
+					st = st * sLen + sStart;
+					if (fabs(ft - st) < thre)
+					{
+						tmpF.push_back(fparams[fPos_1++]);
+						tmpS.push_back(sparams[sPos_1++]);
+					}
+					else if (ft < st)
+					{
+						tmpS.push_back(SampleParam((ft-sStart)/sLen, 0));
+						fPos_1++;
+					}
+					else
+					{
+						tmpF.push_back(SampleParam((st - fStart) / fLen, 0));
+						sPos_1++;
+					}
+				} // end for fPos_1, sPos_1
+
+				if (fPos_1 == fparams.size())
+				{
+					fparams = tmpF;
+					tmpF.clear();
+					fPos++;
+					fPos_1 = 0;
+					//if (f.reverse)
+					//	std::reverse(fparams.begin(), fparams.end());
+				}
+				if (sPos_1 == sparams.size())
+				{
+					sparams = tmpS;
+					tmpS.clear();
+					sPos++;
+					sPos_1 = 0;
+					//if (s.reverse)
+					//	std::reverse(sparams.begin(), sparams.end());
+				}
+
+				// recover the reversing
 			} // end for fpos, spos
 		} // end for sew
 	}
@@ -250,6 +326,8 @@ namespace ldp
 
 	void TriangleWrapper::finalizeTriangulation()
 	{
+		if (m_points.size() < 3)
+			return;
 		// init points
 		m_in->numberofpoints = (int)m_points.size();
 		if (m_in->numberofpoints)
