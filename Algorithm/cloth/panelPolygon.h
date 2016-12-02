@@ -403,6 +403,7 @@ namespace ldp
 				auto ptr = AbstractShape::create(child->Value(), 0);
 				if (ptr)
 					ptr->fromXML(child);
+				push_back(std::shared_ptr<AbstractShape>(ptr));
 			}
 			updateBound(m_bbox[0], m_bbox[1]);
 		}

@@ -541,7 +541,7 @@ namespace ldp
 	void LevelSet3D::load(std::string filename)
 	{
 		std::fstream input(filename, std::ios::in | std::ios::binary);
-		if (input.fail())
+		if (input.bad())
 			throw std::exception(("IOError: " + filename).c_str());
 		input.read((char*)m_size.ptr(), sizeof(m_size));
 		input.read((char*)&m_step, sizeof(m_step));

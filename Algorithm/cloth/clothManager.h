@@ -29,6 +29,7 @@ namespace ldp
 	class BMesh;
 	class BMVert;
 	class TriangleWrapper;
+	class TransformInfo;
 	class ClothManager
 	{
 	public:
@@ -96,6 +97,10 @@ namespace ldp
 		/// body mesh
 		const ObjMesh* bodyMesh()const { return m_bodyMesh.get(); }
 		ObjMesh* bodyMesh() { return m_bodyMesh.get(); }
+		const ObjMesh* bodyMeshInit()const { return m_bodyMeshInit.get(); }
+		ObjMesh* bodyMeshInit() { return m_bodyMeshInit.get(); }
+		const TransformInfo& getBodyMeshTransform()const;
+		void setBodyMeshTransform(const TransformInfo& info);
 		const LevelSet3D* bodyLevelSet()const { return m_bodyLvSet.get(); }
 		LevelSet3D* bodyLevelSet() { return m_bodyLvSet.get(); }
 
@@ -116,7 +121,8 @@ namespace ldp
 	private:
 		std::vector<std::shared_ptr<Sewing>> m_sewings;
 		std::vector<std::shared_ptr<ClothPiece>> m_clothPieces;
-		std::shared_ptr<ObjMesh> m_bodyMesh;
+		std::shared_ptr<ObjMesh> m_bodyMesh, m_bodyMeshInit;
+		std::shared_ptr<TransformInfo> m_bodyTransform;
 		std::shared_ptr<LevelSet3D> m_bodyLvSet;
 		SimulationMode m_simulationMode;
 		SimulationParam m_simulationParam;
@@ -129,6 +135,7 @@ namespace ldp
 		bool m_shouldTopologyUpdate;
 		bool m_shouldNumericUpdate;
 		bool m_shouldStitchUpdate;
+		bool m_shouldLevelSetUpdate;
 		DragInfoInternal m_curDragInfo;
 		// 2D-3D triangulation related---------------------------------------------------
 		std::shared_ptr<TriangleWrapper> m_triWrapper;
@@ -142,6 +149,7 @@ namespace ldp
 		// Topology related--------------------------------------------------------------
 	protected:
 		void updateDependency();
+		void calcLevelSet();
 		void mergePieces();
 		void buildTopology();
 		void buildNumerical();

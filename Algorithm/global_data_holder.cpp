@@ -3,6 +3,7 @@
 #include "cloth\clothPiece.h"
 #include "cloth\LevelSet3D.h"
 #include "cloth\HistoryStack.h"
+#include "cloth\TransformInfo.h"
 #include "Renderable\ObjMesh.h"
 GlobalDataHolder g_dataholder;
 
@@ -162,13 +163,18 @@ void GlobalDataHolder::debug_4()
 
 void GlobalDataHolder::debug_5()
 {
-	m_clothManager->bodyMesh()->loadObj("data/wm2_15k.obj", true, false);
+	m_clothManager->bodyMeshInit()->loadObj("data/wm2_15k.obj", true, false);
 
-	auto body = m_clothManager->bodyMesh();
-
-	body->translate((body->boundingBox[0]+body->boundingBox[1])*-0.5f);
-	body->rotateByCenter(ldp::QuaternionF().fromAngles(ldp::Float3(ldp::PI_S/2, 0, ldp::PI_S)).toRotationMatrix3());
-	body->scaleByCenter(2.619848);
+	auto body = m_clothManager->bodyMeshInit();
+	ldp::TransformInfo info;
+	info.setIdentity();
+	info.translate((body->boundingBox[0] + body->boundingBox[1])*-0.5f);
+	info.rotate(ldp::QuaternionF().fromAngles(ldp::Float3(ldp::PI_S / 2, 0, ldp::PI_S)).toRotationMatrix3(), 0);
+	info.scale(2.619848, 0);
+	m_clothManager->setBodyMeshTransform(info);
+	//body->translate((body->boundingBox[0]+body->boundingBox[1])*-0.5f);
+	//body->rotateByCenter(ldp::QuaternionF().fromAngles(ldp::Float3(ldp::PI_S/2, 0, ldp::PI_S)).toRotationMatrix3());
+	//body->scaleByCenter(2.619848);
 
 	auto mat = body->default_material;
 	mat.diff = ldp::Float3(0.5, 0.7, 0.8);

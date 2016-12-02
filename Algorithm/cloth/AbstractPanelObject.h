@@ -39,16 +39,13 @@ namespace ldp
 		}
 		AbstractPanelObject(size_t id)
 		{
-			m_id = IdxPool::requireIdx(id);
-			s_globalIdxMap.insert(std::make_pair(m_id, this));
+			requireIdx(id);
 		}
 		AbstractPanelObject(const AbstractPanelObject& rhs)
 		{
-			m_id = IdxPool::requireIdx(rhs.m_id);
+			requireIdx(rhs.m_id);
 			m_highlighted = rhs.m_highlighted;
 			m_selected = rhs.m_selected;
-			if (!isIdxMapUpdateDisabled())
-				s_globalIdxMap.insert(std::make_pair(m_id, this));
 		}
 		virtual ~AbstractPanelObject()
 		{
@@ -94,15 +91,14 @@ namespace ldp
 			int id = 0;
 			if (!self->Attribute("id", &id))
 				throw std::exception(("cannot find id for " + getTypeString()).c_str());
-			m_id = IdxPool::requireIdx(id);
+			requireIdx(id);
 		}
 	protected:
 		virtual AbstractPanelObject& operator = (const AbstractPanelObject& rhs)
 		{
-			m_id = IdxPool::requireIdx(rhs.getId());
+			requireIdx(rhs.getId());
 			m_selected = rhs.m_selected;
 			m_highlighted = rhs.m_highlighted;
-			s_globalIdxMap.insert(std::make_pair(m_id, this));
 			return *this;
 		}
 	protected:
@@ -115,6 +111,18 @@ namespace ldp
 		static std::hash_map<size_t, AbstractPanelObject*> s_globalIdxMap;
 		static bool s_disableIdxMapUpdate;
 		static std::hash_map<Type, std::string> generateTypeStringMap();
+		void requireIdx(size_t id)
+		{
+			m_id = IdxPool::requireIdx(id);
+			if (m_id && !isIdxMapUpdateDisabled())
+			{
+				auto iter = s_globalIdxMap.find(m_id);
+				if (iter == s_globalIdxMap.end())
+					s_globalIdxMap.insert(std::make_pair(m_id, this));
+				else
+					iter->second = this;
+			}
+		}
 	public:
 		static void disableIdxMapUpdate() { s_disableIdxMapUpdate = true; }
 		static void enableIdxMapUpdate() { s_disableIdxMapUpdate = false; }

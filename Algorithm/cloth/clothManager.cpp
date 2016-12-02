@@ -8,6 +8,7 @@
 #include "Renderable\ObjMesh.h"
 #include "svgpp\SvgManager.h"
 #include "svgpp\SvgPolyPath.h"
+#include "ldputil.h"
 #include <cuda_runtime_api.h>
 #include <fstream>
 #include <eigen\Dense>
@@ -35,6 +36,9 @@ namespace ldp
 	ClothManager::ClothManager()
 	{
 		m_bodyMesh.reset(new ObjMesh);
+		m_bodyMeshInit.reset(new ObjMesh);
+		m_bodyTransform.reset(new TransformInfo);
+		m_bodyTransform->setIdentity();
 		m_bodyLvSet.reset(new LevelSet3D);
 		m_triWrapper.reset(new TriangleWrapper);
 		m_simulationMode = SimulationNotInit;
@@ -47,6 +51,7 @@ namespace ldp
 		m_shouldNumericUpdate = false;
 		m_shouldStitchUpdate = false;
 		m_shouldTriangulate = false;
+		m_shouldLevelSetUpdate = false;
 	}
 
 	ClothManager::~ClothManager()
@@ -68,6 +73,8 @@ namespace ldp
 		m_fixed.clear();
 		m_edgeWithBendEdge.clear();
 
+		m_bodyTransform->setIdentity();
+		m_bodyMeshInit->clear();
 		m_bodyMesh->clear();
 		m_bodyLvSet->clear();
 
@@ -118,6 +125,7 @@ namespace ldp
 			m_clothPieces[i]->mesh3d().cloneFrom(&m_clothPieces[i]->mesh3dInit());
 		m_dev_phi.upload(m_bodyLvSet->value(), m_bodyLvSet->sizeXYZ());
 		m_shouldTriangulate = true;
+		calcLevelSet();
 		updateDependency();
 		triangulate();
 		mergePieces();
@@ -134,6 +142,8 @@ namespace ldp
 		if (m_X.size() == 0)
 			return;
 		updateDependency();
+		if (m_shouldLevelSetUpdate)
+			calcLevelSet();
 		if (m_shouldTriangulate)
 			triangulate();
 		if (m_shouldMergePieces)
@@ -292,6 +302,19 @@ namespace ldp
 			cloth->mesh3d().cloneFrom(&cloth->mesh3dInit());
 		}
 		m_shouldMergePieces = true;
+	}
+
+	const TransformInfo& ClothManager::getBodyMeshTransform()const
+	{
+		return *m_bodyTransform;
+	}
+
+	void ClothManager::setBodyMeshTransform(const TransformInfo& info)
+	{
+		*m_bodyTransform = info;
+		m_bodyMesh->cloneFrom(m_bodyMeshInit.get());
+		m_bodyTransform->apply(*m_bodyMesh);
+		m_shouldLevelSetUpdate = true;
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////
@@ -582,6 +605,22 @@ namespace ldp
 		m_shouldStitchUpdate = false;
 	}
 
+	void ClothManager::calcLevelSet()
+	{
+		if (!m_shouldLevelSetUpdate)
+			return;
+		const float step = 0.01;
+		m_bodyMesh->updateBoundingBox();
+		auto bmin = m_bodyMesh->boundingBox[0];
+		auto bmax = m_bodyMesh->boundingBox[1];
+		auto brag = bmax - bmin;
+		bmin -= 0.1f * brag;
+		bmax += 0.1f * brag;
+		ldp::Int3 res = (bmax - bmin) / step;
+		ldp::Float3 start = bmin;
+		m_bodyLvSet->create(res, start, step);
+		m_bodyLvSet->fromMesh(*m_bodyMesh);
+	}
 	//////////////////////////////////////////////////////////////////////////////////
 	void ClothManager::updateDependency()
 	{
@@ -1300,6 +1339,68 @@ namespace ldp
 	///////////////////////////////////////////////////////////////////////////////////////////
 	void ClothManager::fromXml(std::string filename)
 	{
+		TiXmlDocument doc;
+		if (!doc.LoadFile(filename.c_str()))
+			throw std::exception(("IOError" + filename).c_str());
+		clear();
+
+		auto root = doc.FirstChildElement();
+		if (!root)
+			throw std::exception("Xml format error, root check failed");
+		if (root->Value() != std::string("ClothManager"))
+			throw std::exception("Xml format error, root check failed");
+
+		IdxPool::disableIdxIncrement();
+		Sewing tmpSewing;
+		for (auto pele = root->FirstChildElement(); pele; pele = pele->NextSiblingElement())
+		{
+			if (pele->Value() == std::string("BodyMesh"))
+			{
+				for (auto child = pele->FirstChildElement(); child; child = child->NextSiblingElement())
+				{
+					if (child->Value() == m_bodyTransform->getTypeString())
+						m_bodyTransform->fromXML(child);
+				}
+				std::string objfile = pele->Attribute("ObjFile");
+				if (!objfile.empty())
+				{
+					m_bodyMeshInit->loadObj(objfile.c_str(), true, false);
+					setBodyMeshTransform(*m_bodyTransform);
+					std::string path, name, ext;
+					ldp::fileparts(objfile, path, name, ext);
+					std::string setFile = ldp::fullfile(path, name + ".set");
+					m_bodyLvSet.reset(new LevelSet3D);
+					try
+					{
+						m_bodyLvSet->load(setFile.c_str());
+						m_shouldLevelSetUpdate = false;
+					} catch (std::exception e)
+					{
+						m_shouldLevelSetUpdate = true;
+						calcLevelSet();
+						m_bodyLvSet->save(setFile.c_str());
+					}
+				} // end if not obj empty
+			} // end for BodyMesh
+			else if (pele->Value() == std::string("Piece"))
+			{
+				m_clothPieces.push_back(std::shared_ptr<ClothPiece>(new ClothPiece()));
+				for (auto child = pele->FirstChildElement(); child; child = child->NextSiblingElement())
+				{
+					if (child->Value() == m_clothPieces.back()->panel().getTypeString())
+						m_clothPieces.back()->panel().fromXML(child);
+					else if (child->Value() == m_clothPieces.back()->transformInfo().getTypeString())
+						m_clothPieces.back()->transformInfo().fromXML(child);
+				}
+			} // end for piece
+			else if (pele->Value() == tmpSewing.getTypeString())
+			{
+				m_sewings.push_back(std::shared_ptr<Sewing>(new Sewing));
+				m_sewings.back()->fromXML(pele);
+			} // end for sewing
+		} // end for pele
+		IdxPool::enableIdxIncrement();
+		simulationInit();
 	}
 
 	void ClothManager::toXml(std::string filename)const
@@ -1313,6 +1414,7 @@ namespace ldp
 			TiXmlElement* pele = new TiXmlElement("BodyMesh");
 			root->LinkEndChild(pele);
 			pele->SetAttribute("ObjFile", m_bodyMesh->scene_filename);
+			m_bodyTransform->toXML(pele);
 		}
 
 		for (const auto& piece : m_clothPieces)

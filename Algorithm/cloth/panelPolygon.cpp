@@ -498,6 +498,7 @@ namespace ldp
 		}
 		return ele;
 	}
+	
 	void PanelPolygon::fromXML(TiXmlElement* self)
 	{
 		AbstractPanelObject::fromXML(self);
@@ -506,8 +507,12 @@ namespace ldp
 		{
 			if (child->Value() == std::string("OuterPoly"))
 			{
-				m_outerPoly.reset(new Polygon);
-				m_outerPoly->fromXML(child);
+				auto child1 = child->FirstChildElement();
+				if (child1)
+				{
+					m_outerPoly.reset(new Polygon);
+					m_outerPoly->fromXML(child1);
+				}
 			}
 			if (child->Value() == std::string("Darts"))
 			{

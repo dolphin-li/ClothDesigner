@@ -38,16 +38,42 @@ namespace ldp
 		mesh.transform(m_T);
 	}
 
+	void TransformInfo::setIdentity()
+	{
+		m_T.eye();
+		m_flipNormal = false;
+	}
+
+	void TransformInfo::translate(Float3 t)
+	{
+		m_T.setTranslationPart(m_T.getTranslationPart() + t);
+	}
+
+	void TransformInfo::rotate(Mat3f R, Float3 center)
+	{
+		m_T.setRotationPart(R*m_T.getRotationPart());
+		m_T.setTranslationPart(R * (m_T.getTranslationPart()-center) + center);
+	}
+
+	void TransformInfo::scale(Float3 S, Float3 center)
+	{
+		ldp::Mat3f SM = ldp::Mat3f().eye();
+		for (int k = 0; k < 3; k++)
+			SM(k, k) = S[k];
+		m_T.setRotationPart(SM*m_T.getRotationPart());
+		m_T.setTranslationPart(SM * (m_T.getTranslationPart() - center) + center);
+	}
+
 
 	TiXmlElement* TransformInfo::toXML(TiXmlNode* parent)const
 	{
-		TiXmlElement* ele = new TiXmlElement("TransformInfo");
+		TiXmlElement* ele = new TiXmlElement(getTypeString().c_str());
 		parent->LinkEndChild(ele);
 		ele->SetAttribute("FlipNormal", m_flipNormal);
-		std::stringstream ts;
-		ts << m_T;
 		std::string s;
-		ts >> s;
+		for (int i = 0; i < m_T.nRow(); i++)
+		for (int j = 0; j < m_T.nCol(); j++)
+			s += std::to_string(m_T(i, j)) + " ";
 		ele->SetAttribute("T", s.c_str());
 		return ele;
 	}
