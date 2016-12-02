@@ -191,12 +191,10 @@ void Abstract3dEventHandle::wheelEvent(QWheelEvent *ev)
 	if (ev->delta() < 0)
 		s = 1.f / s;
 
-	ldp::Float3 c = m_viewer->camera().getLocation();
-	ldp::Float3 c0 = m_viewer->camera().arcballGetCenter();
-	ldp::Float3 u = m_viewer->camera().getUp();
-	ldp::Float3 d = m_viewer->camera().getDirection();
-	m_viewer->camera().lookAt(s*(c-c0) + c0, c0, u);
-
+	ldp::Camera& cam = m_viewer->camera();
+	ldp::Float3 c = cam.getLocation();
+	ldp::Float3 c0 = cam.arcballGetCenter();
+	cam.setLocation((c-c0)*s + c0);
 	//float fov = std::max(1e-3f, std::min(160.f, m_viewer->camera().getFov()*s));
 	//m_viewer->camera().setPerspective(fov, m_viewer->camera().getAspect(),
 	//	m_viewer->camera().getFrustumNear(), m_viewer->camera().getFrustumFar());

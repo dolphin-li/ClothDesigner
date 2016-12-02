@@ -130,7 +130,15 @@ void GlobalDataHolder::debug_4()
 
 	// in this example, the first 12 verts should be stithed
 	for (int k = 0; k < 12; k++)
-		m_clothManager->addStitchVert(m_clothManager->clothPiece(0), k, m_clothManager->clothPiece(1), k);
+	{
+		if (k == 5 || k == 11) continue;
+		ldp::ClothManager::StitchPoint a, b;
+		a.vids = ldp::Int2(k, k + 1);
+		a.w = 0.3;
+		b.vids = ldp::Int2(k, k + 1);
+		b.w = 0.7;
+		m_clothManager->addStitchVert(m_clothManager->clothPiece(0), a, m_clothManager->clothPiece(1), b);
+	}
 
 	// debug create levelset
 	try

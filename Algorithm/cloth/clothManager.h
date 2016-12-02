@@ -85,6 +85,12 @@ namespace ldp
 			SimulationOn,
 			SimulationPause,
 		};
+		struct StitchPoint
+		{
+			Int2 vids;
+			float w;
+		};
+		typedef std::pair<StitchPoint, StitchPoint> StitchPointPair;
 	protected:
 		struct DragInfoInternal
 		{
@@ -135,7 +141,7 @@ namespace ldp
 		void addSewings(const std::vector<std::shared_ptr<Sewing>>& sewings);
 		void removeSewing(int arrayPos);
 		void removeSewingById(int id);
-		void addStitchVert(const ClothPiece* cloth1, int mesh_vid1, const ClothPiece* cloth2, int mesh_vid2);
+		void addStitchVert(const ClothPiece* cloth1, StitchPoint s1, const ClothPiece* cloth2, StitchPoint s2);
 		std::pair<Float3, Float3> getStitchPos(int i)const;
 		int numStitches()const { return (int)m_stitches.size(); }
 
@@ -204,7 +210,7 @@ namespace ldp
 		std::vector<int> m_allVV_num;					// num of one-ring vertex of each vertex
 		std::vector<ValueType> m_fixed;					// fix constraints of vertices
 		std::vector<Int4> m_edgeWithBendEdge;			// original edges + beding edges, before sorted and unique.
-		std::vector<Int2> m_stitches;					// the elements that must be stitched together, for sewing
+		std::vector<StitchPointPair> m_stitches;		// the elements that must be stitched together, for sewing
 		std::vector<int> m_stitchVV;
 		std::vector<int> m_stitchVV_num;				// csr header of the sparse matrix vv
 		std::vector<ValueType> m_stitchVW;

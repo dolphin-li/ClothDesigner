@@ -384,18 +384,19 @@ namespace ldp
 		m_stitchVE_W.clear();
 	}
 
-	void ClothManager::addStitchVert(const ClothPiece* cloth1, int mesh_vid1, const ClothPiece* cloth2, int mesh_vid2)
+	void ClothManager::addStitchVert(const ClothPiece* cloth1, StitchPoint s1, 
+		const ClothPiece* cloth2, StitchPoint s2)
 	{
 		if (m_shouldMergePieces)
 			mergePieces();
 
-		Int2 vid;
-
 		// convert from mesh id to global id
-		vid[0] = mesh_vid1 + m_clothVertBegin.at(&cloth1->mesh3d());
-		vid[1] = mesh_vid2 + m_clothVertBegin.at(&cloth2->mesh3d());
+		s1.vids += m_clothVertBegin.at(&cloth1->mesh3d());
+		s2.vids += m_clothVertBegin.at(&cloth2->mesh3d());
+		s1.w = std::min(1.f, std::max(0.f, s1.w));
+		s2.w = std::min(1.f, std::max(0.f, s2.w));
 
-		m_stitches.push_back(vid);
+		m_stitches.push_back(StitchPointPair(s1, s2));
 
 		m_shouldStitchUpdate = true;
 	}
@@ -405,8 +406,8 @@ namespace ldp
 		const auto& stp = m_stitches.at(i);
 
 		std::pair<Float3, Float3> vp;
-		vp.first = m_X[stp[0]];
-		vp.second = m_X[stp[1]];
+		vp.first = m_X[stp.first.vids[0]] * (1 - stp.first.w) + m_X[stp.first.vids[1]] * stp.first.w;
+		vp.second = m_X[stp.second.vids[0]] * (1 - stp.second.w) + m_X[stp.second.vids[1]] * stp.second.w;
 		return vp;
 	}
 
@@ -428,8 +429,10 @@ namespace ldp
 		int nRows = 0;
 		for (const auto& s : m_stitches)
 		{
-			cooSys.push_back(Eigen::Triplet<float>(s[0], s[0], 1));
-			cooSys.push_back(Eigen::Triplet<float>(s[0], s[1], -1));
+			cooSys.push_back(Eigen::Triplet<float>(nRows, s.first.vids[0], 1 - s.first.w));
+			cooSys.push_back(Eigen::Triplet<float>(nRows, s.first.vids[1], s.first.w));
+			cooSys.push_back(Eigen::Triplet<float>(nRows, s.second.vids[0], -1 + s.second.w));
+			cooSys.push_back(Eigen::Triplet<float>(nRows, s.second.vids[1], -s.second.w));
 			nRows++;
 		}
 		SpMat A, At;
@@ -985,7 +988,7 @@ namespace ldp
 			m_clothDesignParam.triangulateThre,
 			m_clothDesignParam.pointInsidePolyThre);
 
-		m_stitches = m_triWrapper->sewingVertPairs();
+	//	m_stitches = m_triWrapper->sewingVertPairs();
 
 		// params
 		m_shouldTriangulate = false;
