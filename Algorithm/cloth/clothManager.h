@@ -139,6 +139,7 @@ namespace ldp
 	protected:
 		// Topology related--------------------------------------------------------------
 	protected:
+		void updateDependency();
 		void mergePieces();
 		void buildTopology();
 		void buildNumerical();

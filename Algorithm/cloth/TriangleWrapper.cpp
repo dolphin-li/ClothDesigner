@@ -226,11 +226,9 @@ namespace ldp
 		auto& mesh3dInit = piece.mesh3dInit();
 		auto& transInfo = piece.transformInfo();
 
-		mesh2d.vertex_list.clear();
+		mesh2d.clear();
 		for (const auto& v : m_triVertsBuffer)
 			mesh2d.vertex_list.push_back(ldp::Float3(v[0], v[1], 0));
-		mesh2d.face_list.clear();
-		mesh2d.material_list.clear();
 		mesh2d.material_list.push_back(ObjMesh::obj_material());
 		for (const auto& t : m_triBuffer)
 		{

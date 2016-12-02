@@ -78,6 +78,7 @@ namespace ldp
 		m_manager->clearSewings();
 		for (int i = 0; i < myData.sewings.size(); i++)
 			m_manager->addSewing(SewingPtr(myData.sewings[i]->clone()));
+		m_manager->simulationInit();
 
 		IdxPool::enableIdxIncrement();
 	}

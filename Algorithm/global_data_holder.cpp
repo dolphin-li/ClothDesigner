@@ -182,10 +182,10 @@ void GlobalDataHolder::debug_5()
 	// debug create levelset
 	try
 	{
-		//m_clothManager->bodyLevelSet()->load("data/wm2_15k.set");
+		m_clothManager->bodyLevelSet()->load("data/wm2_15k.set");
 	} catch (std::exception e)
 	{
-		const float step = 0.003;
+		const float step = 0.01;
 		auto bmin = body->boundingBox[0];
 		auto bmax = body->boundingBox[1];
 		auto brag = bmax - bmin;

@@ -118,7 +118,7 @@ namespace ldp
 			m_clothPieces[i]->mesh3d().cloneFrom(&m_clothPieces[i]->mesh3dInit());
 		m_dev_phi.upload(m_bodyLvSet->value(), m_bodyLvSet->sizeXYZ());
 		m_shouldTriangulate = true;
-		m_curStitchRatio = 1;
+		updateDependency();
 		triangulate();
 		mergePieces();
 		buildTopology();
@@ -133,6 +133,9 @@ namespace ldp
 			return;
 		if (m_X.size() == 0)
 			return;
+		updateDependency();
+		if (m_shouldTriangulate)
+			triangulate();
 		if (m_shouldMergePieces)
 			mergePieces();
 		if (m_shouldTopologyUpdate)
@@ -400,6 +403,7 @@ namespace ldp
 
 	int ClothManager::numStitches()
 	{
+		updateDependency();
 		if (m_shouldMergePieces)
 			mergePieces();
 		return (int)m_stitches.size(); 
@@ -407,6 +411,7 @@ namespace ldp
 
 	std::pair<Float3, Float3> ClothManager::getStitchPos(int i)
 	{
+		updateDependency();
 		if (m_shouldMergePieces)
 			mergePieces();
 		StitchPointPair stp = m_stitches.at(i);
@@ -444,6 +449,7 @@ namespace ldp
 
 	void ClothManager::buildStitch()
 	{
+		updateDependency();
 		if (m_shouldNumericUpdate)
 			buildNumerical();
 		m_simulationParam.stitch_k = m_simulationParam.stitch_k_raw / m_avgArea;
@@ -474,7 +480,8 @@ namespace ldp
 		m_stitchEV_num.clear();
 		m_stitchEV.clear();
 		m_stitchEV_W.clear();
-		m_stitchEV_num.resize(At.cols() + 1);
+		m_stitchEV_num.clear();
+		m_stitchEV_num.resize(At.cols() + 1, 0);
 		for (int c = 0; c < At.cols(); c++)
 		{
 			const int bg = At.outerIndexPtr()[c];
@@ -503,7 +510,8 @@ namespace ldp
 		// stich VE info--------------------------------------------------
 		m_stitchVE.clear();
 		m_stitchVE_W.clear();
-		m_stitchVE_num.resize(A.cols() + 1);
+		m_stitchVE_num.clear();
+		m_stitchVE_num.resize(A.cols() + 1, 0);
 		for (int c = 0; c < A.cols(); c++)
 		{
 			const int bg = A.outerIndexPtr()[c];
@@ -521,8 +529,10 @@ namespace ldp
 
 		// stich VV info--------------------------------------------------
 		SpMat AtA = A.transpose()*A;
-		m_stitchVV_num.resize(m_X.size() + 1);
-		m_stitchVC.resize(m_X.size());
+		m_stitchVV_num.clear();
+		m_stitchVV_num.resize(m_X.size() + 1, 0);
+		m_stitchVC.clear();
+		m_stitchVC.resize(m_X.size(), 0);
 		m_stitchVV.clear();
 		m_stitchVV.reserve(AtA.nonZeros());
 		m_stitchVW.clear();
@@ -573,8 +583,21 @@ namespace ldp
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////
+	void ClothManager::updateDependency()
+	{
+		if (m_shouldTriangulate)
+			m_shouldMergePieces = true;
+		if (m_shouldMergePieces)
+			m_shouldTopologyUpdate = true;
+		if (m_shouldTopologyUpdate)
+			m_shouldNumericUpdate = true;
+		if (m_shouldNumericUpdate)
+			m_shouldStitchUpdate = true;
+	}
+
 	void ClothManager::buildTopology()
 	{
+		updateDependency();
 		if (m_shouldMergePieces)
 			mergePieces();
 		m_V.resize(m_X.size());
@@ -644,12 +667,14 @@ namespace ldp
 
 		// parameter
 		m_simulationParam.spring_k = m_simulationParam.spring_k_raw / m_avgArea;
+		m_curStitchRatio = 1;
 		m_shouldTopologyUpdate = false;
 		m_shouldNumericUpdate = true;
 	}
 
 	void ClothManager::buildNumerical()
 	{
+		updateDependency();
 		if (m_shouldTopologyUpdate)
 			buildTopology();
 		// compute matrix related values
@@ -946,10 +971,12 @@ namespace ldp
 
 		// 2. triangluation
 		triangulate();
+		updateDependency();
 	}
 
 	void ClothManager::triangulate()
 	{
+		updateDependency();
 		if (m_clothPieces.empty())
 			return;
 		bool noPanel = true;
@@ -1031,7 +1058,6 @@ namespace ldp
 	{
 		m_sewings.push_back(std::shared_ptr<Sewing>(sewing->clone()));
 		m_shouldTriangulate = true;
-		m_shouldMergePieces = true;
 	}
 
 	void ClothManager::addSewings(const std::vector<std::shared_ptr<Sewing>>& sewings)
@@ -1039,7 +1065,6 @@ namespace ldp
 		for (const auto& s : sewings)
 			m_sewings.push_back(std::shared_ptr<Sewing>(s->clone()));
 		m_shouldTriangulate = true;
-		m_shouldMergePieces = true;
 	}
 
 	/////UI operations///////////////////////////////////////////////////////////////////////////////////////
@@ -1211,8 +1236,7 @@ namespace ldp
 			} // end for tempSewings
 		}
 		m_stitches.clear();
-		triangulate();
-		mergePieces();
+		m_shouldTriangulate = true;
 		return !removedId.empty();
 	}
 
@@ -1230,10 +1254,7 @@ namespace ldp
 			} // end for sew
 		} // end for tempSewings
 		if (change)
-		{
 			m_shouldTriangulate = true;
-			m_shouldMergePieces = true;
-		}
 		return change;
 	}
 
