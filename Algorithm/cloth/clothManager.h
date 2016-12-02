@@ -7,6 +7,7 @@
 #include <map>
 #include <set>
 #include "definations.h"
+#include "AbstractPanelObject.h"
 //#define ENABLE_SELF_COLLISION
 #ifdef ENABLE_SELF_COLLISION
 #include "COLLISION_HANDLER.h"
@@ -68,6 +69,10 @@ namespace ldp
 		void setSimulationMode(SimulationMode mode);
 		void setSimulationParam(SimulationParam param);
 		void setClothDesignParam(ClothDesignParam param);
+		float getFps()const { return m_fps; }
+		SimulationMode getSimulationMode()const { return m_simulationMode; }
+		SimulationParam getSimulationParam()const { return m_simulationParam; }
+		ClothDesignParam getClothDesignParam()const { return m_clothDesignParam; }
 
 		/// mesh backup related
 		void updateCurrentClothsToInitial();
@@ -82,28 +87,29 @@ namespace ldp
 		Sewing* sewing(int i) { return m_sewings.at(i).get(); }
 		void addSewing(std::shared_ptr<Sewing> sewing);
 		void addSewings(const std::vector<std::shared_ptr<Sewing>>& sewings);
-		void removeSewing(int arrayPos);
-		void removeSewingById(int id);
 		void addStitchVert(const ClothPiece* cloth1, StitchPoint s1, const ClothPiece* cloth2, StitchPoint s2);
-		std::pair<Float3, Float3> getStitchPos(int i)const;
-		int numStitches()const { return (int)m_stitches.size(); }
+		std::pair<Float3, Float3> getStitchPos(int i);
+		int numStitches();
 
-		/// getters
-		float getFps()const { return m_fps; }
-		SimulationMode getSimulationMode()const { return m_simulationMode; }
-		SimulationParam getSimulationParam()const { return m_simulationParam; }
-		ClothDesignParam getClothDesignParam()const { return m_clothDesignParam; }
+		/// body mesh
 		const ObjMesh* bodyMesh()const { return m_bodyMesh.get(); }
 		ObjMesh* bodyMesh() { return m_bodyMesh.get(); }
 		const LevelSet3D* bodyLevelSet()const { return m_bodyLvSet.get(); }
 		LevelSet3D* bodyLevelSet() { return m_bodyLvSet.get(); }
+
+		/// cloth pieces
 		int numClothPieces()const { return (int)m_clothPieces.size(); }
 		const ClothPiece* clothPiece(int i)const { return m_clothPieces.at(i).get(); }
 		ClothPiece* clothPiece(int i) { return m_clothPieces.at(i).get(); }
 		void clearClothPieces();
 		void addClothPiece(std::shared_ptr<ClothPiece> piece);
-		void removeClothPiece(int i);
+
+		/// bounding box
 		void get2dBound(ldp::Float2& bmin, ldp::Float2& bmax)const;
+
+		///
+		bool removeSelected(AbstractPanelObject::Type types);
+	protected:
 	private:
 		std::vector<std::shared_ptr<Sewing>> m_sewings;
 		std::vector<std::shared_ptr<ClothPiece>> m_clothPieces;

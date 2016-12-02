@@ -142,6 +142,18 @@ void Edit2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 		if (ev->modifiers() == (Qt::CTRL | Qt::SHIFT))
 			op = ldp::AbstractPanelObject::SelectInverse;
 		break;
+	case Qt::Key_Delete:
+		if (ev->modifiers() == Qt::NoModifier)
+		{
+			bool change = manager->removeSelected(ldp::AbstractPanelObject::Type(
+				size_t(ldp::AbstractPanelObject::TypePanelPolygon) 
+				| size_t(ldp::AbstractPanelObject::TypeGroup)
+				));
+			if (m_viewer->getMainUI() && change)
+				m_viewer->getMainUI()->pushHistory(QString().sprintf("pattern removed",
+				op), ldp::HistoryStack::TypeGeneral);
+		}
+		break;
 	}
 
 	bool changed = false;

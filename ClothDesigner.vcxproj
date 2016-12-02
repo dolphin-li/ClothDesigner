@@ -403,6 +403,7 @@
   <ItemGroup>
     <ClInclude Include="Algorithm\camera\Camera.h" />
     <ClInclude Include="Algorithm\camera\fmath.h" />
+    <ClInclude Include="Algorithm\cloth\AbstractPanelObject.h" />
     <ClInclude Include="Algorithm\cloth\clothManager.h" />
     <ClInclude Include="Algorithm\cloth\clothPiece.h" />
     <ClInclude Include="Algorithm\cloth\COLLISION_HANDLER.h" />

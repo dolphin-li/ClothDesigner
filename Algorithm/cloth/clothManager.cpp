@@ -302,6 +302,7 @@ namespace ldp
 		m_T.clear();
 		m_avgArea = 0;
 		m_avgEdgeLength = 0;
+		m_shouldTriangulate = true;
 		m_shouldMergePieces = false;
 	}
 
@@ -310,12 +311,6 @@ namespace ldp
 		m_clothPieces.push_back(piece); 
 		m_shouldMergePieces = true;
 		m_shouldTriangulate = true;
-	}
-
-	void ClothManager::removeClothPiece(int i) 
-	{ 
-		m_clothPieces.erase(m_clothPieces.begin() + i);
-		m_shouldMergePieces = true;
 	}
 
 	void ClothManager::mergePieces()
@@ -382,6 +377,8 @@ namespace ldp
 		m_stitchVE.clear();
 		m_stitchVE_num.clear();
 		m_stitchVE_W.clear();
+		m_shouldTriangulate = true;
+		m_shouldMergePieces = true;
 	}
 
 	void ClothManager::addStitchVert(const ClothPiece* cloth1, StitchPoint s1, 
@@ -401,8 +398,17 @@ namespace ldp
 		m_shouldStitchUpdate = true;
 	}
 
-	std::pair<Float3, Float3> ClothManager::getStitchPos(int i)const
+	int ClothManager::numStitches()
 	{
+		if (m_shouldMergePieces)
+			mergePieces();
+		return (int)m_stitches.size(); 
+	}
+
+	std::pair<Float3, Float3> ClothManager::getStitchPos(int i)
+	{
+		if (m_shouldMergePieces)
+			mergePieces();
 		StitchPointPair stp = m_stitches.at(i);
 
 		const ObjMesh* fmesh = nullptr, *smesh = nullptr;
@@ -442,7 +448,6 @@ namespace ldp
 			buildNumerical();
 		m_simulationParam.stitch_k = m_simulationParam.stitch_k_raw / m_avgArea;
 
-#if 1
 		typedef Eigen::SparseMatrix<ValueType> SpMat;
 		typedef Eigen::Matrix<ValueType, -1, -1> DMat;
 		typedef Eigen::Matrix<ValueType, -1, 1> DVec;
@@ -547,58 +552,7 @@ namespace ldp
 			} // end for pos
 		} // end for c
 		m_stitchVV_num.back() = curOffDiagIdx;
-#else
-		// build edges
-		auto edges = m_stitches;
-		for (const auto& s : m_stitches)
-		{
-			edges.push_back(Int2(s[1], s[0]));
-			edges.push_back(Int2(s[0], s[1]));
-		}
-		std::sort(edges.begin(), edges.end());
-		edges.resize(std::unique(edges.begin(), edges.end()) - edges.begin());
 
-		// setup one-ring vertex info
-		size_t eIdx = 0;
-		m_stitchVV_num.clear();
-		m_stitchVV_num.reserve(m_X.size() + 1);
-		m_stitchVV.clear();
-		for (size_t i = 0; i<m_X.size(); i++)
-		{
-			m_stitchVV_num.push_back(m_stitchVV.size());
-			for (; eIdx<edges.size(); eIdx++)
-			{
-				const auto& e = edges[eIdx];
-				if (e[0] != i)
-					break;		// not in the right vertex
-				if (eIdx != 0 && e[1] == e[0])
-					continue;	// duplicate
-				m_stitchVV.push_back(e[1]);
-			}
-		} // end for i
-		m_stitchVV_num.push_back(m_stitchVV.size());
-
-		// compute matrix related values
-		m_stitchVL.resize(m_stitchVV.size());
-		m_stitchVW.resize(m_stitchVV.size());
-		m_stitchVC.resize(m_X.size());
-		std::fill(m_stitchVL.begin(), m_stitchVL.end(), ValueType(0));
-		std::fill(m_stitchVW.begin(), m_stitchVW.end(), ValueType(0));
-		std::fill(m_stitchVC.begin(), m_stitchVC.end(), ValueType(0));
-		for (size_t iv = 0; iv < m_stitches.size(); iv++)
-		{
-			const auto& v = m_stitches[iv];
-
-			// first, handle spring length			
-			ValueType l = (m_X[v[0]] - m_X[v[1]]).length();
-			m_stitchVL[findStitchNeighbor(v[0], v[1])] = l;
-			m_stitchVL[findStitchNeighbor(v[1], v[0])] = l;
-			m_stitchVC[v[0]] += m_simulationParam.stitch_k;
-			m_stitchVC[v[1]] += m_simulationParam.stitch_k;
-			m_stitchVW[findStitchNeighbor(v[0], v[1])] -= m_simulationParam.stitch_k;
-			m_stitchVW[findStitchNeighbor(v[1], v[0])] -= m_simulationParam.stitch_k;
-		} // end for all edges
-#endif
 		// copy to GPU
 		m_dev_stitch_VV.upload(m_stitchVV);
 		m_dev_stitch_VV_num.upload(m_stitchVV_num);
@@ -1076,33 +1030,190 @@ namespace ldp
 	void ClothManager::addSewing(std::shared_ptr<Sewing> sewing)
 	{
 		m_sewings.push_back(std::shared_ptr<Sewing>(sewing->clone()));
-		triangulate();
+		m_shouldTriangulate = true;
+		m_shouldMergePieces = true;
 	}
 
 	void ClothManager::addSewings(const std::vector<std::shared_ptr<Sewing>>& sewings)
 	{
 		for (const auto& s : sewings)
 			m_sewings.push_back(std::shared_ptr<Sewing>(s->clone()));
-		triangulate();
+		m_shouldTriangulate = true;
+		m_shouldMergePieces = true;
 	}
 
-	void ClothManager::removeSewing(int arrayPos)
+	////////////////////////////////////////////////////////////////////////////////////////////
+	bool ClothManager::removeSelected(AbstractPanelObject::Type types)
 	{
-		m_sewings.erase(m_sewings.begin() + arrayPos);
-		triangulate();
-	}
-
-	void ClothManager::removeSewingById(int id)
-	{
-		for (size_t i = 0; i < m_sewings.size(); i++)
+		auto tmpPieces = m_clothPieces;
+		if (types & AbstractPanelObject::TypePanelPolygon)
+			m_clothPieces.clear();
+		std::set<size_t> removedId;
+		std::vector<AbstractPanelObject*> tmpObjs;
+		for (auto& piece : tmpPieces)
 		{
-			if (m_sewings[i]->getId() == id)
+			auto& panel = piece->panel();
+			auto& poly = piece->panel().outerPoly();
+			if (poly == nullptr)
+				continue;
+
+			// panel
+			if (types & AbstractPanelObject::TypePanelPolygon)
 			{
-				m_sewings.erase(m_sewings.begin() + i);
-				break;
+				if (panel.isSelected() || poly->isSelected())
+				{
+					tmpObjs.clear();
+					panel.collectObject(tmpObjs);
+					for (auto o : tmpObjs)
+						removedId.insert(o->getId());
+					continue;
+				}
+				m_clothPieces.push_back(piece);
 			}
+
+			// poly
+			if (types & AbstractPanelObject::TypeGroup)
+			{
+				auto tmpPoly = *poly;
+				poly->clear();
+				for (const auto& shape : tmpPoly)
+				{
+					if (shape->isSelected())
+					{
+						tmpObjs.clear();
+						shape->collectObject(tmpObjs);
+						for (auto o : tmpObjs)
+							removedId.insert(o->getId());
+						continue;
+					} // end for shape
+					poly->push_back(shape);
+				} // end for tmpPoly
+			}
+
+			// darts
+			if (types & AbstractPanelObject::TypeGroup)
+			{
+				auto tmpDarts = panel.darts();
+				panel.darts().clear();
+				for (const auto& dart : tmpDarts)
+				{
+					if (dart->isSelected())
+					{
+						tmpObjs.clear();
+						dart->collectObject(tmpObjs);
+						for (auto o : tmpObjs)
+							removedId.insert(o->getId());
+						continue;
+					}
+					panel.darts().push_back(dart);
+
+					// dart
+					auto tmpDart = *dart;
+					dart->clear();
+					for (const auto& shape : tmpDart)
+					{
+						if (shape->isSelected())
+						{
+							tmpObjs.clear();
+							shape->collectObject(tmpObjs);
+							for (auto o : tmpObjs)
+								removedId.insert(o->getId());
+							continue;
+						} // end for shape
+						dart->push_back(shape);
+					} // end for tmpDart
+				} // end for dart
+			}
+
+			// lines
+			if (types & AbstractPanelObject::TypeGroup)
+			{
+				auto tmpLines = panel.innerLines();
+				panel.innerLines().clear();
+				for (const auto& line : tmpLines)
+				{
+					if (line->isSelected())
+					{
+						tmpObjs.clear();
+						line->collectObject(tmpObjs);
+						for (auto o : tmpObjs)
+							removedId.insert(o->getId());
+						continue;
+					}
+					panel.innerLines().push_back(line);
+
+					// line
+					auto tmpLine = *line;
+					line->clear();
+					for (const auto& shape : tmpLine)
+					{
+						if (shape->isSelected())
+						{
+							tmpObjs.clear();
+							shape->collectObject(tmpObjs);
+							for (auto o : tmpObjs)
+								removedId.insert(o->getId());
+							continue;
+						} // end for shape
+						line->push_back(shape);
+					} // end for tmpDart
+				} // end for line
+			} // end for piece
+		} // end for piece
+
+		// if some shape removed, then we should update the sewings
+		if (!removedId.empty())
+		{
+			auto tempSewings = m_sewings;
+			m_sewings.clear();
+			for (auto& sew : tempSewings)
+			{
+				const auto& firsts = sew->firsts();
+				const auto& seconds = sew->seconds();
+				bool invalid = false;
+				for (const auto& f : firsts)
+				{
+					if (removedId.find(f.id) != removedId.end())
+					{
+						invalid = true;
+						break;
+					}
+				}
+				for (const auto& s : seconds)
+				{
+					if (removedId.find(s.id) != removedId.end())
+					{
+						invalid = true;
+						break;
+					}
+				}
+				if (!invalid)
+					m_sewings.push_back(sew);
+			} // end for tempSewings
+		} // end if removedId.notEmpty()
+
+		// sewings selected
+		if (types & AbstractPanelObject::TypeSewing)
+		{
+			auto tempSewings = m_sewings;
+			m_sewings.clear();
+			for (auto& sew : tempSewings)
+			{
+				if (sew->isSelected())
+				{
+					tmpObjs.clear();
+					sew->collectObject(tmpObjs);
+					for (auto o : tmpObjs)
+						removedId.insert(o->getId());
+					continue;
+				} // end for sew
+				m_sewings.push_back(sew);
+			} // end for tempSewings
 		}
+		m_stitches.clear();
 		triangulate();
+		mergePieces();
+		return !removedId.empty();
 	}
 
 	////Params//////////////////////////////////////////////////////////////////////////////////
@@ -1119,7 +1230,7 @@ namespace ldp
 		curveFittingThre = 1e-3;				// in meters
 		triangulateThre = 3e-2;					// in meters
 	}
-
+	 
 	SimulationParam::SimulationParam()
 	{
 		setDefaultParam();

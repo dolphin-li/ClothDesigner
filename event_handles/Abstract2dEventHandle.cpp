@@ -166,11 +166,7 @@ void Abstract2dEventHandle::wheelEvent(QWheelEvent *ev)
 
 void Abstract2dEventHandle::keyPressEvent(QKeyEvent *ev)
 {
-	switch (ev->key())
-	{
-	default:
-		break;
-	}
+
 }
 
 void Abstract2dEventHandle::keyReleaseEvent(QKeyEvent *ev)
