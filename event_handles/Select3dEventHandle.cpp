@@ -128,12 +128,12 @@ void Select3dEventHandle::keyPressEvent(QKeyEvent *ev)
 	case Qt::Key_Space:
 		if (m_viewer->getManager())
 		{
-			if (m_viewer->getManager()->getSimulationMode() == ldp::ClothManager::SimulationNotInit)
+			if (m_viewer->getManager()->getSimulationMode() == ldp::SimulationNotInit)
 				m_viewer->getManager()->simulationInit();
-			if (m_viewer->getManager()->getSimulationMode() == ldp::ClothManager::SimulationOn)
-				m_viewer->getManager()->setSimulationMode(ldp::ClothManager::SimulationPause);
-			else if (m_viewer->getManager()->getSimulationMode() == ldp::ClothManager::SimulationPause)
-				m_viewer->getManager()->setSimulationMode(ldp::ClothManager::SimulationOn);
+			if (m_viewer->getManager()->getSimulationMode() == ldp::SimulationOn)
+				m_viewer->getManager()->setSimulationMode(ldp::SimulationPause);
+			else if (m_viewer->getManager()->getSimulationMode() == ldp::SimulationPause)
+				m_viewer->getManager()->setSimulationMode(ldp::SimulationOn);
 		}
 		break;
 	}

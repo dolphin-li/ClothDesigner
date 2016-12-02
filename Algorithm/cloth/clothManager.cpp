@@ -403,11 +403,36 @@ namespace ldp
 
 	std::pair<Float3, Float3> ClothManager::getStitchPos(int i)const
 	{
-		const auto& stp = m_stitches.at(i);
+		StitchPointPair stp = m_stitches.at(i);
+
+		const ObjMesh* fmesh = nullptr, *smesh = nullptr;
+		for (auto map : m_clothVertBegin)
+		{
+			if (stp.first.vids[0] >= map.second 
+				&& stp.first.vids[0] < map.second + map.first->vertex_list.size()
+				&& fmesh == nullptr)
+			{
+				fmesh = map.first;
+				stp.first.vids -= map.second;
+			}
+
+			if (stp.second.vids[0] >= map.second
+				&& stp.second.vids[0] < map.second + map.first->vertex_list.size() 
+				&& smesh == nullptr)
+			{
+				smesh = map.first;
+				stp.second.vids -= map.second;
+			}
+		} // end for id
+
+		if (fmesh == nullptr || smesh == nullptr)
+			throw std::exception("getStitchPos() error: given stitch not found!\n");
 
 		std::pair<Float3, Float3> vp;
-		vp.first = m_X[stp.first.vids[0]] * (1 - stp.first.w) + m_X[stp.first.vids[1]] * stp.first.w;
-		vp.second = m_X[stp.second.vids[0]] * (1 - stp.second.w) + m_X[stp.second.vids[1]] * stp.second.w;
+		vp.first = fmesh->vertex_list[stp.first.vids[0]] * (1 - stp.first.w) 
+			+ fmesh->vertex_list[stp.first.vids[1]] * stp.first.w;
+		vp.second = smesh->vertex_list[stp.second.vids[0]] * (1 - stp.second.w) 
+			+ smesh->vertex_list[stp.second.vids[1]] * stp.second.w;
 		return vp;
 	}
 
@@ -988,7 +1013,7 @@ namespace ldp
 			m_clothDesignParam.triangulateThre,
 			m_clothDesignParam.pointInsidePolyThre);
 
-	//	m_stitches = m_triWrapper->sewingVertPairs();
+		m_stitches = m_triWrapper->sewingVertPairs();
 
 		// params
 		m_shouldTriangulate = false;

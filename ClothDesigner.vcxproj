@@ -407,6 +407,7 @@
     <ClInclude Include="Algorithm\cloth\clothPiece.h" />
     <ClInclude Include="Algorithm\cloth\COLLISION_HANDLER.h" />
     <ClInclude Include="Algorithm\cloth\cuda_utils.h" />
+    <ClInclude Include="Algorithm\cloth\definations.h" />
     <ClInclude Include="Algorithm\cloth\device_array.h" />
     <ClInclude Include="Algorithm\cloth\device_memory.h" />
     <ClInclude Include="Algorithm\cloth\device_utils.h" />

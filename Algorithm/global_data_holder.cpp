@@ -132,8 +132,8 @@ void GlobalDataHolder::debug_4()
 	for (int k = 0; k < 12; k++)
 	{
 		if (k == 5 || k == 11) continue;
-		ldp::ClothManager::StitchPoint a, b;
-		a.vids = ldp::Int2(k, k + 1);
+		ldp::StitchPoint a, b;
+		a.vids = ldp::Int2(k, k );
 		a.w = 0.3;
 		b.vids = ldp::Int2(k, k + 1);
 		b.w = 0.7;
@@ -182,7 +182,7 @@ void GlobalDataHolder::debug_5()
 	// debug create levelset
 	try
 	{
-	//	m_clothManager->bodyLevelSet()->load("data/wm2_15k.set");
+		//m_clothManager->bodyLevelSet()->load("data/wm2_15k.set");
 	} catch (std::exception e)
 	{
 		const float step = 0.003;

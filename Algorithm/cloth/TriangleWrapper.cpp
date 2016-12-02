@@ -18,11 +18,6 @@ namespace ldp
 		init_trianglulateio(m_in);
 		init_trianglulateio(m_out);
 		init_trianglulateio(m_vro);
-		m_pieces = nullptr;
-		m_sewings = nullptr;
-		m_ptMergeThre = 0;
-		m_ptOnLineThre = 0;
-		m_triSize = 0;
 	}
 
 	TriangleWrapper::~TriangleWrapper()
@@ -81,189 +76,32 @@ namespace ldp
 	void TriangleWrapper::precomputeSewing()
 	{
 		m_sampleParams.clear();
-		m_sewingVertPairs.clear();
+		m_shapePieceMap.clear();
 
 		// 1. calc basic nums, without considering the sewings
 		const float step = m_triSize;
-		const float thre = m_ptMergeThre;
 		for (auto& piece : (*m_pieces))
 		{
 			const auto& panel = piece->panel();
 			if (panel.outerPoly())
 			for (const auto& shape : *panel.outerPoly())
+			{
 				addSampleParam(shape.get(), step / shape->getLength());
+				m_shapePieceMap[shape.get()] = piece.get();
+			}
 			for (const auto& dart : panel.darts())
 			for (const auto& shape : *dart)
+			{
 				addSampleParam(shape.get(), step / shape->getLength());
+				m_shapePieceMap[shape.get()] = piece.get();
+			}
 			for (const auto& line : panel.innerLines())
 			for (const auto& shape : *line)
+			{
 				addSampleParam(shape.get(), step / shape->getLength());
+				m_shapePieceMap[shape.get()] = piece.get();
+			}
 		} // end for piece
-
-		//////////////////////////////////////////////////////////////////////
-		/// until this step, we can perform triangulation, but not good sewings...
-		//////////////////////////////////////////////////////////////////////
-		//return;
-
-		// 2. considering the sewings, adjust the nums
-		std::vector<int> sew_valid(m_sewings->size(), 0);
-		for (size_t isew = 0; isew < m_sewings->size(); isew++)
-		{
-			const auto& sew = (*m_sewings)[isew];
-			if (sew->empty())
-				continue;
-			const auto& firsts = sew->firsts();
-			const auto& seconds = sew->seconds();
-			float fLen = 0, sLen = 0;
-			bool invalid_sewing = false;
-			for (const auto& f : firsts)
-			{
-				auto shape = (const ldp::AbstractShape*)Sewing::getPtrById(f.id);
-				fLen += shape->getLength();
-				if (m_sampleParams.find(shape) == m_sampleParams.end())
-				{
-					printf("warning: invalid sewing %d\n", shape->getId());
-					invalid_sewing = true;
-					break;
-				}
-			} // end for f
-			for (const auto& s : seconds)
-			{
-				auto shape = (const ldp::AbstractShape*)Sewing::getPtrById(s.id);
-				sLen += shape->getLength();
-				if (m_sampleParams.find(shape) == m_sampleParams.end())
-				{
-					printf("warning: invalid sewing %d\n", shape->getId());
-					invalid_sewing = true;
-					break;
-				}
-			} // end for f
-
-			if (invalid_sewing)
-				continue;
-
-			// make the step in the same range
-			float fStep = step, sStep = step;
-			if (fLen < sLen)
-				fStep *= fLen / sLen;
-			else
-				sStep *= sLen / fLen;
-			for (auto& f : firsts)
-			{
-				auto shape = (const AbstractShape*)Sewing::getPtrById(f.id);
-				addSampleParam(shape, fStep / shape->getLength());
-			}
-			for (auto& s : seconds)
-			{
-				auto shape = (const AbstractShape*)Sewing::getPtrById(s.id);
-				addSampleParam(shape, sStep / shape->getLength());
-			}
-			sew_valid[isew] = 1;
-		} // end for sew
-
-		//////////////////////////////////////////////////////////////////////
-		/// until this step, we can make the triangulation density similar w.r.t the sewing
-		//////////////////////////////////////////////////////////////////////
-		return;
-
-		// 3. consider param matching: if sewing.first[t] exist in sewing.second[t]
-		std::vector<float> fLens, sLens;
-		std::vector<SampleParam> tmpF, tmpS;
-		for (size_t isew = 0; isew < m_sewings->size(); isew++)
-		{
-			if (!sew_valid[isew])
-				continue;
-			const auto& sew = (*m_sewings)[isew];
-			const auto& firsts = sew->firsts();
-			const auto& seconds = sew->seconds();
-			fLens.clear();
-			sLens.clear();
-			fLens.push_back(0.f);
-			sLens.push_back(0.f);
-			for (const auto& f : firsts)
-			{
-				auto shape = (const ldp::AbstractShape*)Sewing::getPtrById(f.id);
-				fLens.push_back(fLens.back() + shape->getLength());
-			} // end for f
-			for (const auto& s : seconds)
-			{
-				auto shape = (const ldp::AbstractShape*)Sewing::getPtrById(s.id);
-				sLens.push_back(sLens.back() + shape->getLength());
-			} // end for f
-
-			// normalize
-			for (auto& l : fLens)
-				l /= fLens.back();
-			for (auto& l : sLens)
-				l /= sLens.back();
-
-			// make param conincident
-			size_t fPos = 0, sPos = 0, fPos_1=0, sPos_1=0;
-			for (; fPos < firsts.size() && sPos < seconds.size();)
-			{
-				const auto& f = firsts[fPos];
-				const auto& s = seconds[sPos];
-				auto fshape = (const AbstractShape*)Sewing::getPtrById(f.id);
-				auto sshape = (const AbstractShape*)Sewing::getPtrById(s.id);
-				auto& fparams = m_sampleParams[fshape]->params;
-				auto& sparams = m_sampleParams[sshape]->params;
-				const float fStart = fLens[fPos];
-				const float fLen = fLens[fPos + 1] - fStart;
-				const float sStart = sLens[sPos];
-				const float sLen = sLens[sPos + 1] - sStart;
-
-				// reverse before matching
-				//if (f.reverse)
-				//	std::reverse(fparams.begin(), fparams.end());
-				//if (s.reverse)
-				//	std::reverse(sparams.begin(), sparams.end());
-
-				// matching now
-				for (; fPos_1 < fparams.size() && sPos_1 < sparams.size();)
-				{
-					float ft = f.reverse ? 1 -1+ fparams[fPos_1].t : fparams[fPos_1].t;
-					float st = s.reverse ? 1 -1+ sparams[sPos_1].t : sparams[sPos_1].t;
-					ft = ft * fLen + fStart;
-					st = st * sLen + sStart;
-					if (fabs(ft - st) < thre)
-					{
-						tmpF.push_back(fparams[fPos_1++]);
-						tmpS.push_back(sparams[sPos_1++]);
-					}
-					else if (ft < st)
-					{
-						tmpS.push_back(SampleParam((ft-sStart)/sLen, 0));
-						fPos_1++;
-					}
-					else
-					{
-						tmpF.push_back(SampleParam((st - fStart) / fLen, 0));
-						sPos_1++;
-					}
-				} // end for fPos_1, sPos_1
-
-				if (fPos_1 == fparams.size())
-				{
-					fparams = tmpF;
-					tmpF.clear();
-					fPos++;
-					fPos_1 = 0;
-					//if (f.reverse)
-					//	std::reverse(fparams.begin(), fparams.end());
-				}
-				if (sPos_1 == sparams.size())
-				{
-					sparams = tmpS;
-					tmpS.clear();
-					sPos++;
-					sPos_1 = 0;
-					//if (s.reverse)
-					//	std::reverse(sparams.begin(), sparams.end());
-				}
-
-				// recover the reversing
-			} // end for fpos, spos
-		} // end for sew
 	}
 
 	void TriangleWrapper::addSampleParam(const AbstractShape* shape, float step)
@@ -301,8 +139,12 @@ namespace ldp
 				if (m_points.size() != startIdx)
 				{
 					if ((m_points.back() - p).length() < thre || (m_points[startIdx] - p).length() < thre)
+					{
+						sp.idx = int(m_points.size()) - 1; // merged to the last point
 						continue;
+					}
 				}
+				sp.idx = int(m_points.size());
 				m_points.push_back(p);
 			} // end for p
 		} // end for shape
@@ -406,9 +248,157 @@ namespace ldp
 		mesh3d.cloneFrom(&mesh3dInit);
 	}
 
+	static int findParamRange(float t, const std::vector<float>& ranges)
+	{
+		int bg = 0, ed = (int)ranges.size()-1;
+		while (bg < ed)
+		{
+			float tb = ranges[bg];
+			float te = ranges[ed];
+			if (t <= te && t >= tb && ed - bg == 1)
+				return bg;
+			int mid = (bg + ed) / 2;
+			float tm = ranges[mid];
+			if (t <= tm && t >= tb)
+				ed = mid;
+			else if (t >= tm && t <= te)
+				bg = mid;
+			else
+				return -1;
+		}
+		return -1;
+	}
+
 	void TriangleWrapper::postComputeSewing()
 	{
+		// 1. remove invalid samples
+		std::vector<SampleParam> tmpVec;
+		for (auto& iter : m_sampleParams)
+		{
+			auto& params = iter.second->params;
+			tmpVec = params;
+			params.clear();
+			for (const auto& p : tmpVec)
+			{
+				if (p.idx >= 0)
+					params.push_back(p);
+			}
+		} // end for iter
 
+		// 2. count the verts of each piece and accumulate
+		m_vertStart.clear();
+		int vertNum = 0;
+		for (const auto& piece : *m_pieces)
+		{
+			m_vertStart[piece.get()] = vertNum;
+			vertNum += (int)piece->mesh2d().vertex_list.size();
+		}
+
+		// 2. make stitching
+		m_stitches.clear();
+		std::vector<StitchPoint> fpts, spts;
+		std::vector<float> fLens, sLens, fParams;
+		for (const auto& sew : *m_sewings)
+		{
+			if (sew->empty())
+				continue;
+			const auto& firsts = sew->firsts();
+			const auto& seconds = sew->seconds();
+
+			// update param
+			fLens.clear();
+			sLens.clear();
+			fLens.push_back(0);
+			sLens.push_back(0);
+			for (const auto& f : firsts)
+				fLens.push_back(fLens.back() + ((const AbstractShape*)Sewing::getPtrById(f.id))->getLength());
+			for (const auto& s : seconds)
+				sLens.push_back(sLens.back() + ((const AbstractShape*)Sewing::getPtrById(s.id))->getLength());
+			for (auto& f : fLens)
+				f /= fLens.back();
+			for (auto& s : sLens)
+				s /= sLens.back();
+
+			// sampel points now
+			fpts.clear();
+			spts.clear();
+			fParams.clear();
+			for (size_t iUnit = 0; iUnit < firsts.size(); iUnit++)
+			{
+				const auto& unit = firsts[iUnit];
+				const float paramStart = fLens[iUnit];
+				const float paramLen = fLens[iUnit + 1] - paramStart;
+				auto shape = (AbstractShape*)Sewing::getPtrById(unit.id);
+				auto piece = m_shapePieceMap[shape];
+				const int vStart = m_vertStart[piece];
+				auto params = m_sampleParams[shape]->params;
+				if (unit.reverse)
+				{
+					std::reverse(params.begin(), params.end());
+					for (auto& p : params)
+						p.t = 1.f - p.t;
+				}
+				for (const auto& pm : params)
+				{
+					StitchPoint s;		
+					s.vids = Int2(vStart + pm.idx, vStart + pm.idx);
+					s.w = 0.f;
+					fpts.push_back(s);
+					fParams.push_back(pm.t*paramLen + paramStart);
+				} // end for pm
+			} // end for firsts
+			
+			for (const auto& tGlobal : fParams)
+			{
+				int iUnit = findParamRange(tGlobal, sLens);
+				assert(iUnit >= 0);
+				const auto& unit = seconds[iUnit];
+				const float paramStart = sLens[iUnit];
+				const float paramLen = sLens[iUnit + 1] - paramStart;
+				assert(tGlobal >= paramStart && tGlobal <= paramStart + paramLen);
+				float tLocal = (tGlobal - paramStart) / paramLen;
+				auto shape = (AbstractShape*)Sewing::getPtrById(unit.id);
+				auto piece = m_shapePieceMap[shape];
+				const int vStart = m_vertStart[piece];
+				auto params = m_sampleParams[shape]->params;
+				if (unit.reverse)
+				{
+					std::reverse(params.begin(), params.end());
+					for (auto& p : params)
+						p.t = 1.f - p.t;
+				}
+				assert(params.size() > 1);
+				bool found = false;
+				for (size_t i = 1; i < params.size(); i++)
+				{
+					const auto& ps = params[i - 1];
+					const auto& pe = params[i];
+					if (!(pe.t >= tLocal && ps.t <= tLocal))
+						continue;
+					StitchPoint s;
+					s.vids = Int2(vStart + ps.idx, vStart + pe.idx);
+					s.w = (tLocal - ps.t) / (pe.t - ps.t);
+					spts.push_back(s);
+					found = true;
+					break;
+				} // end for pm
+				if (!found)
+				{
+					printf("warning: a stitch may not be made proper!\n");
+					StitchPoint s;
+					s.w = -1;
+					spts.push_back(s);
+				}
+			} // end for t
+
+			assert(fpts.size() == spts.size());
+			for (size_t i = 0; i < fpts.size(); i++)
+			{
+				if (spts[i].w < 0)
+					continue;
+				m_stitches.push_back(StitchPointPair(fpts[i], spts[i]));
+			}
+		} // end for sew
 	}
 
 	void TriangleWrapper::reset_triangle_struct(triangulateio* io)const

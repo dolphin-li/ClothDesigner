@@ -6,11 +6,12 @@
 #include "ldpMat\ldp_basic_vec.h"
 #include <map>
 #include <set>
+#include "definations.h"
 //#define ENABLE_SELF_COLLISION
 #ifdef ENABLE_SELF_COLLISION
 #include "COLLISION_HANDLER.h"
 #endif
-class ObjMesh;
+
 namespace svg
 {
 	class SvgManager;
@@ -18,52 +19,6 @@ namespace svg
 }
 namespace ldp
 {
-	struct SimulationParam
-	{
-		float rho;						// for chebshev accereration
-		float under_relax;				// jacobi relax param
-		int lap_damping;				// loops of laplacian damping
-		float air_damping;				// damping of the air
-		float bending_k;				// related to the thickness of the cloth
-		float spring_k;					// related to the elasticity of the cloth
-		float spring_k_raw;				// spring_k_raw / avgArea = spring_k
-		float stitch_k;					// stiffness of stithed vertex, for sewing
-		float stitch_k_raw;				// stitch_k_raw / avgArea = stitch_k
-		float stitch_ratio;				// for each stitch, the length will -= ratio*time_step each update
-		int out_iter;					// number of iterations
-		int inner_iter;					// number of iterations
-		float control_mag;				// for dragging, the stiffness of dragged point
-		float time_step;				// simulation time step
-		ldp::Float3 gravity;	
-		SimulationParam();
-		void setDefaultParam();
-	};
-
-	struct ClothDesignParam
-	{
-		float pointMergeDistThre;				// ignore two close points, in meters
-		float curveSampleStep;					// sample points on curves, in meters
-		float pointInsidePolyThre;				// in meters
-		float curveFittingThre;					// fitting inputs into cubics, in meters
-		float triangulateThre;					// size of triangle edges, in meters
-
-		ClothDesignParam();
-		void setDefaultParam();
-	};
-
-	struct DragInfo
-	{
-		ObjMesh* selected_cloth;
-		int selected_vert_id;
-		ldp::Float3 target;
-		DragInfo()
-		{
-			selected_cloth = nullptr;
-			selected_vert_id = -1;
-			target = 0;
-		}
-	};
-
 	class Sewing;
 	class ClothPiece;
 	class PanelPolygon;
@@ -79,18 +34,6 @@ namespace ldp
 		typedef float ValueType;
 		typedef ldp::ldp_basic_vec3<float> Vec3;
 		typedef ldp::ldp_basic_vec2<float> Vec2;
-		enum SimulationMode
-		{
-			SimulationNotInit,
-			SimulationOn,
-			SimulationPause,
-		};
-		struct StitchPoint
-		{
-			Int2 vids;
-			float w;
-		};
-		typedef std::pair<StitchPoint, StitchPoint> StitchPointPair;
 	protected:
 		struct DragInfoInternal
 		{

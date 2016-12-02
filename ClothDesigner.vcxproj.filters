@@ -959,6 +959,9 @@
     <ClInclude Include="Algorithm\cloth\TriangleWrapper.h">
       <Filter>algorithm\cloth</Filter>
     </ClInclude>
+    <ClInclude Include="Algorithm\cloth\definations.h">
+      <Filter>algorithm\cloth</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="qdarkstyle\rc\up_arrow_disabled.png">

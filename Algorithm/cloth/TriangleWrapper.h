@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ldpMat\ldp_basic_vec.h"
+#include "definations.h"
 #include <hash_map>
 extern "C"{
 	struct triangulateio;
@@ -26,7 +26,7 @@ namespace ldp
 			float pointOnLineThre
 			);
 
-		const std::vector<Int2>& sewingVertPairs()const { return m_sewingVertPairs; }
+		const std::vector<StitchPointPair>& sewingVertPairs()const { return m_stitches; }
 	protected:
 		void reset_triangle_struct(triangulateio* io)const;
 		void prepareTriangulation();
@@ -55,17 +55,17 @@ namespace ldp
 		void addSampleParam(const AbstractShape* shape, float step);
 	private:
 		/// computing structure
-		triangulateio* m_in;
-		triangulateio* m_out;
-		triangulateio* m_vro;
+		triangulateio* m_in = nullptr;
+		triangulateio* m_out = nullptr;
+		triangulateio* m_vro = nullptr;
 		char m_cmds[1024];
 
 		/// input
-		std::vector<std::shared_ptr<ClothPiece>>* m_pieces;
-		std::vector<std::shared_ptr<Sewing>>* m_sewings;
-		float m_ptMergeThre;
-		float m_triSize;
-		float m_ptOnLineThre;
+		std::vector<std::shared_ptr<ClothPiece>>* m_pieces = nullptr;
+		std::vector<std::shared_ptr<Sewing>>* m_sewings = nullptr;
+		float m_ptMergeThre = 0;
+		float m_triSize = 0;
+		float m_ptOnLineThre = 0;
 
 		/// intermediate input buffer for triangle
 		std::vector<Double2> m_points;
@@ -77,7 +77,9 @@ namespace ldp
 		std::vector<Int3> m_triBuffer;
 
 		/// sewing related
-		std::vector<Int2> m_sewingVertPairs;
+		std::vector<StitchPointPair> m_stitches;;
 		std::hash_map<const AbstractShape*, SampleParamVecPtr> m_sampleParams;
+		std::hash_map<const AbstractShape*, const ClothPiece*> m_shapePieceMap;
+		std::hash_map<const ClothPiece*, int> m_vertStart;
 	};
 }
