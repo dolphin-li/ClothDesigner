@@ -198,7 +198,7 @@ namespace ldp
 		std::vector<Int3> m_T;							// triangle list
 		std::vector<Int2> m_allE;						// edges + bending edges, sorted, for [0,1,2]+[0,1,3], bend_e=[2,3]
 		std::vector<int> m_allVV;						// one-ring vertex of each vertex based an allE, NOT including self
-		std::vector<ValueType> m_allVL;					// off-diag values of spring length
+		std::vector<ValueType> m_allVL;					// off-diag values of spring length * spring_k
 		std::vector<ValueType> m_allVW;					// off-diag values of springs
 		std::vector<ValueType> m_allVC;					// diag values of springs
 		std::vector<int> m_allVV_num;					// num of one-ring vertex of each vertex
@@ -206,10 +206,17 @@ namespace ldp
 		std::vector<Int4> m_edgeWithBendEdge;			// original edges + beding edges, before sorted and unique.
 		std::vector<Int2> m_stitches;					// the elements that must be stitched together, for sewing
 		std::vector<int> m_stitchVV;
-		std::vector<int> m_stitchVV_num;
+		std::vector<int> m_stitchVV_num;				// csr header of the sparse matrix vv
 		std::vector<ValueType> m_stitchVW;
 		std::vector<ValueType> m_stitchVC;
-		std::vector<ValueType> m_stitchVL;		
+		std::vector<ValueType> m_stitchVL;
+		std::vector<int> m_stitchEV_num;				// csr header of the sparse matrix ev
+		std::vector<int> m_stitchEV;					// edge-wise stitch, map e to v
+		std::vector<ValueType> m_stitchEV_W;			// edge-wise stitch, map e to v
+		std::vector<ValueType> m_stitchE_length;		// edge-wise stitch, the input length of each stitch
+		std::vector<int> m_stitchVE_num;				// csr header of the sparse matrix ve
+		std::vector<int> m_stitchVE;					// edge-wise stich, map v to e
+		std::vector<ValueType> m_stitchVE_W;			// edge-wise stich, map v to e
 		ValueType m_curStitchRatio;						// the stitchEdge * ratio is the current stitched length
 		// GPU related-------------------------------------------------------------------
 	protected:
@@ -236,7 +243,7 @@ namespace ldp
 		DeviceArray<int> m_dev_T;					// trangle list
 		DeviceArray<int> m_dev_all_VV;				// one-ring vertex list, NOT including itself
 		DeviceArray<int> m_dev_all_vv_num;			// csr index of allVV
-		DeviceArray<ValueType> m_dev_all_VL;		// off-diagnal values
+		DeviceArray<ValueType> m_dev_all_VL;		// off-diagnal values * springk
 		DeviceArray<ValueType> m_dev_all_VW;		// off-diagnal values
 		DeviceArray<ValueType> m_dev_all_VC;		// diagnal values
 		DeviceArray<ValueType> m_dev_new_VC;		// diagnal values 
@@ -246,6 +253,14 @@ namespace ldp
 		DeviceArray<ValueType> m_dev_stitch_VW;
 		DeviceArray<ValueType> m_dev_stitch_VC;
 		DeviceArray<ValueType> m_dev_stitch_VL;
+		DeviceArray<int> m_dev_stitchEV_num;				// csr header of the sparse matrix ev
+		DeviceArray<int> m_dev_stitchEV;					// edge-wise stitch, map e to v
+		DeviceArray<ValueType> m_dev_stitchEV_W;			// edge-wise stitch, map e to v
+		DeviceArray<ValueType> m_dev_stitchE_length;		// edge-wise stitch, the input length of each stitch
+		DeviceArray<int> m_dev_stitchVE_num;				// csr header of the sparse matrix ve
+		DeviceArray<int> m_dev_stitchVE;					// edge-wise stich, map v to e
+		DeviceArray<ValueType> m_dev_stitchVE_W;			// edge-wise stich, map v to e
+		DeviceArray<ValueType> m_dev_stitchE_curVec;		// length * ratio * last_stitch_edge_dir
 #ifdef ENABLE_SELF_COLLISION
 		COLLISION_HANDLER<ValueType> m_collider;
 #endif

@@ -130,11 +130,36 @@ namespace ldp
 #pragma endregion
 	
 #pragma region --constrain1
-	__global__ void Constraint_1_Kernel(const float* X, const float* init_B,
-		float* next_X, const int* all_VV, const float* all_VL, const float* all_VW, 
+
+	__global__ void Compute_Stitch_Vec_Kernel(
+		float* stitch_E_curVec, const float* X, int e_number,
+		const float* stitch_EV_W, const int* stitch_EV, const int* stitch_EV_num,
+		const float* stitch_E_length, const float stitch_ratio, const float stitch_k)
+	{
+		const int i = blockDim.x * blockIdx.x + threadIdx.x;
+		if (i >= e_number || stitch_EV == nullptr)	return;
+		const int bg = stitch_EV_num[i], ed = stitch_EV_num[i + 1];
+		float3 vec = make_float3(0, 0, 0);
+		for (int index = bg; index < ed; index++)
+		{
+			const int j = stitch_EV[index];
+			const float wj = stitch_EV_W[index];
+			const float3 xj = make_float3(X[j * 3 + 0], X[j * 3 + 1], X[j * 3 + 2]);
+			vec += wj * xj;
+		}
+		vec /= length(vec) + 1e-16;
+		vec *= stitch_ratio * stitch_k * stitch_E_length[i];
+		stitch_E_curVec[i * 3 + 0] = vec.x;
+		stitch_E_curVec[i * 3 + 1] = vec.y;
+		stitch_E_curVec[i * 3 + 2] = vec.z;
+	}
+
+	__global__ void Constraint_1_Kernel_e(const float* X, const float* init_B,
+		float* next_X, const int* all_VV, const float* all_VL, const float* all_VW,
 		const float* new_VC, const int* all_vv_num, const float spring_k, const int number,
 		const int* stitch_VV, const float* stitch_VW, const float* stitch_VC, const int* stitch_vv_num,
-		const float* stitch_VL, float stitch_k, float stitch_ratio)
+		const int* stitch_VE, const int* stitch_VE_num, const float* stitch_VE_W, 
+		const float* stitch_E_curVec)
 	{
 		const int i = blockDim.x * blockIdx.x + threadIdx.x;
 		if (i >= number)	return;
@@ -148,44 +173,36 @@ namespace ldp
 		for (int index = bg; index<ed; index++)
 		{
 			const int j = all_VV[index];
-			float jl = all_VL[index];
 			const float3 xj = make_float3(X[j * 3 + 0], X[j * 3 + 1], X[j * 3 + 2]);
+			const float3 d = normalize(xi - xj);
 
 			// Remove the off-diagonal (Jacobi method)
 			b -= all_VW[index] * xj;
 
 			// Add the other part of b: spring-length constraint
-			jl *= (jl != -1); //the same as if (jl == -1)	continue;
-			const float3 d = normalize(xi - xj);
-			b += d * spring_k* jl;
-			k += (d * d + max(0., 1.-jl) * (1 - d * d) - 1) * spring_k; // ldp: what is this? cannot understand
+			b += d * spring_k * all_VL[index];
 		}
 
 		// handel stitch
 		if (stitch_VV)
-		{
+		{	
 			const int bg = stitch_vv_num[i], ed = stitch_vv_num[i + 1];
-			for (int index = bg; index<ed; index++)
+			for (int index = bg; index < ed; index++)
 			{
 				const int j = stitch_VV[index];
-				float jl = stitch_VL[index];
 				const float3 xj = make_float3(X[j * 3 + 0], X[j * 3 + 1], X[j * 3 + 2]);
-
-				// Remove the off-diagonal (Jacobi method)
 				b -= stitch_VW[index] * xj;
-
-				// Add the other part of b: spring-length constraint
-				jl *= (jl != -1) * stitch_ratio; //the same as if (jl == -1)	continue;
-				float3 d = xi - xj;
-				float d_len = length(xi - xj);
-				if (d_len < 1e-16)
-					d = make_float3(0, 0, 0);
-				else
-					d /= d_len;
-				b += d * stitch_k* jl;
-				k += (d * d + max(0., 1. - jl) * (1 - d * d) - 1) * stitch_k; // ldp: what is this? cannot understand
 			}
 			diag += stitch_VC[i];
+
+			const int bg1 = stitch_VE_num[i], ed1 = stitch_VE_num[i + 1];
+			for (int index = bg1; index < ed1; index++)
+			{
+				const int j = stitch_VE[index];
+				const float3 d = make_float3(stitch_E_curVec[j * 3 + 0], 
+					stitch_E_curVec[j * 3 + 1], stitch_E_curVec[j * 3 + 2]);
+				b += stitch_VE_W[index] * d;
+			}
 		} // end if stitch_VV
 
 		const float3 nxi = xi + (b - diag * xi) / (diag + k);
@@ -198,12 +215,17 @@ namespace ldp
 	void ClothManager::constrain1()
 	{
 		const int blocksPerGrid = divUp(m_X.size(), threadsPerBlock);
-		Constraint_1_Kernel << <blocksPerGrid, threadsPerBlock >> >(
-			m_dev_X.ptr(), m_dev_init_B.ptr(), m_dev_next_X.ptr(), 
-			m_dev_all_VV.ptr(), m_dev_all_VL.ptr(), m_dev_all_VW.ptr(), m_dev_new_VC.ptr(), 
+		Compute_Stitch_Vec_Kernel << <blocksPerGrid, threadsPerBlock >> >(
+			m_dev_stitchE_curVec.ptr(), m_dev_X.ptr(), m_stitchE_length.size(),
+			m_dev_stitchEV_W.ptr(), m_dev_stitchEV.ptr(), m_dev_stitchEV_num.ptr(),
+			m_dev_stitchE_length.ptr(), m_curStitchRatio, m_simulationParam.stitch_k
+			);
+		Constraint_1_Kernel_e << <blocksPerGrid, threadsPerBlock >> >(
+			m_dev_X.ptr(), m_dev_init_B.ptr(), m_dev_next_X.ptr(),
+			m_dev_all_VV.ptr(), m_dev_all_VL.ptr(), m_dev_all_VW.ptr(), m_dev_new_VC.ptr(),
 			m_dev_all_vv_num.ptr(), m_simulationParam.spring_k, m_X.size(),
 			m_dev_stitch_VV.ptr(), m_dev_stitch_VW.ptr(), m_dev_stitch_VC.ptr(), m_dev_stitch_VV_num.ptr(),
-			m_dev_stitch_VL.ptr(), m_simulationParam.stitch_k, m_curStitchRatio);
+			m_dev_stitchVE.ptr(), m_dev_stitchVE_num.ptr(), m_dev_stitchVE_W.ptr(), m_dev_stitchE_curVec.ptr());
 		cudaSafeCall(cudaGetLastError(), "constrain1");
 	}
 #pragma endregion
