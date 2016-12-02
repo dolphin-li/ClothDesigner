@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ldpMat\ldp_basic_vec.h"
-
 class ObjMesh;
 namespace ldp
 {

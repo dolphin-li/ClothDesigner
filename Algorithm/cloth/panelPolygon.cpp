@@ -5,6 +5,21 @@ namespace ldp
 {
 	std::hash_map<size_t, AbstractPanelObject*> AbstractPanelObject::s_globalIdxMap;
 	bool AbstractPanelObject::s_disableIdxMapUpdate = false;
+	std::hash_map<AbstractPanelObject::Type, std::string> AbstractPanelObject::generateTypeStringMap()
+	{
+		std::hash_map<AbstractPanelObject::Type, std::string> map;
+		map.clear();
+		map[TypeKeyPoint] = "KeyPoint";
+		map[TypeLine] = "Line";
+		map[TypeQuadratic] = "Quadratic";
+		map[TypeCubic] = "Cubic";
+		map[TypeGroup] = "Group";
+		map[TypePanelPolygon] = "PanelPolygon";
+		map[TypeSewing] = "Sewing";
+		return map;
+	}
+	std::hash_map<AbstractPanelObject::Type, std::string> AbstractPanelObject::s_typeStringMap
+		 = AbstractPanelObject::generateTypeStringMap();
 
 	AbstractShape* AbstractShape::create(Type type, size_t id)
 	{
@@ -17,9 +32,18 @@ namespace ldp
 		case ldp::AbstractShape::TypeCubic:
 			return new Cubic(id);
 		default:
-			assert(0);
 			return nullptr;
 		}
+	}
+
+	AbstractShape* AbstractShape::create(std::string typeString, size_t id)
+	{
+		for (auto& iter : s_typeStringMap)
+		{
+			if (iter.second == typeString)
+				return create(iter.first, id);
+		}
+		return nullptr;
 	}
 
 	static std::pair<int, float> lineFitting(const std::vector<Float2>& pts, Line& line)
@@ -334,7 +358,7 @@ namespace ldp
 	void PanelPolygon::updateBound(Float2& bmin, Float2& bmax)
 	{
 		m_bbox[0] = FLT_MAX;
-		m_bbox[1] = FLT_MIN;
+		m_bbox[1] = -FLT_MAX;
 		if (m_outerPoly)
 			m_outerPoly->updateBound(m_bbox[0], m_bbox[1]);
 		for (auto& dart : m_darts)
@@ -449,6 +473,72 @@ namespace ldp
 		return obj;
 	}
 
+	TiXmlElement* PanelPolygon::toXML(TiXmlNode* parent)const
+	{
+		TiXmlElement* ele = AbstractPanelObject::toXML(parent);
+		if (m_outerPoly)
+		{
+			TiXmlElement* poly = new TiXmlElement("OuterPoly");
+			ele->LinkEndChild(poly);
+			m_outerPoly->toXML(poly);
+		}
+		if (!m_darts.empty())
+		{
+			TiXmlElement* poly = new TiXmlElement("Darts");
+			ele->LinkEndChild(poly);
+			for (auto& dart : m_darts)
+				dart->toXML(poly);
+		}
+		if (!m_innerLines.empty())
+		{
+			TiXmlElement* poly = new TiXmlElement("InnerLines");
+			ele->LinkEndChild(poly);
+			for (auto& line : m_innerLines)
+				line->toXML(poly);
+		}
+		return ele;
+	}
+	void PanelPolygon::fromXML(TiXmlElement* self)
+	{
+		AbstractPanelObject::fromXML(self);
+		clear();
+		for (auto child = self->FirstChildElement(); child; child = child->NextSiblingElement())
+		{
+			if (child->Value() == std::string("OuterPoly"))
+			{
+				m_outerPoly.reset(new Polygon);
+				m_outerPoly->fromXML(child);
+			}
+			if (child->Value() == std::string("Darts"))
+			{
+				ShapeGroup tmpShape;
+				for (auto childchild = child->FirstChildElement(); childchild;
+					childchild = childchild->NextSiblingElement())
+				{
+					if (childchild->Value() == tmpShape.getTypeString())
+					{
+						m_darts.push_back(std::shared_ptr<ShapeGroup>(new ShapeGroup));
+						m_darts.back()->fromXML(childchild);
+					}
+				}
+			}
+			if (child->Value() == std::string("InnerLines"))
+			{
+				ShapeGroup tmpShape;
+				for (auto childchild = child->FirstChildElement(); childchild;
+					childchild = childchild->NextSiblingElement())
+				{
+					if (childchild->Value() == tmpShape.getTypeString())
+					{
+						m_innerLines.push_back(std::shared_ptr<ShapeGroup>(new ShapeGroup));
+						m_innerLines.back()->fromXML(childchild);
+					}
+				}
+			}
+		}
+		updateBound(m_bbox[0], m_bbox[1]);
+	}
+
 	//////////////////////////////////////////////////////////////////////////////////
 	void Sewing::clear()
 	{
@@ -522,7 +612,6 @@ namespace ldp
 
 		return true;
 	}
-
 
 	void Sewing::remove(size_t id)
 	{
@@ -621,5 +710,74 @@ namespace ldp
 		auto r =  new Sewing(*this); 
 		r->m_tmpbufferObj.clear();
 		return r;
+	}
+
+	TiXmlElement* Sewing::toXML(TiXmlNode* parent)const
+	{
+		TiXmlElement* ele = AbstractPanelObject::toXML(parent);
+		TiXmlElement* fele = new TiXmlElement("Firsts");
+		ele->LinkEndChild(fele);
+		for (const auto& f : m_firsts)
+		{
+			TiXmlElement* uele = new TiXmlElement("unit");
+			fele->LinkEndChild(uele);
+			uele->SetAttribute("shape_id", f.id);
+			uele->SetAttribute("reverse", f.reverse);
+		}
+		TiXmlElement* sele = new TiXmlElement("Seconds");
+		ele->LinkEndChild(sele);
+		for (const auto& s : m_seconds)
+		{
+			TiXmlElement* uele = new TiXmlElement("unit");
+			sele->LinkEndChild(uele);
+			uele->SetAttribute("shape_id", s.id);
+			uele->SetAttribute("reverse", s.reverse);
+		}
+		return ele;
+	}
+
+	void Sewing::fromXML(TiXmlElement* self)
+	{
+		AbstractPanelObject::fromXML(self);
+		clear();
+		for (auto child = self->FirstChildElement(); child; child = child->NextSiblingElement())
+		{
+			if (child->Value() == std::string("Firsts"))
+			{
+				for (auto child1 = child->FirstChildElement(); child1; child1 = child1->NextSiblingElement())
+				{
+					if (child1->Value() == std::string("unit"))
+					{
+						Unit u;
+						int tmp = 0;
+						if (!child1->Attribute("shape_id", &tmp))
+							throw std::exception("unit id lost");
+						u.id = tmp;
+						if (!child1->Attribute("reverse", &tmp))
+							throw std::exception("unit reverse lost");
+						u.reverse = !!tmp;
+						m_firsts.push_back(u);
+					}
+				}
+			}
+			if (child->Value() == std::string("Seconds"))
+			{
+				for (auto child1 = child->FirstChildElement(); child1; child1 = child1->NextSiblingElement())
+				{
+					if (child1->Value() == std::string("unit"))
+					{
+						Unit u;
+						int tmp = 0;
+						if (!child1->Attribute("shape_id", &tmp))
+							throw std::exception("unit id lost");
+						u.id = tmp;
+						if (!child1->Attribute("reverse", &tmp))
+							throw std::exception("unit reverse lost");
+						u.reverse = !!tmp;
+						m_seconds.push_back(u);
+					}
+				}
+			}
+		}
 	}
 }

@@ -302,7 +302,6 @@
     <ClCompile Include="Algorithm\tinyxml\tinyxmlerror.cpp" />
     <ClCompile Include="Algorithm\tinyxml\tinyxmlparser.cpp" />
     <ClCompile Include="Algorithm\triangle\triangle.c" />
-    <ClCompile Include="Algorithm\triangle\triangleWrapper.cpp" />
     <ClCompile Include="clothdesigner.cpp" />
     <ClCompile Include="event_handles\Abstract2dEventHandle.cpp" />
     <ClCompile Include="event_handles\Abstract3dEventHandle.cpp" />
@@ -501,7 +500,6 @@
     <ClInclude Include="Algorithm\tinyxml\tinystr.h" />
     <ClInclude Include="Algorithm\tinyxml\tinyxml.h" />
     <ClInclude Include="Algorithm\triangle\triangle.h" />
-    <ClInclude Include="Algorithm\triangle\triangleWrapper.h" />
     <ClInclude Include="event_handles\Abstract2dEventHandle.h" />
     <ClInclude Include="event_handles\Abstract3dEventHandle.h" />
     <ClInclude Include="event_handles\Edit2dPatternEventHandle.h" />

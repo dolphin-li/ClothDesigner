@@ -1296,4 +1296,37 @@ namespace ldp
 		control_mag = 400;
 		gravity = ldp::Float3(0, 0, -9.8);
 	}
+
+	///////////////////////////////////////////////////////////////////////////////////////////
+	void ClothManager::fromXml(std::string filename)
+	{
+	}
+
+	void ClothManager::toXml(std::string filename)const
+	{
+		TiXmlDocument doc;
+		TiXmlElement* root = new TiXmlElement("ClothManager");
+		doc.LinkEndChild(root);
+
+		if (m_bodyMesh->scene_filename)
+		{
+			TiXmlElement* pele = new TiXmlElement("BodyMesh");
+			root->LinkEndChild(pele);
+			pele->SetAttribute("ObjFile", m_bodyMesh->scene_filename);
+		}
+
+		for (const auto& piece : m_clothPieces)
+		{
+			TiXmlElement* pele = new TiXmlElement("Piece");
+			root->LinkEndChild(pele);
+			piece->panel().toXML(pele);
+			piece->transformInfo().toXML(pele);
+		} // end for piece
+
+		for (const auto& sew : m_sewings)
+		{
+			sew->toXML(root);
+		} // end for sew
+		doc.SaveFile(filename.c_str());
+	}
 }

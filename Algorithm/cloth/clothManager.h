@@ -54,6 +54,8 @@ namespace ldp
 
 		// load cloth pieces from svg of my format.
 		void loadPiecesFromSvg(std::string filename);
+		void fromXml(std::string filename);
+		void toXml(std::string filename)const;
 
 		/// simulation main functions
 		void simulationInit();							// must be called after the body and all cloths ready.

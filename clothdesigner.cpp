@@ -71,6 +71,42 @@ void ClothDesigner::on_actionLoad_svg_triggered()
 	}
 }
 
+void ClothDesigner::on_actionLoad_project_triggered()
+{
+	try
+	{
+		QString name = QFileDialog::getOpenFileName(this, "Load Project", "", "*.xml");
+		if (name.isEmpty())
+			return;
+		g_dataholder.m_clothManager->fromXml(name.toStdString());
+		g_dataholder.m_historyStack->push("load project", ldp::HistoryStack::TypeGeneral);
+		g_dataholder.m_clothManager->simulationInit();
+		m_widget3d->init(g_dataholder.m_clothManager.get(), this);
+		m_widget2d->init(g_dataholder.m_clothManager.get(), this);
+		m_widget2d->updateGL();
+		m_widget3d->updateGL();
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+}
+
+void ClothDesigner::on_actionSave_project_triggered()
+{
+	try
+	{
+		QString name = QFileDialog::getSaveFileName(this, "Save Project", "", "*.xml");
+		if (name.isEmpty())
+			return;
+		if (!name.toLower().endsWith(".xml"))
+			name.append(".xml");
+		g_dataholder.m_clothManager->toXml(name.toStdString());
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+}
+
 void ClothDesigner::pushHistory(QString name, ldp::HistoryStack::Type type)
 {
 	try

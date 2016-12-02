@@ -30,6 +30,8 @@ public:
 
 	void pushHistory(QString name, ldp::HistoryStack::Type type);
 	public slots:
+	void on_actionLoad_project_triggered();
+	void on_actionSave_project_triggered();
 	void on_actionLoad_svg_triggered();
 	void on_actionPrev_triggered();
 	void on_actionNext_triggered();

@@ -1,6 +1,7 @@
 #include "TransformInfo.h"
 #include "Renderable\ObjMesh.h"
 #include "ldpMat\Quaternion.h"
+#include <sstream>
 namespace ldp
 {
 	TransformInfo::TransformInfo()
@@ -35,5 +36,35 @@ namespace ldp
 				std::reverse(f.vertex_index, f.vertex_index + f.vertex_count);
 		}
 		mesh.transform(m_T);
+	}
+
+
+	TiXmlElement* TransformInfo::toXML(TiXmlNode* parent)const
+	{
+		TiXmlElement* ele = new TiXmlElement("TransformInfo");
+		parent->LinkEndChild(ele);
+		ele->SetAttribute("FlipNormal", m_flipNormal);
+		std::stringstream ts;
+		ts << m_T;
+		std::string s;
+		ts >> s;
+		ele->SetAttribute("T", s.c_str());
+		return ele;
+	}
+
+	void TransformInfo::fromXML(TiXmlElement* self)
+	{
+		int tmp = 0;
+		if (!self->Attribute("FlipNormal", &tmp))
+			printf("warning: transformInfo.flipNormal lost");
+		m_flipNormal = !!tmp;
+		std::string s = self->Attribute("T");
+		if (s.empty())
+			printf("warning: transformInfo.T lost");
+		std::stringstream ts(s);
+		m_T.eye();
+		for (int i = 0; i < m_T.nRow(); i++)
+		for (int j = 0; j < m_T.nCol(); j++)
+			ts >> m_T(i, j);
 	}
 }

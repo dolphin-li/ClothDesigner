@@ -27,6 +27,24 @@ namespace ldp
 		{
 			objs.push_back(this);
 		}
+		virtual TiXmlElement* toXML(TiXmlNode* parent)const
+		{
+			TiXmlElement* ele = AbstractPanelObject::toXML(parent);
+			ele->SetDoubleAttribute("x", position[0]);
+			ele->SetDoubleAttribute("y", position[1]);
+			return ele;
+		}
+		virtual void fromXML(TiXmlElement* self)
+		{
+			AbstractPanelObject::fromXML(self);
+			double x = 0, y = 0;
+			if (!self->Attribute("x", &x))
+				throw std::exception(("cannot find x for " + getTypeString()).c_str());
+			if (!self->Attribute("y", &y))
+				throw std::exception(("cannot find y for " + getTypeString()).c_str());
+			position[0] = x;
+			position[1] = y;
+		}
 	public:
 		Float2 position;
 	};
@@ -39,6 +57,7 @@ namespace ldp
 		static AbstractShape* create(Type type, size_t id);
 		static void create(std::vector<std::shared_ptr<AbstractShape>>& curves,
 			const std::vector<Float2>& keyPoints, float fittingThre);
+		static AbstractShape* create(std::string typeString, size_t id);
 		AbstractShape(const std::vector<KeyPoint>& keyPoints) : AbstractShape()
 		{
 			m_keyPoints.clear();
@@ -147,6 +166,27 @@ namespace ldp
 				m_length = calcLength();
 			m_lengthInvalid = false;
 			return m_length; 
+		}
+		virtual TiXmlElement* toXML(TiXmlNode* parent)const
+		{
+			TiXmlElement* ele = AbstractPanelObject::toXML(parent);
+			for (const auto& kp : m_keyPoints)
+				kp->toXML(ele);
+			return ele;
+		}
+		virtual void fromXML(TiXmlElement* self)
+		{
+			AbstractPanelObject::fromXML(self);
+			m_keyPoints.clear();
+			KeyPoint tmpKp;
+			for (auto child = self->FirstChildElement(); child; child = child->NextSiblingElement())
+			{
+				if (child->Value() == tmpKp.getTypeString())
+				{
+					m_keyPoints.push_back(std::shared_ptr<KeyPoint>(new KeyPoint));
+					m_keyPoints.back()->fromXML(child);
+				}
+			}
 		}
 	protected:
 		virtual float calcLength()const;
@@ -284,7 +324,7 @@ namespace ldp
 		void updateBound(Float2& bmin, Float2& bmax)
 		{
 			m_bbox[0] = FLT_MAX;
-			m_bbox[1] = FLT_MIN;
+			m_bbox[1] = -FLT_MAX;
 			for (size_t i = 0; i < size(); i++)
 				(*this)[i]->unionBound(m_bbox[0], m_bbox[1]);
 			for (int k = 0; k < bmin.size(); k++)
@@ -346,6 +386,26 @@ namespace ldp
 			for (auto p : (*this))
 				p->collectObject(objs);
 		}
+		
+		virtual TiXmlElement* toXML(TiXmlNode* parent)const
+		{
+			TiXmlElement* ele = AbstractPanelObject::toXML(parent);
+			for (const auto& shape : (*this))
+				shape->toXML(ele);
+			return ele;
+		}
+		virtual void fromXML(TiXmlElement* self)
+		{
+			AbstractPanelObject::fromXML(self);
+			clear();
+			for (auto child = self->FirstChildElement(); child; child = child->NextSiblingElement())
+			{
+				auto ptr = AbstractShape::create(child->Value(), 0);
+				if (ptr)
+					ptr->fromXML(child);
+			}
+			updateBound(m_bbox[0], m_bbox[1]);
+		}
 	protected:
 		Float2 m_bbox[2];
 	};
@@ -388,7 +448,9 @@ namespace ldp
 		void updateBound(Float2& bmin, Float2& bmax);
 		const Float2* bound()const { return m_bbox; }
 		virtual void collectObject(std::vector<AbstractPanelObject*>& objs);
-		virtual void collectObject(std::vector<const AbstractPanelObject*>& objs)const;
+		virtual void collectObject(std::vector<const AbstractPanelObject*>& objs)const;		
+		virtual TiXmlElement* toXML(TiXmlNode* parent)const;
+		virtual void fromXML(TiXmlElement* self);
 	private:
 		PolygonPtr m_outerPoly;		
 		std::vector<DartPtr> m_darts;
@@ -427,6 +489,8 @@ namespace ldp
 		bool select(int idx, SelectOp op);
 		bool select(const std::set<int>& indices, SelectOp op);
 		void highLight(int idx, int lastIdx);
+		virtual TiXmlElement* toXML(TiXmlNode* parent)const;
+		virtual void fromXML(TiXmlElement* self);
 
 		bool isSame_ignoreOrder(const Sewing& rhs)const;
 	protected:

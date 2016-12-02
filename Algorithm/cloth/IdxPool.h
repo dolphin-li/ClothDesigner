@@ -56,7 +56,7 @@ namespace ldp
 			}
 			else
 			{
-				auto& iter = m_usedIdx.find(idx);
+				auto iter = m_usedIdx.find(idx);
 				if (iter == m_usedIdx.end())
 					throw std::exception(std::string("IdxPool, freeIdx not existed: "
 					+ std::to_string(idx)).c_str());

@@ -148,9 +148,6 @@
     <ClCompile Include="Algorithm\triangle\triangle.c">
       <Filter>algorithm\triangle</Filter>
     </ClCompile>
-    <ClCompile Include="Algorithm\triangle\triangleWrapper.cpp">
-      <Filter>algorithm\triangle</Filter>
-    </ClCompile>
     <ClCompile Include="Algorithm\cloth\clothManager.cpp">
       <Filter>algorithm\cloth</Filter>
     </ClCompile>
@@ -726,9 +723,6 @@
       <Filter>algorithm</Filter>
     </ClInclude>
     <ClInclude Include="Algorithm\triangle\triangle.h">
-      <Filter>algorithm\triangle</Filter>
-    </ClInclude>
-    <ClInclude Include="Algorithm\triangle\triangleWrapper.h">
       <Filter>algorithm\triangle</Filter>
     </ClInclude>
     <ClInclude Include="Algorithm\cloth\clothManager.h">
