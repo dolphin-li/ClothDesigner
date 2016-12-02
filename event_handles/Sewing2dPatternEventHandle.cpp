@@ -135,11 +135,21 @@ void Sewing2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 		if (ev->modifiers() == (Qt::CTRL | Qt::SHIFT))
 			op = ldp::AbstractPanelObject::SelectInverse;
 		break;
+	case Qt::Key_Delete:
 		if (ev->modifiers() == Qt::NoModifier)
 		{
 			bool change = manager->removeSelected(ldp::AbstractPanelObject::TypeSewing);
 			if (m_viewer->getMainUI() && change)
 				m_viewer->getMainUI()->pushHistory(QString().sprintf("sewing removed",
+				op), ldp::HistoryStack::TypeGeneral);
+		}
+		break;
+	case Qt::Key_R:
+		if (ev->modifiers() == Qt::NoModifier)
+		{
+			bool change = manager->reverseSelectedSewings();
+			if (m_viewer->getMainUI() && change)
+				m_viewer->getMainUI()->pushHistory(QString().sprintf("sewing reversed",
 				op), ldp::HistoryStack::TypeGeneral);
 		}
 		break;

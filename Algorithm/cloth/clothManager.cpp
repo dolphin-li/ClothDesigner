@@ -1042,7 +1042,7 @@ namespace ldp
 		m_shouldMergePieces = true;
 	}
 
-	////////////////////////////////////////////////////////////////////////////////////////////
+	/////UI operations///////////////////////////////////////////////////////////////////////////////////////
 	bool ClothManager::removeSelected(AbstractPanelObject::Type types)
 	{
 		auto tmpPieces = m_clothPieces;
@@ -1214,6 +1214,27 @@ namespace ldp
 		triangulate();
 		mergePieces();
 		return !removedId.empty();
+	}
+
+	bool ClothManager::reverseSelectedSewings()
+	{
+		bool change = false;
+		for (auto& sew : m_sewings)
+		{
+			if (sew->isSelected())
+			{
+				for (Sewing::Unit &f : sew->firsts())
+					f.reverse = !f.reverse;
+				std::reverse(sew->firsts().begin(), sew->firsts().end());
+				change = true;
+			} // end for sew
+		} // end for tempSewings
+		if (change)
+		{
+			m_shouldTriangulate = true;
+			m_shouldMergePieces = true;
+		}
+		return change;
 	}
 
 	////Params//////////////////////////////////////////////////////////////////////////////////

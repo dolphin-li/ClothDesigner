@@ -107,8 +107,9 @@ namespace ldp
 		/// bounding box
 		void get2dBound(ldp::Float2& bmin, ldp::Float2& bmax)const;
 
-		///
+		/// UI operations///
 		bool removeSelected(AbstractPanelObject::Type types);
+		bool reverseSelectedSewings();
 	protected:
 	private:
 		std::vector<std::shared_ptr<Sewing>> m_sewings;

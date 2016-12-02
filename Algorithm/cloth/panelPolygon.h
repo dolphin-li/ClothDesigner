@@ -412,6 +412,8 @@ namespace ldp
 		bool empty()const { return m_firsts.size() == 0 || m_seconds.size() == 0; }
 		const std::vector<Unit>& firsts()const { return m_firsts; }
 		const std::vector<Unit>& seconds()const { return m_seconds; }
+		std::vector<Unit>& firsts() { return m_firsts; }
+		std::vector<Unit>& seconds() { return m_seconds; }
 		void addFirst(Unit unit);
 		void addSecond(Unit unit);
 		void addFirsts(const std::vector<Unit>& unit);
