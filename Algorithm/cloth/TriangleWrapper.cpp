@@ -138,9 +138,14 @@ namespace ldp
 				auto p = shape->getPointByParam(sp.t);
 				if (m_points.size() != startIdx)
 				{
-					if ((m_points.back() - p).length() < thre || (m_points[startIdx] - p).length() < thre)
+					if ((m_points.back() - p).length() < thre)
 					{
 						sp.idx = int(m_points.size()) - 1; // merged to the last point
+						continue;
+					}
+					if ((m_points[startIdx] - p).length() < thre)
+					{
+						sp.idx = startIdx; // merged to the last point
 						continue;
 					}
 				}
