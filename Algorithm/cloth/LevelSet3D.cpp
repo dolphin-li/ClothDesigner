@@ -565,7 +565,7 @@ namespace ldp
 			m_value[index[i]] = value[i];
 		input.close();
 		printf("load data from file %s successfully.\n", filename.c_str());
-		fastMarching();
+		//fastMarching(); // ldp debug
 	}
 
 	void LevelSet3D::save(std::string filename)const

@@ -2,6 +2,7 @@
 
 #include "definations.h"
 #include <hash_map>
+#include <map>
 extern "C"{
 	struct triangulateio;
 }
@@ -48,11 +49,33 @@ namespace ldp
 		struct SampleParamVec
 		{
 			std::vector<SampleParam> params;
+			const AbstractShape* shape;
 			float step;
-			SampleParamVec() :step(0) {}
+			float start;
+			float end;
+			SampleParamVec() :step(0), start(0), end(0), shape(nullptr) {}
 		};
 		typedef std::shared_ptr<SampleParamVec> SampleParamVecPtr;
-		void addSampleParam(const AbstractShape* shape, float step);
+		typedef	std::vector<SampleParamVecPtr> ShapeSegs;
+		typedef std::shared_ptr<ShapeSegs> ShapeSegsPtr;
+		void createShapeSeg(const AbstractShape* shape, float step);
+		int addSegToShape(ShapeSegs& segs, float tSegs);
+		void resampleSeg(SampleParamVec& segs, float step);
+		struct SegPair
+		{
+			SampleParamVec* seg[2];
+			bool reverse[2];
+			SegPair(SampleParamVec* seg1, bool reverse1,
+				SampleParamVec* seg2, bool reverse2)
+			{
+				seg[0] = seg1;
+				reverse[0] = reverse1;
+				seg[1] = seg2;
+				reverse[1] = reverse2;
+			}
+		};
+		typedef std::vector<SegPair> SegPairVec;
+		void updateSegStepMap(SampleParamVec* seg, float step);
 	private:
 		/// computing structure
 		triangulateio* m_in = nullptr;
@@ -78,8 +101,10 @@ namespace ldp
 
 		/// sewing related
 		std::vector<StitchPointPair> m_stitches;;
-		std::hash_map<const AbstractShape*, SampleParamVecPtr> m_sampleParams;
 		std::hash_map<const AbstractShape*, const ClothPiece*> m_shapePieceMap;
 		std::hash_map<const ClothPiece*, int> m_vertStart;
+		std::hash_map<const AbstractShape*, ShapeSegsPtr> m_shapeSegs;
+		SegPairVec m_segPairs;
+		std::map<SampleParamVec*, float> m_segStepMap;
 	};
 }

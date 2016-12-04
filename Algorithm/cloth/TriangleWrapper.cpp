@@ -10,6 +10,34 @@ extern "C"{
 
 namespace ldp
 {
+	inline float calcForwardBackwardConsistentStep(float step)
+	{
+		step = std::max(0.f, std::min(1.f, step));
+		int n = std::lroundf(1.f/step);
+		return 1.f / float(n);
+	}
+
+	static int findParamRange(float t, const std::vector<float>& ranges)
+	{
+		int bg = 0, ed = (int)ranges.size() - 1;
+		while (bg < ed)
+		{
+			float tb = ranges[bg];
+			float te = ranges[ed];
+			if (t <= te && t >= tb && ed - bg == 1)
+				return bg;
+			int mid = (bg + ed) / 2;
+			float tm = ranges[mid];
+			if (t <= tm && t >= tb)
+				ed = mid;
+			else if (t >= tm && t <= te)
+				bg = mid;
+			else
+				return -1;
+		}
+		return -1;
+	}
+
 	TriangleWrapper::TriangleWrapper()
 	{
 		m_in = new triangulateio;
@@ -75,52 +103,193 @@ namespace ldp
 
 	void TriangleWrapper::precomputeSewing()
 	{
-		m_sampleParams.clear();
-		m_shapePieceMap.clear();
-
-		// 1. calc basic nums, without considering the sewings
 		const float step = m_triSize;
+		const float thre = m_ptMergeThre;
+
+		m_shapeSegs.clear();
+		m_segPairs.clear();
+		m_segStepMap.clear();
+
+		// 1. convert each shape to a segment, without considering the sewings
 		for (auto& piece : (*m_pieces))
 		{
 			const auto& panel = piece->panel();
 			if (panel.outerPoly())
 			for (const auto& shape : *panel.outerPoly())
 			{
-				addSampleParam(shape.get(), step / shape->getLength());
+				createShapeSeg(shape.get(), calcForwardBackwardConsistentStep(step / shape->getLength()));
 				m_shapePieceMap[shape.get()] = piece.get();
 			}
 			for (const auto& dart : panel.darts())
 			for (const auto& shape : *dart)
 			{
-				addSampleParam(shape.get(), step / shape->getLength());
+				createShapeSeg(shape.get(), calcForwardBackwardConsistentStep(step / shape->getLength()));
 				m_shapePieceMap[shape.get()] = piece.get();
 			}
 			for (const auto& line : panel.innerLines())
 			for (const auto& shape : *line)
 			{
-				addSampleParam(shape.get(), step / shape->getLength());
+				createShapeSeg(shape.get(), calcForwardBackwardConsistentStep(step / shape->getLength()));
 				m_shapePieceMap[shape.get()] = piece.get();
 			}
 		} // end for piece
+
+		// 2. split a shape segment to multiple based on the M-N sew matching.
+		//    after this step, the sewing must be 1-to-1 correspondence
+		// LDP NOTES: seems AB + AC sewing cannot be handled.
+		std::vector<float> fLens, sLens;
+		for (const auto& sew : *m_sewings)
+		{
+			if (sew->empty())
+				continue;
+			const auto& firsts = sew->firsts();
+			const auto& seconds = sew->seconds();
+
+			// update param
+			fLens.clear();
+			sLens.clear();
+			fLens.push_back(0);
+			sLens.push_back(0);
+			for (const auto& f : firsts)
+				fLens.push_back(fLens.back() + ((const AbstractShape*)Sewing::getPtrById(f.id))->getLength());
+			for (const auto& s : seconds)
+				sLens.push_back(sLens.back() + ((const AbstractShape*)Sewing::getPtrById(s.id))->getLength());
+			for (auto& f : fLens)
+				f /= fLens.back();
+			for (auto& s : sLens)
+				s /= sLens.back();
+
+			size_t fPos = 0, sPos = 0;
+			for (; fPos+1 < fLens.size() && sPos+1 < sLens.size();)
+			{
+				const float fStart = fLens[fPos], fEnd = fLens[fPos + 1];
+				const float sStart = sLens[sPos], sEnd = sLens[sPos + 1];
+				const float fLen = fEnd - fStart, sLen = sEnd - sStart;
+				const auto& fUnit = firsts[fPos];
+				const auto fShape = (AbstractShape*)Sewing::getPtrById(fUnit.id);
+				auto& fSegs = m_shapeSegs[fShape];
+				const auto& sUnit = seconds[sPos];
+				const auto sShape = (AbstractShape*)Sewing::getPtrById(sUnit.id);
+				auto& sSegs = m_shapeSegs[sShape];
+				size_t fPos_1 = fSegs->size() - 1;
+				size_t sPos_1 = sSegs->size() - 1;
+				if (fUnit.reverse)
+					fPos_1 = 0;
+				if (sUnit.reverse)
+					sPos_1 = 0;
+				if (fabs(fEnd - sEnd) < thre)
+				{
+					fPos++;
+					sPos++;
+				} // end if f, s too close
+				else if (fEnd > sEnd)
+				{
+					float local = (sEnd - fStart) / fLen;
+					if (fUnit.reverse)
+						local = 1.f - local;
+					fPos_1 = addSegToShape(*fSegs.get(), local) + fUnit.reverse;
+					sPos++;
+				} // end if f > s
+				else
+				{
+					float local = (fEnd - sStart) / sLen;
+					if (sUnit.reverse)
+						local = 1.f - local;
+					sPos_1 = addSegToShape(*sSegs.get(), local) + sUnit.reverse;
+					fPos++;
+				} // end else f < s
+				const float minStep = calcForwardBackwardConsistentStep(
+					std::min((*fSegs)[fPos_1]->step, (*sSegs)[sPos_1]->step));
+				updateSegStepMap((*fSegs)[fPos_1].get(), minStep);
+				updateSegStepMap((*sSegs)[sPos_1].get(), minStep);
+				m_segPairs.push_back(SegPair(fSegs->at(fPos_1).get(), fUnit.reverse,
+					sSegs->at(sPos_1).get(), sUnit.reverse));
+			} // end for fPos, sPos
+		} // end for sew
+
+		// 3. perform resampling, such that each sewing pair share the same sample points
+		for (auto& pair : m_segPairs)
+		{
+			for (int k = 0; k < 2; k++)
+			{
+				float step = m_segStepMap[pair.seg[k]];
+				resampleSeg(*pair.seg[k], step);
+			}
+		} // end for pair
 	}
 
-	void TriangleWrapper::addSampleParam(const AbstractShape* shape, float step)
+	void TriangleWrapper::createShapeSeg(const AbstractShape* shape, float step)
 	{
-		auto iter = m_sampleParams.find(shape);
-		if (iter != m_sampleParams.end())
+		auto iter = m_shapeSegs.find(shape);
+		if (iter == m_shapeSegs.end())
 		{
-			if (iter->second->step <= step)
-				return;
-			iter->second->params.clear();
+			ShapeSegsPtr ptr(new ShapeSegs);
+			ptr->resize(1); 
+			(*ptr)[0].reset(new SampleParamVec);
+			(*ptr)[0]->shape = shape;
+			(*ptr)[0]->start = 0;
+			(*ptr)[0]->end = 1;
+			(*ptr)[0]->step = step;
+			for (float s = 0.f; s < 1 + step - 1e-8; s += step)
+				(*ptr)[0]->params.push_back(SampleParam(std::min(1.f, s), 0));
+			m_shapeSegs[shape] = ptr;
+		} // end if iter not found
+		else
+			throw std::exception("duplicated shape added!\n");
+	}
+
+	int TriangleWrapper::addSegToShape(ShapeSegs& segs, float tSegs)
+	{
+		for (size_t i = 0; i< segs.size(); i++)
+		{
+			const float segBegin = segs[i]->start;
+			const float segEnd = segs[i]->end;
+			if (tSegs > segBegin && tSegs < segEnd)
+			{
+				segs.insert(segs.begin() + i + 1, SampleParamVecPtr(new SampleParamVec()));
+				auto& oVec = segs[i];
+				auto& sVec = segs[i + 1];
+				const float oriStep = oVec->step;
+				oVec->step = calcForwardBackwardConsistentStep(oriStep * (segEnd - segBegin) / (tSegs - segBegin));
+				oVec->start = segBegin;
+				oVec->end = tSegs;
+				oVec->params.clear();
+				for (float s = 0.f; s < 1 + oVec->step - 1e-8; s += oVec->step)
+					oVec->params.push_back(SampleParam(std::min(1.f, s), 0));
+				sVec->shape = oVec->shape;
+				sVec->step = calcForwardBackwardConsistentStep(oriStep * (segEnd - segBegin) / (segEnd - tSegs));
+				sVec->start = tSegs;
+				sVec->end = segEnd;
+				sVec->params.clear();
+				for (float s = 0.f; s < 1 + sVec->step - 1e-8; s += sVec->step)
+					sVec->params.push_back(SampleParam(std::min(1.f, s), 0));
+				return i;
+			} // end if >, <
+		} // end for i
+		return -1;
+	}
+
+	void TriangleWrapper::updateSegStepMap(SampleParamVec* seg, float step)
+	{
+		auto iter = m_segStepMap.find(seg);
+		if (iter == m_segStepMap.end())
+		{
+			m_segStepMap.insert(std::make_pair(seg, step));
 		}
 		else
 		{
-			m_sampleParams.insert(std::make_pair(shape, SampleParamVecPtr(new SampleParamVec())));
-			iter = m_sampleParams.find(shape);
+			iter->second = std::min(step, iter->second);
 		}
-		iter->second->step = step;
-		for (float s = 0.f; s < 1 + step - 1e-8; s += step)
-			iter->second->params.push_back(SampleParam(std::min(1.f, s), 0));
+	}
+
+	void TriangleWrapper::resampleSeg(SampleParamVec& seg, float step)
+	{
+		if (fabs(seg.step - step) < std::numeric_limits<float>::epsilon())
+			return;
+		seg.step = step;
+		seg.params.clear();
+		for (float s = 0.f; s < 1 + seg.step - 1e-8; s += seg.step)
+			seg.params.push_back(SampleParam(std::min(1.f, s), 0));
 	}
 
 	void TriangleWrapper::addPolygon(const ShapeGroup& poly)
@@ -132,25 +301,29 @@ namespace ldp
 		// add points
 		for (const auto& shape : poly)
 		{
-			auto& spVec = m_sampleParams[shape.get()];
-			for (auto& sp : spVec->params)
+			auto& shapeSegs = m_shapeSegs[shape.get()];
+			for (size_t iSeg = 0; iSeg < shapeSegs->size(); iSeg++)
 			{
-				auto p = shape->getPointByParam(sp.t);
-				if (m_points.size() != startIdx)
+				auto& seg = shapeSegs->at(iSeg);
+				for (auto& sp : seg->params)
 				{
-					if ((m_points.back() - p).length() < thre)
+					auto p = shape->getPointByParam(sp.t * (seg->end - seg->start) + seg->start);
+					if (m_points.size() != startIdx)
 					{
-						sp.idx = int(m_points.size()) - 1; // merged to the last point
-						continue;
+						if ((m_points.back() - p).length() < thre)
+						{
+							sp.idx = int(m_points.size()) - 1; // merged to the last point
+							continue;
+						}
+						if ((m_points[startIdx] - p).length() < thre)
+						{
+							sp.idx = startIdx; // merged to the last point
+							continue;
+						}
 					}
-					if ((m_points[startIdx] - p).length() < thre)
-					{
-						sp.idx = startIdx; // merged to the last point
-						continue;
-					}
+					sp.idx = int(m_points.size());
+					m_points.push_back(p);
 				}
-				sp.idx = int(m_points.size());
-				m_points.push_back(p);
 			} // end for p
 		} // end for shape
 
@@ -251,44 +424,9 @@ namespace ldp
 		mesh3d.cloneFrom(&mesh3dInit);
 	}
 
-	static int findParamRange(float t, const std::vector<float>& ranges)
-	{
-		int bg = 0, ed = (int)ranges.size()-1;
-		while (bg < ed)
-		{
-			float tb = ranges[bg];
-			float te = ranges[ed];
-			if (t <= te && t >= tb && ed - bg == 1)
-				return bg;
-			int mid = (bg + ed) / 2;
-			float tm = ranges[mid];
-			if (t <= tm && t >= tb)
-				ed = mid;
-			else if (t >= tm && t <= te)
-				bg = mid;
-			else
-				return -1;
-		}
-		return -1;
-	}
-
 	void TriangleWrapper::postComputeSewing()
 	{
-		// 1. remove invalid samples
-		std::vector<SampleParam> tmpVec;
-		for (auto& iter : m_sampleParams)
-		{
-			auto& params = iter.second->params;
-			tmpVec = params;
-			params.clear();
-			for (const auto& p : tmpVec)
-			{
-				if (p.idx >= 0)
-					params.push_back(p);
-			}
-		} // end for iter
-
-		// 2. count the verts of each piece and accumulate
+		// 1. count the verts of each piece and accumulate
 		m_vertStart.clear();
 		int vertNum = 0;
 		for (const auto& piece : *m_pieces)
@@ -299,109 +437,31 @@ namespace ldp
 
 		// 2. make stitching
 		m_stitches.clear();
-		std::vector<StitchPoint> fpts, spts;
-		std::vector<float> fLens, sLens, fParams;
-		for (const auto& sew : *m_sewings)
+		for (const auto& pair : m_segPairs)
 		{
-			if (sew->empty())
-				continue;
-			const auto& firsts = sew->firsts();
-			const auto& seconds = sew->seconds();
-
-			// update param
-			fLens.clear();
-			sLens.clear();
-			fLens.push_back(0);
-			sLens.push_back(0);
-			for (const auto& f : firsts)
-				fLens.push_back(fLens.back() + ((const AbstractShape*)Sewing::getPtrById(f.id))->getLength());
-			for (const auto& s : seconds)
-				sLens.push_back(sLens.back() + ((const AbstractShape*)Sewing::getPtrById(s.id))->getLength());
-			for (auto& f : fLens)
-				f /= fLens.back();
-			for (auto& s : sLens)
-				s /= sLens.back();
-
-			// sampel points now
-			fpts.clear();
-			spts.clear();
-			fParams.clear();
-			for (size_t iUnit = 0; iUnit < firsts.size(); iUnit++)
+			std::vector<SampleParam> param0 = pair.seg[0]->params;
+			std::vector<SampleParam> param1 = pair.seg[1]->params;
+			assert(param0.size() == param1.size());
+			if (pair.reverse[0])
+				std::reverse(param0.begin(), param0.end());
+			if (pair.reverse[1])
+				std::reverse(param1.begin(), param1.end());
+			for (size_t i = 0; i < param0.size(); i++)
 			{
-				const auto& unit = firsts[iUnit];
-				const float paramStart = fLens[iUnit];
-				const float paramLen = fLens[iUnit + 1] - paramStart;
-				auto shape = (AbstractShape*)Sewing::getPtrById(unit.id);
-				auto piece = m_shapePieceMap[shape];
-				const int vStart = m_vertStart[piece];
-				auto params = m_sampleParams[shape]->params;
-				if (unit.reverse)
-				{
-					std::reverse(params.begin(), params.end());
-					for (auto& p : params)
-						p.t = 1.f - p.t;
-				}
-				for (const auto& pm : params)
-				{
-					StitchPoint s;		
-					s.vids = Int2(vStart + pm.idx, vStart + pm.idx);
-					s.w = 0.f;
-					fpts.push_back(s);
-					fParams.push_back(pm.t*paramLen + paramStart);
-				} // end for pm
-			} // end for firsts
-			
-			for (const auto& tGlobal : fParams)
-			{
-				int iUnit = findParamRange(tGlobal, sLens);
-				assert(iUnit >= 0);
-				const auto& unit = seconds[iUnit];
-				const float paramStart = sLens[iUnit];
-				const float paramLen = sLens[iUnit + 1] - paramStart;
-				assert(tGlobal >= paramStart && tGlobal <= paramStart + paramLen);
-				float tLocal = (tGlobal - paramStart) / paramLen;
-				auto shape = (AbstractShape*)Sewing::getPtrById(unit.id);
-				auto piece = m_shapePieceMap[shape];
-				const int vStart = m_vertStart[piece];
-				auto params = m_sampleParams[shape]->params;
-				if (unit.reverse)
-				{
-					std::reverse(params.begin(), params.end());
-					for (auto& p : params)
-						p.t = 1.f - p.t;
-				}
-				assert(params.size() > 1);
-				bool found = false;
-				for (size_t i = 1; i < params.size(); i++)
-				{
-					const auto& ps = params[i - 1];
-					const auto& pe = params[i];
-					if (!(pe.t >= tLocal && ps.t <= tLocal))
-						continue;
-					StitchPoint s;
-					s.vids = Int2(vStart + ps.idx, vStart + pe.idx);
-					s.w = (tLocal - ps.t) / (pe.t - ps.t);
-					spts.push_back(s);
-					found = true;
-					break;
-				} // end for pm
-				if (!found)
-				{
-					printf("warning: a stitch may not be made proper!\n");
-					StitchPoint s;
-					s.w = -1;
-					spts.push_back(s);
-				}
-			} // end for t
-
-			assert(fpts.size() == spts.size());
-			for (size_t i = 0; i < fpts.size(); i++)
-			{
-				if (spts[i].w < 0)
-					continue;
-				m_stitches.push_back(StitchPointPair(fpts[i], spts[i]));
+				auto piece0 = m_shapePieceMap[pair.seg[0]->shape];
+				auto piece1 = m_shapePieceMap[pair.seg[1]->shape];
+				int s0 = m_vertStart[piece0];
+				int s1 = m_vertStart[piece1];
+				int id0 = param0[i].idx + s0;
+				int id1 = param1[i].idx + s1;
+				StitchPointPair stp;
+				stp.first.vids = id0;
+				stp.first.w = 0;
+				stp.second.vids = id1;
+				stp.second.w = 0;
+				m_stitches.push_back(stp);
 			}
-		} // end for sew
+		} // end for pair
 	}
 
 	void TriangleWrapper::reset_triangle_struct(triangulateio* io)const
