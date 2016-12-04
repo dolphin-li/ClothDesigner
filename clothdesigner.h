@@ -48,6 +48,7 @@ public:
 	void on_sbSparamBendStiff_valueChanged(double v);
 	void on_sbSparamStitchStiff_valueChanged(double v);
 	void on_sbSparamStitchSpeed_valueChanged(double v);
+	void on_sbSparamStitchBend_valueChanged(double v);
 	void on_sbSparamGravityX_valueChanged(double v);
 	void on_sbSparamGravityY_valueChanged(double v);
 	void on_sbSparamGravityZ_valueChanged(double v);

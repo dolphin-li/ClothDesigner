@@ -11,8 +11,10 @@
 #include "ldputil.h"
 #include <cuda_runtime_api.h>
 #include <fstream>
+#ifdef ENABLE_EDGE_WISE_STITCH
 #include <eigen\Dense>
 #include <eigen\Sparse>
+#endif
 #define ENABLE_DEBUG_DUMPING
 
 namespace ldp
@@ -218,10 +220,26 @@ namespace ldp
 			mesh.vertex_list.assign(m_X.begin() + vb, m_X.begin() + vb + mesh.vertex_list.size());
 			mesh.updateNormals();
 			mesh.updateBoundingBox();
+			updateSewingNormals(mesh);
 		} // end for iCloth
 
 		gtime_t t_end = ldp::gtime_now();
 		m_fps = 1 / ldp::gtime_seconds(t_begin, t_end);
+	}
+
+	void ClothManager::updateSewingNormals(ObjMesh& mesh)
+	{
+		for (size_t iv = 0; iv < mesh.vertex_normal_list.size(); iv++)
+		{
+			auto iter = m_sewVofFMap.find(std::make_pair(&mesh, (int)iv));
+			if (iter == m_sewVofFMap.end())
+				continue;
+			Float3 normal = 0.f;
+			for (const auto& f : iter->second)
+				normal += Float3(m_X[f[1]] - m_X[f[0]]).cross(m_X[f[2]] - m_X[f[0]]);
+			mesh.vertex_normal_list[iv] = normal.normalize();
+		} // end for iv
+		mesh.requireRenderUpdate();
 	}
 
 	void ClothManager::simulationDestroy()
@@ -265,6 +283,8 @@ namespace ldp
 		if (fabs(lastParam.bending_k - m_simulationParam.bending_k) >= std::numeric_limits<float>::epsilon())
 			m_shouldNumericUpdate = true;
 		if (fabs(lastParam.stitch_k - m_simulationParam.stitch_k) >= std::numeric_limits<float>::epsilon())
+			m_shouldStitchUpdate = true;
+		if (fabs(lastParam.stitch_bending_k - m_simulationParam.stitch_bending_k) >= std::numeric_limits<float>::epsilon())
 			m_shouldStitchUpdate = true;
 	}
 
@@ -389,6 +409,7 @@ namespace ldp
 
 	void ClothManager::clearSewings()
 	{
+		m_sewVofFMap.clear();
 		m_sewings.clear();
 		m_stitches.clear();
 		m_stitchVV.clear();
@@ -396,6 +417,7 @@ namespace ldp
 		m_stitchVC.clear();
 		m_stitchVW.clear();
 		m_stitchVL.clear();
+#ifdef ENABLE_EDGE_WISE_STITCH
 		m_stitchEV_num.clear();
 		m_stitchEV.clear();
 		m_stitchEV_W.clear();
@@ -403,6 +425,7 @@ namespace ldp
 		m_stitchVE.clear();
 		m_stitchVE_num.clear();
 		m_stitchVE_W.clear();
+#endif
 		m_shouldTriangulate = true;
 		m_shouldMergePieces = true;
 	}
@@ -412,6 +435,11 @@ namespace ldp
 	{
 		if (m_shouldMergePieces)
 			mergePieces();
+
+#ifndef ENABLE_EDGE_WISE_STITCH
+		if (s1.vids[0] != s1.vids[1] || s2.vids[0] != s2.vids[1])
+			throw std::exception("edge-wise stiching not supported, pls set StitchPoint.vids[0]=vids[1]");
+#endif
 
 		// convert from mesh id to global id
 		s1.vids += m_clothVertBegin.at(&cloth1->mesh3d());
@@ -477,6 +505,7 @@ namespace ldp
 			buildNumerical();
 		m_simulationParam.stitch_k = m_simulationParam.stitch_k_raw / m_avgArea;
 
+#ifdef ENABLE_EDGE_WISE_STITCH
 		typedef Eigen::SparseMatrix<ValueType> SpMat;
 		typedef Eigen::Matrix<ValueType, -1, -1> DMat;
 		typedef Eigen::Matrix<ValueType, -1, 1> DVec;
@@ -602,6 +631,247 @@ namespace ldp
 		m_dev_stitchVE_W.upload(m_stitchVE_W);	
 		m_dev_stitchE_curVec.create(m_dev_stitchE_length.size()*3);
 		cudaMemset(m_dev_stitchE_curVec.ptr(), 0, m_dev_stitchE_curVec.sizeBytes());
+#else
+		
+		// build bending edges for boundary sewings
+		m_sewVofFMap.clear();
+		std::map<Int2, std::pair<Int2, Int2>> edgeBendEdgeMap;
+		for (const auto& s1 : m_stitches)
+		{
+			Int2 sv1(s1.first.vids[0], s1.second.vids[0]);
+			for (const auto& s2 : m_stitches)
+			{
+				Int2 sv2(s2.first.vids[0], s2.second.vids[0]);
+				Int2 e1Idx(sv1[0], sv2[0]);
+				Int2 e2Idx(sv1[1], sv2[1]);
+				if (e1Idx[0] == e1Idx[1] || e2Idx[0] == e2Idx[1])
+					continue;
+				auto e1 = findEdge(e1Idx[0], e1Idx[1]);
+				auto e2 = findEdge(e2Idx[0], e2Idx[1]);
+				if (e1 && e2)
+				{
+					if (m_bmesh->fofe_count(e1) != 1 || m_bmesh->fofe_count(e2) != 1)
+						continue;
+					Int2 bend = -1;
+					BMESH_F_OF_E(f, e1, e1iter, *m_bmesh)
+					{
+						bend[0] = -e1Idx[0] - e1Idx[1];
+						int cnt = 0;
+						BMESH_V_OF_F(v, f, viter, *m_bmesh)
+						{
+							bend[0] += v->getIndex();
+						}
+						break;
+					}
+					BMESH_F_OF_E(f, e2, e2iter, *m_bmesh)
+					{
+						bend[1] = -e2Idx[0] - e2Idx[1];
+						int cnt = 0;
+						BMESH_V_OF_F(v, f, viter, *m_bmesh)
+						{
+							bend[1] += v->getIndex();
+						}
+						break;
+					}
+					edgeBendEdgeMap[e1Idx] = std::make_pair(e2Idx, bend);
+					edgeBendEdgeMap[e2Idx] = std::make_pair(e1Idx, bend);
+
+					// insert boundary face map, but only for 1-to-1 map
+					// this is used for better rendering, not related to the simulation
+					std::pair<const ObjMesh*, int> localIds[2][2];
+					localIds[0][0] = getLocalVertsId(e1Idx[0]);
+					localIds[0][1] = getLocalVertsId(e1Idx[1]);
+					localIds[1][0] = getLocalVertsId(e2Idx[0]);
+					localIds[1][1] = getLocalVertsId(e2Idx[1]);
+					BMVert* bv[2][2] = { { m_bmeshVerts[e1Idx[0]], m_bmeshVerts[e1Idx[1]] }, 
+					{ m_bmeshVerts[e2Idx[0]], m_bmeshVerts[e2Idx[1]] } };
+					BMESH_F_OF_V(f, bv[0][0], viter0, *m_bmesh)
+					{
+						Int3 idx = m_T[f->getIndex()];
+						m_sewVofFMap[localIds[0][0]].insert(idx);
+						m_sewVofFMap[localIds[1][0]].insert(idx);
+					}
+					BMESH_F_OF_V(f, bv[0][1], viter1, *m_bmesh)
+					{
+						Int3 idx = m_T[f->getIndex()];
+						m_sewVofFMap[localIds[0][1]].insert(idx);
+						m_sewVofFMap[localIds[1][1]].insert(idx);
+					}
+					BMESH_F_OF_V(f, bv[1][0], viter2, *m_bmesh)
+					{
+						Int3 idx = m_T[f->getIndex()];
+						m_sewVofFMap[localIds[1][0]].insert(idx);
+						m_sewVofFMap[localIds[0][0]].insert(idx);
+					}
+					BMESH_F_OF_V(f, bv[1][1], viter3, *m_bmesh)
+					{
+						Int3 idx = m_T[f->getIndex()];
+						m_sewVofFMap[localIds[1][1]].insert(idx);
+						m_sewVofFMap[localIds[0][1]].insert(idx);
+					}
+				} // end if e1 and e2
+			} // end for s2
+		} // end for s1
+
+		// build edges
+		std::vector<Int2> edges;
+		std::set<Int2> edgeExist;
+		std::vector<std::tuple<Int2, Int2, Int2>> edgesWithBend;
+		for (const auto& s : m_stitches)
+		{
+			if (s.first.vids[0] != s.first.vids[1] || s.second.vids[0] != s.second.vids[1])
+				throw std::exception("edge-wise stiching not supported, pls set StitchPoint.vids[0]=vids[1]");
+			Int2 e(s.first.vids[0], s.second.vids[0]);
+			if (e[0] == e[1])
+				continue;
+
+			// ignore duplicated edges
+			if (edgeExist.find(e) != edgeExist.end())
+				continue;
+			edgeExist.insert(e);
+			edgeExist.insert(Int2(e[1], e[0]));
+
+			// stitcg edges
+			edges.push_back(e);
+			edges.push_back(Int2(e[1], e[0]));
+
+			// bending edges
+			edgesWithBend.push_back(std::make_tuple(e, Int2(-1), Int2(-1)));
+		}
+		for (auto iter : edgeBendEdgeMap)
+		{
+			auto e = iter.first; // edge
+			auto se = iter.second.first, be = iter.second.second; // stiched edge and bend edge
+
+			if (e[0] >= e[1])
+				continue;
+
+			// original edges
+			edges.push_back(e);
+			edges.push_back(Int2(e[1], e[0]));
+
+			// boundary triangle edges
+			edges.push_back(Int2(e[0], be[0]));
+			edges.push_back(Int2(be[0], e[0]));
+			edges.push_back(Int2(e[1], be[0]));
+			edges.push_back(Int2(be[0], e[1]));
+
+			edges.push_back(Int2(be[0], be[1]));
+			edges.push_back(Int2(be[1], be[0]));
+
+			edges.push_back(Int2(se[0], be[1]));
+			edges.push_back(Int2(be[1], se[0]));
+			edges.push_back(Int2(se[1], be[1]));
+			edges.push_back(Int2(be[1], se[1]));
+
+			// bend edges, marked as < 0 to distinguish with stitch edges
+			edgesWithBend.push_back(std::make_tuple(0-e, se, be));
+		}
+		std::sort(edges.begin(), edges.end());
+		edges.resize(std::unique(edges.begin(), edges.end()) - edges.begin());
+
+		// setup one-ring vertex info
+		size_t eIdx = 0;
+		m_stitchVV_num.clear();
+		m_stitchVV_num.reserve(m_X.size() + 1);
+		m_stitchVV.clear();
+		for (size_t i = 0; i<m_X.size(); i++)
+		{
+			m_stitchVV_num.push_back(m_stitchVV.size());
+			for (; eIdx<edges.size(); eIdx++)
+			{
+				const auto& e = edges[eIdx];
+				if (e[0] != i)
+					break;		// not in the right vertex
+				if (e[1] == e[0])
+					continue;	// duplicate
+				m_stitchVV.push_back(e[1]);
+			}
+		} // end for i
+		m_stitchVV_num.push_back(m_stitchVV.size());
+
+		// compute matrix related values
+		m_stitchVL.resize(m_stitchVV.size());
+		m_stitchVW.resize(m_stitchVV.size());
+		m_stitchVC.resize(m_X.size());
+		std::fill(m_stitchVL.begin(), m_stitchVL.end(), ValueType(0));
+		std::fill(m_stitchVW.begin(), m_stitchVW.end(), ValueType(0));
+		std::fill(m_stitchVC.begin(), m_stitchVC.end(), ValueType(0));
+		for (auto tuple : edgesWithBend)
+		{
+			Int2 e = std::get<0>(tuple);
+			Int2 se = std::get<1>(tuple);
+			Int2 be = std::get<2>(tuple);
+
+			// first, handle spring length		
+			if (e[0] >= 0 && e[1] >= 0)
+			{
+				ValueType l = (m_X[e[0]] - m_X[e[1]]).length();
+				m_stitchVL[findStitchNeighbor(e[0], e[1])] = l;
+				m_stitchVL[findStitchNeighbor(e[1], e[0])] = l;
+			}
+
+			// ignore boundary edges for bending
+			if (se[0] == -1 || se[1] == -1 || be[0] == -1 || be[1] == -1)
+				continue;
+
+			// convert the negative flag back.
+			e[0] = -e[0];
+			e[1] = -e[1];
+
+			// second, handle bending weights
+			ValueType c01 = Cotangent(m_X[e[0]].ptr(), m_X[e[1]].ptr(), m_X[be[0]].ptr());
+			ValueType c02 = Cotangent(m_X[se[0]].ptr(), m_X[se[1]].ptr(), m_X[be[1]].ptr());
+			ValueType c03 = Cotangent(m_X[e[1]].ptr(), m_X[e[0]].ptr(), m_X[be[0]].ptr());
+			ValueType c04 = Cotangent(m_X[se[1]].ptr(), m_X[se[0]].ptr(), m_X[be[1]].ptr());
+			ValueType area0 = sqrt(Area_Squared(m_X[e[0]].ptr(), m_X[e[1]].ptr(), m_X[be[0]].ptr()));
+			ValueType area1 = sqrt(Area_Squared(m_X[se[0]].ptr(), m_X[se[1]].ptr(), m_X[be[1]].ptr()));
+			ValueType weight = 1 / (area0 + area1);
+			ValueType k[4];
+			k[0] = c03 + c04;
+			k[1] = c01 + c02;
+			k[2] = -c01 - c03;
+			k[3] = -c02 - c04;
+
+			Int6 v;
+			v[0] = e[0];
+			v[1] = e[1];
+			v[2] = se[0];
+			v[3] = se[1];
+			v[4] = be[0];
+			v[5] = be[1];
+			const float w = m_simulationParam.stitch_bending_k*weight;
+			m_stitchVC[v[0]] += k[0] * k[0] * w / 2;
+			m_stitchVC[v[1]] += k[1] * k[1] * w / 2;
+			m_stitchVC[v[2]] += k[0] * k[0] * w / 2;
+			m_stitchVC[v[3]] += k[1] * k[1] * w / 2;
+			m_stitchVC[v[4]] += k[2] * k[2] * w;
+			m_stitchVC[v[5]] += k[3] * k[3] * w;
+			m_stitchVW[findStitchNeighbor(v[0], v[1])] += k[0] * k[1] * w / 2;
+			m_stitchVW[findStitchNeighbor(v[2], v[3])] += k[0] * k[1] * w / 2;
+			m_stitchVW[findStitchNeighbor(v[0], v[4])] += k[0] * k[2] * w;
+			m_stitchVW[findStitchNeighbor(v[2], v[5])] += k[0] * k[3] * w;
+
+			m_stitchVW[findStitchNeighbor(v[1], v[0])] += k[1] * k[0] * w / 2;
+			m_stitchVW[findStitchNeighbor(v[3], v[2])] += k[1] * k[0] * w / 2;
+			m_stitchVW[findStitchNeighbor(v[1], v[4])] += k[1] * k[2] * w;
+			m_stitchVW[findStitchNeighbor(v[3], v[5])] += k[1] * k[3] * w;
+
+			m_stitchVW[findStitchNeighbor(v[4], v[0])] += k[2] * k[0] * w;
+			m_stitchVW[findStitchNeighbor(v[4], v[1])] += k[2] * k[1] * w;
+			m_stitchVW[findStitchNeighbor(v[4], v[5])] += k[2] * k[3] * w;
+
+			m_stitchVW[findStitchNeighbor(v[5], v[2])] += k[3] * k[0] * w;
+			m_stitchVW[findStitchNeighbor(v[5], v[3])] += k[3] * k[1] * w;
+			m_stitchVW[findStitchNeighbor(v[5], v[4])] += k[3] * k[2] * w;
+		} // end for all edges
+		// copy to GPU
+		m_dev_stitch_VV.upload(m_stitchVV);
+		m_dev_stitch_VV_num.upload(m_stitchVV_num);
+		m_dev_stitch_VC.upload(m_stitchVC);
+		m_dev_stitch_VW.upload(m_stitchVW);
+		m_dev_stitch_VL.upload(m_stitchVL);
+#endif
 		m_shouldStitchUpdate = false;
 	}
 
@@ -799,6 +1069,46 @@ namespace ldp
 			return index;
 		printf("ERROR: failed to find the neighbor in stich_VV.\n"); getchar();
 		return -1;
+	}
+
+	BMEdge* ClothManager::findEdge(int v1, int v2)
+	{
+		BMVert* bv1 = m_bmeshVerts[v1];
+		BMVert* bv2 = m_bmeshVerts[v2];
+		BMESH_E_OF_V(e, bv1, v1iter, *m_bmesh)
+		{
+			if (m_bmesh->vofe_first(e) == bv2)
+				return e;
+			if (m_bmesh->vofe_last(e) == bv2)
+				return e;
+		}
+		return nullptr;
+	}
+
+	Int3 ClothManager::getLocalFaceVertsId(Int3 globalVertId)const
+	{
+		for (auto map : m_clothVertBegin)
+		{
+			if (globalVertId[0] >= map.second && globalVertId[0] < map.second + map.first->vertex_list.size())
+			{
+				assert(globalVertId[1] >= map.second && globalVertId[1] < map.second + map.first->vertex_list.size());
+				assert(globalVertId[2] >= map.second && globalVertId[2] < map.second + map.first->vertex_list.size());
+				return globalVertId - map.second;
+			}
+		} // end for id
+		return -1;
+	}
+	
+	std::pair<const ObjMesh*, int> ClothManager::getLocalVertsId(int globalVertId)const
+	{
+		for (auto map : m_clothVertBegin)
+		{
+			if (globalVertId >= map.second && globalVertId < map.second + map.first->vertex_list.size())
+			{
+				return std::make_pair(map.first, globalVertId - map.second);
+			}
+		} // end for id
+		return std::make_pair((const ObjMesh*)nullptr, -1);
 	}
 
 	void ClothManager::debug_save_values()
@@ -1326,12 +1636,13 @@ namespace ldp
 		bending_k = 10;
 		spring_k_raw = 1000;
 		spring_k = 0;//will be updated after built topology
-		stitch_k_raw = 150000;
+		stitch_k_raw = 90000;
 		stitch_k = 0;//will be updated after built topology
+		stitch_bending_k = 10;
 		out_iter = 8;
 		inner_iter = 40;
 		time_step = 1.0 / 240.0;
-		stitch_ratio = 10;
+		stitch_ratio = 5;
 		control_mag = 400;
 		gravity = ldp::Float3(0, 0, -9.8);
 	}

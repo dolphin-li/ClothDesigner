@@ -13,6 +13,7 @@
 #include "COLLISION_HANDLER.h"
 #endif
 
+//#define ENABLE_EDGE_WISE_STITCH
 namespace svg
 {
 	class SvgManager;
@@ -28,6 +29,7 @@ namespace ldp
 	class LevelSet3D;
 	class BMesh;
 	class BMVert;
+	class BMEdge;
 	class TriangleWrapper;
 	class TransformInfo;
 	class ClothManager
@@ -145,6 +147,7 @@ namespace ldp
 		void polyPathToShape(const svg::SvgPolyPath* polyPath,
 			std::shared_ptr<ShapeGroup>& group, 
 			float pixel2meter, ObjConvertMap& map);
+		BMEdge* findEdge(int v1, int v2);
 	protected:
 		// Topology related--------------------------------------------------------------
 	protected:
@@ -156,10 +159,14 @@ namespace ldp
 		void buildStitch();
 		int findNeighbor(int i, int j)const;
 		int findStitchNeighbor(int i, int j)const;
+		Int3 getLocalFaceVertsId(Int3 globalVertId)const;
+		std::pair<const ObjMesh*, int> getLocalVertsId(int globalVertId)const;
+		void updateSewingNormals(ObjMesh& mesh);
 	private:
 		std::shared_ptr<BMesh> m_bmesh;					// topology mesh
 		std::vector<BMVert*> m_bmeshVerts;				// topology mesh
 		std::map<const ObjMesh*, int> m_clothVertBegin;	// index begin of each cloth piece
+		std::map<std::pair<const ObjMesh*, int>, std::set<Int3>> m_sewVofFMap;// two boundary faces that stitched, for normal calculation
 		std::vector<Vec3> m_X;							// vertex position list
 		std::vector<Vec3> m_V;							// vertex velocity list
 		std::vector<Int3> m_T;							// triangle list
@@ -177,6 +184,7 @@ namespace ldp
 		std::vector<ValueType> m_stitchVW;
 		std::vector<ValueType> m_stitchVC;
 		std::vector<ValueType> m_stitchVL;
+#ifdef ENABLE_EDGE_WISE_STITCH
 		std::vector<int> m_stitchEV_num;				// csr header of the sparse matrix ev
 		std::vector<int> m_stitchEV;					// edge-wise stitch, map e to v
 		std::vector<ValueType> m_stitchEV_W;			// edge-wise stitch, map e to v
@@ -184,6 +192,7 @@ namespace ldp
 		std::vector<int> m_stitchVE_num;				// csr header of the sparse matrix ve
 		std::vector<int> m_stitchVE;					// edge-wise stich, map v to e
 		std::vector<ValueType> m_stitchVE_W;			// edge-wise stich, map v to e
+#endif
 		ValueType m_curStitchRatio;						// the stitchEdge * ratio is the current stitched length
 		// GPU related-------------------------------------------------------------------
 	protected:
@@ -220,6 +229,7 @@ namespace ldp
 		DeviceArray<ValueType> m_dev_stitch_VW;
 		DeviceArray<ValueType> m_dev_stitch_VC;
 		DeviceArray<ValueType> m_dev_stitch_VL;
+#ifdef ENABLE_EDGE_WISE_STITCH
 		DeviceArray<int> m_dev_stitchEV_num;				// csr header of the sparse matrix ev
 		DeviceArray<int> m_dev_stitchEV;					// edge-wise stitch, map e to v
 		DeviceArray<ValueType> m_dev_stitchEV_W;			// edge-wise stitch, map e to v
@@ -228,6 +238,7 @@ namespace ldp
 		DeviceArray<int> m_dev_stitchVE;					// edge-wise stich, map v to e
 		DeviceArray<ValueType> m_dev_stitchVE_W;			// edge-wise stich, map v to e
 		DeviceArray<ValueType> m_dev_stitchE_curVec;		// length * ratio * last_stitch_edge_dir
+#endif
 #ifdef ENABLE_SELF_COLLISION
 		COLLISION_HANDLER<ValueType> m_collider;
 #endif

@@ -131,6 +131,7 @@ namespace ldp
 	
 #pragma region --constrain1
 
+#ifdef ENABLE_EDGE_WISE_STITCH
 	__global__ void Compute_Stitch_Vec_Kernel(
 		float* stitch_E_curVec, const float* X, int e_number,
 		const float* stitch_EV_W, const int* stitch_EV, const int* stitch_EV_num,
@@ -228,6 +229,80 @@ namespace ldp
 			m_dev_stitchVE.ptr(), m_dev_stitchVE_num.ptr(), m_dev_stitchVE_W.ptr(), m_dev_stitchE_curVec.ptr());
 		cudaSafeCall(cudaGetLastError(), "constrain1");
 	}
+#else
+__global__ void Constraint_1_Kernel(const float* X, const float* init_B,
+		float* next_X, const int* all_VV, const float* all_VL, const float* all_VW, 
+		const float* new_VC, const int* all_vv_num, const float spring_k, const int number,
+		const int* stitch_VV, const float* stitch_VW, const float* stitch_VC, const int* stitch_vv_num,
+		const float* stitch_VL, float stitch_k, float stitch_ratio)
+	{
+		const int i = blockDim.x * blockIdx.x + threadIdx.x;
+		if (i >= number)	return;
+
+		float3 b = make_float3(init_B[i * 3 + 0], init_B[i * 3 + 1], init_B[i * 3 + 2]);
+		float3 k = make_float3(0, 0, 0);
+		const float3 xi = make_float3(X[i * 3 + 0], X[i * 3 + 1], X[i * 3 + 2]);
+		float diag = new_VC[i];
+
+		const int bg = all_vv_num[i], ed = all_vv_num[i + 1];
+		for (int index = bg; index<ed; index++)
+		{
+			const int j = all_VV[index];
+			const float jl = all_VL[index];
+			const float3 xj = make_float3(X[j * 3 + 0], X[j * 3 + 1], X[j * 3 + 2]);
+
+			// Remove the off-diagonal (Jacobi method)
+			b -= all_VW[index] * xj;
+
+			// Add the other part of b: spring-length constraint
+			const float3 d = normalize(xi - xj);
+			b += d * spring_k* jl;
+			k += (d * d + max(0., 1.-jl) * (1 - d * d) - 1) * spring_k; // ldp: what is this? cannot understand
+		}
+
+		// handel stitch
+		if (stitch_VV)
+		{
+			const int bg = stitch_vv_num[i], ed = stitch_vv_num[i + 1];
+			float sumStitchW = 0;
+			const float bend_stitch_w = powf(1 - stitch_ratio, 10.f);
+			for (int index = bg; index<ed; index++)
+			{
+				const int j = stitch_VV[index];
+				const float jl = stitch_VL[index];
+				const float3 xj = make_float3(X[j * 3 + 0], X[j * 3 + 1], X[j * 3 + 2]);
+
+				// Remove the off-diagonal (Jacobi method)
+				b += (jl != 0)*stitch_k*xj - bend_stitch_w*stitch_VW[index] * xj;;
+				sumStitchW += (jl != 0)*stitch_k;
+
+				// Add the other part of b: spring-length constraint
+				float3 d = (xi - xj) / (length(xi - xj) + 1e-16);
+				b += d * stitch_k* jl * stitch_ratio;
+				k += (d * d + max(0., 1. - jl * stitch_ratio) * (1 - d * d) - 1) * stitch_k; // ldp: what is this? cannot understand
+			}
+			diag += sumStitchW + bend_stitch_w*stitch_VC[i];
+		} // end if stitch_VV
+
+		const float3 nxi = xi + (b - diag * xi) / (diag + k);
+
+		next_X[i * 3 + 0] = nxi.x;
+		next_X[i * 3 + 1] = nxi.y;
+		next_X[i * 3 + 2] = nxi.z;
+	}
+
+	void ClothManager::constrain1()
+	{
+		const int blocksPerGrid = divUp(m_X.size(), threadsPerBlock);
+		Constraint_1_Kernel << <blocksPerGrid, threadsPerBlock >> >(
+			m_dev_X.ptr(), m_dev_init_B.ptr(), m_dev_next_X.ptr(), 
+			m_dev_all_VV.ptr(), m_dev_all_VL.ptr(), m_dev_all_VW.ptr(), m_dev_new_VC.ptr(), 
+			m_dev_all_vv_num.ptr(), m_simulationParam.spring_k, m_X.size(),
+			m_dev_stitch_VV.ptr(), m_dev_stitch_VW.ptr(), m_dev_stitch_VC.ptr(), m_dev_stitch_VV_num.ptr(),
+			m_dev_stitch_VL.ptr(), m_simulationParam.stitch_k, m_curStitchRatio);
+		cudaSafeCall(cudaGetLastError(), "constrain1");
+	}
+#endif
 #pragma endregion
 
 #pragma region --constrain2

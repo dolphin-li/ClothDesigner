@@ -62,7 +62,7 @@
    <property name="minimumSize">
     <size>
      <width>250</width>
-     <height>459</height>
+     <height>466</height>
     </size>
    </property>
    <property name="maximumSize">
@@ -85,93 +85,17 @@
         <string>Simulation Param</string>
        </property>
        <layout class="QGridLayout" name="gridLayout">
-        <item row="11" column="0">
-         <widget class="QLabel" name="label_13">
-          <property name="text">
-           <string>stitch speed</string>
-          </property>
-         </widget>
-        </item>
-        <item row="10" column="2" colspan="2">
-         <widget class="QDoubleSpinBox" name="sbSparamStitchStiff">
-          <property name="maximum">
-           <double>99999999.000000000000000</double>
-          </property>
-         </widget>
-        </item>
-        <item row="0" column="0">
-         <widget class="QLabel" name="label">
-          <property name="text">
-           <string>outer iter</string>
-          </property>
-         </widget>
-        </item>
-        <item row="8" column="2" colspan="2">
-         <widget class="QDoubleSpinBox" name="sbSparamSpringStiff">
-          <property name="maximum">
-           <double>999999999.000000000000000</double>
-          </property>
-         </widget>
-        </item>
-        <item row="9" column="0">
-         <widget class="QLabel" name="label_10">
-          <property name="text">
-           <string>bend stiff</string>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="0">
-         <widget class="QLabel" name="label_2">
-          <property name="text">
-           <string>inner iter</string>
-          </property>
-         </widget>
-        </item>
-        <item row="12" column="1">
-         <widget class="QDoubleSpinBox" name="sbSparamGravityX">
-          <property name="decimals">
-           <number>1</number>
-          </property>
-          <property name="minimum">
-           <double>-100.000000000000000</double>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="2" colspan="2">
-         <widget class="QSpinBox" name="sbSparamTimeStepInv">
-          <property name="maximum">
-           <number>9999</number>
-          </property>
-         </widget>
-        </item>
-        <item row="3" column="2" colspan="2">
-         <widget class="QSpinBox" name="sbSparamLapDampIter"/>
-        </item>
-        <item row="2" column="0">
-         <widget class="QLabel" name="label_3">
-          <property name="text">
-           <string>time step inv</string>
-          </property>
-         </widget>
-        </item>
-        <item row="12" column="0">
-         <widget class="QLabel" name="label_11">
-          <property name="text">
-           <string>gravity</string>
-          </property>
-         </widget>
-        </item>
-        <item row="3" column="0" colspan="2">
-         <widget class="QLabel" name="label_4">
-          <property name="text">
-           <string>lap damp iter</string>
-          </property>
-         </widget>
-        </item>
         <item row="6" column="0">
          <widget class="QLabel" name="label_7">
           <property name="text">
            <string>rho</string>
+          </property>
+         </widget>
+        </item>
+        <item row="12" column="0">
+         <widget class="QLabel" name="label_13">
+          <property name="text">
+           <string>stitch speed</string>
           </property>
          </widget>
         </item>
@@ -182,14 +106,7 @@
           </property>
          </widget>
         </item>
-        <item row="10" column="0">
-         <widget class="QLabel" name="label_12">
-          <property name="text">
-           <string>stitch stiff</string>
-          </property>
-         </widget>
-        </item>
-        <item row="12" column="2">
+        <item row="14" column="2">
          <widget class="QDoubleSpinBox" name="sbSparamGravityY">
           <property name="decimals">
            <number>1</number>
@@ -206,10 +123,10 @@
           </property>
          </widget>
         </item>
-        <item row="4" column="0">
-         <widget class="QLabel" name="label_5">
+        <item row="10" column="0">
+         <widget class="QLabel" name="label_12">
           <property name="text">
-           <string>air damp</string>
+           <string>stitch stiff</string>
           </property>
          </widget>
         </item>
@@ -230,9 +147,6 @@
           </property>
          </widget>
         </item>
-        <item row="0" column="2" colspan="2">
-         <widget class="QSpinBox" name="sbSparamOuterIter"/>
-        </item>
         <item row="6" column="2" colspan="2">
          <widget class="QDoubleSpinBox" name="sbSparamRho">
           <property name="decimals">
@@ -243,10 +157,99 @@
           </property>
          </widget>
         </item>
-        <item row="9" column="2" colspan="2">
-         <widget class="QDoubleSpinBox" name="sbSparamBendStiff">
+        <item row="4" column="0">
+         <widget class="QLabel" name="label_5">
+          <property name="text">
+           <string>air damp</string>
+          </property>
+         </widget>
+        </item>
+        <item row="8" column="2" colspan="2">
+         <widget class="QDoubleSpinBox" name="sbSparamSpringStiff">
           <property name="maximum">
-           <double>9999.000000000000000</double>
+           <double>999999999.000000000000000</double>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="2" colspan="2">
+         <widget class="QSpinBox" name="sbSparamLapDampIter"/>
+        </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="label_3">
+          <property name="text">
+           <string>time step inv</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="2" colspan="2">
+         <widget class="QSpinBox" name="sbSparamOuterIter"/>
+        </item>
+        <item row="2" column="2" colspan="2">
+         <widget class="QSpinBox" name="sbSparamTimeStepInv">
+          <property name="maximum">
+           <number>9999</number>
+          </property>
+         </widget>
+        </item>
+        <item row="9" column="0">
+         <widget class="QLabel" name="label_10">
+          <property name="text">
+           <string>bend stiff</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="label_2">
+          <property name="text">
+           <string>inner iter</string>
+          </property>
+         </widget>
+        </item>
+        <item row="10" column="2" colspan="2">
+         <widget class="QDoubleSpinBox" name="sbSparamStitchStiff">
+          <property name="maximum">
+           <double>99999999.000000000000000</double>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="0">
+         <widget class="QLabel" name="label">
+          <property name="text">
+           <string>outer iter</string>
+          </property>
+         </widget>
+        </item>
+        <item row="14" column="1">
+         <widget class="QDoubleSpinBox" name="sbSparamGravityX">
+          <property name="decimals">
+           <number>1</number>
+          </property>
+          <property name="minimum">
+           <double>-100.000000000000000</double>
+          </property>
+         </widget>
+        </item>
+        <item row="14" column="0">
+         <widget class="QLabel" name="label_11">
+          <property name="text">
+           <string>gravity</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="0" colspan="2">
+         <widget class="QLabel" name="label_4">
+          <property name="text">
+           <string>lap damp iter</string>
+          </property>
+         </widget>
+        </item>
+        <item row="12" column="2" colspan="2">
+         <widget class="QDoubleSpinBox" name="sbSparamStitchSpeed">
+          <property name="decimals">
+           <number>1</number>
+          </property>
+          <property name="maximum">
+           <double>100.000000000000000</double>
           </property>
          </widget>
         </item>
@@ -264,6 +267,13 @@
           </property>
          </widget>
         </item>
+        <item row="9" column="2" colspan="2">
+         <widget class="QDoubleSpinBox" name="sbSparamBendStiff">
+          <property name="maximum">
+           <double>9999.000000000000000</double>
+          </property>
+         </widget>
+        </item>
         <item row="4" column="2" colspan="2">
          <widget class="QDoubleSpinBox" name="sbSparamAirDamp">
           <property name="decimals">
@@ -274,7 +284,7 @@
           </property>
          </widget>
         </item>
-        <item row="12" column="3">
+        <item row="14" column="3">
          <widget class="QDoubleSpinBox" name="sbSparamGravityZ">
           <property name="decimals">
            <number>1</number>
@@ -284,13 +294,17 @@
           </property>
          </widget>
         </item>
-        <item row="11" column="2" colspan="2">
-         <widget class="QDoubleSpinBox" name="sbSparamStitchSpeed">
-          <property name="decimals">
-           <number>1</number>
+        <item row="11" column="0">
+         <widget class="QLabel" name="label_15">
+          <property name="text">
+           <string>stitch bend</string>
           </property>
+         </widget>
+        </item>
+        <item row="11" column="2" colspan="2">
+         <widget class="QDoubleSpinBox" name="sbSparamStitchBend">
           <property name="maximum">
-           <double>100.000000000000000</double>
+           <double>99999999.000000000000000</double>
           </property>
          </widget>
         </item>

@@ -15,6 +15,7 @@ namespace ldp
 		float spring_k_raw;				// spring_k_raw / avgArea = spring_k
 		float stitch_k;					// stiffness of stithed vertex, for sewing
 		float stitch_k_raw;				// stitch_k_raw / avgArea = stitch_k
+		float stitch_bending_k;			// bending of stitch sewings.
 		float stitch_ratio;				// for each stitch, the length will -= ratio*time_step each update
 		int out_iter;					// number of iterations
 		int inner_iter;					// number of iterations

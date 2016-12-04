@@ -454,6 +454,8 @@ namespace ldp
 				int s1 = m_vertStart[piece1];
 				int id0 = param0[i].idx + s0;
 				int id1 = param1[i].idx + s1;
+				if (id0 == id1)
+					continue;
 				StitchPointPair stp;
 				stp.first.vids = id0;
 				stp.first.w = 0;
