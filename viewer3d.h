@@ -5,6 +5,7 @@
 #include "Camera\camera.h"
 #include "event_handles\Abstract3dEventHandle.h"
 #include "cloth\clothManager.h"
+#include <Shader\ShaderManager.h>
 class ClothDesigner;
 class Viewer3d : public QGLWidget
 {
@@ -72,6 +73,8 @@ protected:
 	void renderStitches();
 	void renderGroupPlane();
 protected:
+	CShaderManager m_shaderManager;
+	GLuint m_phong_program;
 	ldp::Camera m_camera;
 	QPoint m_lastPos;
 	int m_showType;

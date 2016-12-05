@@ -150,6 +150,10 @@ void Viewer3d::initializeGL()
 	m_fbo = new QGLFramebufferObject(width(), height(), fmt);
 	if (!m_fbo->isValid())
 		printf("error: invalid depth fbo!\n");
+
+	// shader
+	glewInit();
+	m_shaderManager.create("shaders");
 }
 
 void Viewer3d::resizeGL(int w, int h)
@@ -188,6 +192,7 @@ void Viewer3d::paintGL()
 	renderGroupPlane();
 	if (m_clothManager)
 	{
+		//m_shaderManager.bind(CShaderManager::phong);
 		m_clothManager->bodyMesh()->render(m_showType);
 		for (int i = 0; i < m_clothManager->numClothPieces(); i++)
 		{
@@ -201,6 +206,7 @@ void Viewer3d::paintGL()
 			}
 			piece->mesh3d().render(m_showType);
 		}
+		//m_shaderManager.unbind();
 		renderStitches();
 	}
 	renderTrackBall(false);

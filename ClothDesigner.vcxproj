@@ -171,6 +171,9 @@
     <ClCompile Include="Algorithm\Renderable\BoneMesh.cpp" />
     <ClCompile Include="Algorithm\Renderable\GLNode.cpp" />
     <ClCompile Include="Algorithm\Renderable\ObjMesh.cpp" />
+    <ClCompile Include="Algorithm\Shader\glsl.cpp" />
+    <ClCompile Include="Algorithm\Shader\glslprogram.cpp" />
+    <ClCompile Include="Algorithm\Shader\ShaderManager.cpp" />
     <ClCompile Include="Algorithm\svgpp\nvprsvg\ActiveControlPoint.cpp" />
     <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\abs.cpp" />
     <ClCompile Include="Algorithm\svgpp\nvprsvg\cg4cpp\src\acos.cpp" />
@@ -448,6 +451,9 @@
     <ClInclude Include="Algorithm\Renderable\GLNode.h" />
     <ClInclude Include="Algorithm\Renderable\ObjMesh.h" />
     <ClInclude Include="Algorithm\Renderable\Renderable.h" />
+    <ClInclude Include="Algorithm\Shader\glsl.h" />
+    <ClInclude Include="Algorithm\Shader\glslprogram.h" />
+    <ClInclude Include="Algorithm\Shader\ShaderManager.h" />
     <ClInclude Include="Algorithm\svgpp\nvprsvg\ActiveControlPoint.hpp" />
     <ClInclude Include="Algorithm\svgpp\nvprsvg\boar_colors.h" />
     <ClInclude Include="Algorithm\svgpp\nvprsvg\boar_paths.h" />

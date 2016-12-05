@@ -303,6 +303,8 @@ namespace ldp
 		{
 			cloth->mesh3dInit().cloneFrom(&cloth->mesh3d());
 		}
+		m_shouldMergePieces = true;
+		updateDependency();
 	}
 
 	void ClothManager::updateInitialClothsToCurrent()
@@ -311,6 +313,7 @@ namespace ldp
 		{
 			cloth->mesh3d().cloneFrom(&cloth->mesh3dInit());
 		}
+		m_shouldMergePieces = true;
 	}
 
 	void ClothManager::updateCloths3dMeshBy2d()

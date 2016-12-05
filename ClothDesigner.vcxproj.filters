@@ -83,6 +83,9 @@
     <Filter Include="algorithm\svgpp\nvprsvg\cg">
       <UniqueIdentifier>{eb6d9ce6-f5f9-42e4-b765-0a8e47613d6b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="algorithm\shader">
+      <UniqueIdentifier>{a5bbc8f4-a988-4879-bc29-e8695ea14381}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -610,6 +613,15 @@
     <ClCompile Include="Algorithm\cloth\TriangleWrapper.cpp">
       <Filter>algorithm\cloth</Filter>
     </ClCompile>
+    <ClCompile Include="Algorithm\Shader\glsl.cpp">
+      <Filter>algorithm\shader</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\Shader\glslprogram.cpp">
+      <Filter>algorithm\shader</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\Shader\ShaderManager.cpp">
+      <Filter>algorithm\shader</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">
@@ -958,6 +970,15 @@
     </ClInclude>
     <ClInclude Include="Algorithm\cloth\AbstractPanelObject.h">
       <Filter>algorithm\cloth</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\Shader\glsl.h">
+      <Filter>algorithm\shader</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\Shader\glslprogram.h">
+      <Filter>algorithm\shader</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\Shader\ShaderManager.h">
+      <Filter>algorithm\shader</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
