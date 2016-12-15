@@ -50,7 +50,7 @@ namespace ldp
 		virtual ~AbstractPanelObject()
 		{
 			IdxPool::freeIdx(m_id);
-			if (!isIdxMapUpdateDisabled())
+			if (!isIdxMapUpdateDisabled());
 			{
 				auto iter = s_globalIdxMap.find(m_id);
 				if (iter != s_globalIdxMap.end())

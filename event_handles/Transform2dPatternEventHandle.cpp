@@ -97,51 +97,48 @@ void Transform2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 	}
 
 	// handle selection ------------------------------------------------------------------
-	if (m_viewer->isDragBoxMode())
+	auto op = ldp::AbstractPanelObject::SelectThis;
+	if (ev->modifiers() & Qt::SHIFT)
+		op = ldp::AbstractPanelObject::SelectUnion;
+	if (ev->modifiers() & Qt::CTRL)
+		op = ldp::AbstractPanelObject::SelectUnionInverse;
+	if (ev->pos() == m_mouse_press_pt)
 	{
-		auto op = ldp::AbstractPanelObject::SelectThis;
-		if (ev->modifiers() & Qt::SHIFT)
-			op = ldp::AbstractPanelObject::SelectUnion;
-		if (ev->modifiers() & Qt::CTRL)
-			op = ldp::AbstractPanelObject::SelectUnionInverse;
-		if (ev->pos() == m_mouse_press_pt)
+		bool changed = false;
+		for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
 		{
-			bool changed = false;
-			for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
-			{
-				auto piece = manager->clothPiece(iPiece);
-				auto& panel = piece->panel();
-				if (panel.select(pickInfo().renderId, op))
-					changed = true;
-			} // end for iPiece
-			if (m_viewer->getMainUI() && changed)
-				m_viewer->getMainUI()->pushHistory(QString().sprintf("pattern select: %d",
-				pickInfo().renderId), ldp::HistoryStack::TypePatternSelect);
-		} // end if single selection
-		else
+			auto piece = manager->clothPiece(iPiece);
+			auto& panel = piece->panel();
+			if (panel.select(pickInfo().renderId, op))
+				changed = true;
+		} // end for iPiece
+		if (m_viewer->getMainUI() && changed)
+			m_viewer->getMainUI()->pushHistory(QString().sprintf("pattern select: %d",
+			pickInfo().renderId), ldp::HistoryStack::TypePatternSelect);
+	} // end if single selection
+	else if (m_viewer->isDragBoxMode())
+	{
+		const QImage& I = m_viewer->fboImage();
+		std::set<int> ids;
+		float x0 = std::max(0, std::min(m_mouse_press_pt.x(), ev->pos().x()));
+		float x1 = std::min(I.width() - 1, std::max(m_mouse_press_pt.x(), ev->pos().x()));
+		float y0 = std::max(0, std::min(m_mouse_press_pt.y(), ev->pos().y()));
+		float y1 = std::min(I.height() - 1, std::max(m_mouse_press_pt.y(), ev->pos().y()));
+		for (int y = y0; y <= y1; y++)
+		for (int x = x0; x <= x1; x++)
+			ids.insert(m_viewer->fboRenderedIndex(QPoint(x, y)));
+		bool changed = false;
+		for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
 		{
-			const QImage& I = m_viewer->fboImage();
-			std::set<int> ids;
-			float x0 = std::max(0, std::min(m_mouse_press_pt.x(), ev->pos().x()));
-			float x1 = std::min(I.width() - 1, std::max(m_mouse_press_pt.x(), ev->pos().x()));
-			float y0 = std::max(0, std::min(m_mouse_press_pt.y(), ev->pos().y()));
-			float y1 = std::min(I.height() - 1, std::max(m_mouse_press_pt.y(), ev->pos().y()));
-			for (int y = y0; y <= y1; y++)
-			for (int x = x0; x <= x1; x++)
-				ids.insert(m_viewer->fboRenderedIndex(QPoint(x, y)));
-			bool changed = false;
-			for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
-			{
-				auto piece = manager->clothPiece(iPiece);
-				auto& panel = piece->panel();
-				if (panel.select(ids, op))
-					changed = true;
-			} // end for iPiece
-			if (m_viewer->getMainUI() && changed)
-				m_viewer->getMainUI()->pushHistory(QString().sprintf("pattern select: %d...",
-				*ids.begin()), ldp::HistoryStack::TypePatternSelect);
-		} // end else group selection
-	} // end if dragbox mode
+			auto piece = manager->clothPiece(iPiece);
+			auto& panel = piece->panel();
+			if (panel.select(ids, op))
+				changed = true;
+		} // end for iPiece
+		if (m_viewer->getMainUI() && changed)
+			m_viewer->getMainUI()->pushHistory(QString().sprintf("pattern select: %d...",
+			*ids.begin()), ldp::HistoryStack::TypePatternSelect);
+	} // end else group selection
 
 	m_viewer->endDragBox();
 	Abstract2dEventHandle::mouseReleaseEvent(ev);
@@ -160,7 +157,12 @@ void Transform2dPatternEventHandle::mouseMoveEvent(QMouseEvent *ev)
 	if (manager == nullptr)
 		return;
 
-	panelLevelTransform_MouseMove(ev);
+	if (panelLevelTransform_MouseMove(ev))
+		return;
+	if (curveLevelTransform_MouseMove(ev))
+		return;
+	if (pointLevelTransform_MouseMove(ev))
+		return;
 }
 
 void Transform2dPatternEventHandle::wheelEvent(QWheelEvent *ev)
@@ -206,11 +208,11 @@ void Transform2dPatternEventHandle::keyReleaseEvent(QKeyEvent *ev)
 	Abstract2dEventHandle::keyReleaseEvent(ev);
 }
 
-void Transform2dPatternEventHandle::panelLevelTransform_MouseMove(QMouseEvent* ev)
+bool Transform2dPatternEventHandle::panelLevelTransform_MouseMove(QMouseEvent* ev)
 {
 	auto manager = m_viewer->getManager();
 	if (manager == nullptr)
-		return;
+		return false;
 	ldp::Float3 lp3(m_viewer->lastMousePos().x(), m_viewer->height() - 1 - m_viewer->lastMousePos().y(), 1);
 	ldp::Float3 p3(ev->x(), m_viewer->height() - 1 - ev->y(), 1);
 	lp3 = m_viewer->camera().getWorldCoords(lp3);
@@ -218,6 +220,7 @@ void Transform2dPatternEventHandle::panelLevelTransform_MouseMove(QMouseEvent* e
 	ldp::Float2 lp(lp3[0], lp3[1]);
 	ldp::Float2 p(p3[0], p3[1]);
 
+	bool changed = false;
 	// left button, translate ------------------------------------------------------
 	if (ev->buttons() == Qt::LeftButton && !(ev->modifiers() & Qt::ALT))
 	{
@@ -230,6 +233,7 @@ void Transform2dPatternEventHandle::panelLevelTransform_MouseMove(QMouseEvent* e
 				panel.translate(p - lp);
 				panel.updateBound();
 				m_transformed = true;
+				changed = true;
 				// reverse move 3D piece if wanted
 				if (ev->modifiers() & Qt::SHIFT)
 				{
@@ -260,6 +264,7 @@ void Transform2dPatternEventHandle::panelLevelTransform_MouseMove(QMouseEvent* e
 			{
 				panel.rotateBy(R, m_rotateCenter);
 				m_transformed = true;
+				changed = true;
 				// reverse move 3D piece if wanted
 				if (ev->modifiers() & Qt::SHIFT)
 				{
@@ -290,6 +295,7 @@ void Transform2dPatternEventHandle::panelLevelTransform_MouseMove(QMouseEvent* e
 			{
 				panel.scaleBy(s, m_rotateCenter);
 				m_transformed = true;
+				changed = true;
 				// reverse move 3D piece if wanted
 				if (ev->modifiers() & Qt::SHIFT)
 				{
@@ -302,4 +308,223 @@ void Transform2dPatternEventHandle::panelLevelTransform_MouseMove(QMouseEvent* e
 			}
 		} // end for iPiece
 	} // end if right button + ALT
+	return changed;
+} 
+
+bool Transform2dPatternEventHandle::curveLevelTransform_MouseMove(QMouseEvent* ev)
+{
+	auto manager = m_viewer->getManager();
+	if (manager == nullptr)
+		return false;
+	ldp::Float3 lp3(m_viewer->lastMousePos().x(), m_viewer->height() - 1 - m_viewer->lastMousePos().y(), 1);
+	ldp::Float3 p3(ev->x(), m_viewer->height() - 1 - ev->y(), 1);
+	lp3 = m_viewer->camera().getWorldCoords(lp3);
+	p3 = m_viewer->camera().getWorldCoords(p3);
+	ldp::Float2 lp(lp3[0], lp3[1]);
+	ldp::Float2 p(p3[0], p3[1]);
+
+	bool changed = false;
+	// left button, translate ------------------------------------------------------
+	if (ev->buttons() == Qt::LeftButton && !(ev->modifiers() & Qt::ALT))
+	{
+		for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
+		{
+			ldp::ClothPiece* piece = manager->clothPiece(iPiece);
+			ldp::PanelPolygon& panel = piece->panel();
+			ldp::ShapeGroup* poly = panel.outerPoly().get();
+			if (poly == nullptr)
+				continue;
+			if (poly->empty())
+				continue;
+
+			// poly
+			for (size_t iShape = 0, iLast = poly->size()-1; iShape < poly->size(); iLast = iShape++)
+			{
+				ldp::AbstractShape* shape = (*poly)[iShape].get();
+				// shape
+				if (shape->isSelected() || pickInfo().renderId == shape->getId())
+				{
+					shape->translate(p - lp);
+					// next shape
+					ldp::AbstractShape* nextShape = (*poly)[(iShape + 1) % (*poly).size()].get();
+					if (!nextShape->isSelected() && pickInfo().renderId != nextShape->getId())
+						nextShape->translateKeyPoint(0, p - lp);
+					// last shape
+					ldp::AbstractShape* lastShape = (*poly)[iLast].get();
+					if (!lastShape->isSelected() && pickInfo().renderId != lastShape->getId())
+						lastShape->translateKeyPoint(lastShape->numKeyPoints() - 1, p - lp);
+					changed = true;
+					m_transformed = true;
+				}
+			} // end for iShape
+
+			// darts
+			for (size_t iDart = 0; iDart < panel.darts().size(); iDart++)
+			{
+				ldp::ShapeGroup* poly = panel.darts()[iDart].get();
+				for (size_t iShape = 0, iLast = poly->size() - 1; iShape < poly->size(); iLast = iShape++)
+				{
+					ldp::AbstractShape* shape = (*poly)[iShape].get();
+					// shape
+					if (shape->isSelected() || pickInfo().renderId == shape->getId())
+					{
+						shape->translate(p - lp);
+						// next shape
+						ldp::AbstractShape* nextShape = (*poly)[(iShape + 1) % (*poly).size()].get();
+						if (!nextShape->isSelected() && pickInfo().renderId != nextShape->getId())
+							nextShape->translateKeyPoint(0, p - lp);
+						// last shape
+						ldp::AbstractShape* lastShape = (*poly)[iLast].get();
+						if (!lastShape->isSelected() && pickInfo().renderId != lastShape->getId())
+							lastShape->translateKeyPoint(lastShape->numKeyPoints() - 1, p - lp);
+						changed = true;
+						m_transformed = true;
+					}
+				} // end for iShape
+			} // end for iDart
+
+			// inner lines
+			for (size_t iLine = 0; iLine < panel.innerLines().size(); iLine++)
+			{
+				ldp::ShapeGroup* poly = panel.innerLines()[iLine].get();
+				for (size_t iShape = 0, iLast = poly->size() - 1; iShape < poly->size(); iLast = iShape++)
+				{
+					ldp::AbstractShape* shape = (*poly)[iShape].get();
+					// shape
+					if (shape->isSelected() || pickInfo().renderId == shape->getId())
+					{
+						shape->translate(p - lp);
+						// next shape
+						if (iShape + 1 < (*poly).size())
+						{
+							ldp::AbstractShape* nextShape = (*poly)[iShape + 1].get();
+							if (!nextShape->isSelected() && pickInfo().renderId != nextShape->getId())
+								nextShape->translateKeyPoint(0, p - lp);
+						}
+						// last shape
+						if (iShape > 0)
+						{
+							ldp::AbstractShape* lastShape = (*poly)[iLast].get();
+							if (!lastShape->isSelected() && pickInfo().renderId != lastShape->getId())
+								lastShape->translateKeyPoint(lastShape->numKeyPoints() - 1, p - lp);
+						}
+						changed = true;
+						m_transformed = true;
+					}
+				} // end for iShape
+			} // end for iLines
+		} // end for iPiece
+	} // end if left button
+	return changed;
+}
+
+bool Transform2dPatternEventHandle::pointLevelTransform_MouseMove(QMouseEvent* ev)
+{
+	auto manager = m_viewer->getManager();
+	if (manager == nullptr)
+		return false;
+	ldp::Float3 lp3(m_viewer->lastMousePos().x(), m_viewer->height() - 1 - m_viewer->lastMousePos().y(), 1);
+	ldp::Float3 p3(ev->x(), m_viewer->height() - 1 - ev->y(), 1);
+	lp3 = m_viewer->camera().getWorldCoords(lp3);
+	p3 = m_viewer->camera().getWorldCoords(p3);
+	ldp::Float2 lp(lp3[0], lp3[1]);
+	ldp::Float2 p(p3[0], p3[1]);
+
+	bool changed = false;
+	// left button, translate ------------------------------------------------------
+	if (ev->buttons() == Qt::LeftButton && !(ev->modifiers() & Qt::ALT))
+	{
+		for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
+		{
+			ldp::ClothPiece* piece = manager->clothPiece(iPiece);
+			ldp::PanelPolygon& panel = piece->panel();
+			ldp::ShapeGroup* poly = panel.outerPoly().get();
+			if (poly == nullptr)
+				continue;
+			if (poly->empty())
+				continue;
+
+			// poly
+			for (size_t iShape = 0, iLast = poly->size() - 1; iShape < poly->size(); iLast = iShape++)
+			{
+				ldp::AbstractShape* shape = (*poly)[iShape].get();
+				for (int k = 0; k < shape->numKeyPoints(); k++)
+				{
+					if (shape->getKeyPoint(k).isSelected() || pickInfo().renderId == shape->getKeyPoint(k).getId())
+					{
+						shape->translateKeyPoint(k, p - lp);
+						ldp::AbstractShape* nextShape = (*poly)[(iShape + 1) % (*poly).size()].get();
+						ldp::AbstractShape* lastShape = (*poly)[iLast].get();
+						if (k == 0 && !lastShape->isSelected() && pickInfo().renderId != lastShape->getId())
+							lastShape->translateKeyPoint(lastShape->numKeyPoints() - 1, p - lp);
+						if (k == shape->numKeyPoints()-1 && !nextShape->isSelected() && 
+							pickInfo().renderId != nextShape->getId())
+							nextShape->translateKeyPoint(0, p - lp);
+						changed = true;
+						m_transformed = true;
+					}
+				} // end for k
+			} // end for iShape
+
+			// darts
+			for (size_t iDart = 0; iDart < panel.darts().size(); iDart++)
+			{
+				ldp::ShapeGroup* poly = panel.darts()[iDart].get();
+				for (size_t iShape = 0, iLast = poly->size() - 1; iShape < poly->size(); iLast = iShape++)
+				{
+					ldp::AbstractShape* shape = (*poly)[iShape].get();
+					for (int k = 0; k < shape->numKeyPoints(); k++)
+					{
+						if (shape->getKeyPoint(k).isSelected() || pickInfo().renderId == shape->getKeyPoint(k).getId())
+						{
+							shape->translateKeyPoint(k, p - lp);
+							ldp::AbstractShape* nextShape = (*poly)[(iShape + 1) % (*poly).size()].get();
+							ldp::AbstractShape* lastShape = (*poly)[iLast].get();
+							if (k == 0 && !lastShape->isSelected() && pickInfo().renderId != lastShape->getId())
+								lastShape->translateKeyPoint(lastShape->numKeyPoints() - 1, p - lp);
+							if (k == shape->numKeyPoints() - 1 && !nextShape->isSelected() &&
+								pickInfo().renderId != nextShape->getId())
+								nextShape->translateKeyPoint(0, p - lp);
+							changed = true;
+							m_transformed = true;
+						}
+					} // end for k
+				} // end for iShape
+			} // end for iDart
+
+			// inner lines
+			for (size_t iLine = 0; iLine < panel.innerLines().size(); iLine++)
+			{
+				ldp::ShapeGroup* poly = panel.innerLines()[iLine].get();
+				for (size_t iShape = 0, iLast = poly->size() - 1; iShape < poly->size(); iLast = iShape++)
+				{
+					ldp::AbstractShape* shape = (*poly)[iShape].get();
+					for (int k = 0; k < shape->numKeyPoints(); k++)
+					{
+						if (shape->getKeyPoint(k).isSelected() || pickInfo().renderId == shape->getKeyPoint(k).getId())
+						{
+							shape->translateKeyPoint(k, p - lp);
+							// next shape
+							if (iShape + 1 < (*poly).size() && k == shape->numKeyPoints() - 1)
+							{
+								ldp::AbstractShape* nextShape = (*poly)[iShape + 1].get();
+								if (!nextShape->isSelected() && pickInfo().renderId != nextShape->getId())
+									nextShape->translateKeyPoint(0, p - lp);
+							}
+							// last shape
+							if (iShape > 0 && k == 0)
+							{
+								ldp::AbstractShape* lastShape = (*poly)[iLast].get();
+								if (!lastShape->isSelected() && pickInfo().renderId != lastShape->getId())
+									lastShape->translateKeyPoint(lastShape->numKeyPoints() - 1, p - lp);
+							}
+							changed = true;
+							m_transformed = true;
+						}
+					} // end for k
+				} // end for iShape
+			} // end for iLines
+		} // end for iPiece
+	} // end if left button
+	return changed;
 }

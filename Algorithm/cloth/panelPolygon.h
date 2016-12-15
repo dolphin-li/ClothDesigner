@@ -85,6 +85,11 @@ namespace ldp
 			m_invalid = true;
 			*m_keyPoints[i] = p;
 		}
+		void translateKeyPoint(int i, ldp::Float2 t)
+		{
+			m_keyPoints[i]->position += t;
+			m_invalid = true;
+		}
 		const KeyPoint& getKeyPoint(int i)const
 		{
 			return *m_keyPoints[i];
