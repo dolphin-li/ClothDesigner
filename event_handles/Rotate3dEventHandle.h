@@ -22,5 +22,4 @@ public:
 private:
 	float m_axisScale;
 	ldp::Mat3f m_trackBallMouseClickR;
-	QMap<ObjMesh*, ldp::Mat3f> m_accumulatedRots;
 };

@@ -7,6 +7,9 @@
 #include "../clothdesigner.h"
 #include "../Viewer2d.h"
 
+#include "cloth\clothPiece.h"
+#include "cloth\TransformInfo.h"
+
 Translate3dEventHandle::Translate3dEventHandle(Viewer3d* v) : Abstract3dEventHandle(v)
 {
 	m_cursor = QCursor(Qt::CursorShape::SizeAllCursor);
@@ -117,8 +120,17 @@ void Translate3dEventHandle::mouseMoveEvent(QMouseEvent *ev)
 			ldp::Double3 wp = cam.getWorldCoords(ldp::Float3(ev->x(), m_viewer->height() - 1 - ev->y(), m_pickInfo.screenPos[2]));
 			ldp::Double3 wlp = cam.getWorldCoords(ldp::Float3(lp.x(), m_viewer->height() - 1 - lp.y(), m_pickInfo.screenPos[2]));
 			ldp::Double3 dir = (wp - wlp)*axis;
-			m_pickInfo.mesh->translate(dir);
-			m_viewer->getManager()->updateCurrentClothsToInitial();
+			if (m_pickInfo.piece) // cloth mesh
+			{
+				m_pickInfo.piece->transformInfo().translate(dir);
+				m_viewer->getManager()->updateCloths3dMeshBy2d();
+			}
+			else // body mesh
+			{
+				auto tr = m_viewer->getManager()->getBodyMeshTransform();
+				tr.translate(dir);
+				m_viewer->getManager()->setBodyMeshTransform(tr);
+			}
 			m_viewer->translateTrackBall(dir);
 			if (m_viewer->getMainUI())
 				m_viewer->getMainUI()->viewer2d()->updateGL();

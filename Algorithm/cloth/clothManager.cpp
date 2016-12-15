@@ -893,6 +893,7 @@ namespace ldp
 		ldp::Float3 start = bmin;
 		m_bodyLvSet->create(res, start, step);
 		m_bodyLvSet->fromMesh(*m_bodyMesh);
+		m_shouldLevelSetUpdate = false;
 	}
 	//////////////////////////////////////////////////////////////////////////////////
 	void ClothManager::updateDependency()
@@ -1692,7 +1693,7 @@ namespace ldp
 					{
 						m_shouldLevelSetUpdate = true;
 						calcLevelSet();
-						m_bodyLvSet->save(setFile.c_str());
+						//m_bodyLvSet->save(setFile.c_str());
 					}
 				} // end if not obj empty
 			} // end for BodyMesh

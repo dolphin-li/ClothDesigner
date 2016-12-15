@@ -8,6 +8,9 @@
 #include "../clothdesigner.h"
 #include "../Viewer2d.h"
 
+#include "cloth\clothPiece.h"
+#include "cloth\TransformInfo.h"
+
 Rotate3dEventHandle::Rotate3dEventHandle(Viewer3d* v) : Abstract3dEventHandle(v)
 {
 	m_cursor = QCursor(Qt::CursorShape::CrossCursor);
@@ -31,10 +34,10 @@ void Rotate3dEventHandle::handleEnter()
 	{
 		auto box = m_pickInfo.mesh->boundingBox;
 		m_trackBallMouseClickR.eye();
-		if (m_accumulatedRots.find(m_pickInfo.mesh) == m_accumulatedRots.end())
-			m_accumulatedRots[m_pickInfo.mesh] = m_trackBallMouseClickR;
+		if (m_pickInfo.piece) // cloth mesh
+			m_trackBallMouseClickR = m_pickInfo.piece->transformInfo().transform().getRotationPart();
 		else
-			m_trackBallMouseClickR = m_accumulatedRots[m_pickInfo.mesh];
+			m_trackBallMouseClickR = m_viewer->getManager()->getBodyMeshTransform().transform().getRotationPart();
 		m_viewer->beginTrackBall(Viewer3d::TrackBall_Rot, m_pickInfo.meshCenter,
 			m_trackBallMouseClickR, (box[1] - box[0]).length()* m_axisScale);
 	}
@@ -58,10 +61,10 @@ void Rotate3dEventHandle::mousePressEvent(QMouseEvent *ev)
 			m_viewer->setActiveTrackBallAxis(sid);
 
 			m_trackBallMouseClickR.eye();
-			if (m_accumulatedRots.find(m_pickInfo.mesh) == m_accumulatedRots.end())
-				m_accumulatedRots[m_pickInfo.mesh] = m_trackBallMouseClickR;
+			if (m_pickInfo.piece) // cloth mesh
+				m_trackBallMouseClickR = m_pickInfo.piece->transformInfo().transform().getRotationPart();
 			else
-				m_trackBallMouseClickR = m_accumulatedRots[m_pickInfo.mesh];
+				m_trackBallMouseClickR = m_viewer->getManager()->getBodyMeshTransform().transform().getRotationPart();
 		}
 		else
 			pick(ev->pos());
@@ -83,10 +86,11 @@ void Rotate3dEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 			{
 				auto box = m_pickInfo.mesh->boundingBox;
 				m_trackBallMouseClickR.eye();
-				if (m_accumulatedRots.find(m_pickInfo.mesh) == m_accumulatedRots.end())
-					m_accumulatedRots[m_pickInfo.mesh] = m_trackBallMouseClickR;
+
+				if (m_pickInfo.piece) // cloth mesh
+					m_trackBallMouseClickR = m_pickInfo.piece->transformInfo().transform().getRotationPart();
 				else
-					m_trackBallMouseClickR = m_accumulatedRots[m_pickInfo.mesh];
+					m_trackBallMouseClickR = m_viewer->getManager()->getBodyMeshTransform().transform().getRotationPart();
 				m_viewer->beginTrackBall(Viewer3d::TrackBall_Rot, m_pickInfo.meshCenter,
 					m_trackBallMouseClickR, (box[1] - box[0]).length()* m_axisScale);
 			}
@@ -146,11 +150,22 @@ void Rotate3dEventHandle::mouseMoveEvent(QMouseEvent *ev)
 			if (c_uvd[2] < c1_uvd[2]) ag = -ag;
 			auto R = ldp::QuaternionF().fromAngleAxis(ag, axis).toRotationMatrix3() * m_trackBallMouseClickR;
 
-			auto lastR = m_accumulatedRots[m_pickInfo.mesh];
-			m_pickInfo.mesh->rotateBy(R*lastR.trans(), m_pickInfo.meshCenter);
-			m_viewer->rotateTrackBall(R*lastR.trans());
-			m_viewer->getManager()->updateCurrentClothsToInitial();
-			m_accumulatedRots[m_pickInfo.mesh] = R;
+			if (m_pickInfo.piece) // cloth mesh
+			{
+				auto lastR = m_pickInfo.piece->transformInfo().transform().getRotationPart();
+				m_pickInfo.piece->transformInfo().rotate(R*lastR.inv(), m_pickInfo.meshCenter);
+				m_viewer->getManager()->updateCloths3dMeshBy2d();
+				m_viewer->rotateTrackBall(R*lastR.inv());
+			}
+			else // body mesh
+			{
+				auto tr = m_viewer->getManager()->getBodyMeshTransform();
+				auto lastR = tr.transform().getRotationPart();
+				tr.rotate(R*lastR.inv(), m_pickInfo.meshCenter);
+				m_viewer->getManager()->setBodyMeshTransform(tr);
+				m_viewer->rotateTrackBall(R*lastR.inv());
+			}
+
 			if (m_viewer->getMainUI())
 				m_viewer->getMainUI()->viewer2d()->updateGL();
 			valid_op = true;

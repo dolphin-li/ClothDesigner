@@ -9,6 +9,10 @@ class QMouseEvent;
 class QWheelEvent;
 class QKeyEvent;
 class ObjMesh;
+namespace ldp
+{
+	class ClothPiece;
+}
 class Abstract3dEventHandle
 {
 public:
@@ -16,6 +20,7 @@ public:
 	{
 		ldp::Float3 screenPos;
 		ObjMesh* mesh;
+		ldp::ClothPiece* piece;
 		int faceId;
 		ldp::Float3 pickInnerCoords;
 		ldp::Float3 pickPos;
@@ -23,6 +28,7 @@ public:
 		PickInfo()
 		{
 			mesh = nullptr;
+			piece = nullptr;
 			faceId = -1;
 		}
 	};

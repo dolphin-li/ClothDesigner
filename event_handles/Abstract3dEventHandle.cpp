@@ -72,6 +72,7 @@ void Abstract3dEventHandle::pick(QPoint pos)
 		auto mesh0 = manager->bodyMesh();
 		if (renderedId >= curIdx && renderedId < curIdx + mesh0->face_list.size())
 		{
+			m_pickInfo.piece = nullptr;
 			m_pickInfo.mesh = mesh0;
 			m_pickInfo.faceId = renderedId - curIdx;
 			picked = true;
@@ -86,6 +87,7 @@ void Abstract3dEventHandle::pick(QPoint pos)
 				auto mesh = &manager->clothPiece(iMesh)->mesh3d();
 				if (renderedId >= curIdx && renderedId < curIdx + mesh->face_list.size())
 				{
+					m_pickInfo.piece = manager->clothPiece(iMesh);
 					m_pickInfo.mesh = mesh;
 					m_pickInfo.faceId = renderedId - curIdx;
 					picked = true;

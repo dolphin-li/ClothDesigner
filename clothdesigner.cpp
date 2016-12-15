@@ -513,6 +513,7 @@ void ClothDesigner::on_sbDparamTriangleSize_valueChanged(double v)
 		param.triangulateThre = v/1000;
 		manager->setClothDesignParam(param);
 		manager->triangulate();
+		manager->setSimulationMode(ldp::SimulationMode::SimulationPause);
 		m_widget2d->updateGL();
 		m_widget3d->updateGL();
 		pushHistory(QString().sprintf("triangulate: %f", v), ldp::HistoryStack::TypeGeneral);	

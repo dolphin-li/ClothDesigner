@@ -545,7 +545,7 @@ void Viewer3d::renderTrackBall(bool indexMode)
 	glPushMatrix();
 	glTranslatef(m_trackBallPos[0], m_trackBallPos[1], m_trackBallPos[2]);
 	ldp::Mat4f M = ldp::Mat4f().eye();
-	M.setRotationPart(m_trackBallR);
+	M.setRotationPart(m_trackBallR/powf(m_trackBallR.det(), 1.f/3.f));
 	glMultMatrixf(M.ptr());
 
 	// x axis
