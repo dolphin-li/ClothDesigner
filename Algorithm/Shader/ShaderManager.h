@@ -9,6 +9,7 @@ public:
 	{
 		none,
 		phong,
+		shadow,
 		shaderEnd,
 	};
 	enum{ nShaders = shaderEnd};

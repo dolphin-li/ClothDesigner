@@ -199,12 +199,13 @@ void ObjMesh::render(int showType, int frameIndex)
 {
 	if(!_isEnabled)
 		return;
-	glPushAttrib(GL_ALL_ATTRIB_BITS);
 
 	if(vertex_list.size() == 0)
 		return;
 	if(face_list.size() == 0)
 		return;
+
+	glPushAttrib(GL_ALL_ATTRIB_BITS);
 	if(face_normal_list.size() == 0 || vertex_normal_list.size() == 0)
 		updateNormals();
 	if (vertex_is_selected.size() != vertex_list.size())

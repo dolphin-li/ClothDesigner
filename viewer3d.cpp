@@ -71,6 +71,29 @@ inline ldp::Float4 selectIdToColor(unsigned int id)
 	return ldp::Float4(r, g, b, a) / 255.f;
 }
 
+static int CheckGLError(const string& file, int line)
+{
+	GLenum glErr;
+	int    retCode = 0;
+
+	glErr = glGetError();
+	while (glErr != GL_NO_ERROR)
+	{
+		const GLubyte* sError = gluErrorString(glErr);
+
+		if (sError)
+			cout << "GL Error #" << glErr << "(" << gluErrorString(glErr) << ") " << " in File " << file.c_str() << " at line: " << line << endl;
+		else
+			cout << "GL Error #" << glErr << " (no message available)" << " in File " << file.c_str() << " at line: " << line << endl;
+
+		retCode = 1;
+		glErr = glGetError();
+	}
+	return retCode;
+}
+
+#define CHECK_GL_ERROR() CheckGLError(__FILE__, __LINE__)
+
 #pragma endregion
 
 Viewer3d::Viewer3d(QWidget *parent)
@@ -189,10 +212,9 @@ void Viewer3d::paintGL()
 
 	// show cloth simulation=============================
 	m_camera.apply();
-	renderGroupPlane();
 	if (m_clothManager)
 	{
-		//m_shaderManager.bind(CShaderManager::phong);
+		m_shaderManager.bind(CShaderManager::phong);
 		m_clothManager->bodyMesh()->render(m_showType);
 		for (int i = 0; i < m_clothManager->numClothPieces(); i++)
 		{
@@ -206,13 +228,13 @@ void Viewer3d::paintGL()
 			}
 			piece->mesh3d().render(m_showType);
 		}
-		//m_shaderManager.unbind();
+		m_shaderManager.unbind();
 		renderStitches();
 	}
 	renderTrackBall(false);
 	renderDragBox();
+	renderGroupPlane();
 }
-
 
 void Viewer3d::renderGroupPlane()
 {
@@ -271,6 +293,7 @@ void Viewer3d::renderSelectionOnFbo()
 	glClearColor(0.f, 0.f, 0.f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glPushAttrib(GL_ALL_ATTRIB_BITS);
+
 	glDisable(GL_LIGHTING);
 	glDisable(GL_TEXTURE_2D);
 	glDisable(GL_COLOR_MATERIAL);
@@ -283,9 +306,9 @@ void Viewer3d::renderSelectionOnFbo()
 	renderTrackBall(true);
 
 	m_fboImage = m_fbo->toImage();
-	m_fbo->release();
 
 	glPopAttrib();
+	m_fbo->release();
 }
 
 void Viewer3d::renderMeshForSelection()

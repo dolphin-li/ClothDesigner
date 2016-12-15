@@ -41,7 +41,7 @@ void CShaderManager::create(const char* folder_of_shaders)
 	printf("%s\n", gluErrorString(glGetError()));
 
 	const static std::string names[nShaders] ={
-		"none", "phong"
+		"none", "phong", "shadow"
 	};
 
 	for(int i=1; i<nShaders; i++)
@@ -86,6 +86,9 @@ void CShaderManager::bind(ShaderType type)
 	case phong:
 		bind_phong();
 		break;
+	case shadow:
+		bind_shadow();
+		break;
 	}
 }
 
@@ -111,6 +114,30 @@ void CShaderManager::bind_shadow()
 	float light_dif[] = { 1, 1, 1, 1 };
 	glLightfv(GL_LIGHT0, GL_AMBIENT, light_amb);
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, light_dif);
+
+	float bias[16] = { 0.5, 0.0, 0.0, 0.0,
+		0.0, 0.5, 0.0, 0.0,
+		0.0, 0.0, 0.5, 0.0,
+		0.5, 0.5, 0.5, 1.0 };
+
+	// Grab modelview and transformation matrices
+	float	modelView[16];
+	float	projection[16];
+	float	biased_MVP[16];
+	glGetFloatv(GL_MODELVIEW_MATRIX, modelView);
+	glGetFloatv(GL_PROJECTION_MATRIX, projection);
+
+	glPushMatrix();
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glLoadMatrixf(bias);
+	// concatating all matrice into one.
+	glMultMatrixf(projection);
+	glMultMatrixf(modelView);
+
+	glGetFloatv(GL_MODELVIEW_MATRIX, biased_MVP);
+	m_shader[m_type]->setUniformMatrix4fv("biased_MVP", 1, GL_FALSE, biased_MVP);
+	glPopMatrix();
 }
 
 cwc::glShader* CShaderManager::getCurShader()
