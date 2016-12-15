@@ -544,6 +544,61 @@ namespace ldp
 		updateBound(m_bbox[0], m_bbox[1]);
 	}
 
+	void PanelPolygon::translate(ldp::Float2 t)
+	{
+		if (m_outerPoly)
+			m_outerPoly->translate(t);
+		for (auto& dart : m_darts)
+			dart->translate(t);
+		for (auto& sp : m_innerLines)
+			sp->translate(t);
+	}
+	void PanelPolygon::rotate(Mat2f R)
+	{
+		if (m_outerPoly)
+			m_outerPoly->rotate(R);
+		for (auto& dart : m_darts)
+			dart->rotate(R);
+		for (auto& sp : m_innerLines)
+			sp->rotate(R);
+	}
+	void PanelPolygon::rotateBy(Mat2f R, Float2 center)
+	{
+		if (m_outerPoly)
+			m_outerPoly->rotateBy(R, center);
+		for (auto& dart : m_darts)
+			dart->rotateBy(R, center);
+		for (auto& sp : m_innerLines)
+			sp->rotateBy(R, center);
+	}
+	void PanelPolygon::scaleBy(Float2 S, Float2 center)
+	{
+		if (m_outerPoly)
+			m_outerPoly->scaleBy(S, center);
+		for (auto& dart : m_darts)
+			dart->scaleBy(S, center);
+		for (auto& sp : m_innerLines)
+			sp->scaleBy(S, center);
+	}
+	void PanelPolygon::scale(Float2 S)
+	{
+		if (m_outerPoly)
+			m_outerPoly->scale(S);
+		for (auto& dart : m_darts)
+			dart->scale(S);
+		for (auto& sp : m_innerLines)
+			sp->scale(S);
+	}
+	void PanelPolygon::transform(Mat3f M)
+	{
+		if (m_outerPoly)
+			m_outerPoly->transform(M);
+		for (auto& dart : m_darts)
+			dart->transform(M);
+		for (auto& sp : m_innerLines)
+			sp->transform(M);
+	}
+
 	//////////////////////////////////////////////////////////////////////////////////
 	void Sewing::clear()
 	{

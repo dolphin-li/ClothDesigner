@@ -25,4 +25,10 @@ public:
 	virtual void keyReleaseEvent(QKeyEvent*);
 	virtual void handleEnter();
 	virtual void handleLeave();
+protected:
+	void panelLevelTransform_MouseMove(QMouseEvent* ev);
+protected:
+	bool m_transformed = false;
+	ldp::Float2 m_translateStart;
+	ldp::Float2 m_rotateCenter;
 };

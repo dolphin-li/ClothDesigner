@@ -119,6 +119,7 @@ namespace ldp
 		/// UI operations///
 		bool removeSelected(AbstractPanelObject::Type types);
 		bool reverseSelectedSewings();
+		void clearHighLights();
 	protected:
 	private:
 		std::vector<std::shared_ptr<Sewing>> m_sewings;

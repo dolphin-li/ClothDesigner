@@ -156,6 +156,8 @@ void Rotate3dEventHandle::mouseMoveEvent(QMouseEvent *ev)
 				m_pickInfo.piece->transformInfo().rotate(R*lastR.inv(), m_pickInfo.meshCenter);
 				m_viewer->getManager()->updateCloths3dMeshBy2d();
 				m_viewer->rotateTrackBall(R*lastR.inv());
+				if (m_viewer->getMainUI())
+					m_viewer->getMainUI()->pushHistory("rotate piece", ldp::HistoryStack::Type3dTransform);
 			}
 			else // body mesh
 			{
@@ -164,6 +166,8 @@ void Rotate3dEventHandle::mouseMoveEvent(QMouseEvent *ev)
 				tr.rotate(R*lastR.inv(), m_pickInfo.meshCenter);
 				m_viewer->getManager()->setBodyMeshTransform(tr);
 				m_viewer->rotateTrackBall(R*lastR.inv());
+				if (m_viewer->getMainUI())
+					m_viewer->getMainUI()->pushHistory("rotate body", ldp::HistoryStack::Type3dTransform);
 			}
 
 			if (m_viewer->getMainUI())

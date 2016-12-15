@@ -124,12 +124,16 @@ void Translate3dEventHandle::mouseMoveEvent(QMouseEvent *ev)
 			{
 				m_pickInfo.piece->transformInfo().translate(dir);
 				m_viewer->getManager()->updateCloths3dMeshBy2d();
+				if (m_viewer->getMainUI())
+					m_viewer->getMainUI()->pushHistory("translate piece", ldp::HistoryStack::Type3dTransform);
 			}
 			else // body mesh
 			{
 				auto tr = m_viewer->getManager()->getBodyMeshTransform();
 				tr.translate(dir);
 				m_viewer->getManager()->setBodyMeshTransform(tr);
+				if (m_viewer->getMainUI())
+					m_viewer->getMainUI()->pushHistory("translate body", ldp::HistoryStack::Type3dTransform);
 			}
 			m_viewer->translateTrackBall(dir);
 			if (m_viewer->getMainUI())

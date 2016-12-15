@@ -1611,6 +1611,24 @@ namespace ldp
 		return change;
 	}
 
+	void ClothManager::clearHighLights()
+	{
+		std::vector<AbstractPanelObject*> tmpObjs;
+		for (auto& piece : m_clothPieces)
+		{
+			auto& panel = piece->panel();
+
+			// panel
+			tmpObjs.clear();
+			panel.collectObject(tmpObjs);
+			for (auto& o : tmpObjs)
+				o->setHighlighted(false);
+		} // end for piece
+
+		for (auto& sew : m_sewings)
+			sew->setHighlighted(false);
+	}
+
 	////Params//////////////////////////////////////////////////////////////////////////////////
 	ClothDesignParam::ClothDesignParam()
 	{

@@ -36,8 +36,10 @@ public:
 	Abstract2dEventHandle* getEventHandle(Abstract2dEventHandle::ProcessorType type);
 	void beginDragBox(QPoint p);
 	void endDragBox();
+	bool isDragBoxMode()const { return m_isDragBox; }
 	void beginSewingMode();
 	void endSewingMode();
+	bool isSewingMode()const { return m_isSewingMode; }
 
 	int fboRenderedIndex(QPoint p)const;
 	void getModelBound(ldp::Float3& bmin, ldp::Float3& bmax)const;

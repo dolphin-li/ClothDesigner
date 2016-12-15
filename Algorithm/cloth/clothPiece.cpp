@@ -65,6 +65,7 @@ namespace ldp
 	{
 		ClothPiece* piece = new ClothPiece(*this);
 		piece->m_panel.reset((PanelPolygon*)m_panel->clone());
+		piece->m_transfromInfo.reset(new TransformInfo(*m_transfromInfo.get()));
 		return piece;
 	}
 }

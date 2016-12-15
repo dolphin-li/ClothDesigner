@@ -3,9 +3,13 @@
 #include "Viewer2d.h"
 #include "cloth\clothManager.h"
 #include "cloth\clothPiece.h"
+#include "cloth\HistoryStack.h"
 #include "cloth\panelPolygon.h"
+#include "cloth\TransformInfo.h"
+#include "..\clothdesigner.h"
 
 #include "Transform2dPatternEventHandle.h"
+
 Transform2dPatternEventHandle::Transform2dPatternEventHandle(Viewer2d* v)
 : Abstract2dEventHandle(v)
 {
@@ -27,24 +31,54 @@ void Transform2dPatternEventHandle::handleEnter()
 {
 	Abstract2dEventHandle::handleEnter();
 	m_viewer->setFocus();
+	m_transformed = false;
 }
+
 void Transform2dPatternEventHandle::handleLeave()
 {
 	m_viewer->clearFocus();
 	m_viewer->endDragBox();
 	Abstract2dEventHandle::handleLeave();
+	m_transformed = false;
 }
 
 void Transform2dPatternEventHandle::mousePressEvent(QMouseEvent *ev)
 {
 	Abstract2dEventHandle::mousePressEvent(ev);
 
-	if (ev->buttons() == Qt::LeftButton)
+	auto manager = m_viewer->getManager();
+	if (manager == nullptr)
+		return;
+
+	// handle selection for all buttons
+	if (ev->buttons() != Qt::MidButton)
 	{
 		pick(ev->pos());
 		if (pickInfo().renderId == 0)
 			m_viewer->beginDragBox(ev->pos());
-	} // end if left button
+	}
+
+	// translation start positon
+	ldp::Float3 p3(ev->x(), m_viewer->height() - 1 - ev->y(), 1);
+	p3 = m_viewer->camera().getWorldCoords(p3);
+	m_translateStart = ldp::Float2(p3[0], p3[1]);
+
+	// rotation center postion
+	ldp::Float2 bMin = FLT_MAX, bMax = -FLT_MAX;
+	for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
+	{
+		auto piece = manager->clothPiece(iPiece);
+		auto& panel = piece->panel();
+		if (pickInfo().renderId == panel.getId() || panel.isSelected())
+		{
+			for (int k = 0; k < 3; k++)
+			{
+				bMin[k] = std::min(bMin[k], panel.bound()[0][k]);
+				bMax[k] = std::max(bMax[k], panel.bound()[1][k]);
+			}
+		}
+	} // end for iPiece
+	m_rotateCenter = (bMin + bMax) / 2.f;
 }
 
 void Transform2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
@@ -53,7 +87,17 @@ void Transform2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 	if (manager == nullptr)
 		return;
 
-	if (m_viewer->buttons() & Qt::LeftButton)
+	// handle transfrom triangulation update
+	if (m_viewer->getMainUI() && m_transformed)
+	{
+		m_viewer->getManager()->triangulate();
+		m_viewer->getMainUI()->pushHistory(QString().sprintf("pattern transform: %d",
+			pickInfo().renderId), ldp::HistoryStack::TypeGeneral);
+		m_transformed = false;
+	}
+
+	// handle selection ------------------------------------------------------------------
+	if (m_viewer->isDragBoxMode())
 	{
 		auto op = ldp::AbstractPanelObject::SelectThis;
 		if (ev->modifiers() & Qt::SHIFT)
@@ -62,13 +106,18 @@ void Transform2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 			op = ldp::AbstractPanelObject::SelectUnionInverse;
 		if (ev->pos() == m_mouse_press_pt)
 		{
+			bool changed = false;
 			for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
 			{
 				auto piece = manager->clothPiece(iPiece);
 				auto& panel = piece->panel();
-				panel.select(pickInfo().renderId, op);
+				if (panel.select(pickInfo().renderId, op))
+					changed = true;
 			} // end for iPiece
-		}
+			if (m_viewer->getMainUI() && changed)
+				m_viewer->getMainUI()->pushHistory(QString().sprintf("pattern select: %d",
+				pickInfo().renderId), ldp::HistoryStack::TypePatternSelect);
+		} // end if single selection
 		else
 		{
 			const QImage& I = m_viewer->fboImage();
@@ -79,17 +128,21 @@ void Transform2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 			float y1 = std::min(I.height() - 1, std::max(m_mouse_press_pt.y(), ev->pos().y()));
 			for (int y = y0; y <= y1; y++)
 			for (int x = x0; x <= x1; x++)
-			{
-				ids.insert(m_viewer->fboRenderedIndex(QPoint(x,y)));
-			}
+				ids.insert(m_viewer->fboRenderedIndex(QPoint(x, y)));
+			bool changed = false;
 			for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
 			{
 				auto piece = manager->clothPiece(iPiece);
 				auto& panel = piece->panel();
-				panel.select(ids, op);
+				if (panel.select(ids, op))
+					changed = true;
 			} // end for iPiece
-		}
-	}
+			if (m_viewer->getMainUI() && changed)
+				m_viewer->getMainUI()->pushHistory(QString().sprintf("pattern select: %d...",
+				*ids.begin()), ldp::HistoryStack::TypePatternSelect);
+		} // end else group selection
+	} // end if dragbox mode
+
 	m_viewer->endDragBox();
 	Abstract2dEventHandle::mouseReleaseEvent(ev);
 }
@@ -102,6 +155,12 @@ void Transform2dPatternEventHandle::mouseDoubleClickEvent(QMouseEvent *ev)
 void Transform2dPatternEventHandle::mouseMoveEvent(QMouseEvent *ev)
 {
 	Abstract2dEventHandle::mouseMoveEvent(ev);
+
+	auto manager = m_viewer->getManager();
+	if (manager == nullptr)
+		return;
+
+	panelLevelTransform_MouseMove(ev);
 }
 
 void Transform2dPatternEventHandle::wheelEvent(QWheelEvent *ev)
@@ -145,4 +204,102 @@ void Transform2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 void Transform2dPatternEventHandle::keyReleaseEvent(QKeyEvent *ev)
 {
 	Abstract2dEventHandle::keyReleaseEvent(ev);
+}
+
+void Transform2dPatternEventHandle::panelLevelTransform_MouseMove(QMouseEvent* ev)
+{
+	auto manager = m_viewer->getManager();
+	if (manager == nullptr)
+		return;
+	ldp::Float3 lp3(m_viewer->lastMousePos().x(), m_viewer->height() - 1 - m_viewer->lastMousePos().y(), 1);
+	ldp::Float3 p3(ev->x(), m_viewer->height() - 1 - ev->y(), 1);
+	lp3 = m_viewer->camera().getWorldCoords(lp3);
+	p3 = m_viewer->camera().getWorldCoords(p3);
+	ldp::Float2 lp(lp3[0], lp3[1]);
+	ldp::Float2 p(p3[0], p3[1]);
+
+	// left button, translate ------------------------------------------------------
+	if (ev->buttons() == Qt::LeftButton && !(ev->modifiers() & Qt::ALT))
+	{
+		for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
+		{
+			auto piece = manager->clothPiece(iPiece);
+			auto& panel = piece->panel();
+			if (pickInfo().renderId == panel.getId() || panel.isSelected())
+			{
+				panel.translate(p - lp);
+				panel.updateBound();
+				m_transformed = true;
+				// reverse move 3D piece if wanted
+				if (ev->modifiers() & Qt::SHIFT)
+				{
+					auto R3 = piece->transformInfo().transform().getRotationPart();
+					auto dif = p - lp;
+					piece->transformInfo().translate(R3 * ldp::Float3(-dif[0], -dif[1], 0));
+				}
+			}
+		} // end for iPiece
+	} // end if left button
+
+	// right button, rotate -------------------------------------------------
+	if (ev->buttons() == Qt::RightButton && !(ev->modifiers() & Qt::ALT))
+	{
+		ldp::Float2 ld = (lp - m_rotateCenter).normalize();
+		ldp::Float2 d = (p - m_rotateCenter).normalize();
+		float ltheta = atan2(ld[1], ld[0]);
+		float theta = atan2(d[1], d[0]);
+		float dr = theta - ltheta;
+		ldp::Mat2f R;
+		R(0, 0) = cos(dr);		R(0, 1) = -sin(dr);
+		R(1, 0) = sin(dr);		R(1, 1) = cos(dr);
+		for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
+		{
+			auto piece = manager->clothPiece(iPiece);
+			auto& panel = piece->panel();
+			if (pickInfo().renderId == panel.getId() || panel.isSelected())
+			{
+				panel.rotateBy(R, m_rotateCenter);
+				m_transformed = true;
+				// reverse move 3D piece if wanted
+				if (ev->modifiers() & Qt::SHIFT)
+				{
+					auto R3 = piece->transformInfo().transform().getRotationPart();
+					auto t3 = piece->transformInfo().transform().getTranslationPart();
+					ldp::Float3 c(m_rotateCenter[0], m_rotateCenter[1], 0);
+					ldp::Mat3f R2 = ldp::Mat3f().eye();
+					R2(0, 0) = R(0, 0);		R2(0, 1) = R(0, 1);
+					R2(1, 0) = R(1, 0);		R2(1, 1) = R(1, 1);
+					piece->transformInfo().rotate(R3*R2.inv()*R3.inv(), t3 + R3*c - R3*R2*c);
+					piece->transformInfo().translate(R3*R2*c - R3*c);
+				}
+			}
+		} // end for iPiece
+	} // end if right button
+
+	// right button + ALT, scale -------------------------------------------------
+	if (ev->buttons() == Qt::RightButton && (ev->modifiers() & Qt::ALT))
+	{
+		float ld = (lp - m_rotateCenter).length();
+		float d = (p - m_rotateCenter).length();
+		float s = d / ld;
+		for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
+		{
+			auto piece = manager->clothPiece(iPiece);
+			auto& panel = piece->panel();
+			if (pickInfo().renderId == panel.getId() || panel.isSelected())
+			{
+				panel.scaleBy(s, m_rotateCenter);
+				m_transformed = true;
+				// reverse move 3D piece if wanted
+				if (ev->modifiers() & Qt::SHIFT)
+				{
+					auto R3 = piece->transformInfo().transform().getRotationPart();
+					auto t3 = piece->transformInfo().transform().getTranslationPart();
+					ldp::Float3 c(m_rotateCenter[0], m_rotateCenter[1], 0);
+					piece->transformInfo().scale(1.f / s, t3 + R3*c - R3*s*c);
+					piece->transformInfo().translate(R3*s*c - R3*c);
+				}
+			}
+		} // end for iPiece
+	} // end if right button + ALT
 }

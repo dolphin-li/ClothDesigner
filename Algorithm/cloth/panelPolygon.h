@@ -321,7 +321,7 @@ namespace ldp
 				(*g)[i].reset((AbstractShape*)(*this)[i]->clone());
 			return g;
 		}
-		void updateBound(Float2& bmin, Float2& bmax)
+		void updateBound(Float2& bmin = Float2(), Float2& bmax = Float2())
 		{
 			m_bbox[0] = FLT_MAX;
 			m_bbox[1] = -FLT_MAX;
@@ -407,6 +407,37 @@ namespace ldp
 			}
 			updateBound(m_bbox[0], m_bbox[1]);
 		}
+
+		void translate(ldp::Float2 t)
+		{
+			for (auto& p : (*this))
+				p->translate(t);
+		}
+		void rotate(Mat2f R)
+		{
+			for (auto& p : (*this))
+				p->rotate(R);
+		}
+		void rotateBy(Mat2f R, Float2 center)
+		{
+			for (auto& p : (*this))
+				p->rotateBy(R, center);
+		}
+		void scaleBy(Float2 S, Float2 center)
+		{
+			for (auto& p : (*this))
+				p->scaleBy(S, center);
+		}
+		void scale(Float2 S)
+		{
+			for (auto& p : (*this))
+				p->scale(S);
+		}
+		void transform(Mat3f M)
+		{
+			for (auto& p : (*this))
+				p->transform(M);
+		}
 	protected:
 		Float2 m_bbox[2];
 	};
@@ -446,12 +477,19 @@ namespace ldp
 		bool select(const std::set<int>& indices, SelectOp op);
 		void highLight(int idx, int lastIdx);
 
-		void updateBound(Float2& bmin, Float2& bmax);
+		void updateBound(Float2& bmin = Float2(), Float2& bmax = Float2());
 		const Float2* bound()const { return m_bbox; }
 		virtual void collectObject(std::vector<AbstractPanelObject*>& objs);
 		virtual void collectObject(std::vector<const AbstractPanelObject*>& objs)const;		
 		virtual TiXmlElement* toXML(TiXmlNode* parent)const;
 		virtual void fromXML(TiXmlElement* self);
+
+		void translate(ldp::Float2 t);
+		void rotate(Mat2f R);
+		void rotateBy(Mat2f R, Float2 center);
+		void scaleBy(Float2 S, Float2 center);
+		void scale(Float2 S);
+		void transform(Mat3f M);
 	private:
 		PolygonPtr m_outerPoly;		
 		std::vector<DartPtr> m_darts;

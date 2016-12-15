@@ -56,7 +56,7 @@ void Sewing2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 	if (manager == nullptr)
 		return;
 
-	if (m_viewer->buttons() & Qt::LeftButton)
+	if (m_viewer->buttons() == Qt::LeftButton)
 	{
 		auto op = ldp::AbstractPanelObject::SelectThis;
 		if (ev->modifiers() & Qt::SHIFT)
