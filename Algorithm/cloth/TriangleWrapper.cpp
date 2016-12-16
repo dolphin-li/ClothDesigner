@@ -341,7 +341,33 @@ namespace ldp
 
 	void TriangleWrapper::addLine(const ShapeGroup& line)
 	{
-
+		const float step = m_triSize;
+		const float thre = m_ptMergeThre;
+		int startIdx = (int)m_points.size();
+		return;
+		// add points
+		for (const auto& shape : line)
+		{
+			auto& shapeSegs = m_shapeSegs[shape.get()];
+			for (size_t iSeg = 0; iSeg < shapeSegs->size(); iSeg++)
+			{
+				auto& seg = shapeSegs->at(iSeg);
+				for (auto& sp : seg->params)
+				{
+					auto p = shape->getPointByParam(sp.t * (seg->end - seg->start) + seg->start);
+					if (m_points.size() != startIdx)
+					{
+						if ((m_points.back() - p).length() < thre)
+						{
+							sp.idx = int(m_points.size()) - 1; // merged to the last point
+							continue;
+						}
+					}
+					sp.idx = int(m_points.size());
+					m_points.push_back(p);
+				}
+			} // end for p
+		} // end for shape
 	}
 
 	void TriangleWrapper::finalizeTriangulation()

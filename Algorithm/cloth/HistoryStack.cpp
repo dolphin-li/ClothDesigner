@@ -53,7 +53,7 @@ namespace ldp
 		myData.sewings.clear();
 		for (int i = 0; i < m_manager->numSewings(); i++)
 			myData.sewings.push_back(SewingPtr(m_manager->sewing(i)->clone()));
-
+		
 		AbstractPanelObject::enableIdxMapUpdate();
 		IdxPool::enableIdxIncrement();
 	}
@@ -77,7 +77,8 @@ namespace ldp
 			m_manager->addClothPiece(std::shared_ptr<ClothPiece>(myData.pieces[i]->lightClone()));
 		m_manager->clearSewings();
 		for (int i = 0; i < myData.sewings.size(); i++)
-			m_manager->addSewing(SewingPtr(myData.sewings[i]->clone()));
+			m_manager->addSewing(SewingPtr(myData.sewings[i]->clone())); 
+		m_manager->clearHighLights();
 		m_manager->simulationInit();
 
 		IdxPool::enableIdxIncrement();
