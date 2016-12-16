@@ -3,7 +3,7 @@
 #include "Viewer2d.h"
 #include "cloth\clothManager.h"
 #include "cloth\clothPiece.h"
-#include "cloth\panelPolygon.h"
+#include "cloth\PanelObject\panelPolygon.h"
 #include "cloth\HistoryStack.h"
 #include "Renderable\ObjMesh.h"
 #include "..\clothdesigner.h"

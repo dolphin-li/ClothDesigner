@@ -1,7 +1,7 @@
 #include "TriangleWrapper.h"
 #include "ldpMat\ldp_basic_mat.h"
 #include "clothPiece.h"
-#include "panelPolygon.h"
+#include "PanelObject\panelPolygon.h"
 #include "TransformInfo.h"
 #include "Renderable\ObjMesh.h"
 extern "C"{

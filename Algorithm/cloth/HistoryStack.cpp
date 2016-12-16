@@ -1,6 +1,6 @@
 #include "HistoryStack.h"
 #include "clothManager.h"
-#include "panelPolygon.h"
+#include "PanelObject\panelPolygon.h"
 #include "clothPiece.h"
 namespace ldp
 {

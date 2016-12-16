@@ -4,7 +4,7 @@
 #include "cloth\clothManager.h"
 #include "cloth\clothPiece.h"
 #include "cloth\HistoryStack.h"
-#include "cloth\panelPolygon.h"
+#include "cloth\PanelObject\panelPolygon.h"
 #include "cloth\TransformInfo.h"
 #include "..\clothdesigner.h"
 

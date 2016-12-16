@@ -7,7 +7,7 @@
 #include <map>
 #include <set>
 #include "definations.h"
-#include "AbstractPanelObject.h"
+#include "PanelObject\AbstractPanelObject.h"
 //#define ENABLE_SELF_COLLISION
 #ifdef ENABLE_SELF_COLLISION
 #include "COLLISION_HANDLER.h"

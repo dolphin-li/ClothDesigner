@@ -1,7 +1,7 @@
 #include "clothPiece.h"
 
 #include "Renderable\ObjMesh.h"
-#include "panelPolygon.h"
+#include "PanelObject\panelPolygon.h"
 #include "TransformInfo.h"
 namespace ldp
 {

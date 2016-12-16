@@ -3,7 +3,7 @@
 #include "Viewer2d.h"
 #include "ldpMat\Quaternion.h"
 #include "cloth\clothPiece.h"
-#include "cloth\panelPolygon.h"
+#include "cloth\PanelObject\panelPolygon.h"
 #include "Renderable\ObjMesh.h"
 
 #pragma region --mat_utils

@@ -4,7 +4,7 @@
 #include "cloth\clothManager.h"
 #include "cloth\clothPiece.h"
 #include "Renderable\ObjMesh.h"
-#include "cloth\panelPolygon.h"
+#include "cloth\PanelObject\panelPolygon.h"
 
 #include "Abstract2dEventHandle.h"
 #include "Edit2dPatternEventHandle.h"

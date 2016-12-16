@@ -86,6 +86,12 @@
     <Filter Include="algorithm\shader">
       <UniqueIdentifier>{a5bbc8f4-a988-4879-bc29-e8695ea14381}</UniqueIdentifier>
     </Filter>
+    <Filter Include="algorithm\cloth\graph">
+      <UniqueIdentifier>{cc08b4b8-0605-480e-bb49-bf7cf42e9687}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="algorithm\cloth\PanelObject">
+      <UniqueIdentifier>{ddc53e0d-d61f-4d60-b2a3-e840227f3271}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -155,9 +161,6 @@
       <Filter>algorithm\cloth</Filter>
     </ClCompile>
     <ClCompile Include="Algorithm\cloth\clothPiece.cpp">
-      <Filter>algorithm\cloth</Filter>
-    </ClCompile>
-    <ClCompile Include="Algorithm\cloth\panelPolygon.cpp">
       <Filter>algorithm\cloth</Filter>
     </ClCompile>
     <ClCompile Include="viewer3d.cpp">
@@ -601,9 +604,6 @@
     <ClCompile Include="event_handles\Sewing2dPatternEventHandle.cpp">
       <Filter>event_handle</Filter>
     </ClCompile>
-    <ClCompile Include="Algorithm\cloth\IdxPool.cpp">
-      <Filter>algorithm\cloth</Filter>
-    </ClCompile>
     <ClCompile Include="Algorithm\cloth\HistoryStack.cpp">
       <Filter>algorithm\cloth</Filter>
     </ClCompile>
@@ -621,6 +621,36 @@
     </ClCompile>
     <ClCompile Include="Algorithm\Shader\ShaderManager.cpp">
       <Filter>algorithm\shader</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\cloth\graph\AbstractGraphOjbect.cpp">
+      <Filter>algorithm\cloth\graph</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\cloth\graph\GraphPoint.cpp">
+      <Filter>algorithm\cloth\graph</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\cloth\graph\GraphLine.cpp">
+      <Filter>algorithm\cloth\graph</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\cloth\graph\AbstractGraphCurve.cpp">
+      <Filter>algorithm\cloth\graph</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\cloth\graph\GraphQuadratic.cpp">
+      <Filter>algorithm\cloth\graph</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\cloth\graph\GraphCubic.cpp">
+      <Filter>algorithm\cloth\graph</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\cloth\graph\GraphLoop.cpp">
+      <Filter>algorithm\cloth\graph</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\cloth\graph\Graph.cpp">
+      <Filter>algorithm\cloth\graph</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\cloth\PanelObject\IdxPool.cpp">
+      <Filter>algorithm\cloth\PanelObject</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\cloth\PanelObject\panelPolygon.cpp">
+      <Filter>algorithm\cloth\PanelObject</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -741,9 +771,6 @@
       <Filter>algorithm\cloth</Filter>
     </ClInclude>
     <ClInclude Include="Algorithm\cloth\clothPiece.h">
-      <Filter>algorithm\cloth</Filter>
-    </ClInclude>
-    <ClInclude Include="Algorithm\cloth\panelPolygon.h">
       <Filter>algorithm\cloth</Filter>
     </ClInclude>
     <ClInclude Include="event_handles\Abstract3dEventHandle.h">
@@ -953,9 +980,6 @@
     <ClInclude Include="event_handles\Sewing2dPatternEventHandle.h">
       <Filter>event_handle</Filter>
     </ClInclude>
-    <ClInclude Include="Algorithm\cloth\IdxPool.h">
-      <Filter>algorithm\cloth</Filter>
-    </ClInclude>
     <ClInclude Include="Algorithm\cloth\HistoryStack.h">
       <Filter>algorithm\cloth</Filter>
     </ClInclude>
@@ -968,9 +992,6 @@
     <ClInclude Include="Algorithm\cloth\definations.h">
       <Filter>algorithm\cloth</Filter>
     </ClInclude>
-    <ClInclude Include="Algorithm\cloth\AbstractPanelObject.h">
-      <Filter>algorithm\cloth</Filter>
-    </ClInclude>
     <ClInclude Include="Algorithm\Shader\glsl.h">
       <Filter>algorithm\shader</Filter>
     </ClInclude>
@@ -979,6 +1000,39 @@
     </ClInclude>
     <ClInclude Include="Algorithm\Shader\ShaderManager.h">
       <Filter>algorithm\shader</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\graph\AbstractGraphObject.h">
+      <Filter>algorithm\cloth\graph</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\graph\GraphPoint.h">
+      <Filter>algorithm\cloth\graph</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\graph\GraphLine.h">
+      <Filter>algorithm\cloth\graph</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\graph\AbstractGraphCurve.h">
+      <Filter>algorithm\cloth\graph</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\graph\GraphQuadratic.h">
+      <Filter>algorithm\cloth\graph</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\graph\GraphCubic.h">
+      <Filter>algorithm\cloth\graph</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\graph\GraphLoop.h">
+      <Filter>algorithm\cloth\graph</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\graph\Graph.h">
+      <Filter>algorithm\cloth\graph</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\PanelObject\AbstractPanelObject.h">
+      <Filter>algorithm\cloth\PanelObject</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\PanelObject\IdxPool.h">
+      <Filter>algorithm\cloth\PanelObject</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\PanelObject\panelPolygon.h">
+      <Filter>algorithm\cloth\PanelObject</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

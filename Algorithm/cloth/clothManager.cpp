@@ -2,7 +2,7 @@
 #include "LevelSet3D.h"
 #include "clothPiece.h"
 #include "TransformInfo.h"
-#include "panelPolygon.h"
+#include "PanelObject\panelPolygon.h"
 #include "PROGRESSING_BAR.h"
 #include "TriangleWrapper.h"
 #include "Renderable\ObjMesh.h"
