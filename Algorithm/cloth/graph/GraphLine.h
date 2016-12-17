@@ -9,8 +9,7 @@ namespace ldp
 	{
 	public:
 		GraphLine();
-		GraphLine(size_t id);
-		GraphLine(const std::vector<GraphPoint*>& pts, size_t id = 0);
+		GraphLine(const std::vector<GraphPoint*>& pts);
 
 		virtual Float2 getPointByParam(float t)const;
 		virtual Type getType()const { return TypeGraphLine; }

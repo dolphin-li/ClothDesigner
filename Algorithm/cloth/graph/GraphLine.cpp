@@ -7,11 +7,7 @@ namespace ldp
 	{
 		m_keyPoints.resize(2, nullptr);
 	}
-	GraphLine::GraphLine(size_t id) : AbstractGraphCurve(id)
-	{
-		m_keyPoints.resize(2, nullptr);
-	}
-	GraphLine::GraphLine(const std::vector<GraphPoint*>& pts, size_t id) : AbstractGraphCurve(pts, id)
+	GraphLine::GraphLine(const std::vector<GraphPoint*>& pts) : AbstractGraphCurve(pts)
 	{
 		assert(pts.size() == 2);
 	}

@@ -10,8 +10,7 @@ namespace ldp
 	{
 	public:
 		AbstractGraphCurve();
-		AbstractGraphCurve(size_t id);
-		AbstractGraphCurve(const std::vector<GraphPoint*>& pts, size_t id=0);
+		AbstractGraphCurve(const std::vector<GraphPoint*>& pts);
 
 		virtual AbstractGraphCurve* clone()const;
 		virtual Type getType()const = 0;
@@ -20,7 +19,7 @@ namespace ldp
 		virtual void fromXML(TiXmlElement* self);
 		virtual const std::vector<Float2>& samplePointsOnShape(float step)const;
 
-		static AbstractGraphCurve* create(const std::vector<GraphPoint*>& kpts, size_t id=0);
+		static AbstractGraphCurve* create(const std::vector<GraphPoint*>& kpts);
 		static void fittingCurves(std::vector<std::vector<std::shared_ptr<GraphPoint>>>& curves,
 			const std::vector<Float2>& keyPoints, float fittingThre);
 		static void fittingOneCurve(std::vector<std::shared_ptr<GraphPoint>>& curves,

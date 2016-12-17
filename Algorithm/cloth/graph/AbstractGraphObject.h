@@ -28,7 +28,6 @@ namespace ldp
 		typedef std::hash_set<size_t> IdxSet;
 	public:
 		AbstractGraphObject();
-		AbstractGraphObject(size_t id);
 		virtual ~AbstractGraphObject();
 
 		virtual AbstractGraphObject* clone()const;
@@ -36,8 +35,8 @@ namespace ldp
 		virtual TiXmlElement* toXML(TiXmlNode* parent)const;
 		virtual void fromXML(TiXmlElement* self);
 
-		static AbstractGraphObject* create(Type type, size_t id = 0);
-		static AbstractGraphObject* create(std::string typeString, size_t id = 0);
+		static AbstractGraphObject* create(Type type);
+		static AbstractGraphObject* create(std::string typeString);
 
 		std::string getTypeString()const;
 		size_t getId()const { return m_id; }
@@ -65,6 +64,8 @@ namespace ldp
 		{
 			throw std::exception("AbstractGraphObject: assign not allowed!");
 		}
+		void requireIdx();
+		void freeIdx();
 	private:
 		size_t m_id = 0;
 		bool m_selected = false;
@@ -75,6 +76,17 @@ namespace ldp
 		static size_t s_nextIdx;
 		static TypeStringMap s_typeStringMap;
 		static TypeStringMap generateTypeStringMap();
+
+		// for tmp idx maping when loading from files.
+		static IdxObjMap s_idxObjMap_loading;
+	protected:
+		static AbstractGraphObject* getObjByIdx_loading(size_t id)
+		{
+			auto iter = s_idxObjMap_loading.find(id);
+			if (iter == s_idxObjMap_loading.end())
+				return nullptr;
+			return iter->second;
+		}
 	};
 	typedef std::shared_ptr<AbstractGraphObject> AbstractGraphObjectPtr;
 }

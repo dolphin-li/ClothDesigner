@@ -483,7 +483,6 @@ void ClothDesigner::on_pbFlipPolygon_clicked()
 			auto& panel = piece->panel();
 			if (panel.isSelected())
 			{
-				panel.outerPoly()->reverse();
 				piece->transformInfo().flipNormal();
 				piece->mesh2d().flipNormals();
 				piece->mesh3d().flipNormals();

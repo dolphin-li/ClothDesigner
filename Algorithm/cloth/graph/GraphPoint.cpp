@@ -8,10 +8,7 @@ namespace ldp
 	{
 	
 	}
-	GraphPoint::GraphPoint(size_t id) : AbstractGraphObject(id)
-	{
 
-	}
 	GraphPoint::GraphPoint(Float2 p) : AbstractGraphObject(), m_p(p)
 	{
 
@@ -19,7 +16,7 @@ namespace ldp
 
 	GraphPoint* GraphPoint::clone()const
 	{
-		GraphPoint* gp = (GraphPoint*)create(getType(), getId());
+		GraphPoint* gp = (GraphPoint*)create(getType());
 		gp->m_p = m_p;
 		gp->m_edges = m_edges;
 		return gp;

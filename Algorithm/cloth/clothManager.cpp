@@ -3,6 +3,7 @@
 #include "clothPiece.h"
 #include "TransformInfo.h"
 #include "PanelObject\panelPolygon.h"
+#include "graph\Graph.h"
 #include "PROGRESSING_BAR.h"
 #include "TriangleWrapper.h"
 #include "Renderable\ObjMesh.h"
@@ -1724,6 +1725,11 @@ namespace ldp
 						m_clothPieces.back()->panel().fromXML(child);
 					else if (child->Value() == m_clothPieces.back()->transformInfo().getTypeString())
 						m_clothPieces.back()->transformInfo().fromXML(child);
+					else if (child->Value() == m_clothPieces.back()->graphPanel().getTypeString())
+						m_clothPieces.back()->graphPanel().fromXML(child);
+
+					// ldp debug
+					m_clothPieces.back()->graphPanel().fromPanelPolygon(m_clothPieces.back()->panel());
 				}
 			} // end for piece
 			else if (pele->Value() == tmpSewing.getTypeString())
@@ -1756,6 +1762,7 @@ namespace ldp
 			root->LinkEndChild(pele);
 			piece->panel().toXML(pele);
 			piece->transformInfo().toXML(pele);
+			piece->graphPanel().toXML(pele);
 		} // end for piece
 
 		for (const auto& sew : m_sewings)

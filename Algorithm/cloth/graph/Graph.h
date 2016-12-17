@@ -7,6 +7,7 @@ namespace ldp
 	class GraphPoint;
 	class AbstractGraphCurve;
 	class GraphLoop;
+	class PanelPolygon;
 	class Graph : public AbstractGraphObject
 	{
 	public:
@@ -16,7 +17,6 @@ namespace ldp
 		typedef std::hash_map<AbstractGraphObject*, AbstractGraphObject*> PtrMap;
 	public:
 		Graph();
-		Graph(size_t id);
 
 		virtual Type getType()const { return TypeGraph; }
 		virtual TiXmlElement* toXML(TiXmlNode* parent)const;
@@ -25,6 +25,8 @@ namespace ldp
 		const PtrMap& getPtrMapAfterClone() { return m_ptrMapAfterClone; } // for mapping update after clone
 
 		void clear();
+
+		void fromPanelPolygon(const PanelPolygon& panel);
 
 		// getters
 		int numKeyPoints()const { return (int)m_keyPoints.size(); }

@@ -9,7 +9,6 @@ namespace ldp
 	{
 	public:
 		GraphLoop();
-		GraphLoop(size_t id);
 
 		virtual GraphLoop* clone()const;
 		virtual TiXmlElement* toXML(TiXmlNode* parent)const;

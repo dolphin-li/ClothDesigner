@@ -2,16 +2,13 @@
 #include "GraphPoint.h"
 #include "AbstractGraphCurve.h"
 #include "GraphLoop.h"
+#include "tinyxml\tinyxml.h"
+#include "cloth\PanelObject\panelPolygon.h"
 namespace ldp
 {
 	Graph::Graph() : AbstractGraphObject()
 	{
 	
-	}
-
-	Graph::Graph(size_t id) : AbstractGraphObject(id)
-	{
-
 	}
 
 	void Graph::clear()
@@ -70,20 +67,124 @@ namespace ldp
 
 	TiXmlElement* Graph::toXML(TiXmlNode* parent)const
 	{
-		return nullptr; // not implemented
+		TiXmlElement* ele = AbstractGraphObject::toXML(parent);
+
+		TiXmlElement* ele_kpts = new TiXmlElement("key-points");
+		ele->LinkEndChild(ele_kpts);
+		for (auto& p : m_keyPoints)
+			p.second->toXML(ele_kpts);
+		
+		TiXmlElement* ele_cvs = new TiXmlElement("curves");
+		ele->LinkEndChild(ele_cvs);
+		for (auto& p : m_curves)
+			p.second->toXML(ele_cvs);
+
+		TiXmlElement* ele_loops = new TiXmlElement("loops");
+		ele->LinkEndChild(ele_loops);
+		for (auto& p : m_loops)
+			p.second->toXML(ele_loops);
+
+		return ele;
 	}
 
 	void Graph::fromXML(TiXmlElement* self)
 	{
+		clear();
+		AbstractGraphObject::fromXML(self);
 
+		for (auto groups = self->FirstChildElement(); groups; groups = groups->NextSiblingElement())
+		{
+			if (groups->Value() == std::string("key-points"))
+			{
+				for (auto child = groups->FirstChildElement(); child; child = child->NextSiblingElement())
+				{
+					GraphPointPtr kpt((GraphPoint*)AbstractGraphObject::create(child->Value()));
+					kpt->fromXML(child);
+					addKeyPoint(kpt);
+				}
+			} // end if key-pts
+			if (groups->Value() == std::string("curves"))
+			{
+				for (auto child = groups->FirstChildElement(); child; child = child->NextSiblingElement())
+				{
+					AbstractGraphCurvePtr kpt((AbstractGraphCurve*)AbstractGraphObject::create(child->Value()));
+					kpt->fromXML(child);
+					addCurve(kpt);
+				}
+			} // end if curves
+			if (groups->Value() == std::string("loops"))
+			{
+				for (auto child = groups->FirstChildElement(); child; child = child->NextSiblingElement())
+				{
+					GraphLoopPtr kpt((GraphLoop*)AbstractGraphObject::create(child->Value()));
+					kpt->fromXML(child);
+					addLoop(kpt);
+				}
+			} // end if loops
+		} // end for groups
+	}
+
+	void Graph::fromPanelPolygon(const PanelPolygon& panel)
+	{
+		if (panel.outerPoly().get() == nullptr)
+			return;
+
+		clear();
+
+		// outer poly
+		std::vector<AbstractGraphCurve*> curves;
+		for (auto p : *panel.outerPoly())
+		{
+			std::vector<GraphPoint*> keyPoints;
+			for (int k = 0; k < p->numKeyPoints(); k++)
+			{
+				GraphPointPtr kpt(new GraphPoint(p->getKeyPoint(k).position));
+				keyPoints.push_back(addKeyPoint(kpt));
+			}
+			curves.push_back(addCurve(keyPoints));
+		} // end for p
+		addLoop(curves);
+
+		// darts
+		for (auto& dart : panel.darts())
+		{
+			std::vector<AbstractGraphCurve*> curves;
+			for (auto p : *dart)
+			{
+				std::vector<GraphPoint*> keyPoints;
+				for (int k = 0; k < p->numKeyPoints(); k++)
+				{
+					GraphPointPtr kpt(new GraphPoint(p->getKeyPoint(k).position));
+					keyPoints.push_back(addKeyPoint(kpt));
+				}
+				curves.push_back(addCurve(keyPoints));
+			} // end for p
+			addLoop(curves);
+		} // end for darts
+
+		// inner lines
+		for (auto& line : panel.innerLines())
+		{
+			std::vector<AbstractGraphCurve*> curves;
+			for (auto p : *line)
+			{
+				std::vector<GraphPoint*> keyPoints;
+				for (int k = 0; k < p->numKeyPoints(); k++)
+				{
+					GraphPointPtr kpt(new GraphPoint(p->getKeyPoint(k).position));
+					keyPoints.push_back(addKeyPoint(kpt));
+				}
+				curves.push_back(addCurve(keyPoints));
+			} // end for p
+			addLoop(curves);
+		} // end for darts
 	}
 
 	//////////////// topology operations: add units///////////////////////////////////////////
 	GraphPoint* Graph::addKeyPoint(ldp::Float2 p)
 	{
 		GraphPointPtr kp(new GraphPoint(p));
-		addKeyPoint(kp);
-		return kp.get();
+		return addKeyPoint(kp);
 	}
 
 	GraphPoint* Graph::addKeyPoint(const std::shared_ptr<GraphPoint>& kp)
@@ -94,6 +195,14 @@ namespace ldp
 			printf("warning: key point %d already existed!\n", kp->getId());
 			return iter->second.get();
 		}
+
+		// a point exist that is close enough with p
+		for (auto iter : m_keyPoints)
+		{
+			if ((iter.second->position() - kp->position()).length() < std::numeric_limits<float>::epsilon())
+				return iter.second.get();
+		} // end for iter
+
 		m_keyPoints.insert(std::make_pair(kp->getId(), kp));
 		return kp.get();
 	}
@@ -108,6 +217,8 @@ namespace ldp
 	{
 		if (curve.get() == nullptr)
 			return nullptr;
+
+		// check curve id
 		auto iter = m_curves.find(curve->getId());
 		if (iter != m_curves.end())
 		{
@@ -115,6 +226,26 @@ namespace ldp
 			return curve.get();
 		}
 
+		// check curve points
+		for (auto iter : m_curves)
+		{
+			bool samePoints = true;
+			if (iter.second->numKeyPoints() != curve->numKeyPoints())
+				samePoints = false;
+			for (int i = 0; i < iter.second->numKeyPoints(); i++)
+			{
+				if (iter.second->keyPoint(i) != curve->keyPoint(i)
+					&& iter.second->keyPoint(i) != curve->keyPoint(curve->numKeyPoints() - 1 - i))
+				{
+					samePoints = false;
+					break;
+				}
+			}
+			if (samePoints)
+				return iter.second.get();
+		} // end for iter
+
+		// add the curve
 		for (int i = 0; i < curve->numKeyPoints(); i++)
 		{
 			auto kp = curve->keyPoint(i);
@@ -149,14 +280,40 @@ namespace ldp
 
 	GraphLoop* Graph::addLoop(const std::shared_ptr<GraphLoop>& loop)
 	{
+		// check id
 		auto iter = m_loops.find(loop->getId());
 		if (iter != m_loops.end())
 		{
 			printf("warning: addCurve: curve %d already existed!\n", loop->getId());
 			return loop.get();
 		}
-		m_loops.insert(std::make_pair(loop->getId(), loop));
+
+		// check overlap, we do not allow loop overlap
+		std::hash_set<AbstractGraphCurve*> c1set;
+		for (auto l : m_loops)
+		{
+			auto edge = l.second->startEdge();
+			do
+			{
+				c1set.insert(edge);
+				edge = edge->nextEdge();
+			} while (edge && edge != l.second->startEdge());
+		}
 		auto edge = loop->startEdge();
+		do
+		{
+			if (c1set.find(edge) != c1set.end())
+			{
+				printf("warning: over lapped edge %d for loop %d\n",
+					edge->getId(), loop->getId());
+				return nullptr;
+			}
+			edge = edge->nextEdge();
+		} while (edge && edge != loop->startEdge());
+
+		// insert loop
+		m_loops.insert(std::make_pair(loop->getId(), loop));
+		edge = loop->startEdge();
 		do
 		{
 			edge->loop() = loop.get();

@@ -7,11 +7,7 @@ namespace ldp
 	{
 		m_keyPoints.resize(4, nullptr);
 	}
-	GraphCubic::GraphCubic(size_t id) : AbstractGraphCurve(id)
-	{
-		m_keyPoints.resize(4, nullptr);
-	}
-	GraphCubic::GraphCubic(const std::vector<GraphPoint*>& pts, size_t id) : AbstractGraphCurve(pts, id)
+	GraphCubic::GraphCubic(const std::vector<GraphPoint*>& pts) : AbstractGraphCurve(pts)
 	{
 		assert(pts.size() == 4);
 	}

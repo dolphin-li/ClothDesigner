@@ -9,8 +9,7 @@ namespace ldp
 	{
 	public:
 		GraphCubic();
-		GraphCubic(size_t id);
-		GraphCubic(const std::vector<GraphPoint*>& pts, size_t id=0);
+		GraphCubic(const std::vector<GraphPoint*>& pts);
 
 		virtual Float2 getPointByParam(float t)const;
 		virtual Type getType()const { return TypeGraphCubic; }

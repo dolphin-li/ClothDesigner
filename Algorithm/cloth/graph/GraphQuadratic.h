@@ -9,8 +9,7 @@ namespace ldp
 	{
 	public:
 		GraphQuadratic();
-		GraphQuadratic(size_t id);
-		GraphQuadratic(const std::vector<GraphPoint*>& pts, size_t id = 0);
+		GraphQuadratic(const std::vector<GraphPoint*>& pts);
 
 		virtual Float2 getPointByParam(float t)const;
 		virtual Type getType()const { return TypeGraphQuadratic; }

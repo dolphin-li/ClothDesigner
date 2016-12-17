@@ -3,6 +3,7 @@
 #include "Renderable\ObjMesh.h"
 #include "PanelObject\panelPolygon.h"
 #include "TransformInfo.h"
+#include "graph\Graph.h"
 namespace ldp
 {
 	std::set<std::string> ClothPiece::s_nameSet;
@@ -15,6 +16,7 @@ namespace ldp
 		m_mesh3dInit.reset(new ObjMesh);
 		m_panel.reset(new PanelPolygon);
 		m_transfromInfo.reset(new TransformInfo);
+		m_graphPanel.reset(new Graph);
 	}
 
 	ClothPiece::~ClothPiece()
@@ -58,6 +60,7 @@ namespace ldp
 		piece->m_mesh3dInit->cloneFrom(m_mesh3dInit.get());
 		piece->m_panel.reset((PanelPolygon*)m_panel->clone());
 		piece->m_transfromInfo.reset(new TransformInfo(*m_transfromInfo));
+		piece->m_graphPanel.reset((Graph*)m_graphPanel->clone());
 		return piece;
 	}
 
@@ -66,6 +69,7 @@ namespace ldp
 		ClothPiece* piece = new ClothPiece(*this);
 		piece->m_panel.reset((PanelPolygon*)m_panel->clone());
 		piece->m_transfromInfo.reset(new TransformInfo(*m_transfromInfo.get()));
+		piece->m_graphPanel.reset((Graph*)m_graphPanel->clone());
 		return piece;
 	}
 }

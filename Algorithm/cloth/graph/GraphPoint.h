@@ -10,7 +10,6 @@ namespace ldp
 	{
 	public:
 		GraphPoint();
-		GraphPoint(size_t id);
 		GraphPoint(Float2 p);
 
 		virtual GraphPoint* clone()const;

@@ -12,12 +12,7 @@ namespace ldp
 	
 	}
 
-	AbstractGraphCurve::AbstractGraphCurve(size_t id) : AbstractGraphObject(id)
-	{
-
-	}
-
-	AbstractGraphCurve::AbstractGraphCurve(const std::vector<GraphPoint*>& pts, size_t id) : AbstractGraphCurve(id)
+	AbstractGraphCurve::AbstractGraphCurve(const std::vector<GraphPoint*>& pts) : AbstractGraphCurve()
 	{
 		m_keyPoints = pts;
 	}
@@ -64,7 +59,7 @@ namespace ldp
 				int id = 0;
 				if (!child->Attribute("id", &id))
 					throw std::exception(("cannot find id for " + getTypeString()).c_str());
-				auto obj = getObjByIdx(id);
+				auto obj = getObjByIdx_loading(id);
 				if (obj->getType() != g_graphPoint.getType())
 					throw std::exception("type error");
 				m_keyPoints.push_back((GraphPoint*)obj);
@@ -74,7 +69,7 @@ namespace ldp
 
 	AbstractGraphCurve* AbstractGraphCurve::clone()const
 	{
-		auto shape = (AbstractGraphCurve*)AbstractGraphObject::create(getType(), getId());
+		auto shape = (AbstractGraphCurve*)AbstractGraphObject::create(getType());
 		shape->m_keyPoints = m_keyPoints;
 		shape->setSelected(isSelected());
 		shape->setHighlighted(isHighlighted());
@@ -167,18 +162,18 @@ namespace ldp
 		return m_samplePoints;
 	}
 
-	AbstractGraphCurve* AbstractGraphCurve::create(const std::vector<GraphPoint*>& kpts, size_t id)
+	AbstractGraphCurve* AbstractGraphCurve::create(const std::vector<GraphPoint*>& kpts)
 	{
 		switch (kpts.size())
 		{
 		default:
 			return nullptr;
 		case 2:
-			return new GraphLine(kpts, id);
+			return new GraphLine(kpts);
 		case 3:
-			return new GraphQuadratic(kpts, id);
+			return new GraphQuadratic(kpts);
 		case 4:
-			return new GraphCubic(kpts, id);
+			return new GraphCubic(kpts);
 		}
 	}
 	///////////////////////////////////////////////////////////////////////////////////////////

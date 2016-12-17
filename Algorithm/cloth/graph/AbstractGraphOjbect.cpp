@@ -5,11 +5,14 @@
 #include "GraphLine.h"
 #include "GraphQuadratic.h"
 #include "GraphCubic.h"
+#include "GraphLoop.h"
+#include "Graph.h"
 namespace ldp
 {
 	AbstractGraphObject::IdxObjMap AbstractGraphObject::s_idxObjMap;
 	AbstractGraphObject::IdxSet AbstractGraphObject::s_freeIdx;
 	size_t AbstractGraphObject::s_nextIdx = 1;
+	AbstractGraphObject::IdxObjMap AbstractGraphObject::s_idxObjMap_loading;
 
 	AbstractGraphObject::TypeStringMap AbstractGraphObject::generateTypeStringMap()
 	{
@@ -28,53 +31,39 @@ namespace ldp
 
 	AbstractGraphObject::AbstractGraphObject()
 	{
-		size_t id = 0;
-		if (!s_freeIdx.empty())
-		{
-			id = *s_freeIdx.begin();
-			s_freeIdx.erase(s_freeIdx.begin());
-		}
-		else
-		{
-			id = s_nextIdx++;
-		}
-		s_idxObjMap.insert(std::make_pair(id, this));
-	}
-
-	AbstractGraphObject::AbstractGraphObject(size_t id)
-	{
-		if (id > 0)
-		{
-			m_id = id;
-			auto iter = s_idxObjMap.find(m_id);
-			if (iter != s_idxObjMap.end())
-				throw std::exception(std::string("IdxPool, duplicate index required: "
-				+ std::to_string(m_id)).c_str());
-		}
-		else
-		{
-			size_t id = 0;
-			if (!s_freeIdx.empty())
-			{
-				id = *s_freeIdx.begin();
-				s_freeIdx.erase(s_freeIdx.begin());
-			}
-			else
-			{
-				id = s_nextIdx++;
-			}
-			s_idxObjMap.insert(std::make_pair(id, this));
-		}
+		requireIdx();
 	}
 
 	AbstractGraphObject::~AbstractGraphObject()
 	{
+		freeIdx();
+	}
+
+	void AbstractGraphObject::requireIdx()
+	{
+		if (!s_freeIdx.empty())
+		{
+			m_id = *s_freeIdx.begin();
+			s_freeIdx.erase(s_freeIdx.begin());
+		}
+		else
+			m_id = s_nextIdx++;
+
+		s_nextIdx = std::max(s_nextIdx, m_id + 1);
+		s_idxObjMap.insert(std::make_pair(m_id, this));
+	}
+
+	void AbstractGraphObject::freeIdx()
+	{
 		auto iter = s_idxObjMap.find(m_id);
 		if (iter == s_idxObjMap.end())
-			throw std::exception(std::string("IdxPool, freeIdx not existed: "
-			+ std::to_string(m_id)).c_str());
+		{
+			printf("error: freeIdx not existed %d\n", m_id);
+			return;
+		}
 		s_idxObjMap.erase(iter);
 		s_freeIdx.insert(m_id);
+		m_id = 0;
 	}
 
 	std::string AbstractGraphObject::getTypeString()const
@@ -95,35 +84,31 @@ namespace ldp
 		int id = 0;
 		if (!self->Attribute("id", &id))
 			throw std::exception(("cannot find id for " + getTypeString()).c_str());
-		m_id = id;
-		auto iter = s_idxObjMap.find(m_id);
-		if (iter != s_idxObjMap.end())
-			throw std::exception(std::string("IdxPool, duplicate index required: "
-			+ std::to_string(m_id)).c_str());
+		s_idxObjMap_loading[id] = this;
 	}
 
 	AbstractGraphObject* AbstractGraphObject::clone()const
 	{
-		return create(getType(), getId());
+		return create(getType());
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////
-	AbstractGraphObject* AbstractGraphObject::create(Type type, size_t id)
+	AbstractGraphObject* AbstractGraphObject::create(Type type)
 	{
 		switch (type)
 		{
 		case ldp::AbstractGraphObject::TypeGraphPoint:
-			return new GraphPoint(id);
+			return new GraphPoint();
 		case ldp::AbstractGraphObject::TypeGraphLine:
-			return new GraphLine(id);
+			return new GraphLine();
 		case ldp::AbstractGraphObject::TypeGraphQuadratic:
-			return new GraphQuadratic(id);
+			return new GraphQuadratic();
 		case ldp::AbstractGraphObject::TypeGraphCubic:
-			return new GraphCubic(id);
+			return new GraphCubic();
 		case ldp::AbstractGraphObject::TypeGraphLoop:
-			break;
+			return new GraphLoop();
 		case ldp::AbstractGraphObject::TypeGraph:
-			break;
+			return new Graph();
 		case ldp::AbstractGraphObject::TypeSewing:
 			break;
 		case ldp::AbstractGraphObject::Type_End:
@@ -133,12 +118,12 @@ namespace ldp
 		return nullptr;
 	}
 
-	AbstractGraphObject* AbstractGraphObject::create(std::string typeString, size_t id)
+	AbstractGraphObject* AbstractGraphObject::create(std::string typeString)
 	{
 		for (auto& iter : s_typeStringMap)
 		{
 			if (iter.second == typeString)
-				return create(iter.first, id);
+				return create(iter.first);
 		}
 		return nullptr;
 	}

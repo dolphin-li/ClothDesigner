@@ -4,7 +4,12 @@
 #include "ldpMat\Quaternion.h"
 #include "cloth\clothPiece.h"
 #include "cloth\PanelObject\panelPolygon.h"
+#include "cloth\graph\Graph.h"
+#include "cloth\graph\AbstractGraphCurve.h"
+#include "cloth\graph\GraphPoint.h"
 #include "Renderable\ObjMesh.h"
+
+//#define USE_GRAPH_PANEL
 
 #pragma region --mat_utils
 
@@ -506,6 +511,29 @@ void Viewer2d::renderClothsPanels_Edge(const ldp::ClothPiece* piece, bool idxMod
 	else
 		glLineWidth(EDGE_RENDER_WIDTH);
 	glBegin(GL_LINES);
+#ifdef USE_GRAPH_PANEL
+	for (auto iter = piece->graphPanel().curveBegin(); iter != piece->graphPanel().curveEnd(); ++iter)
+	{
+		auto shape = iter->second;
+		if (!idxMode)
+		{
+			if (shape->isHighlighted() || piece->graphPanel().isHighlighted())
+				glColor4fv(HIGHLIGHT_COLOR);
+			else if (shape->isSelected() || piece->graphPanel().isSelected())
+				glColor4fv(SELECT_COLOR);
+			else
+				glColor4fv(DEFAULT_COLOR);
+		}
+		else
+			glColor4fv(selectIdToColor(shape->getId()).ptr());
+		const auto& pts = shape->samplePointsOnShape(step / shape->getLength());
+		for (size_t i = 1; i < pts.size(); i++)
+		{
+			glVertex3f(pts[i - 1][0], pts[i-1][1], EDGE_Z);
+			glVertex3f(pts[i][0], pts[i][1], EDGE_Z);
+		}
+	}
+#else
 	for (const auto& shape : shapes)
 	{
 		if (!idxMode)
@@ -526,6 +554,7 @@ void Viewer2d::renderClothsPanels_Edge(const ldp::ClothPiece* piece, bool idxMod
 			glVertex3f(pts[i][0], pts[i][1], EDGE_Z);
 		}
 	} // end for shape
+#endif
 	glEnd();
 }
 
@@ -554,6 +583,30 @@ void Viewer2d::renderClothsPanels_KeyPoint(const ldp::ClothPiece* piece, bool id
 	else
 		glPointSize(KEYPT_RENDER_WIDTH);
 	glBegin(GL_POINTS);
+#ifdef USE_GRAPH_PANEL
+	for (auto iter = piece->graphPanel().curveBegin(); iter != piece->graphPanel().curveEnd(); ++iter)
+	{
+		auto shape = iter->second;
+		for (int i = 0; i < shape->numKeyPoints(); i++)
+		{
+			const auto& p = *shape->keyPoint(i);
+
+			if (!idxMode)
+			{
+				if (p.isHighlighted() || shape->isHighlighted() || piece->graphPanel().isHighlighted())
+					glColor4fv(HIGHLIGHT_COLOR);
+				else if (p.isSelected() || shape->isSelected() || piece->graphPanel().isSelected())
+					glColor4fv(SELECT_COLOR);
+				else
+					glColor4fv(DEFAULT_COLOR);
+			}
+			else
+				glColor4fv(selectIdToColor(p.getId()).ptr());
+			const auto& x = p.position();
+			glVertex3f(x[0], x[1], KEYPT_Z);
+		}
+	}
+#else
 	for (auto shape : shapes)
 	{
 		for (int i = 0; i < shape->numKeyPoints(); i++)
@@ -575,6 +628,7 @@ void Viewer2d::renderClothsPanels_KeyPoint(const ldp::ClothPiece* piece, bool id
 			glVertex3f(x[0], x[1], KEYPT_Z);
 		}
 	} // end for shape
+#endif
 	glEnd();
 }
 

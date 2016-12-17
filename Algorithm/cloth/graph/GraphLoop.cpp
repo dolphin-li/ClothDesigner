@@ -9,14 +9,9 @@ namespace ldp
 	
 	}
 
-	GraphLoop::GraphLoop(size_t id) : AbstractGraphObject(id)
-	{
-
-	}
-
 	GraphLoop* GraphLoop::clone()const
 	{
-		GraphLoop* loop = (GraphLoop*)create(getType(), getId());
+		GraphLoop* loop = (GraphLoop*)create(getType());
 		loop->m_startEdge = m_startEdge;
 		return loop;
 	}
@@ -31,6 +26,7 @@ namespace ldp
 			TiXmlElement* child = new TiXmlElement(edge->getTypeString().c_str());
 			ele->LinkEndChild(child);
 			child->SetAttribute("id", edge->getId());
+			edge = edge->nextEdge();
 		} while (edge && edge != m_startEdge);
 		return ele;
 	}
@@ -46,7 +42,7 @@ namespace ldp
 			int id = 0;
 			if (!child->Attribute("id", &id))
 				throw std::exception(("cannot find id for " + getTypeString()).c_str());
-			auto obj = getObjByIdx(id);
+			auto obj = getObjByIdx_loading(id);
 			assert(obj);
 			if (!obj->isCurve())
 				throw std::exception("type error");
