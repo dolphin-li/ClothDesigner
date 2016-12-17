@@ -7,6 +7,7 @@
 #include "GraphCubic.h"
 #include "GraphLoop.h"
 #include "Graph.h"
+#include "GraphsSewing.h"
 namespace ldp
 {
 	AbstractGraphObject::IdxObjMap AbstractGraphObject::s_idxObjMap;
@@ -24,7 +25,7 @@ namespace ldp
 		map[TypeGraphCubic] = "cubic";
 		map[TypeGraphLoop] = "loop";
 		map[TypeGraph] = "graph";
-		map[TypeSewing] = "sewing";
+		map[TypeGraphsSewing] = "sewing";
 		return map;
 	}
 	AbstractGraphObject::TypeStringMap AbstractGraphObject::s_typeStringMap = AbstractGraphObject::generateTypeStringMap();
@@ -89,7 +90,9 @@ namespace ldp
 
 	AbstractGraphObject* AbstractGraphObject::clone()const
 	{
-		return create(getType());
+		auto obj = create(getType());
+		obj->setSelected(isSelected());
+		return obj;
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////
@@ -109,8 +112,8 @@ namespace ldp
 			return new GraphLoop();
 		case ldp::AbstractGraphObject::TypeGraph:
 			return new Graph();
-		case ldp::AbstractGraphObject::TypeSewing:
-			break;
+		case ldp::AbstractGraphObject::TypeGraphsSewing:
+			return new GraphsSewing();
 		case ldp::AbstractGraphObject::Type_End:
 		default:
 			return nullptr;

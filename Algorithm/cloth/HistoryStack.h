@@ -7,7 +7,7 @@
 namespace ldp
 {
 	class ClothManager;
-	class Sewing;
+	class GraphsSewing;
 	class ClothPiece;
 	class ClothDesignParam;
 	class HistoryStack
@@ -45,7 +45,7 @@ namespace ldp
 			std::string name;
 
 			// for TypeGeneral
-			std::vector<std::shared_ptr<Sewing>> sewings;
+			std::vector<std::shared_ptr<GraphsSewing>> graphSewings;
 			std::vector<std::shared_ptr<ClothPiece>> pieces;
 			std::shared_ptr<ClothDesignParam> dparam;
 		};

@@ -7,7 +7,7 @@
 #include <map>
 #include <set>
 #include "definations.h"
-#include "PanelObject\AbstractPanelObject.h"
+#include "graph\AbstractGraphObject.h"
 //#define ENABLE_SELF_COLLISION
 #ifdef ENABLE_SELF_COLLISION
 #include "COLLISION_HANDLER.h"
@@ -21,16 +21,14 @@ namespace svg
 }
 namespace ldp
 {
-	class Sewing;
+	class GraphsSewing;
+	class GraphPoint;
+	class Graph2Mesh;
 	class ClothPiece;
-	class PanelPolygon;
-	class AbstractShape;
-	class ShapeGroup;
 	class LevelSet3D;
 	class BMesh;
 	class BMVert;
 	class BMEdge;
-	class TriangleWrapper;
 	class TransformInfo;
 	class ClothManager
 	{
@@ -87,14 +85,15 @@ namespace ldp
 
 		/// stitch related
 		void clearSewings();
-		int numSewings()const { return m_sewings.size(); }
-		const Sewing* sewing(int i)const { return m_sewings.at(i).get(); }
-		Sewing* sewing(int i) { return m_sewings.at(i).get(); }
-		void addSewing(std::shared_ptr<Sewing> sewing);
-		void addSewings(const std::vector<std::shared_ptr<Sewing>>& sewings);
 		void addStitchVert(const ClothPiece* cloth1, StitchPoint s1, const ClothPiece* cloth2, StitchPoint s2);
 		std::pair<Float3, Float3> getStitchPos(int i);
 		int numStitches();
+
+		int numGraphSewings()const { return m_graphSewings.size(); }
+		const GraphsSewing* graphSewing(int i)const { return m_graphSewings.at(i).get(); }
+		GraphsSewing* graphSewing(int i) { return m_graphSewings.at(i).get(); }
+		void addGraphSewing(std::shared_ptr<GraphsSewing> sewing);
+		void addGraphSewings(const std::vector<std::shared_ptr<GraphsSewing>>& sewings);
 
 		/// body mesh
 		const ObjMesh* bodyMesh()const { return m_bodyMesh.get(); }
@@ -117,12 +116,11 @@ namespace ldp
 		void get2dBound(ldp::Float2& bmin, ldp::Float2& bmax)const;
 
 		/// UI operations///
-		bool removeSelected(AbstractPanelObject::Type types);
+		bool removeSelectedSewings();
 		bool reverseSelectedSewings();
-		void clearHighLights();
 	protected:
 	private:
-		std::vector<std::shared_ptr<Sewing>> m_sewings;
+		std::vector<std::shared_ptr<GraphsSewing>> m_graphSewings;
 		std::vector<std::shared_ptr<ClothPiece>> m_clothPieces;
 		std::shared_ptr<ObjMesh> m_bodyMesh, m_bodyMeshInit;
 		std::shared_ptr<TransformInfo> m_bodyTransform;
@@ -141,12 +139,12 @@ namespace ldp
 		bool m_shouldLevelSetUpdate;
 		DragInfoInternal m_curDragInfo;
 		// 2D-3D triangulation related---------------------------------------------------
-		std::shared_ptr<TriangleWrapper> m_triWrapper;
+		std::shared_ptr<Graph2Mesh> m_graph2mesh;
 	protected:
 		bool pointInPolygon(int n, const Vec2* pts, Vec2 p);
-		typedef std::map<std::pair<const svg::SvgPolyPath*, int>, std::vector<AbstractShape*>> ObjConvertMap;
+		typedef std::map<std::pair<const svg::SvgPolyPath*, int>, std::vector<std::vector<std::shared_ptr<GraphPoint>>>> ObjConvertMap;
 		void polyPathToShape(const svg::SvgPolyPath* polyPath,
-			std::shared_ptr<ShapeGroup>& group, 
+			std::vector<std::vector<std::shared_ptr<GraphPoint>>>& group, 
 			float pixel2meter, ObjConvertMap& map);
 		BMEdge* findEdge(int v1, int v2);
 	protected:

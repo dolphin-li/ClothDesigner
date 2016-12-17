@@ -7,7 +7,6 @@ class ObjMesh;
 namespace ldp
 {
 	class TransformInfo;
-	class PanelPolygon;
 	class Graph;
 	class ClothPiece
 	{
@@ -21,8 +20,6 @@ namespace ldp
 		ObjMesh& mesh3dInit() { return *m_mesh3dInit; }
 		const ObjMesh& mesh2d()const { return *m_mesh2d; }
 		ObjMesh& mesh2d() { return *m_mesh2d; }
-		const PanelPolygon& panel()const { return *m_panel; }
-		PanelPolygon& panel() { return *m_panel; }
 		const Graph& graphPanel()const { return *m_graphPanel; }
 		Graph& graphPanel() { return *m_graphPanel; }
 		const TransformInfo& transformInfo()const { return *m_transfromInfo; }
@@ -39,7 +36,6 @@ namespace ldp
 		std::shared_ptr<ObjMesh> m_mesh3d;
 		std::shared_ptr<ObjMesh> m_mesh3dInit;
 		std::shared_ptr<ObjMesh> m_mesh2d;
-		std::shared_ptr<PanelPolygon> m_panel;
 		std::shared_ptr<Graph> m_graphPanel;
 		std::shared_ptr<TransformInfo> m_transfromInfo;
 		std::string m_name;

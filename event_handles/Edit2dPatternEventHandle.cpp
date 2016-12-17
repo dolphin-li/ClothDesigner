@@ -3,7 +3,7 @@
 #include "Viewer2d.h"
 #include "cloth\clothManager.h"
 #include "cloth\clothPiece.h"
-#include "cloth\PanelObject\panelPolygon.h"
+#include "cloth\graph\Graph.h"
 #include "cloth\HistoryStack.h"
 #include "Renderable\ObjMesh.h"
 #include "..\clothdesigner.h"
@@ -57,18 +57,18 @@ void Edit2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 
 	if (m_viewer->buttons() & Qt::LeftButton)
 	{
-		auto op = ldp::AbstractPanelObject::SelectThis;
+		auto op = ldp::AbstractGraphObject::SelectThis;
 		if (ev->modifiers() & Qt::SHIFT)
-			op = ldp::AbstractPanelObject::SelectUnion;
+			op = ldp::AbstractGraphObject::SelectUnion;
 		if (ev->modifiers() & Qt::CTRL)
-			op = ldp::AbstractPanelObject::SelectUnionInverse;
+			op = ldp::AbstractGraphObject::SelectUnionInverse;
 		if (ev->pos() == m_mouse_press_pt)
 		{
 			bool changed = false;
 			for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
 			{
 				auto piece = manager->clothPiece(iPiece);
-				auto& panel = piece->panel();
+				auto& panel = piece->graphPanel();
 				if (panel.select(pickInfo().renderId, op))
 					changed = true;
 			} // end for iPiece
@@ -91,7 +91,7 @@ void Edit2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 			for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
 			{
 				auto piece = manager->clothPiece(iPiece);
-				auto& panel = piece->panel();
+				auto& panel = piece->graphPanel();
 				if (panel.select(ids, op))
 					changed = true;
 			} // end for iPiece
@@ -125,33 +125,33 @@ void Edit2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 	auto manager = m_viewer->getManager();
 	if (!manager)
 		return;
-	ldp::AbstractPanelObject::SelectOp op = ldp::AbstractPanelObject::SelectEnd;
+	ldp::AbstractGraphObject::SelectOp op = ldp::AbstractGraphObject::SelectEnd;
 	switch (ev->key())
 	{
 	default:
 		break;
 	case Qt::Key_A:
 		if (ev->modifiers() == Qt::CTRL)
-			op = ldp::AbstractPanelObject::SelectAll;
+			op = ldp::AbstractGraphObject::SelectAll;
 		break;
 	case Qt::Key_D:
 		if (ev->modifiers() == Qt::CTRL)
-			op = ldp::AbstractPanelObject::SelectNone;
+			op = ldp::AbstractGraphObject::SelectNone;
 		break;
 	case Qt::Key_I:
 		if (ev->modifiers() == (Qt::CTRL | Qt::SHIFT))
-			op = ldp::AbstractPanelObject::SelectInverse;
+			op = ldp::AbstractGraphObject::SelectInverse;
 		break;
 	case Qt::Key_Delete:
 		if (ev->modifiers() == Qt::NoModifier)
 		{
-			bool change = manager->removeSelected(ldp::AbstractPanelObject::Type(
-				size_t(ldp::AbstractPanelObject::TypePanelPolygon) 
-				| size_t(ldp::AbstractPanelObject::TypeGroup)
-				));
-			if (m_viewer->getMainUI() && change)
-				m_viewer->getMainUI()->pushHistory(QString().sprintf("pattern removed",
-				op), ldp::HistoryStack::TypeGeneral);
+			//bool change = manager->removeSelected(ldp::AbstractPanelObject::Type(
+			//	size_t(ldp::AbstractPanelObject::TypePanelPolygon) 
+			//	| size_t(ldp::AbstractPanelObject::TypeGroup)
+			//	));
+			//if (m_viewer->getMainUI() && change)
+			//	m_viewer->getMainUI()->pushHistory(QString().sprintf("pattern removed",
+			//	op), ldp::HistoryStack::TypeGeneral);
 		}
 		break;
 	}
@@ -160,7 +160,7 @@ void Edit2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 	for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
 	{
 		auto piece = manager->clothPiece(iPiece);
-		auto& panel = piece->panel();
+		auto& panel = piece->graphPanel();
 		if (panel.select(0, op))
 			changed = true;
 	} // end for iPiece

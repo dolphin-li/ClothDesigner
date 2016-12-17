@@ -72,7 +72,6 @@ namespace ldp
 		auto shape = (AbstractGraphCurve*)AbstractGraphObject::create(getType());
 		shape->m_keyPoints = m_keyPoints;
 		shape->setSelected(isSelected());
-		shape->setHighlighted(isHighlighted());
 		shape->m_next = m_next;
 		return shape;
 	}

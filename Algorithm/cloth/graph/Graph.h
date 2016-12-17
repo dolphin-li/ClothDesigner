@@ -2,12 +2,14 @@
 
 #include "AbstractGraphObject.h"
 #include "ldpMat\ldp_basic_vec.h"
+#include <set>
 namespace ldp
 {
 	class GraphPoint;
 	class AbstractGraphCurve;
 	class GraphLoop;
 	class PanelPolygon;
+	class AbstractPanelObject;
 	class Graph : public AbstractGraphObject
 	{
 	public:
@@ -26,7 +28,12 @@ namespace ldp
 
 		void clear();
 
-		void fromPanelPolygon(const PanelPolygon& panel);
+		// ui operations
+		bool select(int idx, SelectOp op);
+		bool select(const std::set<int>& indices, SelectOp op);
+		void highLight(int idx, int lastIdx);
+		void updateBound(Float2& bmin = Float2(), Float2& bmax = Float2());
+		const Float2* bound()const { return m_bbox; }
 
 		// getters
 		int numKeyPoints()const { return (int)m_keyPoints.size(); }
@@ -84,8 +91,11 @@ namespace ldp
 		// topology operations: add units
 		GraphPoint* addKeyPoint(ldp::Float2 p);
 		GraphPoint* addKeyPoint(const std::shared_ptr<GraphPoint>& kp);
+		AbstractGraphCurve* addCurve(const std::vector<std::shared_ptr<GraphPoint>>& kpts);
 		AbstractGraphCurve* addCurve(const std::vector<GraphPoint*>& kpts);
 		AbstractGraphCurve* addCurve(const std::shared_ptr<AbstractGraphCurve>& curve);
+		GraphLoop* addLoop(const std::vector<std::vector<std::shared_ptr<GraphPoint>>>& curves);
+		GraphLoop* addLoop(const std::vector<std::shared_ptr<AbstractGraphCurve>>& curves);
 		GraphLoop* addLoop(const std::vector<AbstractGraphCurve*>& curves);
 		GraphLoop* addLoop(const std::shared_ptr<GraphLoop>& loop);
 
@@ -102,6 +112,7 @@ namespace ldp
 		// two curves can be merged into one iff they share a common point
 		bool mergeCurve(AbstractGraphCurve* curve1, AbstractGraphCurve* curve2);
 	private:
+		ldp::Float2 m_bbox[2];
 		PointMap m_keyPoints;
 		CurveMap m_curves;
 		LoopMap m_loops;

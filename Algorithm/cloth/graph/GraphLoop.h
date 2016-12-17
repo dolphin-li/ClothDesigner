@@ -15,6 +15,8 @@ namespace ldp
 		virtual void fromXML(TiXmlElement* self);
 		virtual Type getType()const { return TypeGraphLoop; }
 
+		bool isClosed()const;
+
 		AbstractGraphCurve*& startEdge() { return m_startEdge; }
 		const AbstractGraphCurve* const& startEdge()const { return m_startEdge; }
 	private:

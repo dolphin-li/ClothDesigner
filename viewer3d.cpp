@@ -3,7 +3,7 @@
 #include "Viewer3d.h"
 #include "ldpMat\Quaternion.h"
 #include "cloth\clothPiece.h"
-#include "cloth\PanelObject\panelPolygon.h"
+#include "cloth\graph\Graph.h"
 #include "Renderable\ObjMesh.h"
 #pragma region --mat_utils
 
@@ -221,7 +221,7 @@ void Viewer3d::paintGL()
 			const auto& piece = m_clothManager->clothPiece(i);
 			if (piece->mesh3d().material_list.size())
 			{
-				if (piece->panel().isHighlighted())
+				if (piece->graphPanel().isHighlighted())
 					piece->mesh3d().material_list[0].diff = ldp::Float3(0.8, 0.6, 0);
 				else
 					piece->mesh3d().material_list[0].diff = ldp::Float3(1, 1, 1);

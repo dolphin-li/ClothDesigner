@@ -1,6 +1,6 @@
 #pragma once
 
-#include "definations.h"
+#include "cloth\definations.h"
 #include <hash_map>
 #include <map>
 extern "C"{
@@ -9,19 +9,20 @@ extern "C"{
 namespace ldp
 {
 	class ClothPiece;
-	class Sewing;
-	class PanelPolygon;
-	class ShapeGroup;
-	class AbstractShape;
-	class TriangleWrapper
+	class GraphsSewing;
+	class GraphLoop;
+	class Graph;
+	class AbstractGraphCurve;
+	class AbstractGraphObject;
+	class Graph2Mesh
 	{
 	public:
-		TriangleWrapper();
-		~TriangleWrapper();
+		Graph2Mesh();
+		~Graph2Mesh();
 
 		void triangulate(
 			std::vector<std::shared_ptr<ClothPiece>>& pieces, 
-			std::vector<std::shared_ptr<Sewing>>& sewings,
+			std::vector<std::shared_ptr<GraphsSewing>>& sewings,
 			float pointMergeThre,
 			float triangleSize,
 			float pointOnLineThre
@@ -32,9 +33,9 @@ namespace ldp
 		void reset_triangle_struct(triangulateio* io)const;
 		void prepareTriangulation();
 		void precomputeSewing();
-		void addPolygon(const ShapeGroup& poly);
-		void addDart(const ShapeGroup& dart);
-		void addLine(const ShapeGroup& line);
+		void addPolygon(const GraphLoop& poly);
+		void addDart(const GraphLoop& dart);
+		void addLine(const GraphLoop& line);
 		void finalizeTriangulation();
 		void generateMesh(ClothPiece& piece);
 		void postComputeSewing();
@@ -49,7 +50,7 @@ namespace ldp
 		struct SampleParamVec
 		{
 			std::vector<SampleParam> params;
-			const AbstractShape* shape;
+			const AbstractGraphCurve* shape;
 			float step;
 			float start;
 			float end;
@@ -58,7 +59,7 @@ namespace ldp
 		typedef std::shared_ptr<SampleParamVec> SampleParamVecPtr;
 		typedef	std::vector<SampleParamVecPtr> ShapeSegs;
 		typedef std::shared_ptr<ShapeSegs> ShapeSegsPtr;
-		void createShapeSeg(const AbstractShape* shape, float step);
+		void createShapeSeg(const AbstractGraphCurve* shape, float step);
 		int addSegToShape(ShapeSegs& segs, float tSegs);
 		void resampleSeg(SampleParamVec& segs, float step);
 		struct SegPair
@@ -85,7 +86,7 @@ namespace ldp
 
 		/// input
 		std::vector<std::shared_ptr<ClothPiece>>* m_pieces = nullptr;
-		std::vector<std::shared_ptr<Sewing>>* m_sewings = nullptr;
+		std::vector<std::shared_ptr<GraphsSewing>>* m_sewings = nullptr;
 		float m_ptMergeThre = 0;
 		float m_triSize = 0;
 		float m_ptOnLineThre = 0;
@@ -101,9 +102,9 @@ namespace ldp
 
 		/// sewing related
 		std::vector<StitchPointPair> m_stitches;;
-		std::hash_map<const AbstractShape*, const ClothPiece*> m_shapePieceMap;
+		std::hash_map<const AbstractGraphCurve*, const ClothPiece*> m_shapePieceMap;
 		std::hash_map<const ClothPiece*, int> m_vertStart;
-		std::hash_map<const AbstractShape*, ShapeSegsPtr> m_shapeSegs;
+		std::hash_map<const AbstractGraphCurve*, ShapeSegsPtr> m_shapeSegs;
 		SegPairVec m_segPairs;
 		std::map<SampleParamVec*, float> m_segStepMap;
 	};

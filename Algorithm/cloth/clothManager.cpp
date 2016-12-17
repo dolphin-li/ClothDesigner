@@ -2,10 +2,13 @@
 #include "LevelSet3D.h"
 #include "clothPiece.h"
 #include "TransformInfo.h"
-#include "PanelObject\panelPolygon.h"
 #include "graph\Graph.h"
+#include "graph\GraphsSewing.h"
+#include "graph\GraphPoint.h"
+#include "graph\GraphLoop.h"
+#include "graph\AbstractGraphCurve.h"
+#include "graph\Graph2Mesh.h"
 #include "PROGRESSING_BAR.h"
-#include "TriangleWrapper.h"
 #include "Renderable\ObjMesh.h"
 #include "svgpp\SvgManager.h"
 #include "svgpp\SvgPolyPath.h"
@@ -43,7 +46,7 @@ namespace ldp
 		m_bodyTransform.reset(new TransformInfo);
 		m_bodyTransform->setIdentity();
 		m_bodyLvSet.reset(new LevelSet3D);
-		m_triWrapper.reset(new TriangleWrapper);
+		m_graph2mesh.reset(new Graph2Mesh);
 		m_simulationMode = SimulationNotInit;
 		m_fps = 0;
 		m_avgArea = 0;
@@ -414,7 +417,7 @@ namespace ldp
 	void ClothManager::clearSewings()
 	{
 		m_sewVofFMap.clear();
-		m_sewings.clear();
+		m_graphSewings.clear();
 		m_stitches.clear();
 		m_stitchVV.clear();
 		m_stitchVV_num.clear();
@@ -1177,6 +1180,7 @@ namespace ldp
 	//////////////////////////////////////////////////////////////////////////////////
 	void ClothManager::loadPiecesFromSvg(std::string filename)
 	{
+#if 0
 		m_clothPieces.clear();
 
 		svg::SvgManager svgManager;
@@ -1187,8 +1191,8 @@ namespace ldp
 		const float pixel2meter = svgManager.getPixelToMeters();
 
 		// 1.1 add closed polygons as loops ----------------------------------------------
-		std::vector<ShapeGroupPtr> groups;
-		std::vector<ShapeGroupPtr> lines;
+		std::vector<std::vector<std::vector<GraphPointPtr>>> groups;
+		std::vector<std::vector<std::vector<GraphPointPtr>>> lines;
 		std::vector<const svg::SvgPolyPath*> groupSvgPaths;
 		ObjConvertMap objMap;
 		for (auto polyPath : polyPaths)
@@ -1198,12 +1202,12 @@ namespace ldp
 			if (polyPath->isClosed())
 			{
 				groupSvgPaths.push_back(polyPath);
-				groups.push_back(ShapeGroupPtr(new ShapeGroup()));
+				groups.push_back(std::vector<std::vector<GraphPointPtr>>());
 				polyPathToShape(polyPath, groups.back(), pixel2meter, objMap);
 			} // end if closed
 			else
 			{
-				lines.push_back(ShapeGroupPtr(new ShapeGroup()));
+				lines.push_back(std::vector<std::vector<GraphPointPtr>>());
 				polyPathToShape(polyPath, lines.back(), pixel2meter, objMap);
 			} // end if not closed
 		} // end for polyPath
@@ -1259,7 +1263,7 @@ namespace ldp
 				continue;
 			m_clothPieces.push_back(std::shared_ptr<ClothPiece>(new ClothPiece()));
 			const auto& piece = m_clothPieces.back();
-			piece->panel().create(groups[ipoly]);
+			piece->graphPanel().addLoop(groups[ipoly]);
 
 			// copy transform:
 			// the 2D-to-3D transform defined in the SVG is:
@@ -1281,7 +1285,7 @@ namespace ldp
 			{
 				if (polyInsideId[jpoly] != ipoly)
 					continue;
-				piece->panel().addDart(groups[jpoly]);
+				piece->graphPanel().addLoop(groups[jpoly]);
 			} // end for jpoly
 
 			// add inner lines
@@ -1289,7 +1293,7 @@ namespace ldp
 			{
 				if (lineInsideId[jpoly] != ipoly)
 					continue;
-				piece->panel().addInnerLine(lines[jpoly]);
+				piece->graphPanel().addLoop(lines[jpoly]);
 			} // end for jpoly
 		} // end for ipoly
 
@@ -1297,10 +1301,10 @@ namespace ldp
 		for (const auto& eg : edgeGroups)
 		{
 			const auto& first = objMap[std::make_pair(eg->group.begin()->first, eg->group.begin()->second)];
-			std::vector<Sewing::Unit> funits, sunits;
+			std::vector<GraphsSewing::Unit> funits, sunits;
 			for (const auto& f : first)
 			{
-				assert(Sewing::getPtrById(f->getId()));
+				assert(GraphsSewing::getObjByIdx(f->getId()));
 				funits.push_back(Sewing::Unit(f->getId(), true));
 			}
 			std::reverse(funits.begin(), funits.end());
@@ -1322,7 +1326,7 @@ namespace ldp
 				m_sewings.back()->addSeconds(sunits);
 			}
 		} // end for eg
-
+#endif
 		// 2. triangluation
 		triangulate();
 		updateDependency();
@@ -1333,22 +1337,13 @@ namespace ldp
 		updateDependency();
 		if (m_clothPieces.empty())
 			return;
-		bool noPanel = true;
-		for (const auto& piece : m_clothPieces)
-		{
-			if (piece->panel().outerPoly())
-				noPanel = false;
-		}
-		if (noPanel)
-			return;
 
-
-		m_triWrapper->triangulate(m_clothPieces, m_sewings,
+		m_graph2mesh->triangulate(m_clothPieces, m_graphSewings,
 			m_clothDesignParam.pointMergeDistThre,
 			m_clothDesignParam.triangulateThre,
 			m_clothDesignParam.pointInsidePolyThre);
 
-		m_stitches = m_triWrapper->sewingVertPairs();
+		m_stitches = m_graph2mesh->sewingVertPairs();
 
 		// params
 		m_shouldTriangulate = false;
@@ -1356,7 +1351,7 @@ namespace ldp
 	}
 
 	void ClothManager::polyPathToShape(const svg::SvgPolyPath* polyPath, 
-		std::shared_ptr<ldp::ShapeGroup>& group, float pixel2meter, ObjConvertMap& map)
+		std::vector<std::vector<GraphPointPtr>>& group, float pixel2meter, ObjConvertMap& map)
 	{
 		for (size_t iCorner = 0; iCorner < polyPath->numCornerEdges(); iCorner++)
 		{
@@ -1374,12 +1369,12 @@ namespace ldp
 			if (points.size() >= 2)
 			{
 				auto key = std::make_pair(polyPath, (int)iCorner);
-				map.insert(std::make_pair(key, std::vector<AbstractShape*>()));
+				map.insert(std::make_pair(key, std::vector<std::vector<GraphPointPtr>>()));
 				auto mapIter = map.find(key);
-				size_t lastSize = group->size();
-				AbstractShape::create(*group, points, m_clothDesignParam.curveFittingThre);
-				for (size_t sz = lastSize; sz < group->size(); sz++)
-					mapIter->second.push_back(group->at(sz).get());
+				size_t lastSize = group.size();
+				AbstractGraphCurve::fittingCurves(group, points, m_clothDesignParam.curveFittingThre);
+				for (size_t sz = lastSize; sz < group.size(); sz++)
+					mapIter->second.push_back(group.at(sz));
 			}
 		}
 	}
@@ -1408,187 +1403,33 @@ namespace ldp
 	}
 
 	////sewings/////////////////////////////////////////////////////////////////////////////////
-	void ClothManager::addSewing(std::shared_ptr<Sewing> sewing)
+	void ClothManager::addGraphSewing(std::shared_ptr<GraphsSewing> sewing)
 	{
-		m_sewings.push_back(std::shared_ptr<Sewing>(sewing->clone()));
+		m_graphSewings.push_back(sewing);
 		m_shouldTriangulate = true;
 	}
 
-	void ClothManager::addSewings(const std::vector<std::shared_ptr<Sewing>>& sewings)
+	void ClothManager::addGraphSewings(const std::vector<std::shared_ptr<GraphsSewing>>& sewings)
 	{
 		for (const auto& s : sewings)
-			m_sewings.push_back(std::shared_ptr<Sewing>(s->clone()));
+			addGraphSewing(s);
 		m_shouldTriangulate = true;
 	}
 
 	/////UI operations///////////////////////////////////////////////////////////////////////////////////////
-	bool ClothManager::removeSelected(AbstractPanelObject::Type types)
+	bool ClothManager::removeSelectedSewings()
 	{
-		auto tmpPieces = m_clothPieces;
-		if (types & AbstractPanelObject::TypePanelPolygon)
-			m_clothPieces.clear();
 		std::set<size_t> removedId;
-		std::vector<AbstractPanelObject*> tmpObjs;
-		for (auto& piece : tmpPieces)
-		{
-			auto& panel = piece->panel();
-			auto& poly = piece->panel().outerPoly();
-			if (poly == nullptr)
-				continue;
-
-			// panel
-			if (types & AbstractPanelObject::TypePanelPolygon)
-			{
-				if (panel.isSelected() || poly->isSelected())
-				{
-					tmpObjs.clear();
-					panel.collectObject(tmpObjs);
-					for (auto o : tmpObjs)
-						removedId.insert(o->getId());
-					continue;
-				}
-				m_clothPieces.push_back(piece);
-			}
-
-			// poly
-			if (types & AbstractPanelObject::TypeGroup)
-			{
-				auto tmpPoly = *poly;
-				poly->clear();
-				for (const auto& shape : tmpPoly)
-				{
-					if (shape->isSelected())
-					{
-						tmpObjs.clear();
-						shape->collectObject(tmpObjs);
-						for (auto o : tmpObjs)
-							removedId.insert(o->getId());
-						continue;
-					} // end for shape
-					poly->push_back(shape);
-				} // end for tmpPoly
-			}
-
-			// darts
-			if (types & AbstractPanelObject::TypeGroup)
-			{
-				auto tmpDarts = panel.darts();
-				panel.darts().clear();
-				for (const auto& dart : tmpDarts)
-				{
-					if (dart->isSelected())
-					{
-						tmpObjs.clear();
-						dart->collectObject(tmpObjs);
-						for (auto o : tmpObjs)
-							removedId.insert(o->getId());
-						continue;
-					}
-					panel.darts().push_back(dart);
-
-					// dart
-					auto tmpDart = *dart;
-					dart->clear();
-					for (const auto& shape : tmpDart)
-					{
-						if (shape->isSelected())
-						{
-							tmpObjs.clear();
-							shape->collectObject(tmpObjs);
-							for (auto o : tmpObjs)
-								removedId.insert(o->getId());
-							continue;
-						} // end for shape
-						dart->push_back(shape);
-					} // end for tmpDart
-				} // end for dart
-			}
-
-			// lines
-			if (types & AbstractPanelObject::TypeGroup)
-			{
-				auto tmpLines = panel.innerLines();
-				panel.innerLines().clear();
-				for (const auto& line : tmpLines)
-				{
-					if (line->isSelected())
-					{
-						tmpObjs.clear();
-						line->collectObject(tmpObjs);
-						for (auto o : tmpObjs)
-							removedId.insert(o->getId());
-						continue;
-					}
-					panel.innerLines().push_back(line);
-
-					// line
-					auto tmpLine = *line;
-					line->clear();
-					for (const auto& shape : tmpLine)
-					{
-						if (shape->isSelected())
-						{
-							tmpObjs.clear();
-							shape->collectObject(tmpObjs);
-							for (auto o : tmpObjs)
-								removedId.insert(o->getId());
-							continue;
-						} // end for shape
-						line->push_back(shape);
-					} // end for tmpDart
-				} // end for line
-			} // end for piece
-		} // end for piece
-
-		// if some shape removed, then we should update the sewings
-		if (!removedId.empty())
-		{
-			auto tempSewings = m_sewings;
-			m_sewings.clear();
-			for (auto& sew : tempSewings)
-			{
-				const auto& firsts = sew->firsts();
-				const auto& seconds = sew->seconds();
-				bool invalid = false;
-				for (const auto& f : firsts)
-				{
-					if (removedId.find(f.id) != removedId.end())
-					{
-						invalid = true;
-						break;
-					}
-				}
-				for (const auto& s : seconds)
-				{
-					if (removedId.find(s.id) != removedId.end())
-					{
-						invalid = true;
-						break;
-					}
-				}
-				if (!invalid)
-					m_sewings.push_back(sew);
-			} // end for tempSewings
-		} // end if removedId.notEmpty()
 
 		// sewings selected
-		if (types & AbstractPanelObject::TypeSewing)
+		auto tempSewings = m_graphSewings;
+		m_graphSewings.clear();
+		for (auto& sew : tempSewings)
 		{
-			auto tempSewings = m_sewings;
-			m_sewings.clear();
-			for (auto& sew : tempSewings)
-			{
-				if (sew->isSelected())
-				{
-					tmpObjs.clear();
-					sew->collectObject(tmpObjs);
-					for (auto o : tmpObjs)
-						removedId.insert(o->getId());
-					continue;
-				} // end for sew
-				m_sewings.push_back(sew);
-			} // end for tempSewings
-		}
+			if (sew->isSelected())
+				removedId.insert(sew->getId());
+			m_graphSewings.push_back(sew);
+		} // end for tempSewings
 		m_stitches.clear();
 		m_shouldTriangulate = true;
 		return !removedId.empty();
@@ -1597,11 +1438,11 @@ namespace ldp
 	bool ClothManager::reverseSelectedSewings()
 	{
 		bool change = false;
-		for (auto& sew : m_sewings)
+		for (auto& sew : m_graphSewings)
 		{
 			if (sew->isSelected())
 			{
-				for (Sewing::Unit &f : sew->firsts())
+				for (GraphsSewing::Unit &f : sew->firsts())
 					f.reverse = !f.reverse;
 				std::reverse(sew->firsts().begin(), sew->firsts().end());
 				change = true;
@@ -1610,24 +1451,6 @@ namespace ldp
 		if (change)
 			m_shouldTriangulate = true;
 		return change;
-	}
-
-	void ClothManager::clearHighLights()
-	{
-		std::vector<AbstractPanelObject*> tmpObjs;
-		for (auto& piece : m_clothPieces)
-		{
-			auto& panel = piece->panel();
-
-			// panel
-			tmpObjs.clear();
-			panel.collectObject(tmpObjs);
-			for (auto& o : tmpObjs)
-				o->setHighlighted(false);
-		} // end for piece
-
-		for (auto& sew : m_sewings)
-			sew->setHighlighted(false);
 	}
 
 	////Params//////////////////////////////////////////////////////////////////////////////////
@@ -1684,8 +1507,7 @@ namespace ldp
 		if (root->Value() != std::string("ClothManager"))
 			throw std::exception("Xml format error, root check failed");
 
-		IdxPool::disableIdxIncrement();
-		Sewing tmpSewing;
+		GraphsSewing tmpGraphSewing;
 		for (auto pele = root->FirstChildElement(); pele; pele = pele->NextSiblingElement())
 		{
 			if (pele->Value() == std::string("BodyMesh"))
@@ -1721,24 +1543,20 @@ namespace ldp
 				m_clothPieces.push_back(std::shared_ptr<ClothPiece>(new ClothPiece()));
 				for (auto child = pele->FirstChildElement(); child; child = child->NextSiblingElement())
 				{
-					if (child->Value() == m_clothPieces.back()->panel().getTypeString())
-						m_clothPieces.back()->panel().fromXML(child);
-					else if (child->Value() == m_clothPieces.back()->transformInfo().getTypeString())
+					if (child->Value() == m_clothPieces.back()->transformInfo().getTypeString())
 						m_clothPieces.back()->transformInfo().fromXML(child);
 					else if (child->Value() == m_clothPieces.back()->graphPanel().getTypeString())
 						m_clothPieces.back()->graphPanel().fromXML(child);
-
-					// ldp debug
-					m_clothPieces.back()->graphPanel().fromPanelPolygon(m_clothPieces.back()->panel());
 				}
 			} // end for piece
-			else if (pele->Value() == tmpSewing.getTypeString())
+			else if (pele->Value() == tmpGraphSewing.getTypeString())
 			{
-				m_sewings.push_back(std::shared_ptr<Sewing>(new Sewing));
-				m_sewings.back()->fromXML(pele);
+				m_graphSewings.push_back(std::shared_ptr<GraphsSewing>(new GraphsSewing));
+				m_graphSewings.back()->fromXML(pele);
 			} // end for sewing
 		} // end for pele
-		IdxPool::enableIdxIncrement();
+
+		// finally initilaize simulation
 		simulationInit();
 	}
 
@@ -1760,15 +1578,15 @@ namespace ldp
 		{
 			TiXmlElement* pele = new TiXmlElement("Piece");
 			root->LinkEndChild(pele);
-			piece->panel().toXML(pele);
 			piece->transformInfo().toXML(pele);
 			piece->graphPanel().toXML(pele);
 		} // end for piece
 
-		for (const auto& sew : m_sewings)
+		for (const auto& sew : m_graphSewings)
 		{
 			sew->toXML(root);
 		} // end for sew
+
 		doc.SaveFile(filename.c_str());
 	}
 }

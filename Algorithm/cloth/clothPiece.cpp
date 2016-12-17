@@ -1,7 +1,6 @@
 #include "clothPiece.h"
 
 #include "Renderable\ObjMesh.h"
-#include "PanelObject\panelPolygon.h"
 #include "TransformInfo.h"
 #include "graph\Graph.h"
 namespace ldp
@@ -14,7 +13,6 @@ namespace ldp
 		m_mesh2d.reset(new ObjMesh);
 		m_mesh3d.reset(new ObjMesh);
 		m_mesh3dInit.reset(new ObjMesh);
-		m_panel.reset(new PanelPolygon);
 		m_transfromInfo.reset(new TransformInfo);
 		m_graphPanel.reset(new Graph);
 	}
@@ -58,7 +56,6 @@ namespace ldp
 		piece->m_mesh2d->cloneFrom(m_mesh2d.get());
 		piece->m_mesh3d->cloneFrom(m_mesh3d.get());
 		piece->m_mesh3dInit->cloneFrom(m_mesh3dInit.get());
-		piece->m_panel.reset((PanelPolygon*)m_panel->clone());
 		piece->m_transfromInfo.reset(new TransformInfo(*m_transfromInfo));
 		piece->m_graphPanel.reset((Graph*)m_graphPanel->clone());
 		return piece;
@@ -67,7 +64,6 @@ namespace ldp
 	ClothPiece* ClothPiece::lightClone()const
 	{
 		ClothPiece* piece = new ClothPiece(*this);
-		piece->m_panel.reset((PanelPolygon*)m_panel->clone());
 		piece->m_transfromInfo.reset(new TransformInfo(*m_transfromInfo.get()));
 		piece->m_graphPanel.reset((Graph*)m_graphPanel->clone());
 		return piece;

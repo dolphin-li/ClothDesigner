@@ -7,8 +7,8 @@
 #include "cloth\HistoryStack.h"
 #include "cloth\clothPiece.h"
 #include "cloth\clothManager.h"
-#include "cloth\PanelObject\panelPolygon.h"
 #include "cloth\TransformInfo.h"
+#include "cloth\graph\Graph.h"
 #include "Renderable\ObjMesh.h"
 
 ClothDesigner::ClothDesigner(QWidget *parent)
@@ -480,7 +480,7 @@ void ClothDesigner::on_pbFlipPolygon_clicked()
 		for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
 		{
 			auto piece = manager->clothPiece(iPiece);
-			auto& panel = piece->panel();
+			auto& panel = piece->graphPanel();
 			if (panel.isSelected())
 			{
 				piece->transformInfo().flipNormal();

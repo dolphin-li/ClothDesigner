@@ -4,7 +4,7 @@
 #include "cloth\clothManager.h"
 #include "cloth\clothPiece.h"
 #include "Renderable\ObjMesh.h"
-#include "cloth\PanelObject\panelPolygon.h"
+#include "cloth\graph\GraphsSewing.h"
 #include "../clothdesigner.h"
 #include "Sewing2dPatternEventHandle.h"
 Sewing2dPatternEventHandle::Sewing2dPatternEventHandle(Viewer2d* v)
@@ -58,16 +58,16 @@ void Sewing2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 
 	if (m_viewer->buttons() == Qt::LeftButton)
 	{
-		auto op = ldp::AbstractPanelObject::SelectThis;
+		auto op = ldp::AbstractGraphObject::SelectThis;
 		if (ev->modifiers() & Qt::SHIFT)
-			op = ldp::AbstractPanelObject::SelectUnion;
+			op = ldp::AbstractGraphObject::SelectUnion;
 		if (ev->modifiers() & Qt::CTRL)
-			op = ldp::AbstractPanelObject::SelectUnionInverse;
+			op = ldp::AbstractGraphObject::SelectUnionInverse;
 		if (ev->pos() == m_mouse_press_pt)
 		{
 			bool changed = false;
-			for (size_t iSewing = 0; iSewing < manager->numSewings(); iSewing++)
-			if (manager->sewing(iSewing)->select(pickInfo().renderId, op))
+			for (size_t iSewing = 0; iSewing < manager->numGraphSewings(); iSewing++)
+			if (manager->graphSewing(iSewing)->select(pickInfo().renderId, op))
 				changed = true;
 			if (m_viewer->getMainUI() && changed)
 				m_viewer->getMainUI()->pushHistory(QString().sprintf("sew select: %d",
@@ -85,8 +85,8 @@ void Sewing2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 			for (int x = x0; x <= x1; x++)
 				ids.insert(m_viewer->fboRenderedIndex(QPoint(x, y)));
 			bool changed = false;
-			for (size_t iSewing = 0; iSewing < manager->numSewings(); iSewing++)
-			if (manager->sewing(iSewing)->select(ids, op))
+			for (size_t iSewing = 0; iSewing < manager->numGraphSewings(); iSewing++)
+			if (manager->graphSewing(iSewing)->select(ids, op))
 				changed = true;
 			if (m_viewer->getMainUI() && changed)
 				m_viewer->getMainUI()->pushHistory(QString().sprintf("sew select: %d",
@@ -118,27 +118,27 @@ void Sewing2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 	auto manager = m_viewer->getManager();
 	if (!manager)
 		return;
-	ldp::AbstractPanelObject::SelectOp op = ldp::AbstractPanelObject::SelectEnd;
+	ldp::AbstractGraphObject::SelectOp op = ldp::AbstractGraphObject::SelectEnd;
 	switch (ev->key())
 	{
 	default:
 		break;
 	case Qt::Key_A:
 		if (ev->modifiers() == Qt::CTRL)
-			op = ldp::AbstractPanelObject::SelectAll;
+			op = ldp::AbstractGraphObject::SelectAll;
 		break;
 	case Qt::Key_D:
 		if (ev->modifiers() == Qt::CTRL)
-			op = ldp::AbstractPanelObject::SelectNone;
+			op = ldp::AbstractGraphObject::SelectNone;
 		break;
 	case Qt::Key_I:
 		if (ev->modifiers() == (Qt::CTRL | Qt::SHIFT))
-			op = ldp::AbstractPanelObject::SelectInverse;
+			op = ldp::AbstractGraphObject::SelectInverse;
 		break;
 	case Qt::Key_Delete:
 		if (ev->modifiers() == Qt::NoModifier)
 		{
-			bool change = manager->removeSelected(ldp::AbstractPanelObject::TypeSewing);
+			bool change = manager->removeSelectedSewings();
 			if (m_viewer->getMainUI() && change)
 				m_viewer->getMainUI()->pushHistory(QString().sprintf("sewing removed",
 				op), ldp::HistoryStack::TypeGeneral);
@@ -156,8 +156,8 @@ void Sewing2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 	}
 
 	bool changed = false;
-	for (size_t iSewing = 0; iSewing < manager->numSewings(); iSewing++)
-	if (manager->sewing(iSewing)->select(0, op))
+	for (size_t iSewing = 0; iSewing < manager->numGraphSewings(); iSewing++)
+	if (manager->graphSewing(iSewing)->select(0, op))
 		changed = true;
 
 	if (m_viewer->getMainUI() && changed)

@@ -3,7 +3,6 @@
 #include "AbstractGraphCurve.h"
 #include "GraphLoop.h"
 #include "tinyxml\tinyxml.h"
-#include "cloth\PanelObject\panelPolygon.h"
 namespace ldp
 {
 	Graph::Graph() : AbstractGraphObject()
@@ -24,6 +23,7 @@ namespace ldp
 		m_ptrMapAfterClone.clear();
 
 		Graph* graph = new Graph();
+		graph->setSelected(isSelected());
 
 		for (auto iter : m_keyPoints)
 		{
@@ -62,6 +62,8 @@ namespace ldp
 			iter.second->startEdge() = (AbstractGraphCurve*)m_ptrMapAfterClone[iter.second->startEdge()];
 		}
 
+		graph->m_bbox[0] = m_bbox[0];
+		graph->m_bbox[1] = m_bbox[1];
 		return graph;
 	}
 
@@ -122,62 +124,96 @@ namespace ldp
 				}
 			} // end if loops
 		} // end for groups
+		updateBound();
 	}
 
-	void Graph::fromPanelPolygon(const PanelPolygon& panel)
+	bool Graph::select(int idx, SelectOp op)
 	{
-		if (panel.outerPoly().get() == nullptr)
-			return;
+		if (op == SelectEnd)
+			return false;
+		std::set<int> idxSet;
+		idxSet.insert(idx);
+		return select(idxSet, op);
+	}
 
-		clear();
-
-		// outer poly
-		std::vector<AbstractGraphCurve*> curves;
-		for (auto p : *panel.outerPoly())
+	bool Graph::select(const std::set<int>& idxSet, SelectOp op)
+	{
+		if (op == SelectEnd)
+			return false;
+		static std::vector<AbstractGraphObject*> objs;
+		objs.clear();
+		for (auto& o : m_keyPoints)
+			objs.push_back(o.second.get());
+		for (auto& o : m_curves)
+			objs.push_back(o.second.get());
+		for (auto& o : m_loops)
+			objs.push_back(o.second.get());
+		objs.push_back(this);
+		bool changed = false;
+		for (auto& obj : objs)
 		{
-			std::vector<GraphPoint*> keyPoints;
-			for (int k = 0; k < p->numKeyPoints(); k++)
+			bool oldSel = obj->isSelected();
+			switch (op)
 			{
-				GraphPointPtr kpt(new GraphPoint(p->getKeyPoint(k).position));
-				keyPoints.push_back(addKeyPoint(kpt));
+			case ldp::AbstractGraphObject::SelectThis:
+				if (idxSet.find(obj->getId()) != idxSet.end())
+					obj->setSelected(true);
+				else
+					obj->setSelected(false);
+				break;
+			case ldp::AbstractGraphObject::SelectUnion:
+				if (idxSet.find(obj->getId()) != idxSet.end())
+					obj->setSelected(true);
+				break;
+			case ldp::AbstractGraphObject::SelectUnionInverse:
+				if (idxSet.find(obj->getId()) != idxSet.end())
+					obj->setSelected(!obj->isSelected());
+				break;
+			case ldp::AbstractGraphObject::SelectAll:
+				obj->setSelected(true);
+				break;
+			case ldp::AbstractGraphObject::SelectNone:
+				obj->setSelected(false);
+				break;
+			case ldp::AbstractGraphObject::SelectInverse:
+				obj->setSelected(!obj->isSelected());
+				break;
+			default:
+				break;
 			}
-			curves.push_back(addCurve(keyPoints));
-		} // end for p
-		addLoop(curves);
+			bool newSel = obj->isSelected();
+			if (oldSel != newSel)
+				changed = true;
+		} // end for obj
+		return changed;
+	}
 
-		// darts
-		for (auto& dart : panel.darts())
+	void Graph::highLight(int idx, int lastIdx)
+	{
+		auto cur = getObjByIdx(idx);
+		if (cur)
+			cur->setHighlighted(true);
+		if (idx != lastIdx)
 		{
-			std::vector<AbstractGraphCurve*> curves;
-			for (auto p : *dart)
-			{
-				std::vector<GraphPoint*> keyPoints;
-				for (int k = 0; k < p->numKeyPoints(); k++)
-				{
-					GraphPointPtr kpt(new GraphPoint(p->getKeyPoint(k).position));
-					keyPoints.push_back(addKeyPoint(kpt));
-				}
-				curves.push_back(addCurve(keyPoints));
-			} // end for p
-			addLoop(curves);
-		} // end for darts
+			auto pre = getObjByIdx(lastIdx);
+			if (pre)
+				pre->setHighlighted(false);
+		}
+	}
 
-		// inner lines
-		for (auto& line : panel.innerLines())
+	void Graph::updateBound(Float2& bmin, Float2& bmax)
+	{
+		m_bbox[0] = FLT_MAX;
+		m_bbox[1] = -FLT_MAX;
+
+		for (const auto& o : m_curves)
+			o.second->unionBound(m_bbox[0], m_bbox[1]);
+
+		for (int k = 0; k < bmin.size(); k++)
 		{
-			std::vector<AbstractGraphCurve*> curves;
-			for (auto p : *line)
-			{
-				std::vector<GraphPoint*> keyPoints;
-				for (int k = 0; k < p->numKeyPoints(); k++)
-				{
-					GraphPointPtr kpt(new GraphPoint(p->getKeyPoint(k).position));
-					keyPoints.push_back(addKeyPoint(kpt));
-				}
-				curves.push_back(addCurve(keyPoints));
-			} // end for p
-			addLoop(curves);
-		} // end for darts
+			bmin[k] = std::min(bmin[k], m_bbox[0][k]);
+			bmax[k] = std::max(bmax[k], m_bbox[1][k]);
+		}
 	}
 
 	//////////////// topology operations: add units///////////////////////////////////////////
@@ -205,6 +241,14 @@ namespace ldp
 
 		m_keyPoints.insert(std::make_pair(kp->getId(), kp));
 		return kp.get();
+	}
+
+	AbstractGraphCurve* Graph::addCurve(const std::vector<std::shared_ptr<GraphPoint>>& kpts)
+	{
+		std::vector<GraphPoint*> ptr;
+		for (const auto& kp : kpts)
+			ptr.push_back(addKeyPoint(kp));
+		return addCurve(ptr);
 	}
 
 	AbstractGraphCurve* Graph::addCurve(const std::vector<GraphPoint*>& kpts)
@@ -256,6 +300,22 @@ namespace ldp
 
 		m_curves.insert(std::make_pair(curve->getId(), curve));
 		return curve.get();
+	}
+
+	GraphLoop* Graph::addLoop(const std::vector<std::vector<GraphPointPtr>>& curves)
+	{
+		std::vector<AbstractGraphCurve*> ptr;
+		for (const auto& c : curves)
+			ptr.push_back(addCurve(c));
+		return addLoop(ptr);
+	}
+
+	GraphLoop* Graph::addLoop(const std::vector<AbstractGraphCurvePtr>& curves)
+	{
+		std::vector<AbstractGraphCurve*> ptr;
+		for (const auto& c : curves)
+			ptr.push_back(addCurve(c));
+		return addLoop(ptr);
 	}
 
 	GraphLoop* Graph::addLoop(const std::vector<AbstractGraphCurve*>& curves)

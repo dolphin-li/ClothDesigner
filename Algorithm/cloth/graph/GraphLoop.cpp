@@ -13,7 +13,18 @@ namespace ldp
 	{
 		GraphLoop* loop = (GraphLoop*)create(getType());
 		loop->m_startEdge = m_startEdge;
+		loop->setSelected(isSelected());
 		return loop;
+	}
+
+	bool GraphLoop::isClosed()const
+	{
+		auto edge = m_startEdge;
+		do
+		{
+			edge = edge->nextEdge();
+		} while (edge && edge != m_startEdge);
+		return edge;
 	}
 
 	TiXmlElement* GraphLoop::toXML(TiXmlNode* parent)const

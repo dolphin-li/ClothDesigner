@@ -4,7 +4,7 @@
 #include "cloth\clothManager.h"
 #include "cloth\clothPiece.h"
 #include "Renderable\ObjMesh.h"
-#include "cloth\PanelObject\panelPolygon.h"
+#include "cloth\graph\Graph.h"
 
 #include "Abstract2dEventHandle.h"
 #include "Edit2dPatternEventHandle.h"
@@ -38,8 +38,6 @@ QString Abstract2dEventHandle::inactiveIconFile()const
 void Abstract2dEventHandle::handleEnter()
 {
 	m_viewer->setFocus();
-	if (m_viewer->getManager())
-		m_viewer->getManager()->clearHighLights();
 }
 void Abstract2dEventHandle::handleLeave()
 {
@@ -53,7 +51,7 @@ void Abstract2dEventHandle::handleLeave()
 	for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
 	{
 		auto piece = manager->clothPiece(iPiece);
-		auto& panel = piece->panel();
+		auto& panel = piece->graphPanel();
 		panel.highLight(0, m_highLightInfo.lastId);
 	} // end for iPiece
 }
@@ -83,7 +81,7 @@ void Abstract2dEventHandle::highLight(QPoint pos)
 	for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
 	{
 		auto piece = manager->clothPiece(iPiece);
-		auto& panel = piece->panel();
+		auto& panel = piece->graphPanel();
 		panel.highLight(m_highLightInfo.renderId, m_highLightInfo.lastId);
 	} // end for iPiece
 }

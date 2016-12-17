@@ -20,8 +20,18 @@ namespace ldp
 			TypeGraphCubic,
 			TypeGraphLoop,
 			TypeGraph,
-			TypeSewing,
+			TypeGraphsSewing,
 			Type_End
+		};
+		enum SelectOp
+		{
+			SelectThis,
+			SelectUnion,
+			SelectUnionInverse,
+			SelectAll,
+			SelectNone,
+			SelectInverse,
+			SelectEnd
 		};
 		typedef std::hash_map<size_t, AbstractGraphObject*> IdxObjMap;
 		typedef std::hash_map<Type, std::string> TypeStringMap;

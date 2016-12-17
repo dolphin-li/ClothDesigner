@@ -3,13 +3,12 @@
 #include "Viewer2d.h"
 #include "ldpMat\Quaternion.h"
 #include "cloth\clothPiece.h"
-#include "cloth\PanelObject\panelPolygon.h"
 #include "cloth\graph\Graph.h"
 #include "cloth\graph\AbstractGraphCurve.h"
 #include "cloth\graph\GraphPoint.h"
+#include "cloth\graph\GraphLoop.h"
+#include "cloth\graph\GraphsSewing.h"
 #include "Renderable\ObjMesh.h"
-
-//#define USE_GRAPH_PANEL
 
 #pragma region --mat_utils
 
@@ -489,72 +488,39 @@ void Viewer2d::renderClothsPanels(bool idxMode)
 void Viewer2d::renderClothsPanels_Edge(const ldp::ClothPiece* piece, bool idxMode)
 {
 	const float step = m_clothManager->getClothDesignParam().curveSampleStep;
-	auto& panel = piece->panel();
-	const auto& poly = panel.outerPoly();
-	const auto& darts = panel.darts();
-	const auto& lines = panel.innerLines();
-
-	std::vector<const ldp::AbstractShape*> shapes;
-	if (poly)
-	for (const auto& shape : *poly)
-		shapes.push_back(shape.get());
-	for (auto dart : darts)
-	for (const auto& shape : *dart)
-		shapes.push_back(shape.get());
-	for (auto line : lines)
-	for (const auto& shape : *line)
-		shapes.push_back(shape.get());
-
+	const auto& panel = piece->graphPanel();
 
 	if (idxMode)
 		glLineWidth(EDGE_SELECT_WIDTH);
 	else
 		glLineWidth(EDGE_RENDER_WIDTH);
 	glBegin(GL_LINES);
-#ifdef USE_GRAPH_PANEL
-	for (auto iter = piece->graphPanel().curveBegin(); iter != piece->graphPanel().curveEnd(); ++iter)
+	for (auto iter = panel.loopBegin(); iter != panel.loopEnd(); ++iter)
 	{
-		auto shape = iter->second;
-		if (!idxMode)
+		auto loop = iter->second.get();
+		auto shape = loop->startEdge();
+		do
 		{
-			if (shape->isHighlighted() || piece->graphPanel().isHighlighted())
-				glColor4fv(HIGHLIGHT_COLOR);
-			else if (shape->isSelected() || piece->graphPanel().isSelected())
-				glColor4fv(SELECT_COLOR);
+			if (!idxMode)
+			{
+				if (shape->isHighlighted() || panel.isHighlighted())
+					glColor4fv(HIGHLIGHT_COLOR);
+				else if (shape->isSelected() || panel.isSelected())
+					glColor4fv(SELECT_COLOR);
+				else
+					glColor4fv(DEFAULT_COLOR);
+			}
 			else
-				glColor4fv(DEFAULT_COLOR);
-		}
-		else
-			glColor4fv(selectIdToColor(shape->getId()).ptr());
-		const auto& pts = shape->samplePointsOnShape(step / shape->getLength());
-		for (size_t i = 1; i < pts.size(); i++)
-		{
-			glVertex3f(pts[i - 1][0], pts[i-1][1], EDGE_Z);
-			glVertex3f(pts[i][0], pts[i][1], EDGE_Z);
-		}
+				glColor4fv(selectIdToColor(shape->getId()).ptr());
+			const auto& pts = shape->samplePointsOnShape(step / shape->getLength());
+			for (size_t i = 1; i < pts.size(); i++)
+			{
+				glVertex3f(pts[i - 1][0], pts[i - 1][1], EDGE_Z);
+				glVertex3f(pts[i][0], pts[i][1], EDGE_Z);
+			}
+			shape = shape->nextEdge();
+		} while (shape && shape != loop->startEdge());
 	}
-#else
-	for (const auto& shape : shapes)
-	{
-		if (!idxMode)
-		{
-			if (shape->isHighlighted() || panel.isHighlighted())
-				glColor4fv(HIGHLIGHT_COLOR);
-			else if (shape->isSelected() || panel.isSelected())
-				glColor4fv(SELECT_COLOR);
-			else
-				glColor4fv(DEFAULT_COLOR);
-		}
-		else
-			glColor4fv(selectIdToColor(shape->getId()).ptr());
-		const auto& pts = shape->samplePointsOnShape(step / shape->getLength());
-		for (size_t i = 1; i < pts.size(); i++)
-		{
-			glVertex3f(pts[i - 1][0], pts[i-1][1], EDGE_Z);
-			glVertex3f(pts[i][0], pts[i][1], EDGE_Z);
-		}
-	} // end for shape
-#endif
 	glEnd();
 }
 
@@ -563,55 +529,19 @@ void Viewer2d::renderClothsPanels_KeyPoint(const ldp::ClothPiece* piece, bool id
 	if (!(m_showType & Renderable::SW_V))
 		return;
 	const float step = m_clothManager->getClothDesignParam().curveSampleStep;
-	const auto& panel = piece->panel();
-	const auto& poly = panel.outerPoly();
-	const auto& darts = panel.darts();
-	const auto& lines = panel.innerLines();
+	const auto& panel = piece->graphPanel();
 
-	std::vector<const ldp::AbstractShape*> shapes;
-	if (poly)
-	for (const auto& shape : *poly)
-		shapes.push_back(shape.get());
-	for (auto dart : darts)
-	for (const auto& shape : *dart)
-		shapes.push_back(shape.get());
-	for (auto line : lines)
-	for (const auto& shape : *line)
-		shapes.push_back(shape.get());
 	if (idxMode)
 		glPointSize(KEYPT_SELECT_WIDTH);
 	else
 		glPointSize(KEYPT_RENDER_WIDTH);
 	glBegin(GL_POINTS);
-#ifdef USE_GRAPH_PANEL
-	for (auto iter = piece->graphPanel().curveBegin(); iter != piece->graphPanel().curveEnd(); ++iter)
+	for (auto iter = panel.curveBegin(); iter != panel.curveEnd(); ++iter)
 	{
 		auto shape = iter->second;
 		for (int i = 0; i < shape->numKeyPoints(); i++)
 		{
 			const auto& p = *shape->keyPoint(i);
-
-			if (!idxMode)
-			{
-				if (p.isHighlighted() || shape->isHighlighted() || piece->graphPanel().isHighlighted())
-					glColor4fv(HIGHLIGHT_COLOR);
-				else if (p.isSelected() || shape->isSelected() || piece->graphPanel().isSelected())
-					glColor4fv(SELECT_COLOR);
-				else
-					glColor4fv(DEFAULT_COLOR);
-			}
-			else
-				glColor4fv(selectIdToColor(p.getId()).ptr());
-			const auto& x = p.position();
-			glVertex3f(x[0], x[1], KEYPT_Z);
-		}
-	}
-#else
-	for (auto shape : shapes)
-	{
-		for (int i = 0; i < shape->numKeyPoints(); i++)
-		{
-			const auto& p = shape->getKeyPoint(i);
 
 			if (!idxMode)
 			{
@@ -624,11 +554,10 @@ void Viewer2d::renderClothsPanels_KeyPoint(const ldp::ClothPiece* piece, bool id
 			}
 			else
 				glColor4fv(selectIdToColor(p.getId()).ptr());
-			const auto& x = p.position;
+			const auto& x = p.position();
 			glVertex3f(x[0], x[1], KEYPT_Z);
 		}
-	} // end for shape
-#endif
+	}
 	glEnd();
 }
 
@@ -656,9 +585,9 @@ void Viewer2d::renderClothsSewing(bool idxMode)
 	else
 		glLineWidth(SEW_RENDER_WIDTH);
 	glBegin(GL_LINES);
-	for (int iSewing = 0; iSewing < m_clothManager->numSewings(); iSewing++)
+	for (int iSewing = 0; iSewing < m_clothManager->numGraphSewings(); iSewing++)
 	{
-		const auto sew = m_clothManager->sewing(iSewing);
+		const auto sew = m_clothManager->graphSewing(iSewing);
 		if (sew->empty())
 			continue;
 
@@ -686,14 +615,14 @@ void Viewer2d::renderClothsSewing(bool idxMode)
 		for (size_t iShape = 0; iShape < firsts.size(); iShape++)
 		{
 			const auto& f = firsts[iShape];
-			const auto& shape = (const ldp::AbstractShape*)ldp::Sewing::getPtrById(f.id);
+			const auto& shape = f.curve;
 			assert(shape);
 
 			// extract b/e
 			if (iShape == 0)
-				fb = f.reverse? shape->getEndPoint().position : shape->getStartPoint().position;
+				fb = f.reverse ? shape->getEndPoint()->position() : shape->getStartPoint()->position();
 			if (iShape + 1 == firsts.size())
-				fe = f.reverse ? shape->getStartPoint().position : shape->getEndPoint().position;
+				fe = f.reverse ? shape->getStartPoint()->position() : shape->getEndPoint()->position();
 
 			// draw self
 			const auto& pts = shape->samplePointsOnShape(step / shape->getLength());
@@ -718,13 +647,13 @@ void Viewer2d::renderClothsSewing(bool idxMode)
 		for (size_t iShape = 0; iShape < seconds.size(); iShape++)
 		{
 			const auto& s = seconds[iShape];
-			const auto& shape = (const ldp::AbstractShape*)ldp::Sewing::getPtrById(s.id);
+			const auto& shape = s.curve;
 			assert(shape);
 			// extract b/e
 			if (iShape == 0)
-				sb = s.reverse ? shape->getEndPoint().position : shape->getStartPoint().position;
+				sb = s.reverse ? shape->getEndPoint()->position() : shape->getStartPoint()->position();
 			if (iShape + 1 == seconds.size())
-				se = s.reverse ? shape->getStartPoint().position : shape->getEndPoint().position;
+				se = s.reverse ? shape->getStartPoint()->position() : shape->getEndPoint()->position();
 
 			// draw self
 			const auto& pts = shape->samplePointsOnShape(step / shape->getLength());
@@ -759,6 +688,7 @@ void Viewer2d::renderClothsSewing(bool idxMode)
 		}
 	}// end for iSewing
 	glEnd();
+
 }
 
 void Viewer2d::renderMeshes(bool idxMode)
@@ -798,9 +728,9 @@ void Viewer2d::renderMeshes(bool idxMode)
 		{
 			auto piece = m_clothManager->clothPiece(iMesh);
 			auto& mesh = piece->mesh2d();
-			if (piece->panel().isHighlighted())
+			if (piece->graphPanel().isHighlighted())
 				glColor4f(HIGHLIGHT_COLOR[0], HIGHLIGHT_COLOR[1], HIGHLIGHT_COLOR[2], 0.3);
-			else if (piece->panel().isSelected())
+			else if (piece->graphPanel().isSelected())
 				glColor4f(SELECT_COLOR[0], SELECT_COLOR[1], SELECT_COLOR[2], 0.3);
 			else
 				glColor4f(DEFAULT_COLOR[0], DEFAULT_COLOR[1], DEFAULT_COLOR[2], 0.3);
@@ -816,7 +746,7 @@ void Viewer2d::renderMeshes(bool idxMode)
 			auto piece = m_clothManager->clothPiece(iMesh);
 			auto& mesh = piece->mesh2d();
 			const auto& v = mesh.vertex_list;
-			auto id = piece->panel().getId();
+			auto id = piece->graphPanel().getId();
 			glColor4fv(selectIdToColor(id).ptr());
 			for (const auto& f : mesh.face_list)
 			{

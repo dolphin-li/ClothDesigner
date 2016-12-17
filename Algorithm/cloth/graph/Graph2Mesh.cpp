@@ -1,8 +1,11 @@
-#include "TriangleWrapper.h"
+#include "Graph2Mesh.h"
 #include "ldpMat\ldp_basic_mat.h"
-#include "clothPiece.h"
-#include "PanelObject\panelPolygon.h"
-#include "TransformInfo.h"
+#include "cloth\clothPiece.h"
+#include "cloth\graph\Graph.h"
+#include "cloth\graph\GraphsSewing.h"
+#include "cloth\graph\AbstractGraphCurve.h"
+#include "cloth\graph\GraphLoop.h"
+#include "cloth\TransformInfo.h"
 #include "Renderable\ObjMesh.h"
 extern "C"{
 #include "triangle\triangle.h"
@@ -38,7 +41,7 @@ namespace ldp
 		return -1;
 	}
 
-	TriangleWrapper::TriangleWrapper()
+	Graph2Mesh::Graph2Mesh()
 	{
 		m_in = new triangulateio;
 		m_out = new triangulateio;
@@ -48,7 +51,7 @@ namespace ldp
 		init_trianglulateio(m_vro);
 	}
 
-	TriangleWrapper::~TriangleWrapper()
+	Graph2Mesh::~Graph2Mesh()
 	{
 		reset_triangle_struct(m_in);
 		reset_triangle_struct(m_out);
@@ -58,9 +61,9 @@ namespace ldp
 		delete m_vro;
 	}
 
-	void TriangleWrapper::triangulate(
+	void Graph2Mesh::triangulate(
 		std::vector<std::shared_ptr<ClothPiece>>& pieces,
-		std::vector<std::shared_ptr<Sewing>>& sewings,
+		std::vector<std::shared_ptr<GraphsSewing>>& sewings,
 		float pointMergeThre,
 		float triangleSize,
 		float pointOnLineThre
@@ -75,21 +78,23 @@ namespace ldp
 		precomputeSewing();
 		for (auto& piece : (*m_pieces))
 		{
-			const auto& panel = piece->panel();
+			const auto& panel = piece->graphPanel();
 			prepareTriangulation();
-			if (panel.outerPoly())
-				addPolygon(*panel.outerPoly().get());
-			for (const auto& dart : panel.darts())
-				addDart(*dart.get());
-			for (const auto& line : panel.innerLines())
-				addLine(*line.get());
+			for (auto loop_iter = panel.loopBegin(); loop_iter != panel.loopEnd(); ++loop_iter)
+			{
+				auto loop = loop_iter->second.get();
+				if (loop->isClosed())
+					addPolygon(*loop);
+				else
+					addLine(*loop); // ldp todo: add dart?
+			} // end for loop iter
 			finalizeTriangulation();
 			generateMesh(*piece.get());
 		} // end for piece
 		postComputeSewing();
 	}
 
-	void TriangleWrapper::prepareTriangulation()
+	void Graph2Mesh::prepareTriangulation()
 	{
 		reset_triangle_struct(m_in);
 		reset_triangle_struct(m_out);
@@ -101,7 +106,7 @@ namespace ldp
 		m_triVertsBuffer.clear();
 	}
 
-	void TriangleWrapper::precomputeSewing()
+	void Graph2Mesh::precomputeSewing()
 	{
 		const float step = m_triSize;
 		const float thre = m_ptMergeThre;
@@ -113,22 +118,10 @@ namespace ldp
 		// 1. convert each shape to a segment, without considering the sewings
 		for (auto& piece : (*m_pieces))
 		{
-			const auto& panel = piece->panel();
-			if (panel.outerPoly())
-			for (const auto& shape : *panel.outerPoly())
+			const auto& panel = piece->graphPanel();
+			for (auto iter = panel.curveBegin(); iter != panel.curveEnd(); ++iter)
 			{
-				createShapeSeg(shape.get(), calcForwardBackwardConsistentStep(step / shape->getLength()));
-				m_shapePieceMap[shape.get()] = piece.get();
-			}
-			for (const auto& dart : panel.darts())
-			for (const auto& shape : *dart)
-			{
-				createShapeSeg(shape.get(), calcForwardBackwardConsistentStep(step / shape->getLength()));
-				m_shapePieceMap[shape.get()] = piece.get();
-			}
-			for (const auto& line : panel.innerLines())
-			for (const auto& shape : *line)
-			{
+				auto shape = iter->second;
 				createShapeSeg(shape.get(), calcForwardBackwardConsistentStep(step / shape->getLength()));
 				m_shapePieceMap[shape.get()] = piece.get();
 			}
@@ -151,9 +144,9 @@ namespace ldp
 			fLens.push_back(0);
 			sLens.push_back(0);
 			for (const auto& f : firsts)
-				fLens.push_back(fLens.back() + ((const AbstractShape*)Sewing::getPtrById(f.id))->getLength());
+				fLens.push_back(fLens.back() + f.curve->getLength());
 			for (const auto& s : seconds)
-				sLens.push_back(sLens.back() + ((const AbstractShape*)Sewing::getPtrById(s.id))->getLength());
+				sLens.push_back(sLens.back() + s.curve->getLength());
 			for (auto& f : fLens)
 				f /= fLens.back();
 			for (auto& s : sLens)
@@ -166,10 +159,10 @@ namespace ldp
 				const float sStart = sLens[sPos], sEnd = sLens[sPos + 1];
 				const float fLen = fEnd - fStart, sLen = sEnd - sStart;
 				const auto& fUnit = firsts[fPos];
-				const auto fShape = (AbstractShape*)Sewing::getPtrById(fUnit.id);
+				const auto fShape = fUnit.curve;
 				auto& fSegs = m_shapeSegs[fShape];
 				const auto& sUnit = seconds[sPos];
-				const auto sShape = (AbstractShape*)Sewing::getPtrById(sUnit.id);
+				const auto sShape = sUnit.curve;
 				auto& sSegs = m_shapeSegs[sShape];
 				size_t fPos_1 = fSegs->size() - 1;
 				size_t sPos_1 = sSegs->size() - 1;
@@ -218,7 +211,7 @@ namespace ldp
 		} // end for pair
 	}
 
-	void TriangleWrapper::createShapeSeg(const AbstractShape* shape, float step)
+	void Graph2Mesh::createShapeSeg(const AbstractGraphCurve* shape, float step)
 	{
 		auto iter = m_shapeSegs.find(shape);
 		if (iter == m_shapeSegs.end())
@@ -238,7 +231,7 @@ namespace ldp
 			throw std::exception("duplicated shape added!\n");
 	}
 
-	int TriangleWrapper::addSegToShape(ShapeSegs& segs, float tSegs)
+	int Graph2Mesh::addSegToShape(ShapeSegs& segs, float tSegs)
 	{
 		for (size_t i = 0; i< segs.size(); i++)
 		{
@@ -269,7 +262,7 @@ namespace ldp
 		return -1;
 	}
 
-	void TriangleWrapper::updateSegStepMap(SampleParamVec* seg, float step)
+	void Graph2Mesh::updateSegStepMap(SampleParamVec* seg, float step)
 	{
 		auto iter = m_segStepMap.find(seg);
 		if (iter == m_segStepMap.end())
@@ -282,7 +275,7 @@ namespace ldp
 		}
 	}
 
-	void TriangleWrapper::resampleSeg(SampleParamVec& seg, float step)
+	void Graph2Mesh::resampleSeg(SampleParamVec& seg, float step)
 	{
 		if (fabs(seg.step - step) < std::numeric_limits<float>::epsilon())
 			return;
@@ -292,16 +285,17 @@ namespace ldp
 			seg.params.push_back(SampleParam(std::min(1.f, s), 0));
 	}
 
-	void TriangleWrapper::addPolygon(const ShapeGroup& poly)
+	void Graph2Mesh::addPolygon(const GraphLoop& poly)
 	{
 		const float step = m_triSize;
 		const float thre = m_ptMergeThre;
 		int startIdx = (int)m_points.size();
 
 		// add points
-		for (const auto& shape : poly)
+		auto shape = poly.startEdge();
+		do
 		{
-			auto& shapeSegs = m_shapeSegs[shape.get()];
+			auto& shapeSegs = m_shapeSegs[shape];
 			for (size_t iSeg = 0; iSeg < shapeSegs->size(); iSeg++)
 			{
 				auto& seg = shapeSegs->at(iSeg);
@@ -325,7 +319,8 @@ namespace ldp
 					m_points.push_back(p);
 				}
 			} // end for p
-		} // end for shape
+			shape = shape->nextEdge();
+		} while (shape && shape != poly.startEdge());
 
 		// add segments
 		for (int i = startIdx; i < (int)m_points.size()-1; i++)
@@ -334,43 +329,20 @@ namespace ldp
 			m_segments.push_back(Int2((int)m_points.size()-1, startIdx));
 	}
 
-	void TriangleWrapper::addDart(const ShapeGroup& dart)
+	void Graph2Mesh::addDart(const GraphLoop& dart)
 	{
 
 	}
 
-	void TriangleWrapper::addLine(const ShapeGroup& line)
+	void Graph2Mesh::addLine(const GraphLoop& line)
 	{
 		const float step = m_triSize;
 		const float thre = m_ptMergeThre;
 		int startIdx = (int)m_points.size();
 		return;
-		// add points
-		for (const auto& shape : line)
-		{
-			auto& shapeSegs = m_shapeSegs[shape.get()];
-			for (size_t iSeg = 0; iSeg < shapeSegs->size(); iSeg++)
-			{
-				auto& seg = shapeSegs->at(iSeg);
-				for (auto& sp : seg->params)
-				{
-					auto p = shape->getPointByParam(sp.t * (seg->end - seg->start) + seg->start);
-					if (m_points.size() != startIdx)
-					{
-						if ((m_points.back() - p).length() < thre)
-						{
-							sp.idx = int(m_points.size()) - 1; // merged to the last point
-							continue;
-						}
-					}
-					sp.idx = int(m_points.size());
-					m_points.push_back(p);
-				}
-			} // end for p
-		} // end for shape
 	}
 
-	void TriangleWrapper::finalizeTriangulation()
+	void Graph2Mesh::finalizeTriangulation()
 	{
 		if (m_points.size() < 3)
 			return;
@@ -423,7 +395,7 @@ namespace ldp
 			m_triVertsBuffer[i] = vptr[i];
 	}
 
-	void TriangleWrapper::generateMesh(ClothPiece& piece)
+	void Graph2Mesh::generateMesh(ClothPiece& piece)
 	{
 		auto& mesh2d = piece.mesh2d();
 		auto& mesh3d = piece.mesh3d();
@@ -450,7 +422,7 @@ namespace ldp
 		mesh3d.cloneFrom(&mesh3dInit);
 	}
 
-	void TriangleWrapper::postComputeSewing()
+	void Graph2Mesh::postComputeSewing()
 	{
 		// 1. count the verts of each piece and accumulate
 		m_vertStart.clear();
@@ -492,7 +464,7 @@ namespace ldp
 		} // end for pair
 	}
 
-	void TriangleWrapper::reset_triangle_struct(triangulateio* io)const
+	void Graph2Mesh::reset_triangle_struct(triangulateio* io)const
 	{
 		if (io->pointlist)  free(io->pointlist);                                               /* In / out */
 		if (io->pointattributelist) free(io->pointattributelist);                                      /* In / out */

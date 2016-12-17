@@ -89,9 +89,6 @@
     <Filter Include="algorithm\cloth\graph">
       <UniqueIdentifier>{cc08b4b8-0605-480e-bb49-bf7cf42e9687}</UniqueIdentifier>
     </Filter>
-    <Filter Include="algorithm\cloth\PanelObject">
-      <UniqueIdentifier>{ddc53e0d-d61f-4d60-b2a3-e840227f3271}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -610,9 +607,6 @@
     <ClCompile Include="Algorithm\cloth\TransformInfo.cpp">
       <Filter>algorithm\cloth</Filter>
     </ClCompile>
-    <ClCompile Include="Algorithm\cloth\TriangleWrapper.cpp">
-      <Filter>algorithm\cloth</Filter>
-    </ClCompile>
     <ClCompile Include="Algorithm\Shader\glsl.cpp">
       <Filter>algorithm\shader</Filter>
     </ClCompile>
@@ -646,11 +640,11 @@
     <ClCompile Include="Algorithm\cloth\graph\Graph.cpp">
       <Filter>algorithm\cloth\graph</Filter>
     </ClCompile>
-    <ClCompile Include="Algorithm\cloth\PanelObject\IdxPool.cpp">
-      <Filter>algorithm\cloth\PanelObject</Filter>
+    <ClCompile Include="Algorithm\cloth\graph\GraphsSewing.cpp">
+      <Filter>algorithm\cloth\graph</Filter>
     </ClCompile>
-    <ClCompile Include="Algorithm\cloth\PanelObject\panelPolygon.cpp">
-      <Filter>algorithm\cloth\PanelObject</Filter>
+    <ClCompile Include="Algorithm\cloth\graph\Graph2Mesh.cpp">
+      <Filter>algorithm\cloth\graph</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -986,9 +980,6 @@
     <ClInclude Include="Algorithm\cloth\TransformInfo.h">
       <Filter>algorithm\cloth</Filter>
     </ClInclude>
-    <ClInclude Include="Algorithm\cloth\TriangleWrapper.h">
-      <Filter>algorithm\cloth</Filter>
-    </ClInclude>
     <ClInclude Include="Algorithm\cloth\definations.h">
       <Filter>algorithm\cloth</Filter>
     </ClInclude>
@@ -1025,14 +1016,11 @@
     <ClInclude Include="Algorithm\cloth\graph\Graph.h">
       <Filter>algorithm\cloth\graph</Filter>
     </ClInclude>
-    <ClInclude Include="Algorithm\cloth\PanelObject\AbstractPanelObject.h">
-      <Filter>algorithm\cloth\PanelObject</Filter>
+    <ClInclude Include="Algorithm\cloth\graph\GraphsSewing.h">
+      <Filter>algorithm\cloth\graph</Filter>
     </ClInclude>
-    <ClInclude Include="Algorithm\cloth\PanelObject\IdxPool.h">
-      <Filter>algorithm\cloth\PanelObject</Filter>
-    </ClInclude>
-    <ClInclude Include="Algorithm\cloth\PanelObject\panelPolygon.h">
-      <Filter>algorithm\cloth\PanelObject</Filter>
+    <ClInclude Include="Algorithm\cloth\graph\Graph2Mesh.h">
+      <Filter>algorithm\cloth\graph</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
