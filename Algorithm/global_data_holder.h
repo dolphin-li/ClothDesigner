@@ -14,10 +14,6 @@ class GlobalDataHolder
 public:
 	void init();
 
-	void debug_1();
-	void debug_2();
-	void debug_3();
-	void debug_4();
 	void loadSvg(std::string name);
 public:
 	std::shared_ptr<ldp::ClothManager> m_clothManager;

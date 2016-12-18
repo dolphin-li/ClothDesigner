@@ -1296,7 +1296,7 @@ namespace ldp
 			}
 
 			// add piece
-			m_clothPieces.push_back(std::shared_ptr<ClothPiece>(new ClothPiece()));
+			m_clothPieces.push_back(std::shared_ptr<ClothPiece>(new ClothPiece(m_graphSewings)));
 			const auto& piece = m_clothPieces.back();
 
 			std::vector<AbstractGraphCurve*> fittedCurves;
@@ -1501,7 +1501,7 @@ namespace ldp
 			} // end for BodyMesh
 			else if (pele->Value() == std::string("Piece"))
 			{
-				m_clothPieces.push_back(std::shared_ptr<ClothPiece>(new ClothPiece()));
+				m_clothPieces.push_back(std::shared_ptr<ClothPiece>(new ClothPiece(m_graphSewings)));
 				for (auto child = pele->FirstChildElement(); child; child = child->NextSiblingElement())
 				{
 					if (child->Value() == m_clothPieces.back()->transformInfo().getTypeString())

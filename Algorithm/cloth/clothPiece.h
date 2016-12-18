@@ -3,15 +3,17 @@
 #include <set>
 #include <string>
 #include <memory>
+#include <vector>
 class ObjMesh;
 namespace ldp
 {
 	class TransformInfo;
 	class Graph;
+	class GraphsSewing;
 	class ClothPiece
 	{
 	public:
-		ClothPiece();
+		ClothPiece(std::vector<std::shared_ptr<GraphsSewing>>& sewings);
 		~ClothPiece();
 
 		const ObjMesh& mesh3d()const { return *m_mesh3d; }

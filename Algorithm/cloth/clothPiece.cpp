@@ -7,14 +7,14 @@ namespace ldp
 {
 	std::set<std::string> ClothPiece::s_nameSet;
 
-	ClothPiece::ClothPiece()
+	ClothPiece::ClothPiece(std::vector<std::shared_ptr<GraphsSewing>>& sewings)
 	{
 		m_name = generateUniqueName("default");
 		m_mesh2d.reset(new ObjMesh);
 		m_mesh3d.reset(new ObjMesh);
 		m_mesh3dInit.reset(new ObjMesh);
 		m_transfromInfo.reset(new TransformInfo);
-		m_graphPanel.reset(new Graph);
+		m_graphPanel.reset(new Graph(sewings));
 	}
 
 	ClothPiece::~ClothPiece()

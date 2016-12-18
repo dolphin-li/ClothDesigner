@@ -4,9 +4,11 @@
 #include "GraphLoop.h"
 #include "tinyxml\tinyxml.h"
 #include "cloth\definations.h"
+#include "GraphsSewing.h"
 namespace ldp
 {
-	Graph::Graph() : AbstractGraphObject()
+	Graph::Graph(std::vector<std::shared_ptr<GraphsSewing>>& sewings)
+		: AbstractGraphObject(), m_graphSewings(&sewings)
 	{
 	
 	}
@@ -23,7 +25,7 @@ namespace ldp
 	{
 		m_ptrMapAfterClone.clear();
 
-		Graph* graph = new Graph();
+		Graph* graph = new Graph(*m_graphSewings);
 		graph->setSelected(isSelected());
 
 		for (auto iter : m_keyPoints)
