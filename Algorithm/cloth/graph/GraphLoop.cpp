@@ -28,6 +28,28 @@ namespace ldp
 		return edge;
 	}
 
+	void GraphLoop::samplePoints(std::vector<Float2>& pts, float step, float angleThreCos)
+	{
+		pts.clear();
+		auto edge = m_startEdge;
+		do
+		{
+			const std::vector<Float2>& samples = edge->samplePointsOnShape(step);
+			if (pts.size())
+			{
+				for (size_t i = 0; i < samples.size(); i++)
+				{
+					Float2 p = samples[i];
+					// if too close
+					if ((p - pts.back()).length() < step || (p - pts[0]).length() < step)
+						continue;
+					pts.push_back(p);
+				} // end for i
+			}
+			edge = edge->nextEdge();
+		} while (edge && edge != m_startEdge);
+	}
+
 	TiXmlElement* GraphLoop::toXML(TiXmlNode* parent)const
 	{
 		TiXmlElement* ele = AbstractGraphObject::toXML(parent);

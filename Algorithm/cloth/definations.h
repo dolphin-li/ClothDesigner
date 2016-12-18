@@ -30,6 +30,7 @@ namespace ldp
 	{
 		float pointMergeDistThre;				// ignore two close points, in meters
 		float curveSampleStep;					// sample points on curves, in meters
+		float curveSampleAngleThreCos;			// if the cos(angle) of the points corner is too small, the point should be sampled.
 		float pointInsidePolyThre;				// in meters
 		float curveFittingThre;					// fitting inputs into cubics, in meters
 		float triangulateThre;					// size of triangle edges, in meters

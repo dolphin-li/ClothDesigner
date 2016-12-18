@@ -1238,10 +1238,13 @@ namespace ldp
 				assert(coords.size() >= 4);
 				for (size_t i = 0; i < coords.size() - 1; i += 2)
 				{
-					ldp::Float2 p(coords[i] * pixel2meter, coords[i + 1] * pixel2meter);
+					Float2 p(coords[i] * pixel2meter, coords[i + 1] * pixel2meter);
 					if (points.size())
-					if ((p - points.back()).length() < getClothDesignParam().pointMergeDistThre)
-						continue;
+					{
+						Float2 last_p = points.back();
+						if ((p - last_p).length() < getClothDesignParam().pointMergeDistThre)
+							continue;
+					}
 					points.push_back(p);
 				} // end for i
 				if (points.size() < 2)

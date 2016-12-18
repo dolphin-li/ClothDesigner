@@ -1,7 +1,7 @@
 #pragma once
 
 #include "AbstractGraphObject.h"
-
+#include "ldpMat\ldp_basic_vec.h"
 namespace ldp
 {
 	class AbstractGraphCurve;
@@ -21,6 +21,9 @@ namespace ldp
 
 		AbstractGraphCurve*& startEdge() { return m_startEdge; }
 		const AbstractGraphCurve* const& startEdge()const { return m_startEdge; }
+
+		// sample points based on step and cos(angle)
+		void samplePoints(std::vector<Float2>& pts, float step, float angleThreCos);
 	private:
 		AbstractGraphCurve* m_startEdge = nullptr;
 		bool m_isBoundingLoop = false;
