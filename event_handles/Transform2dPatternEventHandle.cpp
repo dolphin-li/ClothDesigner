@@ -159,12 +159,15 @@ void Transform2dPatternEventHandle::mouseMoveEvent(QMouseEvent *ev)
 	if (manager == nullptr)
 		return;
 
-	if (panelLevelTransform_MouseMove(ev))
-		return;
-	if (curveLevelTransform_MouseMove(ev))
-		return;
-	if (pointLevelTransform_MouseMove(ev))
-		return;
+	if (!m_viewer->isDragBoxMode())
+	{
+		if (panelLevelTransform_MouseMove(ev))
+			return;
+		if (curveLevelTransform_MouseMove(ev))
+			return;
+		if (pointLevelTransform_MouseMove(ev))
+			return;
+	}
 }
 
 void Transform2dPatternEventHandle::wheelEvent(QWheelEvent *ev)

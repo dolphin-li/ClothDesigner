@@ -23,8 +23,6 @@
 
 namespace ldp
 {
-	ClothDesignParam g_designParam;
-
 	PROGRESSING_BAR g_debug_save_bar(0);
 	template<class T> static void debug_save_gpu_array(DeviceArray<T> D, std::string filename)
 	{
@@ -1269,7 +1267,7 @@ namespace ldp
 				bool allIn = true;
 				for (const auto& p1 : group1.samples)
 				{
-					if (!this->pointInPolygon((int)group2.samples.size() - 1, group2.samples.data(), p1))
+					if (!pointInPolygon((int)group2.samples.size() - 1, group2.samples.data(), p1))
 					{
 						allIn = false;
 						break;
@@ -1356,9 +1354,7 @@ namespace ldp
 				if (iter == eg->group.begin())
 					continue;
 				m_graphSewings.push_back(GraphsSewingPtr(new GraphsSewing()));
-
 				m_graphSewings.back()->addFirsts(funits);
-
 				const auto& second = svgLine2GraphCurves[Int2(iter->first->getId(), iter->second)];
 				sunits.clear();
 				for (const auto& s : second)
@@ -1366,6 +1362,10 @@ namespace ldp
 				m_graphSewings.back()->addSeconds(sunits);
 			}
 		} // end for eg
+
+		// 4. validate all graphs, the corresponding sewings will be updated
+		for (auto& piece : m_clothPieces)
+			piece->graphPanel().makeGraphValid(m_graphSewings);
 
 		// 3. triangluation
 		triangulate();
@@ -1392,29 +1392,6 @@ namespace ldp
 		m_shouldMergePieces = true;
 	}
 
-	bool ClothManager::pointInPolygon(int n, const Vec2* v, Vec2 p)
-	{
-		float d = -1;
-		const float x = p[0], y = p[1];
-		float minDist = FLT_MAX;
-		for (int i = 0, j = n - 1; i < n; j = i++)
-		{
-			const float xi = v[i][0], yi = v[i][1], xj = v[j][0], yj = v[j][1];
-			const float inv_k = (xj - xi) / (yj - yi);
-			if ((yi>y) != (yj > y) && x - xi < inv_k * (y - yi))
-				d = -d;
-			// project point to line
-			ldp::Float2 pvi = p - v[i];
-			ldp::Float2 dji = v[j] - v[i];
-			float t = pvi.dot(dji) / dji.length();
-			t = std::min(1.f, std::max(0.f, t));
-			ldp::Float2 p0 = v[i] + t * dji;
-			minDist = std::min(minDist, (p-p0).length());
-		}
-		minDist *= d;
-		return minDist >= -g_designParam.pointInsidePolyThre;
-	}
-
 	////sewings/////////////////////////////////////////////////////////////////////////////////
 	void ClothManager::addGraphSewing(std::shared_ptr<GraphsSewing> sewing)
 	{
@@ -1432,20 +1409,23 @@ namespace ldp
 	/////UI operations///////////////////////////////////////////////////////////////////////////////////////
 	bool ClothManager::removeSelectedSewings()
 	{
-		std::set<size_t> removedId;
-
+		bool removed = false;
 		// sewings selected
 		auto tempSewings = m_graphSewings;
 		m_graphSewings.clear();
 		for (auto& sew : tempSewings)
 		{
 			if (sew->isSelected())
-				removedId.insert(sew->getId());
-			m_graphSewings.push_back(sew);
+				removed = true;
+			else
+				m_graphSewings.push_back(sew);
 		} // end for tempSewings
-		m_stitches.clear();
-		m_shouldTriangulate = true;
-		return !removedId.empty();
+		if (removed)
+		{
+			m_stitches.clear();
+			m_shouldTriangulate = true;
+		}
+		return removed;
 	}
 
 	bool ClothManager::reverseSelectedSewings()
@@ -1464,46 +1444,6 @@ namespace ldp
 		if (change)
 			m_shouldTriangulate = true;
 		return change;
-	}
-
-	////Params//////////////////////////////////////////////////////////////////////////////////
-	ClothDesignParam::ClothDesignParam()
-	{
-		setDefaultParam();
-	}
-
-	void ClothDesignParam::setDefaultParam()
-	{
-		pointMergeDistThre = 1e-4;				// in meters
-		curveSampleStep = 1e-2;					// in meters
-		pointInsidePolyThre = 1e-2;				// in meters
-		curveFittingThre = 1e-3;				// in meters
-		triangulateThre = 3e-2;					// in meters
-	}
-	 
-	SimulationParam::SimulationParam()
-	{
-		setDefaultParam();
-	}
-
-	void SimulationParam::setDefaultParam()
-	{
-		rho = 0.996;
-		under_relax = 0.5;
-		lap_damping = 4;
-		air_damping = 0.999;
-		bending_k = 10;
-		spring_k_raw = 1000;
-		spring_k = 0;//will be updated after built topology
-		stitch_k_raw = 90000;
-		stitch_k = 0;//will be updated after built topology
-		stitch_bending_k = 10;
-		out_iter = 8;
-		inner_iter = 40;
-		time_step = 1.0 / 240.0;
-		stitch_ratio = 5;
-		control_mag = 400;
-		gravity = ldp::Float3(0, 0, -9.8);
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////////////
@@ -1567,6 +1507,10 @@ namespace ldp
 				m_graphSewings.back()->fromXML(pele);
 			} // end for sewing
 		} // end for pele
+
+		// . validate all graphs, the corresponding sewings will be updated
+		for (auto& piece : m_clothPieces)
+			piece->graphPanel().makeGraphValid(m_graphSewings);
 
 		// finally initilaize simulation
 		simulationInit();

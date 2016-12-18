@@ -646,6 +646,9 @@
     <ClCompile Include="Algorithm\cloth\graph\Graph2Mesh.cpp">
       <Filter>algorithm\cloth\graph</Filter>
     </ClCompile>
+    <ClCompile Include="Algorithm\cloth\definations.cpp">
+      <Filter>algorithm\cloth</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">

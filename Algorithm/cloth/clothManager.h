@@ -140,7 +140,6 @@ namespace ldp
 		// 2D-3D triangulation related---------------------------------------------------
 		std::shared_ptr<Graph2Mesh> m_graph2mesh;
 	protected:
-		bool pointInPolygon(int n, const Vec2* pts, Vec2 p);
 		BMEdge* findEdge(int v1, int v2);
 	protected:
 		// Topology related--------------------------------------------------------------

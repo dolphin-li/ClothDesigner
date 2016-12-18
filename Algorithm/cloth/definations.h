@@ -66,4 +66,24 @@ namespace ldp
 		SimulationOn,
 		SimulationPause,
 	};
+
+	// pts: a closed polygon of n points, the last connects to the first.
+	// decide whether p is inside pts, thresholded by g_designParam.pointInsidePolyThre
+	// if nearestEdgeId != nullptr, return the nearest edge index from it.
+	bool pointInPolygon(int n, const Float2* pts, Float2 p, int* nearestEdgeId=nullptr);
+
+	// find the nearest point on ab to p
+	inline ldp::Float2 nearestPointOnSeg(Float2 p, Float2 a, Float2 b)
+	{
+		ldp::Float2 dji = b - a;
+		float t = (p - a).dot(dji) / dji.length();
+		t = std::min(1.f, std::max(0.f, t));
+		return a + t * dji;
+	}
+
+	// calculate the distance of p to ab
+	inline float pointSegDistance(Float2 p, Float2 a, Float2 b)
+	{
+		return (nearestPointOnSeg(p, a, b) - p).length();
+	}
 }

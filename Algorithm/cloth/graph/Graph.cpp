@@ -121,7 +121,7 @@ namespace ldp
 				{
 					GraphLoopPtr kpt((GraphLoop*)AbstractGraphObject::create(child->Value()));
 					kpt->fromXML(child);
-					m_loops.insert(std::make_pair(kpt->getId(), kpt));
+					addLoop(kpt);
 				}
 			} // end if loops
 		} // end for groups
@@ -225,6 +225,12 @@ namespace ldp
 		}
 	}
 
+	bool Graph::makeGraphValid(std::vector<std::shared_ptr<GraphsSewing>>& graphSewings)
+	{
+		// 1. check the bounding loop
+
+		return true;
+	}
 	//////////////// topology operations: add units///////////////////////////////////////////
 	GraphPoint* Graph::addKeyPoint(ldp::Float2 p, bool isEndPoint)
 	{
@@ -394,7 +400,7 @@ namespace ldp
 		int nBounds = loop->isBoundingLoop();
 		for (auto l : m_loops)
 			nBounds += l.second->isBoundingLoop();
-		if (nBounds != 1)
+		if (nBounds > 1)
 			throw std::exception("addLoop error: there must be exactly 1 bounding loop!");
 
 		// insert loop

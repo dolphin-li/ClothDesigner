@@ -10,6 +10,7 @@ namespace ldp
 	class GraphLoop;
 	class PanelPolygon;
 	class AbstractPanelObject;
+	class GraphsSewing;
 	class Graph : public AbstractGraphObject
 	{
 	public:
@@ -27,6 +28,13 @@ namespace ldp
 		const PtrMap& getPtrMapAfterClone() { return m_ptrMapAfterClone; } // for mapping update after clone
 
 		void clear();
+
+		// make the graph valid, that is:
+		// 1. there must be exactly one bounding loop, all other loops must be inside the bounding loop
+		// 2. if there is intersecting curves, split them and made the loops proper
+		// 3. all inner loops must not be intersected
+		// return false if the opeartion failed.
+		bool makeGraphValid(std::vector<std::shared_ptr<GraphsSewing>>& graphSewings);
 
 		// ui operations
 		bool select(int idx, SelectOp op);
