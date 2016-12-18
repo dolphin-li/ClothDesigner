@@ -162,10 +162,10 @@ void GlobalDataHolder::debug_4()
 	}
 }
 
-void GlobalDataHolder::debug_5()
+void GlobalDataHolder::loadSvg(std::string name)
 {
 	m_clothManager->clear();
-	m_clothManager->loadPiecesFromSvg("data/Basic_Blouse_10_2016.svg");
+	m_clothManager->loadPiecesFromSvg(name.c_str());
 	m_clothManager->bodyMeshInit()->loadObj("data/wm2_15k.obj", true, false);
 
 	auto body = m_clothManager->bodyMeshInit();
@@ -182,6 +182,8 @@ void GlobalDataHolder::debug_5()
 	body->material_list.push_back(mat);
 	for (auto& f : body->face_list)
 		f.material_index = 0;
+
+	m_clothManager->simulationInit();
 }
 
 

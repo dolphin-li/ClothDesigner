@@ -252,7 +252,7 @@ namespace ldp
 		{
 			for (auto iter : m_keyPoints)
 			{
-				if ((iter.second->position() - kp->position()).length() < std::numeric_limits<float>::epsilon())
+				if ((iter.second->position() - kp->position()).length() < g_designParam.pointMergeDistThre)
 					return iter.second.get();
 			} // end for iter
 		}

@@ -18,7 +18,7 @@ public:
 	void debug_2();
 	void debug_3();
 	void debug_4();
-	void debug_5();
+	void loadSvg(std::string name);
 public:
 	std::shared_ptr<ldp::ClothManager> m_clothManager;
 	std::shared_ptr<ldp::HistoryStack> m_historyStack;

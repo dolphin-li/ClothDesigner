@@ -1289,6 +1289,12 @@ namespace ldp
 			if (group.insideOtherPolyId >= 0)
 				continue;
 
+			if (!group.isClosed)
+			{
+				printf("warning: line %d not inside any closed region!\n", group.id);
+				continue;
+			}
+
 			// add piece
 			m_clothPieces.push_back(std::shared_ptr<ClothPiece>(new ClothPiece()));
 			const auto& piece = m_clothPieces.back();
