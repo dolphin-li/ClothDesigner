@@ -110,6 +110,7 @@ void GlobalDataHolder::debug_3()
 
 void GlobalDataHolder::debug_4()
 {
+	m_clothManager->clear();
 	m_clothManager->bodyMesh()->loadObj("data/debug4_body.obj", true, false);
 
 	auto body = m_clothManager->bodyMesh();
@@ -163,6 +164,8 @@ void GlobalDataHolder::debug_4()
 
 void GlobalDataHolder::debug_5()
 {
+	m_clothManager->clear();
+	m_clothManager->loadPiecesFromSvg("data/Basic_Blouse_10_2016.svg");
 	m_clothManager->bodyMeshInit()->loadObj("data/wm2_15k.obj", true, false);
 
 	auto body = m_clothManager->bodyMeshInit();
@@ -172,9 +175,6 @@ void GlobalDataHolder::debug_5()
 	info.rotate(ldp::QuaternionF().fromAngles(ldp::Float3(ldp::PI_S / 2, 0, ldp::PI_S)).toRotationMatrix3(), 0);
 	info.scale(2.619848, 0);
 	m_clothManager->setBodyMeshTransform(info);
-	//body->translate((body->boundingBox[0]+body->boundingBox[1])*-0.5f);
-	//body->rotateByCenter(ldp::QuaternionF().fromAngles(ldp::Float3(ldp::PI_S/2, 0, ldp::PI_S)).toRotationMatrix3());
-	//body->scaleByCenter(2.619848);
 
 	auto mat = body->default_material;
 	mat.diff = ldp::Float3(0.5, 0.7, 0.8);
@@ -182,8 +182,6 @@ void GlobalDataHolder::debug_5()
 	body->material_list.push_back(mat);
 	for (auto& f : body->face_list)
 		f.material_index = 0;
-
-	m_clothManager->loadPiecesFromSvg("data/Basic_Blouse_10_2016.svg");
 }
 
 

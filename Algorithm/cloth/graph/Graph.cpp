@@ -103,7 +103,7 @@ namespace ldp
 				{
 					GraphPointPtr kpt((GraphPoint*)AbstractGraphObject::create(child->Value()));
 					kpt->fromXML(child);
-					addKeyPoint(kpt);
+					addKeyPoint(kpt, false);
 				}
 			} // end if key-pts
 			if (groups->Value() == std::string("curves"))
@@ -226,13 +226,13 @@ namespace ldp
 	}
 
 	//////////////// topology operations: add units///////////////////////////////////////////
-	GraphPoint* Graph::addKeyPoint(ldp::Float2 p)
+	GraphPoint* Graph::addKeyPoint(ldp::Float2 p, bool isEndPoint)
 	{
 		GraphPointPtr kp(new GraphPoint(p));
-		return addKeyPoint(kp);
+		return addKeyPoint(kp, isEndPoint);
 	}
 
-	GraphPoint* Graph::addKeyPoint(const std::shared_ptr<GraphPoint>& kp)
+	GraphPoint* Graph::addKeyPoint(const std::shared_ptr<GraphPoint>& kp, bool isEndPoint)
 	{
 		auto iter = m_keyPoints.find(kp->getId());
 		if (iter != m_keyPoints.end())
@@ -242,11 +242,14 @@ namespace ldp
 		}
 
 		// a point exist that is close enough with p
-		for (auto iter : m_keyPoints)
+		if (isEndPoint)
 		{
-			if ((iter.second->position() - kp->position()).length() < std::numeric_limits<float>::epsilon())
-				return iter.second.get();
-		} // end for iter
+			for (auto iter : m_keyPoints)
+			{
+				if ((iter.second->position() - kp->position()).length() < std::numeric_limits<float>::epsilon())
+					return iter.second.get();
+			} // end for iter
+		}
 
 		m_keyPoints.insert(std::make_pair(kp->getId(), kp));
 		return kp.get();
@@ -256,7 +259,7 @@ namespace ldp
 	{
 		std::vector<GraphPoint*> ptr;
 		for (const auto& kp : kpts)
-			ptr.push_back(addKeyPoint(kp));
+			ptr.push_back(addKeyPoint(kp, kp == kpts.front() || kp == kpts.back()));
 		return addCurve(ptr);
 	}
 

@@ -131,7 +131,6 @@ namespace ldp
 			return;
 		for (size_t i = 0; i < m_clothPieces.size(); i++)
 			m_clothPieces[i]->mesh3d().cloneFrom(&m_clothPieces[i]->mesh3dInit());
-		m_dev_phi.upload(m_bodyLvSet->value(), m_bodyLvSet->sizeXYZ());
 		m_shouldTriangulate = true;
 		calcLevelSet();
 		updateDependency();
@@ -898,6 +897,7 @@ namespace ldp
 		ldp::Float3 start = bmin;
 		m_bodyLvSet->create(res, start, step);
 		m_bodyLvSet->fromMesh(*m_bodyMesh);
+		m_dev_phi.upload(m_bodyLvSet->value(), m_bodyLvSet->sizeXYZ());
 		m_shouldLevelSetUpdate = false;
 	}
 	//////////////////////////////////////////////////////////////////////////////////
@@ -1182,6 +1182,8 @@ namespace ldp
 	struct TmpSvgLine
 	{
 		std::vector<ldp::Float2> pts;
+		int id = 0;
+		TmpSvgLine(int i) :id(i) {}
 	};
 	struct TmpSvgLineGroup
 	{
@@ -1225,7 +1227,6 @@ namespace ldp
 		std::map<int, TmpSvgLineGroup> svgGroups;
 		for (auto polyPath : polyPaths)
 		{
-			polyPath->findCorners();
 			polyPath->updateEdgeRenderData();
 			TmpSvgLineGroup svgGroup(polyPath->getId());
 			svgGroup.isClosed = polyPath->isClosed();
@@ -1247,7 +1248,7 @@ namespace ldp
 				} // end for i
 				if (points.size() < 2)
 					throw std::exception("loadPiecesFromSvg error: an edge in poly %d is invalid!\n", polyPath->getId());
-				svgGroup.lines.push_back(TmpSvgLine());
+				svgGroup.lines.push_back(TmpSvgLine(iCorner));
 				svgGroup.lines.back().pts = points;
 			} // end for iCorner
 			svgGroup.samplePoints(getClothDesignParam().curveSampleStep);
@@ -1280,21 +1281,31 @@ namespace ldp
 		} // end for iter1
 
 		// 1.2 for all outside polygons, create a new graph panel, and add others that inside it into it
+		std::map<Int2, std::vector<AbstractGraphCurve*>> svgLine2GraphCurves;
 		for (auto& group_iter : svgGroups)
 		{
 			const auto& group = group_iter.second;
 			if (group.insideOtherPolyId >= 0)
 				continue;
-			std::vector<std::vector<GraphPointPtr>> fittedLines;
-			for (const auto& line : group.lines)
-			{
-				AbstractGraphCurve::fittingCurves(fittedLines, line.pts, g_designParam.curveFittingThre);
-			} // end for line
 
 			// add piece
 			m_clothPieces.push_back(std::shared_ptr<ClothPiece>(new ClothPiece()));
 			const auto& piece = m_clothPieces.back();
-			piece->graphPanel().addLoop(fittedLines, true);
+
+			std::vector<AbstractGraphCurve*> fittedCurves;
+			for (const auto& line : group.lines)
+			{
+				std::vector<std::vector<GraphPointPtr>> fittedPtsGroups;
+				AbstractGraphCurve::fittingCurves(fittedPtsGroups, line.pts, g_designParam.curveFittingThre);
+				for (auto& pts : fittedPtsGroups)
+				{
+					fittedCurves.push_back(piece->graphPanel().addCurve(pts));
+					svgLine2GraphCurves[Int2(group.id, line.id)].push_back(fittedCurves.back());
+				}
+			} // end for line
+
+			// add outer loop
+			piece->graphPanel().addLoop(fittedCurves, true);
 
 			// copy transform:
 			// the 2D-to-3D transform defined in the SVG is:
@@ -1317,26 +1328,28 @@ namespace ldp
 				if (inner.insideOtherPolyId != group.id)
 					continue;
 
-				std::vector<std::vector<GraphPointPtr>> fittedLines;
-				for (const auto& line : group.lines)
+				std::vector<AbstractGraphCurve*> fittedCurves;
+				for (const auto& line : inner.lines)
 				{
-					AbstractGraphCurve::fittingCurves(fittedLines, line.pts, g_designParam.curveFittingThre);
+					std::vector<std::vector<GraphPointPtr>> fittedPtsGroups;
+					AbstractGraphCurve::fittingCurves(fittedPtsGroups, line.pts, g_designParam.curveFittingThre);
+					for (auto& pts : fittedPtsGroups)
+					{
+						fittedCurves.push_back(piece->graphPanel().addCurve(pts));
+						svgLine2GraphCurves[Int2(inner.id, line.id)].push_back(fittedCurves.back());
+					}
 				} // end for line
-				piece->graphPanel().addLoop(fittedLines, false);
+				piece->graphPanel().addLoop(fittedCurves, false);
 			} // end for inner_iter
 		} // end for group_iter
 
-#if 0
-		// 1.2 make sewing
+		// 2. make sewing
 		for (const auto& eg : edgeGroups)
 		{
-			const auto& first = objMap[std::make_pair(eg->group.begin()->first, eg->group.begin()->second)];
+			const auto& first = svgLine2GraphCurves[Int2(eg->group.begin()->first->getId(), eg->group.begin()->second)];
 			std::vector<GraphsSewing::Unit> funits, sunits;
 			for (const auto& f : first)
-			{
-				assert(GraphsSewing::getObjByIdx(f->getId()));
-				funits.push_back(GraphsSewing::Unit(f->getId(), true));
-			}
+				funits.push_back(GraphsSewing::Unit(f, true));
 			std::reverse(funits.begin(), funits.end());
 			for (auto iter = eg->group.begin(); iter != eg->group.end(); ++iter)
 			{
@@ -1346,21 +1359,19 @@ namespace ldp
 
 				m_graphSewings.back()->addFirsts(funits);
 
-				const auto& second = objMap[std::make_pair(iter->first, iter->second)];
+				const auto& second = svgLine2GraphCurves[Int2(iter->first->getId(), iter->second)];
 				sunits.clear();
 				for (const auto& s : second)
-				{
-					assert(Sewing::getPtrById(s->getId()));
 					sunits.push_back(GraphsSewing::Unit(s, false));
-				}
 				m_graphSewings.back()->addSeconds(sunits);
 			}
 		} // end for eg
-#endif
 
-		// 2. triangluation
+		// 3. triangluation
 		triangulate();
 		updateDependency();
+		m_shouldStitchUpdate = true;
+		m_shouldLevelSetUpdate = true;
 	}
 
 	void ClothManager::triangulate()
@@ -1527,7 +1538,6 @@ namespace ldp
 					std::string path, name, ext;
 					ldp::fileparts(objfile, path, name, ext);
 					std::string setFile = ldp::fullfile(path, name + ".set");
-					m_bodyLvSet.reset(new LevelSet3D);
 					try
 					{
 						m_bodyLvSet->load(setFile.c_str());

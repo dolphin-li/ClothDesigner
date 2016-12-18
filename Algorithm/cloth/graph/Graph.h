@@ -91,8 +91,8 @@ namespace ldp
 		const GraphLoop* getBoundingLoop()const;
 
 		// topology operations: add units
-		GraphPoint* addKeyPoint(ldp::Float2 p);
-		GraphPoint* addKeyPoint(const std::shared_ptr<GraphPoint>& kp);
+		GraphPoint* addKeyPoint(ldp::Float2 p, bool isEndPoint); // is end point means the front or back of the curve
+		GraphPoint* addKeyPoint(const std::shared_ptr<GraphPoint>& kp, bool isEndPoint);
 		AbstractGraphCurve* addCurve(const std::vector<std::shared_ptr<GraphPoint>>& kpts);
 		AbstractGraphCurve* addCurve(const std::vector<GraphPoint*>& kpts);
 		AbstractGraphCurve* addCurve(const std::shared_ptr<AbstractGraphCurve>& curve);
