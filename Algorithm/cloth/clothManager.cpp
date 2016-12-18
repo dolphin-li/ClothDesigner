@@ -23,6 +23,8 @@
 
 namespace ldp
 {
+	ClothDesignParam g_designParam;
+
 	PROGRESSING_BAR g_debug_save_bar(0);
 	template<class T> static void debug_save_gpu_array(DeviceArray<T> D, std::string filename)
 	{
@@ -162,7 +164,6 @@ namespace ldp
 			buildStitch();
 
 		gtime_t t_begin = ldp::gtime_now();
-
 		for (int oiter = 0; oiter < m_simulationParam.out_iter; oiter++)
 		{
 			// 1. process dragging info
@@ -294,9 +295,9 @@ namespace ldp
 
 	void ClothManager::setClothDesignParam(ClothDesignParam param)
 	{
-		auto lastParam = m_clothDesignParam;
-		m_clothDesignParam = param;
-		if (fabs(lastParam.triangulateThre - m_clothDesignParam.triangulateThre) 
+		auto lastParam = g_designParam;
+		g_designParam = param;
+		if (fabs(lastParam.triangulateThre - g_designParam.triangulateThre)
 			>= std::numeric_limits<float>::epsilon())
 			m_shouldTriangulate = true;
 	}
@@ -1178,10 +1179,40 @@ namespace ldp
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////
+	struct TmpSvgLine
+	{
+		std::vector<ldp::Float2> pts;
+	};
+	struct TmpSvgLineGroup
+	{
+		std::vector<TmpSvgLine> lines;
+		std::vector<ldp::Float2> samples;
+		int id = 0;
+		bool isClosed = false;
+		int insideOtherPolyId = -1;
+		ldp::Float3 C3;
+		ldp::Float2 C2;
+		ldp::Mat3f R;
+		TmpSvgLineGroup(int i) :id(i) {}
+		void samplePoints(float step)
+		{
+			samples.clear();
+			for (const auto& line : lines)
+			{
+				for (const auto& p : line.pts)
+				{
+					if (samples.size())
+					if ((p - samples.back()).length() < step || (p-samples[0]).length() < step)
+						continue;
+					samples.push_back(p);
+				}
+			} // end for line
+		}
+	};
 	void ClothManager::loadPiecesFromSvg(std::string filename)
 	{
-#if 0
 		m_clothPieces.clear();
+		clearSewings();
 
 		svg::SvgManager svgManager;
 		svgManager.load(filename.c_str());
@@ -1190,114 +1221,113 @@ namespace ldp
 		auto edgeGroups = svgManager.collectEdgeGroups(false);
 		const float pixel2meter = svgManager.getPixelToMeters();
 
-		// 1.1 add closed polygons as loops ----------------------------------------------
-		std::vector<std::vector<std::vector<GraphPointPtr>>> groups;
-		std::vector<std::vector<std::vector<GraphPointPtr>>> lines;
-		std::vector<const svg::SvgPolyPath*> groupSvgPaths;
-		ObjConvertMap objMap;
+		// 1.0 collect all svg paths
+		std::map<int, TmpSvgLineGroup> svgGroups;
 		for (auto polyPath : polyPaths)
 		{
 			polyPath->findCorners();
 			polyPath->updateEdgeRenderData();
-			if (polyPath->isClosed())
+			TmpSvgLineGroup svgGroup(polyPath->getId());
+			svgGroup.isClosed = polyPath->isClosed();
+			svgGroup.C2 = polyPath->getCenter() * pixel2meter;
+			svgGroup.C3 = polyPath->get3dCenter() * pixel2meter;
+			svgGroup.R = polyPath->get3dRot().toRotationMatrix3();
+			for (int iCorner = 0; iCorner < polyPath->numCornerEdges(); iCorner++)
 			{
-				groupSvgPaths.push_back(polyPath);
-				groups.push_back(std::vector<std::vector<GraphPointPtr>>());
-				polyPathToShape(polyPath, groups.back(), pixel2meter, objMap);
-			} // end if closed
-			else
-			{
-				lines.push_back(std::vector<std::vector<GraphPointPtr>>());
-				polyPathToShape(polyPath, lines.back(), pixel2meter, objMap);
-			} // end if not closed
+				std::vector<Vec2> points;
+				const auto& coords = polyPath->getEdgeCoords(iCorner);
+				assert(coords.size() >= 4);
+				for (size_t i = 0; i < coords.size() - 1; i += 2)
+				{
+					ldp::Float2 p(coords[i] * pixel2meter, coords[i + 1] * pixel2meter);
+					if (points.size())
+					if ((p - points.back()).length() < getClothDesignParam().pointMergeDistThre)
+						continue;
+					points.push_back(p);
+				} // end for i
+				if (points.size() < 2)
+					throw std::exception("loadPiecesFromSvg error: an edge in poly %d is invalid!\n", polyPath->getId());
+				svgGroup.lines.push_back(TmpSvgLine());
+				svgGroup.lines.back().pts = points;
+			} // end for iCorner
+			svgGroup.samplePoints(getClothDesignParam().curveSampleStep);
+			svgGroups.insert(std::make_pair(svgGroup.id, svgGroup));
 		} // end for polyPath
 
-		// 1.2 mark inside/outside of polygons
-		std::vector<int> polyInsideId(groups.size(), -1);
-		std::vector<int> lineInsideId(lines.size(), -1);
-		std::vector<Vec2> ipts, jpts;
-		for (size_t ipoly = 0; ipoly < groups.size(); ipoly++)
+		// 1.1 decide inside/outside relations
+		for (auto& iter1 : svgGroups)
 		{
-			ipts.clear();
-			groups[ipoly]->collectSamplePoints(ipts, m_clothDesignParam.curveSampleStep);
-			for (size_t jpoly = 0; jpoly < groups.size(); jpoly++)
+			auto& group1 = iter1.second;
+			for (auto& iter2 : svgGroups)
 			{
-				if (jpoly == ipoly)
+				if (iter2.first == iter1.first)
 					continue;
-				jpts.clear();
-				groups[jpoly]->collectSamplePoints(jpts, m_clothDesignParam.curveSampleStep);
+				auto& group2 = iter2.second;
+				if (!group2.isClosed || group2.insideOtherPolyId>=0)
+					continue;
 				bool allIn = true;
-				for (const auto& pj : jpts)
+				for (const auto& p1 : group1.samples)
 				{
-					if (!this->pointInPolygon((int)ipts.size()-1, ipts.data(), pj))
+					if (!this->pointInPolygon((int)group2.samples.size() - 1, group2.samples.data(), p1))
 					{
 						allIn = false;
 						break;
 					}
 				} // end for pj
 				if (allIn)
-					polyInsideId[jpoly] = ipoly;
-			} // end for jpoly
-			for (size_t jpoly = 0; jpoly < lines.size(); jpoly++)
-			{
-				jpts.clear();
-				lines[jpoly]->collectSamplePoints(jpts, m_clothDesignParam.curveSampleStep);
-				bool allIn = true;
-				for (const auto& pj : jpts)
-				{
-					if (!this->pointInPolygon((int)ipts.size() - 1, ipts.data(), pj))
-					{
-						allIn = false;
-						break;
-					}
-				} // end for pj
-				if (allIn)
-					lineInsideId[jpoly] = ipoly;
-			} // end for jpoly
-		} // end for ipoly
+					group1.insideOtherPolyId = group2.id;
+			} // end for iter2
+		} // end for iter1
 
-		// 1.3 create outter panels, darts and inner lines
-		for (size_t ipoly = 0; ipoly < groups.size(); ipoly++)
+		// 1.2 for all outside polygons, create a new graph panel, and add others that inside it into it
+		for (auto& group_iter : svgGroups)
 		{
-			if (polyInsideId[ipoly] >= 0)
+			const auto& group = group_iter.second;
+			if (group.insideOtherPolyId >= 0)
 				continue;
+			std::vector<std::vector<GraphPointPtr>> fittedLines;
+			for (const auto& line : group.lines)
+			{
+				AbstractGraphCurve::fittingCurves(fittedLines, line.pts, g_designParam.curveFittingThre);
+			} // end for line
+
+			// add piece
 			m_clothPieces.push_back(std::shared_ptr<ClothPiece>(new ClothPiece()));
 			const auto& piece = m_clothPieces.back();
-			piece->graphPanel().addLoop(groups[ipoly]);
+			piece->graphPanel().addLoop(fittedLines, true);
 
 			// copy transform:
 			// the 2D-to-3D transform defined in the SVG is:
 			// (x,y,0)-->R*(0,x-x0,y-y0)+t, where (x0,y0) is the 2d cener and t is the 3d cener
-			auto svg = groupSvgPaths[ipoly];
 			ldp::Mat4f T = ldp::Mat4f().eye();
 			ldp::Mat3f C = ldp::Mat3f().zeros();
 			C(0, 2) = C(1, 0) = C(2, 1) = 1;
-			auto R = svg->get3dRot().toRotationMatrix3();
-			auto t = svg->get3dCenter() * pixel2meter;
-			auto t2 = svg->getCenter() * pixel2meter;
+			auto R = group.R;
+			auto t = group.C3;
+			auto t2 = group.C2;
 			T.setRotationPart(R*C);
 			auto tmp = C*ldp::Float3(t2[0], t2[1], 0);
 			T.setTranslationPart(t - R*C*ldp::Float3(t2[0], t2[1], 0));
 			piece->transformInfo().transform() = T;
 
-			// add dart
-			for (size_t jpoly = 0; jpoly < groups.size(); jpoly++)
+			// add other loops
+			for (auto& inner_iter : svgGroups)
 			{
-				if (polyInsideId[jpoly] != ipoly)
+				const auto& inner = inner_iter.second;
+				if (inner.insideOtherPolyId != group.id)
 					continue;
-				piece->graphPanel().addLoop(groups[jpoly]);
-			} // end for jpoly
 
-			// add inner lines
-			for (size_t jpoly = 0; jpoly < lines.size(); jpoly++)
-			{
-				if (lineInsideId[jpoly] != ipoly)
-					continue;
-				piece->graphPanel().addLoop(lines[jpoly]);
-			} // end for jpoly
-		} // end for ipoly
+				std::vector<std::vector<GraphPointPtr>> fittedLines;
+				for (const auto& line : group.lines)
+				{
+					AbstractGraphCurve::fittingCurves(fittedLines, line.pts, g_designParam.curveFittingThre);
+				} // end for line
+				piece->graphPanel().addLoop(fittedLines, false);
+			} // end for inner_iter
+		} // end for group_iter
 
-		// 1.4 make sewing
+#if 0
+		// 1.2 make sewing
 		for (const auto& eg : edgeGroups)
 		{
 			const auto& first = objMap[std::make_pair(eg->group.begin()->first, eg->group.begin()->second)];
@@ -1305,28 +1335,29 @@ namespace ldp
 			for (const auto& f : first)
 			{
 				assert(GraphsSewing::getObjByIdx(f->getId()));
-				funits.push_back(Sewing::Unit(f->getId(), true));
+				funits.push_back(GraphsSewing::Unit(f->getId(), true));
 			}
 			std::reverse(funits.begin(), funits.end());
 			for (auto iter = eg->group.begin(); iter != eg->group.end(); ++iter)
 			{
 				if (iter == eg->group.begin())
 					continue;
-				m_sewings.push_back(SewingPtr(new Sewing()));
+				m_graphSewings.push_back(GraphsSewingPtr(new GraphsSewing()));
 
-				m_sewings.back()->addFirsts(funits);
+				m_graphSewings.back()->addFirsts(funits);
 
 				const auto& second = objMap[std::make_pair(iter->first, iter->second)];
 				sunits.clear();
 				for (const auto& s : second)
 				{
 					assert(Sewing::getPtrById(s->getId()));
-					sunits.push_back(Sewing::Unit(s->getId(), false));
+					sunits.push_back(GraphsSewing::Unit(s, false));
 				}
-				m_sewings.back()->addSeconds(sunits);
+				m_graphSewings.back()->addSeconds(sunits);
 			}
 		} // end for eg
 #endif
+
 		// 2. triangluation
 		triangulate();
 		updateDependency();
@@ -1339,44 +1370,15 @@ namespace ldp
 			return;
 
 		m_graph2mesh->triangulate(m_clothPieces, m_graphSewings,
-			m_clothDesignParam.pointMergeDistThre,
-			m_clothDesignParam.triangulateThre,
-			m_clothDesignParam.pointInsidePolyThre);
+			g_designParam.pointMergeDistThre,
+			g_designParam.triangulateThre,
+			g_designParam.pointInsidePolyThre);
 
 		m_stitches = m_graph2mesh->sewingVertPairs();
 
 		// params
 		m_shouldTriangulate = false;
 		m_shouldMergePieces = true;
-	}
-
-	void ClothManager::polyPathToShape(const svg::SvgPolyPath* polyPath, 
-		std::vector<std::vector<GraphPointPtr>>& group, float pixel2meter, ObjConvertMap& map)
-	{
-		for (size_t iCorner = 0; iCorner < polyPath->numCornerEdges(); iCorner++)
-		{
-			std::vector<Vec2> points;
-			const auto& coords = polyPath->getEdgeCoords(iCorner);
-			assert(coords.size() >= 4);
-			for (size_t i = 0; i < coords.size() - 1; i += 2)
-			{
-				ldp::Float2 p(coords[i] * pixel2meter, coords[i + 1] * pixel2meter);
-				if (points.size())
-				if ((p - points.back()).length() < m_clothDesignParam.pointMergeDistThre)
-					continue;
-				points.push_back(p);
-			} // end for i
-			if (points.size() >= 2)
-			{
-				auto key = std::make_pair(polyPath, (int)iCorner);
-				map.insert(std::make_pair(key, std::vector<std::vector<GraphPointPtr>>()));
-				auto mapIter = map.find(key);
-				size_t lastSize = group.size();
-				AbstractGraphCurve::fittingCurves(group, points, m_clothDesignParam.curveFittingThre);
-				for (size_t sz = lastSize; sz < group.size(); sz++)
-					mapIter->second.push_back(group.at(sz));
-			}
-		}
 	}
 
 	bool ClothManager::pointInPolygon(int n, const Vec2* v, Vec2 p)
@@ -1399,7 +1401,7 @@ namespace ldp
 			minDist = std::min(minDist, (p-p0).length());
 		}
 		minDist *= d;
-		return minDist >= -m_clothDesignParam.pointInsidePolyThre;
+		return minDist >= -g_designParam.pointInsidePolyThre;
 	}
 
 	////sewings/////////////////////////////////////////////////////////////////////////////////

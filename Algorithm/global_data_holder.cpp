@@ -184,25 +184,6 @@ void GlobalDataHolder::debug_5()
 		f.material_index = 0;
 
 	m_clothManager->loadPiecesFromSvg("data/Basic_Blouse_10_2016.svg");
-
-	// debug create levelset
-	try
-	{
-		m_clothManager->bodyLevelSet()->load("data/wm2_15k.set");
-	} catch (std::exception e)
-	{
-		const float step = 0.01;
-		auto bmin = body->boundingBox[0];
-		auto bmax = body->boundingBox[1];
-		auto brag = bmax - bmin;
-		bmin -= 0.1f * brag;
-		bmax += 0.1f * brag;
-		ldp::Int3 res = (bmax - bmin) / step;
-		ldp::Float3 start = bmin;
-		m_clothManager->bodyLevelSet()->create(res, start, step);
-		m_clothManager->bodyLevelSet()->fromMesh(*body);
-		m_clothManager->bodyLevelSet()->save("data/wm2_15k.set");
-	}
 }
 
 

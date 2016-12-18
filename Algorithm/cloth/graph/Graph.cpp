@@ -3,6 +3,7 @@
 #include "AbstractGraphCurve.h"
 #include "GraphLoop.h"
 #include "tinyxml\tinyxml.h"
+#include "cloth\definations.h"
 namespace ldp
 {
 	Graph::Graph() : AbstractGraphObject()
@@ -120,11 +121,19 @@ namespace ldp
 				{
 					GraphLoopPtr kpt((GraphLoop*)AbstractGraphObject::create(child->Value()));
 					kpt->fromXML(child);
-					addLoop(kpt);
+					m_loops.insert(std::make_pair(kpt->getId(), kpt));
 				}
 			} // end if loops
 		} // end for groups
 		updateBound();
+
+		// auto make bounding loop
+		std::vector<GraphLoop*> closedLoops;
+		for (auto iter : m_loops)
+		if (iter.second->isClosed())
+			closedLoops.push_back(iter.second.get());
+		if (closedLoops.size() == 1)
+			closedLoops[0]->setBoundingLoop(true);
 	}
 
 	bool Graph::select(int idx, SelectOp op)
@@ -302,23 +311,23 @@ namespace ldp
 		return curve.get();
 	}
 
-	GraphLoop* Graph::addLoop(const std::vector<std::vector<GraphPointPtr>>& curves)
+	GraphLoop* Graph::addLoop(const std::vector<std::vector<GraphPointPtr>>& curves, bool isBoundingLoop)
 	{
 		std::vector<AbstractGraphCurve*> ptr;
 		for (const auto& c : curves)
 			ptr.push_back(addCurve(c));
-		return addLoop(ptr);
+		return addLoop(ptr, isBoundingLoop);
 	}
 
-	GraphLoop* Graph::addLoop(const std::vector<AbstractGraphCurvePtr>& curves)
+	GraphLoop* Graph::addLoop(const std::vector<AbstractGraphCurvePtr>& curves, bool isBoundingLoop)
 	{
 		std::vector<AbstractGraphCurve*> ptr;
 		for (const auto& c : curves)
 			ptr.push_back(addCurve(c));
-		return addLoop(ptr);
+		return addLoop(ptr, isBoundingLoop);
 	}
 
-	GraphLoop* Graph::addLoop(const std::vector<AbstractGraphCurve*>& curves)
+	GraphLoop* Graph::addLoop(const std::vector<AbstractGraphCurve*>& curves, bool isBoundingLoop)
 	{
 		if (curves.size() == 0)
 			return nullptr;
@@ -333,18 +342,24 @@ namespace ldp
 				throw std::exception("addLoop: given curves not connected!");
 			curves[i - 1]->nextEdge() = curves[i];
 		}
+		if (curves.back()->getEndPoint() == curves[0]->getStartPoint())
+			curves.back()->nextEdge() = curves[0];
 		std::shared_ptr<GraphLoop> loop(new GraphLoop);
 		loop->startEdge() = curves[0];
+		loop->setBoundingLoop(isBoundingLoop);
 		return addLoop(loop);
 	}
 
 	GraphLoop* Graph::addLoop(const std::shared_ptr<GraphLoop>& loop)
 	{
+		if (loop->isBoundingLoop() && !loop->isClosed())
+			throw std::exception("error: addLoop: bounding loop must be closed!");
+
 		// check id
 		auto iter = m_loops.find(loop->getId());
 		if (iter != m_loops.end())
 		{
-			printf("warning: addCurve: curve %d already existed!\n", loop->getId());
+			printf("warning: addLoop: loop %d already existed!\n", loop->getId());
 			return loop.get();
 		}
 
@@ -371,6 +386,14 @@ namespace ldp
 			edge = edge->nextEdge();
 		} while (edge && edge != loop->startEdge());
 
+
+		// check that there is only one bounding loop
+		int nBounds = loop->isBoundingLoop();
+		for (auto l : m_loops)
+			nBounds += l.second->isBoundingLoop();
+		if (nBounds != 1)
+			throw std::exception("addLoop error: there must be exactly 1 bounding loop!");
+
 		// insert loop
 		m_loops.insert(std::make_pair(loop->getId(), loop));
 		edge = loop->startEdge();
@@ -382,6 +405,39 @@ namespace ldp
 		return loop.get();
 	}
 
+	GraphLoop* Graph::getBoundingLoop()
+	{
+		if (m_loops.size() == 0)
+			return nullptr;
+		int n = 0;
+		GraphLoop* lp = nullptr;
+		for (auto& iter : m_loops)
+		if (iter.second->isBoundingLoop())
+		{
+			lp = iter.second.get();
+			n++;
+		}
+		if (n != 1)
+			throw std::exception("getBoundingLoop: there must be exactly 1 bounding loop!\n");
+		return lp;
+	}
+
+	const GraphLoop* Graph::getBoundingLoop()const
+	{
+		if (m_loops.size() == 0)
+			return nullptr;
+		int n = 0;
+		GraphLoop* lp = nullptr;
+		for (auto& iter : m_loops)
+		if (iter.second->isBoundingLoop())
+		{
+			lp = iter.second.get();
+			n++;
+		}
+		if (n != 1)
+			throw std::exception("const getBoundingLoop: there must be exactly 1 bounding loop!\n");
+		return lp;
+	}
 	///////////////////// topology operations: remove units, return false if not removed//////////////
 	bool Graph::remove(size_t id)
 	{

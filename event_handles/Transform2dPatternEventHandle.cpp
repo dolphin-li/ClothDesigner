@@ -355,6 +355,8 @@ bool Transform2dPatternEventHandle::curveLevelTransform_MouseMove(QMouseEvent* e
 				{
 					for (int i = 0; i < cv->numKeyPoints(); i++)
 						validKpts.insert(cv->keyPoint(i));
+					m_transformed = true;
+					changed = true;
 				}
 			}
 		} // end for iPiece
@@ -388,7 +390,11 @@ bool Transform2dPatternEventHandle::pointLevelTransform_MouseMove(QMouseEvent* e
 			{
 				auto kp = iter->second.get();
 				if (kp->isSelected() || kp->isHighlighted())
+				{
 					kp->position() += p - lp;
+					m_transformed = true;
+					changed = true;
+				}
 			}
 		} // end for iPiece
 	} // end if left button

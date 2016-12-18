@@ -79,13 +79,27 @@ namespace ldp
 		for (auto& piece : (*m_pieces))
 		{
 			const auto& panel = piece->graphPanel();
+			auto bloop = panel.getBoundingLoop();
+			if (bloop == nullptr)
+				continue;
 			prepareTriangulation();
+
+			// add bounding loop as the outer poly
+			addPolygon(*bloop);
+
+			// add other closed loops as the darts
 			for (auto loop_iter = panel.loopBegin(); loop_iter != panel.loopEnd(); ++loop_iter)
 			{
 				auto loop = loop_iter->second.get();
 				if (loop->isClosed())
-					addPolygon(*loop);
-				else
+					addDart(*loop);
+			} // end for loop iter
+
+			// add inner lines
+			for (auto loop_iter = panel.loopBegin(); loop_iter != panel.loopEnd(); ++loop_iter)
+			{
+				auto loop = loop_iter->second.get();
+				if (!loop->isClosed())
 					addLine(*loop); // ldp todo: add dart?
 			} // end for loop iter
 			finalizeTriangulation();

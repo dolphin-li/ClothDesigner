@@ -75,7 +75,7 @@ namespace ldp
 		float getFps()const { return m_fps; }
 		SimulationMode getSimulationMode()const { return m_simulationMode; }
 		SimulationParam getSimulationParam()const { return m_simulationParam; }
-		ClothDesignParam getClothDesignParam()const { return m_clothDesignParam; }
+		static ClothDesignParam getClothDesignParam() { return g_designParam; }
 
 		/// mesh backup related
 		void updateCurrentClothsToInitial();
@@ -127,7 +127,6 @@ namespace ldp
 		std::shared_ptr<LevelSet3D> m_bodyLvSet;
 		SimulationMode m_simulationMode;
 		SimulationParam m_simulationParam;
-		ClothDesignParam m_clothDesignParam;
 		ValueType m_avgArea;
 		ValueType m_avgEdgeLength;
 		ValueType m_fps;
@@ -142,10 +141,6 @@ namespace ldp
 		std::shared_ptr<Graph2Mesh> m_graph2mesh;
 	protected:
 		bool pointInPolygon(int n, const Vec2* pts, Vec2 p);
-		typedef std::map<std::pair<const svg::SvgPolyPath*, int>, std::vector<std::vector<std::shared_ptr<GraphPoint>>>> ObjConvertMap;
-		void polyPathToShape(const svg::SvgPolyPath* polyPath,
-			std::vector<std::vector<std::shared_ptr<GraphPoint>>>& group, 
-			float pixel2meter, ObjConvertMap& map);
 		BMEdge* findEdge(int v1, int v2);
 	protected:
 		// Topology related--------------------------------------------------------------

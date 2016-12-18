@@ -13,7 +13,7 @@
 #include <cuda.h>
 #include "cuda_runtime_api.h"
 #pragma comment(lib, "cudart.lib")
-
+#include <exception>
 
 #define cudaSafeCall ___cudaSafeCall
 
@@ -23,7 +23,7 @@ static inline void ___cudaSafeCall(cudaError_t err, const char* msg = NULL)
 	if (cudaSuccess != err)
 	{
 		printf("CUDA error(%s): %s\n", msg, cudaGetErrorString(err));
-		exit(-1);
+		throw std::exception("cuda error");
 	}
 }
 

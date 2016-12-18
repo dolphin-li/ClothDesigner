@@ -38,6 +38,8 @@ namespace ldp
 		void setDefaultParam();
 	};
 
+	extern ClothDesignParam g_designParam;
+
 	struct DragInfo
 	{
 		ObjMesh* selected_cloth;

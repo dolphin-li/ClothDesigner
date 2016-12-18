@@ -14,6 +14,7 @@ namespace ldp
 		GraphLoop* loop = (GraphLoop*)create(getType());
 		loop->m_startEdge = m_startEdge;
 		loop->setSelected(isSelected());
+		loop->m_isBoundingLoop = m_isBoundingLoop;
 		return loop;
 	}
 
@@ -31,6 +32,8 @@ namespace ldp
 	{
 		TiXmlElement* ele = AbstractGraphObject::toXML(parent);
 
+		ele->SetAttribute("bounding-loop", m_isBoundingLoop);
+
 		auto edge = m_startEdge;
 		do
 		{
@@ -45,6 +48,12 @@ namespace ldp
 	void GraphLoop::fromXML(TiXmlElement* self)
 	{
 		AbstractGraphObject::fromXML(self);
+
+		int bd = 0;
+		if (self->Attribute("bounding-loop", &bd))
+		{
+			m_isBoundingLoop = !!bd;
+		}
 
 		// collect curves
 		std::vector<AbstractGraphCurve*> curves;
