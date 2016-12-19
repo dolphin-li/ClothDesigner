@@ -8,33 +8,35 @@ namespace ldp
 	
 	}
 
+	GraphsSewing::~GraphsSewing()
+	{
+		clear();
+	}
+
 	void GraphsSewing::clear()
 	{
+		auto tmp = m_firsts;
+		tmp.insert(tmp.end(), m_seconds.begin(), m_seconds.end());
+		for (auto t : tmp)
+			remove(t.curve->getId());
 		m_firsts.clear();
 		m_seconds.clear();
 	}
 
 	void GraphsSewing::addFirst(Unit unit)
 	{
-		auto iter_same = m_firsts.end();
-		for (auto iter = m_firsts.begin(); iter != m_firsts.end(); ++iter)
-		{
-			if (iter->curve == unit.curve)
-			{
-				iter_same = iter;
-				break;
-			}
-		}
-		if (iter_same == m_firsts.end())
-			m_firsts.push_back(unit);
-		else
-			iter_same->reverse = unit.reverse;
+		add(m_firsts, unit);
 	}
 
 	void GraphsSewing::addSecond(Unit unit)
 	{
-		auto iter_same = m_seconds.end();
-		for (auto iter = m_seconds.begin(); iter != m_seconds.end(); ++iter)
+		add(m_seconds, unit);
+	}
+
+	void GraphsSewing::add(std::vector<Unit>& units, Unit unit)const
+	{
+		auto iter_same = units.end();
+		for (auto iter = units.begin(); iter != units.end(); ++iter)
 		{
 			if (iter->curve == unit.curve)
 			{
@@ -42,8 +44,11 @@ namespace ldp
 				break;
 			}
 		}
-		if (iter_same == m_seconds.end())
-			m_seconds.push_back(unit);
+		if (iter_same == units.end())
+		{
+			units.push_back(unit);
+			unit.curve->graphSewings().insert((GraphsSewing*)this);
+		}
 		else
 			iter_same->reverse = unit.reverse;
 	}
@@ -62,27 +67,63 @@ namespace ldp
 
 	void GraphsSewing::remove(size_t id)
 	{
-		std::set<size_t> shapes;
-		shapes.insert(id);
-		remove(shapes);
+		remove(m_firsts, id);
+		remove(m_seconds, id);
 	}
 
 	void GraphsSewing::remove(const std::set<size_t>& s)
 	{
-		auto tmp = m_firsts;
-		m_firsts.clear();
-		for (auto& f : tmp)
+		for (auto id : s)
+			remove(id);
+	}
+
+	void GraphsSewing::remove(std::vector<Unit>& units, size_t curveId)const
+	{
+		for (auto iter = units.begin(); iter != units.end(); ++iter)
 		{
-			if (s.find(f.curve->getId()) == s.end())
-				m_firsts.push_back(f);
+			if (iter->curve->getId() != curveId)
+				continue;
+			auto siter = iter->curve->graphSewings().find((GraphsSewing*)this);
+			if (siter == iter->curve->graphSewings().end())
+			{
+				printf("GraphsSewing remove warning: curve %d not relate to sew %d",
+					iter->curve->getId(), getId());
+			}
+			else
+				iter->curve->graphSewings().erase(siter);
+			units.erase(iter);
+			break;
 		}
-		tmp = m_seconds;
-		m_seconds.clear();
-		for (auto& f : tmp)
+	}
+
+	void GraphsSewing::reverse(size_t curveId)
+	{
+		for (auto& u : m_firsts)
+		if (u.curve->getId() == curveId)
 		{
-			if (s.find(f.curve->getId()) == s.end())
-				m_seconds.push_back(f);
+			u.reverse = !u.reverse;
+			return;
 		}
+		for (auto& u : m_seconds)
+		if (u.curve->getId() == curveId)
+		{
+			u.reverse = !u.reverse;
+			return;
+		}
+	}
+
+	void GraphsSewing::reverseFirsts()
+	{
+		for (auto& u : m_firsts)
+			u.reverse = !u.reverse;
+		std::reverse(m_firsts.begin(), m_firsts.end());
+	}
+
+	void GraphsSewing::reverseSeconds()
+	{
+		for (auto& u : m_seconds)
+			u.reverse = !u.reverse;
+		std::reverse(m_seconds.begin(), m_seconds.end());
 	}
 
 	bool GraphsSewing::select(int idx, SelectOp op)
@@ -209,10 +250,10 @@ namespace ldp
 						if (!child1->Attribute("reverse", &tmp))
 							throw std::exception("unit reverse lost");
 						u.reverse = !!tmp;
-						m_firsts.push_back(u);
+						addFirst(u);
 					}
-				}
-			}
+				} // end for child1
+			} // end if firsts
 			if (child->Value() == std::string("Seconds"))
 			{
 				for (auto child1 = child->FirstChildElement(); child1; child1 = child1->NextSiblingElement())
@@ -230,10 +271,10 @@ namespace ldp
 						if (!child1->Attribute("reverse", &tmp))
 							throw std::exception("unit reverse lost");
 						u.reverse = !!tmp;
-						m_seconds.push_back(u);
+						addSecond(u);
 					}
-				}
-			}
-		}
+				} // end for child1
+			} // end if seconds
+		} // end for child
 	}
 }

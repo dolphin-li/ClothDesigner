@@ -2,6 +2,7 @@
 #include "clothManager.h"
 #include "graph\GraphsSewing.h"
 #include "graph\Graph.h"
+#include "graph\AbstractGraphCurve.h"
 #include "clothPiece.h"
 namespace ldp
 {
@@ -58,14 +59,7 @@ namespace ldp
 		// clone graph sewing and map to new pointers
 		myData.graphSewings.clear();
 		for (int i = 0; i < m_manager->numGraphSewings(); i++)
-		{
-			auto sew = m_manager->graphSewing(i)->clone();
-			myData.graphSewings.push_back(GraphsSewingPtr(sew));
-			for (auto& f : sew->firsts())
-				f.curve = (AbstractGraphCurve*)ptrMap[(AbstractGraphObject*)f.curve];
-			for (auto& s : sew->seconds())
-				s.curve = (AbstractGraphCurve*)ptrMap[(AbstractGraphObject*)s.curve];
-		}
+			myData.graphSewings.push_back(GraphsSewingPtr(cloneSew(m_manager->graphSewing(i), ptrMap)));
 	}
 
 	void HistoryStack::stepTo(int pos)
@@ -94,14 +88,7 @@ namespace ldp
 		// clone graph sewing and map to new pointers
 		m_manager->clearSewings();
 		for (int i = 0; i < myData.graphSewings.size(); i++)
-		{
-			auto sew = myData.graphSewings[i]->clone();
-			m_manager->addGraphSewing(GraphsSewingPtr(sew));
-			for (auto& f : sew->firsts())
-				f.curve = (AbstractGraphCurve*)ptrMap[(AbstractGraphObject*)f.curve];
-			for (auto& s : sew->seconds())
-				s.curve = (AbstractGraphCurve*)ptrMap[(AbstractGraphObject*)s.curve];
-		}
+			m_manager->addGraphSewing(GraphsSewingPtr(cloneSew(myData.graphSewings[i].get(), ptrMap)));
 
 		// init simulation
 		m_manager->simulationInit();
@@ -131,4 +118,29 @@ namespace ldp
 		stepTo(pos() + 1);
 	}
 
+	GraphsSewing* HistoryStack::cloneSew(GraphsSewing* oldSew, PtrMap& ptrMap)
+	{
+		auto sew = oldSew->clone();
+		for (auto& u : sew->m_firsts)
+		{
+			u.curve = (AbstractGraphCurve*)ptrMap[(AbstractGraphObject*)u.curve];
+			if (u.curve->graphSewings().find(oldSew) == u.curve->graphSewings().end())
+				printf("history stack warning: curve %d does not relate to sew %d\n",
+				u.curve->getId(), oldSew->getId());
+			else
+				u.curve->graphSewings().erase(oldSew);
+			u.curve->graphSewings().insert(sew);
+		}
+		for (auto& u : sew->m_seconds)
+		{
+			u.curve = (AbstractGraphCurve*)ptrMap[(AbstractGraphObject*)u.curve];
+			if (u.curve->graphSewings().find(oldSew) == u.curve->graphSewings().end())
+				printf("history stack warning: curve %d does not relate to sew %d\n",
+				u.curve->getId(), oldSew->getId());
+			else
+				u.curve->graphSewings().erase(oldSew);
+			u.curve->graphSewings().insert(sew);
+		}
+		return sew;
+	}
 }

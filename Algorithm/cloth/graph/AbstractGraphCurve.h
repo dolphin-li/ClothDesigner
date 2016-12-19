@@ -6,11 +6,13 @@ namespace ldp
 {
 	class GraphPoint;
 	class GraphLoop;
+	class GraphsSewing;
 	class AbstractGraphCurve : public AbstractGraphObject
 	{
 	public:
 		AbstractGraphCurve();
 		AbstractGraphCurve(const std::vector<GraphPoint*>& pts);
+		virtual ~AbstractGraphCurve();
 
 		virtual AbstractGraphCurve* clone()const;
 		virtual Type getType()const = 0;
@@ -73,6 +75,10 @@ namespace ldp
 		const AbstractGraphCurve* const& nextEdge()const { return m_next; }
 		GraphLoop*& loop() { return m_loop; }
 		const GraphLoop* const& loop()const { return m_loop; }
+
+		// relate to sewings
+		std::hash_set<GraphsSewing*>& graphSewings() { return m_sewings; }
+		const std::hash_set<GraphsSewing*>& graphSewings()const { return m_sewings; }
 	protected:
 		virtual float calcLength()const;
 	protected:
@@ -81,6 +87,9 @@ namespace ldp
 		// for half-edge data structure
 		AbstractGraphCurve* m_next = nullptr;
 		GraphLoop* m_loop = nullptr;
+
+		// relate to sewings
+		std::hash_set<GraphsSewing*> m_sewings;
 	private:
 		mutable std::vector<Float2> m_samplePoints;
 		mutable bool m_invalid = true;

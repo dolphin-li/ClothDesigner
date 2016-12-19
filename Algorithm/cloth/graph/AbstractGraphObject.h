@@ -66,14 +66,8 @@ namespace ldp
 			|| getType() == TypeGraphLine || getType() == TypeGraphQuadratic; }
 		bool operator <(const AbstractGraphObject& rhs)const { return m_id < rhs.m_id; }
 	protected:
-		virtual AbstractGraphObject& operator = (const AbstractGraphObject& rhs) 
-		{ 
-			throw std::exception("AbstractGraphObject: assign not allowed!"); 
-		}
-		AbstractGraphObject(const AbstractGraphObject& rhs) 
-		{
-			throw std::exception("AbstractGraphObject: assign not allowed!");
-		}
+		virtual AbstractGraphObject& operator = (const AbstractGraphObject& rhs) = delete;
+		AbstractGraphObject(const AbstractGraphObject& rhs) = delete;
 		void requireIdx();
 		void freeIdx();
 	private:

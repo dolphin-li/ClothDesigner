@@ -94,6 +94,8 @@ namespace ldp
 		GraphsSewing* graphSewing(int i) { return m_graphSewings.at(i).get(); }
 		void addGraphSewing(std::shared_ptr<GraphsSewing> sewing);
 		void addGraphSewings(const std::vector<std::shared_ptr<GraphsSewing>>& sewings);
+		void removeGraphSewing(size_t id);
+		void removeGraphSewing(GraphsSewing* sewing);
 
 		/// body mesh
 		const ObjMesh* bodyMesh()const { return m_bodyMesh.get(); }
@@ -111,6 +113,8 @@ namespace ldp
 		ClothPiece* clothPiece(int i) { return m_clothPieces.at(i).get(); }
 		void clearClothPieces();
 		void addClothPiece(std::shared_ptr<ClothPiece> piece);
+		void removeClosePiece(size_t graphPanelId);
+		void removeClosePiece(ClothPiece* piece);
 
 		/// bounding box
 		void get2dBound(ldp::Float2& bmin, ldp::Float2& bmax)const;

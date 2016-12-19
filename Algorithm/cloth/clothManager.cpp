@@ -347,21 +347,47 @@ namespace ldp
 	{
 		m_bmesh.reset((BMesh*)nullptr);
 		m_bmeshVerts.clear();
-		m_clothPieces.clear();
 		m_clothVertBegin.clear();
 		m_X.clear();
 		m_T.clear();
 		m_avgArea = 0;
 		m_avgEdgeLength = 0;
+
+		clearSewings();
+		auto tmp = m_clothPieces;
+		for (auto& t : tmp)
+			removeClosePiece(t->graphPanel().getId());
 		m_shouldTriangulate = true;
-		m_shouldMergePieces = false;
 	}
 
 	void ClothManager::addClothPiece(std::shared_ptr<ClothPiece> piece) 
 	{ 
 		m_clothPieces.push_back(piece); 
-		m_shouldMergePieces = true;
 		m_shouldTriangulate = true;
+	}
+
+	void ClothManager::removeClosePiece(size_t graphPanelId)
+	{
+		for (auto iter = m_clothPieces.begin(); iter != m_clothPieces.end(); ++iter)
+		{
+			auto& panel = (*iter)->graphPanel();
+			if (panel.getId() != graphPanelId)
+				continue;
+			m_clothPieces.erase(iter);
+			m_shouldTriangulate = true;
+			break;
+		} // end for iter
+		auto tmp = m_graphSewings;
+		for (auto& sew : tmp)
+		if (sew->empty())
+			removeGraphSewing(sew->getId());
+	}
+
+	void ClothManager::removeClosePiece(ClothPiece* piece)
+	{
+		if (piece == nullptr)
+			return;
+		removeClosePiece(piece->graphPanel().getId());
 	}
 
 	void ClothManager::mergePieces()
@@ -415,7 +441,6 @@ namespace ldp
 	void ClothManager::clearSewings()
 	{
 		m_sewVofFMap.clear();
-		m_graphSewings.clear();
 		m_stitches.clear();
 		m_stitchVV.clear();
 		m_stitchVV_num.clear();
@@ -431,6 +456,9 @@ namespace ldp
 		m_stitchVE_num.clear();
 		m_stitchVE_W.clear();
 #endif
+		auto tmp = m_graphSewings;
+		for (auto& s : tmp)
+			removeGraphSewing(s.get());
 		m_shouldTriangulate = true;
 		m_shouldMergePieces = true;
 	}
@@ -1296,7 +1324,7 @@ namespace ldp
 			}
 
 			// add piece
-			m_clothPieces.push_back(std::shared_ptr<ClothPiece>(new ClothPiece(m_graphSewings)));
+			m_clothPieces.push_back(std::shared_ptr<ClothPiece>(new ClothPiece()));
 			const auto& piece = m_clothPieces.back();
 
 			std::vector<AbstractGraphCurve*> fittedCurves;
@@ -1362,13 +1390,14 @@ namespace ldp
 			{
 				if (iter == eg->group.begin())
 					continue;
-				m_graphSewings.push_back(GraphsSewingPtr(new GraphsSewing()));
-				m_graphSewings.back()->addFirsts(funits);
+				GraphsSewingPtr gptr(new GraphsSewing());
+				gptr->addFirsts(funits);
 				const auto& second = svgLine2GraphCurves[Int2(iter->first->getId(), iter->second)];
 				sunits.clear();
 				for (const auto& s : second)
 					sunits.push_back(GraphsSewing::Unit(s, false));
-				m_graphSewings.back()->addSeconds(sunits);
+				gptr->addSeconds(sunits);
+				addGraphSewing(gptr);
 			}
 		} // end for eg
 
@@ -1415,20 +1444,41 @@ namespace ldp
 		m_shouldTriangulate = true;
 	}
 
+	void ClothManager::removeGraphSewing(size_t id)
+	{
+		for (auto iter = m_graphSewings.begin(); iter != m_graphSewings.end(); ++iter)
+		{
+			auto sew = *iter;
+			if (sew->getId() != id)
+				continue;
+			m_graphSewings.erase(iter);
+			m_shouldTriangulate = true;
+			break;
+		}
+	}
+
+	void ClothManager::removeGraphSewing(GraphsSewing* sewing)
+	{
+		if (sewing == nullptr)
+			return;
+		removeGraphSewing(sewing->getId());
+	}
+
 	/////UI operations///////////////////////////////////////////////////////////////////////////////////////
 	bool ClothManager::removeSelectedSewings()
 	{
 		bool removed = false;
+
 		// sewings selected
 		auto tempSewings = m_graphSewings;
-		m_graphSewings.clear();
 		for (auto& sew : tempSewings)
 		{
-			if (sew->isSelected())
-				removed = true;
-			else
-				m_graphSewings.push_back(sew);
+			if (!sew->isSelected())
+				continue;
+			removeGraphSewing(sew.get());
+			removed = true;
 		} // end for tempSewings
+
 		if (removed)
 		{
 			m_stitches.clear();
@@ -1444,9 +1494,7 @@ namespace ldp
 		{
 			if (sew->isSelected())
 			{
-				for (GraphsSewing::Unit &f : sew->firsts())
-					f.reverse = !f.reverse;
-				std::reverse(sew->firsts().begin(), sew->firsts().end());
+				sew->reverseFirsts();
 				change = true;
 			} // end for sew
 		} // end for tempSewings
@@ -1501,7 +1549,7 @@ namespace ldp
 			} // end for BodyMesh
 			else if (pele->Value() == std::string("Piece"))
 			{
-				m_clothPieces.push_back(std::shared_ptr<ClothPiece>(new ClothPiece(m_graphSewings)));
+				m_clothPieces.push_back(std::shared_ptr<ClothPiece>(new ClothPiece()));
 				for (auto child = pele->FirstChildElement(); child; child = child->NextSiblingElement())
 				{
 					if (child->Value() == m_clothPieces.back()->transformInfo().getTypeString())
@@ -1512,8 +1560,9 @@ namespace ldp
 			} // end for piece
 			else if (pele->Value() == tmpGraphSewing.getTypeString())
 			{
-				m_graphSewings.push_back(std::shared_ptr<GraphsSewing>(new GraphsSewing));
-				m_graphSewings.back()->fromXML(pele);
+				GraphsSewingPtr gptr(new GraphsSewing);
+				gptr->fromXML(pele);
+				addGraphSewing(gptr);
 			} // end for sewing
 		} // end for pele
 

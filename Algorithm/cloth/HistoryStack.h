@@ -3,16 +3,18 @@
 #include <string>
 #include <memory>
 #include <vector>
-
+#include <hash_map>
 namespace ldp
 {
 	class ClothManager;
 	class GraphsSewing;
 	class ClothPiece;
 	class ClothDesignParam;
+	class AbstractGraphObject;
 	class HistoryStack
 	{
 	public:
+		typedef std::hash_map<AbstractGraphObject*, AbstractGraphObject*> PtrMap;
 		enum Type
 		{
 			TypePatternSelect,
@@ -34,6 +36,7 @@ namespace ldp
 	protected:
 		void clear();
 		void stepTo(int pos);
+		GraphsSewing* cloneSew(GraphsSewing* oldSew, PtrMap& ptrMap);
 	private:
 		enum
 		{

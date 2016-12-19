@@ -111,7 +111,7 @@ namespace ldp
 		case ldp::AbstractGraphObject::TypeGraphLoop:
 			return new GraphLoop();
 		case ldp::AbstractGraphObject::TypeGraph:
-			throw std::exception("cannot create this type");
+			return new Graph();
 		case ldp::AbstractGraphObject::TypeGraphsSewing:
 			return new GraphsSewing();
 		case ldp::AbstractGraphObject::Type_End:

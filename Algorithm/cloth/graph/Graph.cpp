@@ -7,8 +7,7 @@
 #include "GraphsSewing.h"
 namespace ldp
 {
-	Graph::Graph(std::vector<std::shared_ptr<GraphsSewing>>& sewings)
-		: AbstractGraphObject(), m_graphSewings(&sewings)
+	Graph::Graph() : AbstractGraphObject()
 	{
 	
 	}
@@ -25,7 +24,7 @@ namespace ldp
 	{
 		m_ptrMapAfterClone.clear();
 
-		Graph* graph = new Graph(*m_graphSewings);
+		Graph* graph = new Graph();
 		graph->setSelected(isSelected());
 
 		for (auto iter : m_keyPoints)

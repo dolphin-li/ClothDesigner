@@ -3,6 +3,7 @@
 #include "GraphLine.h"
 #include "GraphQuadratic.h"
 #include "GraphCubic.h"
+#include "GraphsSewing.h"
 #include "tinyxml\tinyxml.h"
 #include "ldpMat\ldp_basic_mat.h"
 namespace ldp
@@ -15,6 +16,40 @@ namespace ldp
 	AbstractGraphCurve::AbstractGraphCurve(const std::vector<GraphPoint*>& pts) : AbstractGraphCurve()
 	{
 		m_keyPoints = pts;
+	}
+
+	AbstractGraphCurve::~AbstractGraphCurve()
+	{
+		// ldp TODO: remove related sewings
+		for (auto& sew : m_sewings)
+		{
+			auto tmp = sew->firsts();
+			bool found = false;
+			for (auto& t : tmp)
+			{
+				if (t.curve == this)
+				{
+					sew->remove(t.curve->getId());
+					found = true;
+					break;
+				}
+			} // end for t
+			if (!found)
+			{
+				tmp = sew->seconds();
+				for (auto& t : tmp)
+				{
+					if (t.curve == this)
+					{
+						sew->remove(t.curve->getId());
+						found = true;
+						break;
+					}
+				} // end for t
+			} // end if found
+			if (!found)
+				printf("~AbstractGraphCurve warning: curve %d not relate to sew %d\n", getId(), sew->getId());
+		} // end for sew
 	}
 
 	float AbstractGraphCurve::calcLength()const
@@ -73,6 +108,7 @@ namespace ldp
 		shape->m_keyPoints = m_keyPoints;
 		shape->setSelected(isSelected());
 		shape->m_next = m_next;
+		shape->m_sewings = m_sewings;
 		return shape;
 	}
 

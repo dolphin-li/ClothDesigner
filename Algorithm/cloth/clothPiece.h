@@ -9,11 +9,10 @@ namespace ldp
 {
 	class TransformInfo;
 	class Graph;
-	class GraphsSewing;
 	class ClothPiece
 	{
 	public:
-		ClothPiece(std::vector<std::shared_ptr<GraphsSewing>>& sewings);
+		ClothPiece();
 		~ClothPiece();
 
 		const ObjMesh& mesh3d()const { return *m_mesh3d; }

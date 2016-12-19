@@ -19,7 +19,7 @@ namespace ldp
 		typedef std::hash_map<size_t, std::shared_ptr<GraphLoop>> LoopMap;
 		typedef std::hash_map<AbstractGraphObject*, AbstractGraphObject*> PtrMap;
 	public:
-		Graph(std::vector<std::shared_ptr<GraphsSewing>>& sewings);
+		Graph();
 
 		virtual Type getType()const { return TypeGraph; }
 		virtual TiXmlElement* toXML(TiXmlNode* parent)const;
@@ -127,7 +127,6 @@ namespace ldp
 		PointMap m_keyPoints;
 		CurveMap m_curves;
 		LoopMap m_loops;
-		std::vector<std::shared_ptr<GraphsSewing>>* m_graphSewings = nullptr;
 		mutable PtrMap m_ptrMapAfterClone;
 	};
 }
