@@ -21,7 +21,8 @@ namespace ldp
 	AbstractGraphCurve::~AbstractGraphCurve()
 	{
 		// ldp TODO: remove related sewings
-		for (auto& sew : m_sewings)
+		auto tmpSewings = m_sewings;
+		for (auto& sew : tmpSewings)
 		{
 			auto tmp = sew->firsts();
 			bool found = false;

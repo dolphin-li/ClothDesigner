@@ -356,7 +356,7 @@ namespace ldp
 		clearSewings();
 		auto tmp = m_clothPieces;
 		for (auto& t : tmp)
-			removeClosePiece(t->graphPanel().getId());
+			removeClothPiece(t->graphPanel().getId());
 		m_shouldTriangulate = true;
 	}
 
@@ -366,7 +366,7 @@ namespace ldp
 		m_shouldTriangulate = true;
 	}
 
-	void ClothManager::removeClosePiece(size_t graphPanelId)
+	void ClothManager::removeClothPiece(size_t graphPanelId)
 	{
 		for (auto iter = m_clothPieces.begin(); iter != m_clothPieces.end(); ++iter)
 		{
@@ -383,11 +383,11 @@ namespace ldp
 			removeGraphSewing(sew->getId());
 	}
 
-	void ClothManager::removeClosePiece(ClothPiece* piece)
+	void ClothManager::removeClothPiece(ClothPiece* piece)
 	{
 		if (piece == nullptr)
 			return;
-		removeClosePiece(piece->graphPanel().getId());
+		removeClothPiece(piece->graphPanel().getId());
 	}
 
 	void ClothManager::mergePieces()
@@ -1503,6 +1503,65 @@ namespace ldp
 		return change;
 	}
 
+	bool ClothManager::removeSelectedShapes()
+	{
+		bool removed = false;
+
+		// 1. remove panels
+		auto tmpPieces = m_clothPieces;
+		for (auto& piece : tmpPieces)
+		{
+			auto& panel = piece->graphPanel();
+			if (panel.isSelected() || panel.getBoundingLoop()->isSelected())
+			{
+				removeClothPiece(panel.getId());
+				removed = true;
+			}
+		}
+
+		for (auto& piece : m_clothPieces)
+		{
+			// 2. remove loops
+			auto& panel = piece->graphPanel();
+			std::vector<GraphLoop*> tmpLoops;
+			for (auto iter = panel.loopBegin(); iter != panel.loopEnd(); ++iter)
+			{
+				auto loop = iter->second.get();
+				if (loop->isSelected())
+					tmpLoops.push_back(loop);
+			}
+			for (auto loop : tmpLoops)
+				panel.removeLoop(loop);
+			removed |= !tmpLoops.empty();
+
+			// 3. remove curves
+			std::vector<AbstractGraphCurve*> tmpCurves;
+			for (auto iter = panel.curveBegin(); iter != panel.curveEnd(); ++iter)
+			{
+				auto curve = iter->second.get();
+				if (curve->isSelected())
+					tmpCurves.push_back(curve);
+			}
+			for (auto curve : tmpCurves)
+				panel.removeCurve(curve);
+			removed |= !tmpCurves.empty();
+
+			// 4. remove key points
+			std::vector<GraphPoint*> tmpPts;
+			for (auto iter = panel.pointBegin(); iter != panel.pointEnd(); ++iter)
+			{
+				auto pt = iter->second.get();
+				if (pt->isSelected())
+					tmpPts.push_back(pt);
+			}
+			for (auto pt : tmpPts)
+				panel.removeKeyPoints(pt);
+			removed |= !tmpPts.empty();
+		} // end for piece
+
+		m_shouldTriangulate = true;
+		return removed;
+	}
 	///////////////////////////////////////////////////////////////////////////////////////////
 	void ClothManager::fromXml(std::string filename)
 	{

@@ -467,17 +467,20 @@ namespace ldp
 	{
 		if (kp == nullptr)
 			return false;
-		auto iter = m_keyPoints.find(kp->getId());
+		int id = kp->getId();
+		auto iter = m_keyPoints.find(id);
 		if (iter == m_keyPoints.end())
 			return false;
 
 		// remove related curves
-		for (auto & c : kp->edges())
+		auto tmpEdge = kp->edges();
+		for (auto & c : tmpEdge)
 			removeCurve(c);
 
 		// remove self
-		iter->second->edges().clear();
-		m_keyPoints.erase(iter);
+		iter = m_keyPoints.find(id); 
+		if (iter != m_keyPoints.end())
+			m_keyPoints.erase(iter);
 		return true;
 	}
 
@@ -486,7 +489,8 @@ namespace ldp
 		if (curve == nullptr)
 			return false;
 
-		auto iter = m_curves.find(curve->getId());
+		int id = curve->getId();
+		auto iter = m_curves.find(id);
 		if (iter == m_curves.end())
 			return false;
 
@@ -503,7 +507,7 @@ namespace ldp
 
 		// only one edge, remove the empty loop
 		if (prevEdge == nullptr && nextEdge == nullptr)
-			m_loops.erase(m_loops.find(iter->second->loop()->getId()));
+			removeLoop(iter->second->loop());
 		// start edge removed
 		else if (prevEdge == nullptr && nextEdge)
 			iter->second->loop()->startEdge() = nextEdge;
@@ -528,7 +532,9 @@ namespace ldp
 		} // end for i
 
 		// remove self
-		m_curves.erase(iter);
+		iter = m_curves.find(id);
+		if (iter != m_curves.end())
+			m_curves.erase(iter);
 		return true;
 	}
 
@@ -536,7 +542,8 @@ namespace ldp
 	{
 		if (loop == nullptr)
 			return false;
-		auto iter = m_loops.find(loop->getId());
+		int id = loop->getId();
+		auto iter = m_loops.find(id);
 		if (iter == m_loops.end())
 			return false;
 
@@ -553,9 +560,12 @@ namespace ldp
 		for (auto e : tmp)
 			removeCurve(e);
 
+		iter = m_loops.find(id);
+		if (iter != m_loops.end())
+			m_loops.erase(iter);
+
 		return true;
 	}
-
 
 	/////////// split a curve into two, return the inserted point and the newCurve generated/////////////
 	GraphPoint* Graph::splitEdgeMakePoint(AbstractGraphCurve* curveToSplit, 

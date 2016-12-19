@@ -96,6 +96,23 @@ namespace ldp
 		}
 	}
 
+	void GraphsSewing::swapUnit(Unit ou, Unit nu)
+	{
+		for (auto& u : m_firsts)
+		{
+			if (u.curve == ou.curve)
+			{
+				if (u.curve->graphSewings().find(this) == u.curve->graphSewings().end())
+					printf("GraphsSewing::swapUnit warning: curve %d does not relate to sew %d\n",
+					u.curve->getId(), getId());
+				else
+					u.curve->graphSewings().erase(this);
+				u = nu;
+				u.curve->graphSewings().insert(this);
+			}
+		}
+	}
+
 	void GraphsSewing::reverse(size_t curveId)
 	{
 		for (auto& u : m_firsts)

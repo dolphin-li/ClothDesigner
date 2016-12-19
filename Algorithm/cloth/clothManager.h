@@ -113,8 +113,8 @@ namespace ldp
 		ClothPiece* clothPiece(int i) { return m_clothPieces.at(i).get(); }
 		void clearClothPieces();
 		void addClothPiece(std::shared_ptr<ClothPiece> piece);
-		void removeClosePiece(size_t graphPanelId);
-		void removeClosePiece(ClothPiece* piece);
+		void removeClothPiece(size_t graphPanelId);
+		void removeClothPiece(ClothPiece* piece);
 
 		/// bounding box
 		void get2dBound(ldp::Float2& bmin, ldp::Float2& bmax)const;
@@ -122,6 +122,7 @@ namespace ldp
 		/// UI operations///
 		bool removeSelectedSewings();
 		bool reverseSelectedSewings();
+		bool removeSelectedShapes();
 	protected:
 	private:
 		std::vector<std::shared_ptr<GraphsSewing>> m_graphSewings;

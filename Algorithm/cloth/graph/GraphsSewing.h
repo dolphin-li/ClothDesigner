@@ -56,6 +56,7 @@ namespace ldp
 		void reverse(size_t curveId);
 		void reverseFirsts();
 		void reverseSeconds();
+		void swapUnit(Unit ou, Unit u);
 		bool select(int idx, SelectOp op);
 		bool select(const std::set<int>& indices, SelectOp op);
 		void highLight(int idx, int lastIdx);
