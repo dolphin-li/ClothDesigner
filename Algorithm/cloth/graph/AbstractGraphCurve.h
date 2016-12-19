@@ -9,6 +9,8 @@ namespace ldp
 	class GraphsSewing;
 	class AbstractGraphCurve : public AbstractGraphObject
 	{
+		friend class Graph;
+		friend class GraphLoop;
 	public:
 		AbstractGraphCurve();
 		AbstractGraphCurve(const std::vector<GraphPoint*>& pts);
@@ -70,12 +72,6 @@ namespace ldp
 			return m_length;
 		}
 
-		// for half-edge data structure
-		AbstractGraphCurve*& nextEdge() { return m_next; }
-		const AbstractGraphCurve* const& nextEdge()const { return m_next; }
-		GraphLoop*& loop() { return m_loop; }
-		const GraphLoop* const& loop()const { return m_loop; }
-
 		// relate to sewings
 		std::hash_set<GraphsSewing*>& graphSewings() { return m_sewings; }
 		const std::hash_set<GraphsSewing*>& graphSewings()const { return m_sewings; }
@@ -84,9 +80,13 @@ namespace ldp
 	protected:
 		std::vector<GraphPoint*> m_keyPoints;
 
-		// for half-edge data structure
-		AbstractGraphCurve* m_next = nullptr;
-		GraphLoop* m_loop = nullptr;
+		// for winged-edge data structure
+		AbstractGraphCurve* m_leftPrevEdge = nullptr; 
+		AbstractGraphCurve* m_rightPrevEdge = nullptr;
+		AbstractGraphCurve* m_leftNextEdge = nullptr;
+		AbstractGraphCurve* m_rightNextEdge = nullptr;
+		GraphLoop* m_leftLoop = nullptr;
+		GraphLoop* m_rightLoop = nullptr;
 
 		// relate to sewings
 		std::hash_set<GraphsSewing*> m_sewings;

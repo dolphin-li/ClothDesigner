@@ -27,6 +27,7 @@ namespace ldp
 		Graph* graph = new Graph();
 		graph->setSelected(isSelected());
 
+		// clone the objects
 		for (auto iter : m_keyPoints)
 		{
 			std::shared_ptr<GraphPoint> kp(iter.second->clone());
@@ -46,23 +47,22 @@ namespace ldp
 			graph->m_loops.insert(std::make_pair(kp->getId(), kp));
 		}
 
+		// clone the graph relations
 		for (auto iter : graph->m_keyPoints)
-		{
-			auto tmp = iter.second->edges();
-			iter.second->edges().clear();
-			for (auto e : tmp)
-				iter.second->edges().insert((AbstractGraphCurve*)m_ptrMapAfterClone[e]);
-		}
+			iter.second->m_edge = (AbstractGraphCurve*)m_ptrMapAfterClone[iter.second->m_edge];
 		for (auto iter : graph->m_curves)
 		{
-			iter.second->nextEdge() = (AbstractGraphCurve*)m_ptrMapAfterClone[iter.second->nextEdge()];
+			iter.second->m_leftNextEdge = (AbstractGraphCurve*)m_ptrMapAfterClone[iter.second->m_leftNextEdge];
+			iter.second->m_leftPrevEdge = (AbstractGraphCurve*)m_ptrMapAfterClone[iter.second->m_leftPrevEdge];
+			iter.second->m_rightNextEdge = (AbstractGraphCurve*)m_ptrMapAfterClone[iter.second->m_rightNextEdge];
+			iter.second->m_rightPrevEdge = (AbstractGraphCurve*)m_ptrMapAfterClone[iter.second->m_rightPrevEdge];
+			iter.second->m_leftLoop = (GraphLoop*)m_ptrMapAfterClone[iter.second->m_leftLoop];
+			iter.second->m_rightLoop = (GraphLoop*)m_ptrMapAfterClone[iter.second->m_rightLoop];
 			for (int i = 0; i < iter.second->numKeyPoints(); i++)
 				iter.second->keyPoint(i) = (GraphPoint*)m_ptrMapAfterClone[iter.second->keyPoint(i)];
 		}
 		for (auto iter : graph->m_loops)
-		{
-			iter.second->startEdge() = (AbstractGraphCurve*)m_ptrMapAfterClone[iter.second->startEdge()];
-		}
+			iter.second->m_startEdge = (AbstractGraphCurve*)m_ptrMapAfterClone[iter.second->m_startEdge];
 
 		graph->m_bbox[0] = m_bbox[0];
 		graph->m_bbox[1] = m_bbox[1];
@@ -122,7 +122,7 @@ namespace ldp
 				{
 					GraphLoopPtr kpt((GraphLoop*)AbstractGraphObject::create(child->Value()));
 					kpt->fromXML(child);
-					addLoop(kpt);
+					addLoop(kpt->m_loadedCurves, kpt->isBoundingLoop());	 // idxMapLoading of loop is corrupt here
 				}
 			} // end if loops
 		} // end for groups
@@ -314,7 +314,7 @@ namespace ldp
 			auto kp = curve->keyPoint(i);
 			if (m_keyPoints.find(kp->getId()) == m_keyPoints.end())
 				throw std::exception("addCurve: keyPoints not exist!");
-			kp->edges().insert(curve.get());
+			kp->m_edge = curve.get();
 		} // end for i
 
 		m_curves.insert(std::make_pair(curve->getId(), curve));
@@ -350,13 +350,19 @@ namespace ldp
 		{
 			if (curves[i - 1]->getEndPoint() != curves[i]->getStartPoint())
 				throw std::exception("addLoop: given curves not connected!");
-			curves[i - 1]->nextEdge() = curves[i];
+			curves[i - 1]->m_leftNextEdge = curves[i];
+			curves[i]->m_leftPrevEdge = curves[i - 1];
 		}
 		if (curves.back()->getEndPoint() == curves[0]->getStartPoint())
-			curves.back()->nextEdge() = curves[0];
+		{
+			curves.back()->m_leftNextEdge = curves[0];
+			curves[0]->m_leftPrevEdge = curves.back();
+		}
 		std::shared_ptr<GraphLoop> loop(new GraphLoop);
-		loop->startEdge() = curves[0];
+		loop->m_startEdge = curves[0];
 		loop->setBoundingLoop(isBoundingLoop);
+		for (auto& c : curves)
+			c->m_leftLoop = loop.get();
 		return addLoop(loop);
 	}
 
@@ -373,30 +379,6 @@ namespace ldp
 			return loop.get();
 		}
 
-		// check overlap, we do not allow loop overlap
-		std::hash_set<AbstractGraphCurve*> c1set;
-		for (auto l : m_loops)
-		{
-			auto edge = l.second->startEdge();
-			do
-			{
-				c1set.insert(edge);
-				edge = edge->nextEdge();
-			} while (edge && edge != l.second->startEdge());
-		}
-		auto edge = loop->startEdge();
-		do
-		{
-			if (c1set.find(edge) != c1set.end())
-			{
-				printf("warning: over lapped edge %d for loop %d\n",
-					edge->getId(), loop->getId());
-				return nullptr;
-			}
-			edge = edge->nextEdge();
-		} while (edge && edge != loop->startEdge());
-
-
 		// check that there is only one bounding loop
 		int nBounds = loop->isBoundingLoop();
 		for (auto l : m_loops)
@@ -406,12 +388,8 @@ namespace ldp
 
 		// insert loop
 		m_loops.insert(std::make_pair(loop->getId(), loop));
-		edge = loop->startEdge();
-		do
-		{
-			edge->loop() = loop.get();
-			edge = edge->nextEdge();
-		} while (edge && edge != loop->startEdge());
+		for (auto iter = loop->edge_begin(); !iter.isEnd(); ++iter)
+			iter->m_leftLoop = loop.get();
 		return loop.get();
 	}
 
@@ -467,20 +445,7 @@ namespace ldp
 	{
 		if (kp == nullptr)
 			return false;
-		int id = kp->getId();
-		auto iter = m_keyPoints.find(id);
-		if (iter == m_keyPoints.end())
-			return false;
 
-		// remove related curves
-		auto tmpEdge = kp->edges();
-		for (auto & c : tmpEdge)
-			removeCurve(c);
-
-		// remove self
-		iter = m_keyPoints.find(id); 
-		if (iter != m_keyPoints.end())
-			m_keyPoints.erase(iter);
 		return true;
 	}
 
@@ -494,47 +459,6 @@ namespace ldp
 		if (iter == m_curves.end())
 			return false;
 
-		// check the loop consistency
-		assert(iter->second->loop());
-		auto prevEdge = iter->second->loop()->startEdge();
-		do
-		{
-			if (prevEdge->nextEdge() == iter->second.get())
-				break;
-			prevEdge = prevEdge->nextEdge();
-		} while (prevEdge && prevEdge != iter->second->loop()->startEdge());
-		auto nextEdge = iter->second->nextEdge();
-
-		// only one edge, remove the empty loop
-		if (prevEdge == nullptr && nextEdge == nullptr)
-			removeLoop(iter->second->loop());
-		// start edge removed
-		else if (prevEdge == nullptr && nextEdge)
-			iter->second->loop()->startEdge() = nextEdge;
-		// end edge removed, no change
-		else if (prevEdge && nextEdge == nullptr)
-			prevEdge->nextEdge() = nullptr;
-		// middle edge removed, split needed
-		else
-		{
-			prevEdge->nextEdge() = nullptr;
-			std::shared_ptr<GraphLoop> loop(new GraphLoop);
-			loop->startEdge() = nextEdge;
-			addLoop(loop);
-		}
-
-		// remove its point
-		for (int i = 0; i < iter->second->numKeyPoints(); i++)
-		{
-			GraphPoint* p = iter->second->keyPoint(i);
-			if (p->edges().size() == 1 && *p->edges().begin() == iter->second.get())
-				m_keyPoints.erase(m_keyPoints.find(p->getId()));
-		} // end for i
-
-		// remove self
-		iter = m_curves.find(id);
-		if (iter != m_curves.end())
-			m_curves.erase(iter);
 		return true;
 	}
 
@@ -542,27 +466,7 @@ namespace ldp
 	{
 		if (loop == nullptr)
 			return false;
-		int id = loop->getId();
-		auto iter = m_loops.find(id);
-		if (iter == m_loops.end())
-			return false;
 
-		auto edge = iter->second->startEdge();
-		std::hash_set<AbstractGraphCurve*> tmp;
-		do
-		{
-			edge->loop() = nullptr;
-			tmp.insert(edge);
-			edge = edge->nextEdge();
-		} while (edge && edge != iter->second->startEdge());
-
-		// by removing all edges, the loop itself is removed
-		for (auto e : tmp)
-			removeCurve(e);
-
-		iter = m_loops.find(id);
-		if (iter != m_loops.end())
-			m_loops.erase(iter);
 
 		return true;
 	}

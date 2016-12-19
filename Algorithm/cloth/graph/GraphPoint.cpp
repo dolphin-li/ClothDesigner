@@ -18,7 +18,7 @@ namespace ldp
 	{
 		GraphPoint* gp = (GraphPoint*)create(getType());
 		gp->m_p = m_p;
-		gp->m_edges = m_edges;
+		gp->m_edge = m_edge;
 		return gp;
 	}
 

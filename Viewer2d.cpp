@@ -498,28 +498,26 @@ void Viewer2d::renderClothsPanels_Edge(const ldp::ClothPiece* piece, bool idxMod
 	for (auto iter = panel.loopBegin(); iter != panel.loopEnd(); ++iter)
 	{
 		auto loop = iter->second.get();
-		auto shape = loop->startEdge();
-		do
+		for (auto edge_iter = loop->edge_begin(); !edge_iter.isEnd(); ++edge_iter)
 		{
 			if (!idxMode)
 			{
-				if (shape->isHighlighted() || panel.isHighlighted())
+				if (edge_iter->isHighlighted() || panel.isHighlighted())
 					glColor4fv(HIGHLIGHT_COLOR);
-				else if (shape->isSelected() || panel.isSelected())
+				else if (edge_iter->isSelected() || panel.isSelected())
 					glColor4fv(SELECT_COLOR);
 				else
 					glColor4fv(DEFAULT_COLOR);
 			}
 			else
-				glColor4fv(selectIdToColor(shape->getId()).ptr());
-			const auto& pts = shape->samplePointsOnShape(step / shape->getLength());
+				glColor4fv(selectIdToColor(edge_iter->getId()).ptr());
+			const auto& pts = edge_iter->samplePointsOnShape(step / edge_iter->getLength());
 			for (size_t i = 1; i < pts.size(); i++)
 			{
 				glVertex3f(pts[i - 1][0], pts[i - 1][1], EDGE_Z);
 				glVertex3f(pts[i][0], pts[i][1], EDGE_Z);
 			}
-			shape = shape->nextEdge();
-		} while (shape && shape != loop->startEdge());
+		} // end for edge_iter
 	}
 	glEnd();
 }

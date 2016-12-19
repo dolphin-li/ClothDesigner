@@ -306,16 +306,15 @@ namespace ldp
 		int startIdx = (int)m_points.size();
 
 		// add points
-		auto shape = poly.startEdge();
-		do
+		for (auto edge_iter = poly.edge_begin(); !edge_iter.isEnd(); ++edge_iter)
 		{
-			auto& shapeSegs = m_shapeSegs[shape];
+			auto& shapeSegs = m_shapeSegs[&(*edge_iter)];
 			for (size_t iSeg = 0; iSeg < shapeSegs->size(); iSeg++)
 			{
 				auto& seg = shapeSegs->at(iSeg);
 				for (auto& sp : seg->params)
 				{
-					auto p = shape->getPointByParam(sp.t * (seg->end - seg->start) + seg->start);
+					auto p = edge_iter->getPointByParam(sp.t * (seg->end - seg->start) + seg->start);
 					if (m_points.size() != startIdx)
 					{
 						if ((m_points.back() - p).length() < thre)
@@ -333,8 +332,7 @@ namespace ldp
 					m_points.push_back(p);
 				}
 			} // end for p
-			shape = shape->nextEdge();
-		} while (shape && shape != poly.startEdge());
+		} // end for edge_iter
 
 		// add segments
 		for (int i = startIdx; i < (int)m_points.size()-1; i++)
