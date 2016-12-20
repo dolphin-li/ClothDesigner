@@ -20,8 +20,15 @@ namespace ldp
 	{
 		GraphPoint* gp = (GraphPoint*)create(getType());
 		gp->m_p = m_p;
-		gp->m_edge = m_edge;
+		gp->m_edges = m_edges;
 		return gp;
+	}
+
+	void GraphPoint::setPosition(Float2 p)
+	{
+		m_p = p;
+		for (auto iter = edge_begin(); !iter.isEnd(); ++iter)
+			iter->requireResample();
 	}
 
 	TiXmlElement* GraphPoint::toXML(TiXmlNode* parent)const
@@ -64,26 +71,4 @@ namespace ldp
 		return e->m_rightLoop;
 	}
 
-	GraphPoint::EdgeIter::EdgeIter(GraphPoint* p, AbstractGraphCurve* s) : 
-		m_point(p), m_curEdge(s), m_startEdge(s)
-	{
-	}
-
-	GraphPoint::EdgeIter& GraphPoint::EdgeIter::operator++()
-	{
-		m_startEdgeVisited = true;
-		m_curEdge = m_point->nextEdge(m_curEdge);
-		return *this;
-	}
-
-	GraphPoint::LoopIter::LoopIter(GraphPoint* p, GraphLoop* s) : m_point(p), m_curLoop(s)
-	{
-
-	}
-
-	GraphPoint::LoopIter& GraphPoint::LoopIter::operator++()
-	{
-		m_startEdgeVisited = true;
-		return *this;
-	}
 }

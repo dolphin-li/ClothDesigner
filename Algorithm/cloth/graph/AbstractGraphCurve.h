@@ -11,6 +11,34 @@ namespace ldp
 		friend class GraphLoop;
 		friend class GraphPoint;
 	public:
+		class LoopIter
+		{
+			AbstractGraphCurve* m_curve = nullptr;
+			GraphLoop* m_curLoop = nullptr;
+			GraphLoop* m_startLoop = nullptr;
+			bool m_startVisited = false;
+		public:
+			LoopIter(AbstractGraphCurve* c) : m_curve(c), m_startLoop(c->m_leftLoop)
+			{
+				if (m_startLoop == nullptr)
+					m_startLoop = c->m_rightLoop;
+				m_curLoop = m_startLoop;
+			}
+			bool isEnd()const
+			{
+				return (m_curLoop == nullptr || m_curLoop == m_startLoop) && m_startVisited;
+			}
+			LoopIter& operator++()
+			{
+				if (m_curLoop == m_curve->m_leftLoop)
+					m_curLoop = m_curve->m_rightLoop;
+				else
+					m_curLoop = m_curve->m_leftLoop;
+				m_startVisited = true;
+			}
+			LoopIter operator++()const { return ++LoopIter(*this); }
+		};
+	public:
 		AbstractGraphCurve();
 		AbstractGraphCurve(const std::vector<GraphPoint*>& pts);
 		virtual ~AbstractGraphCurve();
@@ -79,10 +107,7 @@ namespace ldp
 		const std::hash_set<GraphsSewing*>& graphSewings()const { return m_sewings; }
 
 		// winged-edge related
-		GraphLoop* leftLoop() { return m_leftLoop; }
-		const GraphLoop* leftLoop()const { return m_leftLoop; }
-		GraphLoop* rightLoop() { return m_rightLoop; }
-		const GraphLoop* rightLoop()const { return m_rightLoop; }
+		LoopIter loop_begin()const { return LoopIter((AbstractGraphCurve*)this); }
 	protected:
 		virtual float calcLength()const;
 	protected:

@@ -18,10 +18,10 @@ namespace ldp
 		{
 			assert(m_keyPoints[k]);
 		}
-		Float2 p1 = (1 - t) * ((1 - t)*m_keyPoints[0]->position() + t*m_keyPoints[1]->position())
-			+ t * ((1 - t)*m_keyPoints[1]->position() + t*m_keyPoints[2]->position());
-		Float2 p2 = (1 - t) * ((1 - t)*m_keyPoints[1]->position() + t*m_keyPoints[2]->position())
-			+ t * ((1 - t)*m_keyPoints[2]->position() + t*m_keyPoints[3]->position());
+		Float2 p1 = (1 - t) * ((1 - t)*m_keyPoints[0]->getPosition() + t*m_keyPoints[1]->getPosition())
+			+ t * ((1 - t)*m_keyPoints[1]->getPosition() + t*m_keyPoints[2]->getPosition());
+		Float2 p2 = (1 - t) * ((1 - t)*m_keyPoints[1]->getPosition() + t*m_keyPoints[2]->getPosition())
+			+ t * ((1 - t)*m_keyPoints[2]->getPosition() + t*m_keyPoints[3]->getPosition());
 		return (1 - t) * p1 + t * p2;
 	}
 }

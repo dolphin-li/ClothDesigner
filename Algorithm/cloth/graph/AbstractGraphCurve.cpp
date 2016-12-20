@@ -120,42 +120,42 @@ namespace ldp
 
 	void AbstractGraphCurve::translateKeyPoint(int i, ldp::Float2 t)
 	{
-		m_keyPoints[i]->position() += t;
+		m_keyPoints[i]->setPosition(m_keyPoints[i]->getPosition()+ t);
 		m_invalid = true;
 	}
 
 	void AbstractGraphCurve::translate(Float2 t)
 	{
 		for (auto& p : m_keyPoints)
-			p->position() += t;
+			p->setPosition(p->getPosition() + t);
 		m_invalid = true;
 	}
 	
 	void AbstractGraphCurve::rotate(const ldp::Mat2f& R)
 	{
 		for (auto& p : m_keyPoints)
-			p->position() = R * p->position();
+			p->setPosition(R * p->getPosition());
 		m_invalid = true;
 	}
 	
 	void AbstractGraphCurve::rotateBy(const Mat2f& R, Float2 c)
 	{
 		for (auto& p : m_keyPoints)
-			p->position() = R * (p->position() - c) + c;
+			p->setPosition(R * (p->getPosition() - c) + c);
 		m_invalid = true;
 	}
 
 	void AbstractGraphCurve::scale(Float2 s)
 	{
 		for (auto& p : m_keyPoints)
-			p->position() *= s;
+			p->setPosition(p->getPosition() + s);
 		m_invalid = true;
 	}
 
 	void AbstractGraphCurve::scaleBy(Float2 s, Float2 c)
 	{
 		for (auto& p : m_keyPoints)
-			p->position() = s*(p->position() - c) + c;
+			p->setPosition(s*(p->getPosition() - c) + c);
 		m_invalid = true;
 	}
 	
@@ -163,10 +163,9 @@ namespace ldp
 	{
 		for (auto& p : m_keyPoints)
 		{
-			ldp::Float3 p3(p->position()[0], p->position()[1], 1);
+			ldp::Float3 p3(p->getPosition()[0], p->getPosition()[1], 1);
 			p3 = M * p3;
-			p->position()[0] = p3[0] / p3[2];
-			p->position()[1] = p3[1] / p3[2];
+			p->setPosition(Float2(p3[0], p3[1])/p3[2]);
 		}
 		m_invalid = true;
 	}
@@ -175,10 +174,10 @@ namespace ldp
 	{
 		for (const auto& p : m_keyPoints)
 		{
-			for (int k = 0; k < p->position().size(); k++)
+			for (int k = 0; k < p->getPosition().size(); k++)
 			{
-				bmin[k] = std::min(bmin[k], p->position()[k]);
-				bmax[k] = std::max(bmax[k], p->position()[k]);
+				bmin[k] = std::min(bmin[k], p->getPosition()[k]);
+				bmax[k] = std::max(bmax[k], p->getPosition()[k]);
 			}
 		}
 	}

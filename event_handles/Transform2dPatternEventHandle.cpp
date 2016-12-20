@@ -236,7 +236,7 @@ bool Transform2dPatternEventHandle::panelLevelTransform_MouseMove(QMouseEvent* e
 			if (panel.isHighlighted() || panel.isSelected())
 			{
 				for (auto iter = panel.point_begin(); iter != panel.point_end(); ++iter)
-					iter->position() += p - lp;
+					iter->setPosition(iter->getPosition() + p - lp);
 				panel.updateBound();
 				m_transformed = true;
 				changed = true;
@@ -269,7 +269,7 @@ bool Transform2dPatternEventHandle::panelLevelTransform_MouseMove(QMouseEvent* e
 			if (panel.isHighlighted() || panel.isSelected())
 			{
 				for (auto iter = panel.point_begin(); iter != panel.point_end(); ++iter)
-					iter->position() = R*(iter->position() - m_rotateCenter) + m_rotateCenter;
+					iter->setPosition(R*(iter->getPosition() - m_rotateCenter) + m_rotateCenter);
 				panel.updateBound();
 				m_transformed = true;
 				changed = true;
@@ -302,7 +302,7 @@ bool Transform2dPatternEventHandle::panelLevelTransform_MouseMove(QMouseEvent* e
 			if (pickInfo().renderId == panel.getId() || panel.isSelected())
 			{
 				for (auto iter = panel.point_begin(); iter != panel.point_end(); ++iter)
-					iter->position() = s*(iter->position() - m_rotateCenter) + m_rotateCenter;
+					iter->setPosition(s*(iter->getPosition() - m_rotateCenter) + m_rotateCenter);
 				panel.updateBound();
 				m_transformed = true;
 				changed = true;
@@ -354,7 +354,7 @@ bool Transform2dPatternEventHandle::curveLevelTransform_MouseMove(QMouseEvent* e
 			}
 		} // end for iPiece
 		for (auto iter : validKpts)
-			iter->position() += p - lp;
+			iter->setPosition(iter->getPosition() + p - lp);
 	} // end if left button
 	return changed;
 }
@@ -383,7 +383,7 @@ bool Transform2dPatternEventHandle::pointLevelTransform_MouseMove(QMouseEvent* e
 			{
 				if (iter->isSelected() || iter->isHighlighted())
 				{
-					iter->position() += p - lp;
+					iter->setPosition(iter->getPosition() + p - lp);
 					m_transformed = true;
 					changed = true;
 				}

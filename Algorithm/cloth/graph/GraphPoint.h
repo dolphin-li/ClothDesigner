@@ -15,35 +15,15 @@ namespace ldp
 		class EdgeIter
 		{
 			GraphPoint* m_point = nullptr;
-			AbstractGraphCurve* m_curEdge = nullptr;
-			AbstractGraphCurve* m_startEdge = nullptr;
-			bool m_startEdgeVisited = false;
+			std::hash_set<AbstractGraphCurve*>::iterator m_curIter;
 		public:
-			EdgeIter(GraphPoint* p, AbstractGraphCurve* s);
-			EdgeIter& operator++();
-			EdgeIter operator++()const { EdgeIter it(*this); return ++it; }
-			bool isEnd()const { return m_curEdge == nullptr || isClosed(); }
-			bool isClosed()const { return m_curEdge == m_startEdge && m_startEdgeVisited; }
-			AbstractGraphCurve* operator ->() { return m_curEdge; }
-			AbstractGraphCurve& operator*() { return *m_curEdge; }
-			operator AbstractGraphCurve* () { return m_curEdge; }
-		};
-
-		class LoopIter
-		{
-			GraphPoint* m_point = nullptr;
-			GraphLoop* m_curLoop = nullptr;
-			GraphLoop* m_startLoop = nullptr;
-			bool m_startEdgeVisited = false;
-		public:
-			LoopIter(GraphPoint* p, GraphLoop* s);
-			LoopIter& operator++();
-			LoopIter operator++()const { LoopIter it(*this); return ++it; }
-			bool isEnd()const { return m_curLoop == nullptr || isClosed(); }
-			bool isClosed()const { return m_curLoop == m_startLoop && m_startEdgeVisited; }
-			GraphLoop* operator ->() { return m_curLoop; }
-			GraphLoop& operator*() { return *m_curLoop; }
-			operator GraphLoop*() { return m_curLoop; }
+			EdgeIter(GraphPoint* p) : m_point(p), m_curIter(p->m_edges.begin()) {}
+			EdgeIter& operator++() { ++m_curIter; return *this; }
+			EdgeIter operator++()const { return ++EdgeIter(*this); }
+			bool isEnd()const { return m_curIter == m_point->m_edges.end(); }
+			AbstractGraphCurve* operator ->() { return *m_curIter; }
+			AbstractGraphCurve& operator*() { return **m_curIter; }
+			operator AbstractGraphCurve* () { return *m_curIter; }
 		};
 	public:
 		GraphPoint();
@@ -54,16 +34,12 @@ namespace ldp
 		virtual TiXmlElement* toXML(TiXmlNode* parent)const;
 		virtual void fromXML(TiXmlElement* self);
 
-		Float2& position() { return m_p; }
-		const Float2& position()const { return m_p; }
+		const Float2& getPosition()const { return m_p; }
+		void setPosition(Float2 p);
 
 		// iteration over all edges
-		EdgeIter edge_begin() { return EdgeIter(this, m_edge); }
-		const EdgeIter edge_begin()const { return EdgeIter((GraphPoint*)this, m_edge); }
-
-		// iteration over all loops
-		EdgeIter loop_begin() { return EdgeIter(this, m_edge); }
-		const EdgeIter loop_begin()const { return EdgeIter((GraphPoint*)this, m_edge); }
+		EdgeIter edge_begin() { return EdgeIter(this); }
+		const EdgeIter edge_begin()const { return EdgeIter((GraphPoint*)this); }
 	protected:
 		// for winged edge
 		AbstractGraphCurve* nextEdge(AbstractGraphCurve* e);
@@ -71,7 +47,7 @@ namespace ldp
 		GraphLoop* rightLoop(AbstractGraphCurve* e);
 	private:
 		Float2 m_p;
-		AbstractGraphCurve* m_edge = nullptr;
+		std::hash_set<AbstractGraphCurve*> m_edges;
 	};
 
 	extern GraphPoint g_graphPoint;

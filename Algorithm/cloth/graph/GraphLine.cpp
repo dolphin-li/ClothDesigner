@@ -18,7 +18,7 @@ namespace ldp
 		{
 			assert(m_keyPoints[k]);
 		}
-		return (m_keyPoints[1]->position() - m_keyPoints[0]->position()).length(); 
+		return (m_keyPoints[1]->getPosition() - m_keyPoints[0]->getPosition()).length();
 	}
 
 	Float2 GraphLine::getPointByParam(float t)const
@@ -27,6 +27,6 @@ namespace ldp
 		{
 			assert(m_keyPoints[k]);
 		}
-		return m_keyPoints[0]->position() * (1 - t) + m_keyPoints[1]->position() * t;
+		return m_keyPoints[0]->getPosition() * (1 - t) + m_keyPoints[1]->getPosition() * t;
 	}
 }

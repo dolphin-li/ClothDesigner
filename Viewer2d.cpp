@@ -551,7 +551,7 @@ void Viewer2d::renderClothsPanels_KeyPoint(const ldp::ClothPiece* piece, bool id
 		}
 		else
 			glColor4fv(selectIdToColor(p.getId()).ptr());
-		const auto& x = p.position();
+		const auto& x = p.getPosition();
 		glVertex3f(x[0], x[1], KEYPT_Z);
 	}
 	glEnd();
@@ -616,9 +616,9 @@ void Viewer2d::renderClothsSewing(bool idxMode)
 
 			// extract b/e
 			if (iShape == 0)
-				fb = f.reverse ? shape->getEndPoint()->position() : shape->getStartPoint()->position();
+				fb = f.reverse ? shape->getEndPoint()->getPosition() : shape->getStartPoint()->getPosition();
 			if (iShape + 1 == firsts.size())
-				fe = f.reverse ? shape->getStartPoint()->position() : shape->getEndPoint()->position();
+				fe = f.reverse ? shape->getStartPoint()->getPosition() : shape->getEndPoint()->getPosition();
 
 			// draw self
 			const auto& pts = shape->samplePointsOnShape(step / shape->getLength());
@@ -647,9 +647,9 @@ void Viewer2d::renderClothsSewing(bool idxMode)
 			assert(shape);
 			// extract b/e
 			if (iShape == 0)
-				sb = s.reverse ? shape->getEndPoint()->position() : shape->getStartPoint()->position();
+				sb = s.reverse ? shape->getEndPoint()->getPosition() : shape->getStartPoint()->getPosition();
 			if (iShape + 1 == seconds.size())
-				se = s.reverse ? shape->getStartPoint()->position() : shape->getEndPoint()->position();
+				se = s.reverse ? shape->getStartPoint()->getPosition() : shape->getEndPoint()->getPosition();
 
 			// draw self
 			const auto& pts = shape->samplePointsOnShape(step / shape->getLength());

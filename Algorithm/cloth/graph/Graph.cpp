@@ -49,7 +49,10 @@ namespace ldp
 
 		// clone the graph relations
 		for (auto iter : graph->m_keyPoints)
-			iter.second->m_edge = (AbstractGraphCurve*)m_ptrMapAfterClone[iter.second->m_edge];
+		{
+			for (auto e : iter.second->m_edges)
+				e = (AbstractGraphCurve*)m_ptrMapAfterClone[e];
+		}
 		for (auto iter : graph->m_curves)
 		{
 			iter.second->m_leftNextEdge = (AbstractGraphCurve*)m_ptrMapAfterClone[iter.second->m_leftNextEdge];
@@ -253,7 +256,7 @@ namespace ldp
 		{
 			for (auto iter : m_keyPoints)
 			{
-				if ((iter.second->position() - kp->position()).length() < g_designParam.pointMergeDistThre)
+				if ((iter.second->getPosition() - kp->getPosition()).length() < g_designParam.pointMergeDistThre)
 					return iter.second.get();
 			} // end for iter
 		}
@@ -306,7 +309,7 @@ namespace ldp
 			auto kp = curve->keyPoint(i);
 			if (m_keyPoints.find(kp->getId()) == m_keyPoints.end())
 				throw std::exception("addCurve: keyPoints not exist!");
-			kp->m_edge = curve.get();
+			kp->m_edges.insert(curve.get());
 		} // end for i
 
 		m_curves.insert(std::make_pair(curve->getId(), curve));
