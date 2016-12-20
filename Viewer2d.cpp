@@ -542,9 +542,9 @@ void Viewer2d::renderClothsPanels_KeyPoint(const ldp::ClothPiece* piece, bool id
 		}
 		if (!idxMode)
 		{
-			if (selected)
+			if (highlighted)
 				glColor4fv(HIGHLIGHT_COLOR);
-			else if (highlighted)
+			else if (selected)
 				glColor4fv(SELECT_COLOR);
 			else
 				glColor4fv(DEFAULT_COLOR);

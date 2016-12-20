@@ -15,13 +15,14 @@ namespace ldp
 		{
 			GraphPoint* m_point = nullptr;
 			AbstractGraphCurve* m_curEdge = nullptr;
+			AbstractGraphCurve* m_startEdge = nullptr;
 			bool m_startEdgeVisited = false;
 		public:
-			EdgeIter(GraphPoint* p, AbstractGraphCurve* s) : m_point(p), m_curEdge(s) {}
+			EdgeIter(GraphPoint* p, AbstractGraphCurve* s);
 			EdgeIter& operator++();
 			EdgeIter operator++()const { EdgeIter it(*this); return ++it; }
 			bool isEnd()const { return m_curEdge == nullptr || isClosed(); }
-			bool isClosed()const { return m_curEdge == m_point->m_edge && m_startEdgeVisited; }
+			bool isClosed()const { return m_curEdge == m_startEdge && m_startEdgeVisited; }
 			AbstractGraphCurve* operator ->() { return m_curEdge; }
 			AbstractGraphCurve& operator*() { return *m_curEdge; }
 			operator AbstractGraphCurve* () { return m_curEdge; }

@@ -350,9 +350,9 @@ namespace ldp
 		else if (curr->m_rightLoop == loop)
 		{
 			if (reverse)
-				curr->m_rightNextEdge = next;
-			else
 				curr->m_rightPrevEdge = next;
+			else
+				curr->m_rightNextEdge = next;
 		}
 	}
 
@@ -369,9 +369,9 @@ namespace ldp
 		else if (curr->m_rightLoop == loop)
 		{
 			if (reverse)
-				curr->m_rightPrevEdge = prev;
-			else
 				curr->m_rightNextEdge = prev;
+			else
+				curr->m_rightPrevEdge = prev;
 		}
 	}
 

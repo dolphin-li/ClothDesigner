@@ -84,7 +84,7 @@ namespace ldp
 		if (curve->m_leftLoop == this)
 			return curve->m_leftNextEdge;
 		else if (curve->m_rightLoop == this)
-			return curve->m_rightPrevEdge;
+			return curve->m_rightNextEdge;
 		else
 			assert(0);
 		return nullptr;

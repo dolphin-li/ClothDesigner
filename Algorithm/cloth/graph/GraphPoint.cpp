@@ -47,9 +47,9 @@ namespace ldp
 	/////////////////////////////////////////////////////////////////////////////
 	AbstractGraphCurve* GraphPoint::nextEdge(AbstractGraphCurve* e)
 	{
-		if (e->keyPoint(0) == this)
-			return e->m_leftPrevEdge;
-		if (e->keyPoint(e->numKeyPoints() - 1) == this)
+		if (e->getStartPoint() == this)
+			return e->m_leftNextEdge;
+		if (e->getEndPoint() == this)
 			return e->m_rightNextEdge;
 		return nullptr;
 	}
@@ -62,6 +62,11 @@ namespace ldp
 	GraphLoop* GraphPoint::rightLoop(AbstractGraphCurve* e)
 	{
 		return e->m_rightLoop;
+	}
+
+	GraphPoint::EdgeIter::EdgeIter(GraphPoint* p, AbstractGraphCurve* s) : 
+		m_point(p), m_curEdge(s), m_startEdge(s)
+	{
 	}
 
 	GraphPoint::EdgeIter& GraphPoint::EdgeIter::operator++()
