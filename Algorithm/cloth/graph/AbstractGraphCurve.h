@@ -22,6 +22,9 @@ namespace ldp
 		virtual void fromXML(TiXmlElement* self);
 		virtual const std::vector<Float2>& samplePointsOnShape(float step)const;
 
+		// call this if you manually change the position of key points, without calling the interface functions
+		void requireResample() { m_invalid = true; m_lengthInvalid = true; }
+
 		static AbstractGraphCurve* create(const std::vector<GraphPoint*>& kpts);
 		static void fittingCurves(std::vector<std::vector<std::shared_ptr<GraphPoint>>>& curves,
 			const std::vector<Float2>& keyPoints, float fittingThre);

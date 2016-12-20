@@ -91,19 +91,17 @@ namespace ldp
 			addPolygon(*bloop);
 
 			// add other closed loops as the darts
-			for (auto loop_iter = panel.loopBegin(); loop_iter != panel.loopEnd(); ++loop_iter)
+			for (auto loop_iter = panel.loop_begin(); loop_iter != panel.loop_end(); ++loop_iter)
 			{
-				auto loop = loop_iter->second.get();
-				if (loop->isClosed() && loop != bloop)
-					addDart(*loop);
+				if (loop_iter->isClosed() && loop_iter != bloop)
+					addDart(*loop_iter);
 			} // end for loop iter
 
 			// add inner lines
-			for (auto loop_iter = panel.loopBegin(); loop_iter != panel.loopEnd(); ++loop_iter)
+			for (auto loop_iter = panel.loop_begin(); loop_iter != panel.loop_end(); ++loop_iter)
 			{
-				auto loop = loop_iter->second.get();
-				if (!loop->isClosed())
-					addLine(*loop); // ldp todo: add dart?
+				if (!loop_iter->isClosed())
+					addLine(*loop_iter); // ldp todo: add dart?
 			} // end for loop iter
 			finalizeTriangulation();
 			generateMesh(*piece.get());
@@ -138,11 +136,10 @@ namespace ldp
 		for (auto& piece : (*m_pieces))
 		{
 			const auto& panel = piece->graphPanel();
-			for (auto iter = panel.curveBegin(); iter != panel.curveEnd(); ++iter)
+			for (auto iter = panel.curve_begin(); iter != panel.curve_end(); ++iter)
 			{
-				auto shape = iter->second;
-				createShapeSeg(shape.get(), calcForwardBackwardConsistentStep(step / shape->getLength()));
-				m_shapePieceMap[shape.get()] = piece.get();
+				createShapeSeg(iter, calcForwardBackwardConsistentStep(step / iter->getLength()));
+				m_shapePieceMap[iter] = piece.get();
 			}
 		} // end for piece
 

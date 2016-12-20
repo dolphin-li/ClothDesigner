@@ -18,6 +18,45 @@ namespace ldp
 		typedef std::hash_map<size_t, std::shared_ptr<AbstractGraphCurve>> CurveMap;
 		typedef std::hash_map<size_t, std::shared_ptr<GraphLoop>> LoopMap;
 		typedef std::hash_map<AbstractGraphObject*, AbstractGraphObject*> PtrMap;
+		class PointIter
+		{
+			PointMap::const_iterator m_iter;
+		public:
+			PointIter(PointMap::const_iterator iter) : m_iter(iter) {}
+			PointIter& operator++() { ++m_iter; return *this; }
+			PointIter operator++()const { PointIter it(*this); return ++it; }
+			GraphPoint* operator->() { return m_iter->second.get(); }
+			GraphPoint& operator*() { return *m_iter->second.get(); }
+			bool operator == (const PointIter& r)const { return m_iter == r.m_iter; }
+			bool operator != (const PointIter& r)const { return !((*this) == r); }
+			operator GraphPoint*() { return m_iter->second.get(); }
+		};
+		class CurveIter
+		{
+			CurveMap::const_iterator m_iter;
+		public:
+			CurveIter(CurveMap::const_iterator iter) : m_iter(iter) {}
+			CurveIter& operator++() { ++m_iter; return *this; }
+			CurveIter operator++()const { CurveIter it(*this); return ++it; }
+			AbstractGraphCurve* operator->() { return m_iter->second.get(); }
+			AbstractGraphCurve& operator*() { return *m_iter->second.get(); }
+			bool operator == (const CurveIter& r)const { return m_iter == r.m_iter; }
+			bool operator != (const CurveIter& r)const { return !((*this) == r); }
+			operator AbstractGraphCurve*() { return m_iter->second.get(); }
+		};
+		class LoopIter
+		{
+			LoopMap::const_iterator m_iter;
+		public:
+			LoopIter(LoopMap::const_iterator iter) : m_iter(iter) {}
+			LoopIter& operator++() { ++m_iter; return *this; }
+			LoopIter operator++()const { LoopIter it(*this); return ++it; }
+			GraphLoop* operator->() { return m_iter->second.get(); }
+			GraphLoop& operator*() { return *m_iter->second.get(); }
+			bool operator == (const LoopIter& r)const { return m_iter == r.m_iter; }
+			bool operator != (const LoopIter& r)const { return !((*this) == r); }
+			operator GraphLoop*() { return m_iter->second.get(); }
+		};
 	public:
 		Graph();
 
@@ -47,12 +86,12 @@ namespace ldp
 		int numKeyPoints()const { return (int)m_keyPoints.size(); }
 		int numCurves()const { return (int)m_curves.size(); }
 		int numLoops()const { return (int)m_loops.size(); }
-		PointMap::const_iterator pointBegin()const { return m_keyPoints.begin(); }
-		PointMap::const_iterator pointEnd()const { return m_keyPoints.end(); }
-		CurveMap::const_iterator curveBegin()const { return m_curves.begin(); }
-		CurveMap::const_iterator curveEnd()const { return m_curves.end(); }
-		LoopMap::const_iterator loopBegin()const { return m_loops.begin(); }
-		LoopMap::const_iterator loopEnd()const { return m_loops.end(); }
+		PointIter point_begin()const { return PointIter(m_keyPoints.begin()); }
+		PointIter point_end()const { return PointIter(m_keyPoints.end()); }
+		CurveIter curve_begin()const { return CurveIter(m_curves.begin()); }
+		CurveIter curve_end()const { return CurveIter(m_curves.end()); }
+		LoopIter loop_begin()const { return LoopIter(m_loops.begin()); }
+		LoopIter loop_end()const { return LoopIter(m_loops.end()); }
 		GraphPoint* getPointById(size_t id)
 		{
 			auto iter = m_keyPoints.find(id);

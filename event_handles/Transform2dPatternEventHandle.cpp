@@ -235,11 +235,8 @@ bool Transform2dPatternEventHandle::panelLevelTransform_MouseMove(QMouseEvent* e
 			auto& panel = piece->graphPanel();
 			if (panel.isHighlighted() || panel.isSelected())
 			{
-				for (auto iter = panel.pointBegin(); iter != panel.pointEnd(); ++iter)
-				{
-					auto kp = iter->second.get();
-					kp->position() += p - lp;
-				}
+				for (auto iter = panel.point_begin(); iter != panel.point_end(); ++iter)
+					iter->position() += p - lp;
 				panel.updateBound();
 				m_transformed = true;
 				changed = true;
@@ -271,11 +268,8 @@ bool Transform2dPatternEventHandle::panelLevelTransform_MouseMove(QMouseEvent* e
 			auto& panel = piece->graphPanel();
 			if (panel.isHighlighted() || panel.isSelected())
 			{
-				for (auto iter = panel.pointBegin(); iter != panel.pointEnd(); ++iter)
-				{
-					auto kp = iter->second.get();
-					kp->position() = R*(kp->position()-m_rotateCenter) + m_rotateCenter;
-				}
+				for (auto iter = panel.point_begin(); iter != panel.point_end(); ++iter)
+					iter->position() = R*(iter->position() - m_rotateCenter) + m_rotateCenter;
 				panel.updateBound();
 				m_transformed = true;
 				changed = true;
@@ -307,11 +301,8 @@ bool Transform2dPatternEventHandle::panelLevelTransform_MouseMove(QMouseEvent* e
 			auto& panel = piece->graphPanel();
 			if (pickInfo().renderId == panel.getId() || panel.isSelected())
 			{
-				for (auto iter = panel.pointBegin(); iter != panel.pointEnd(); ++iter)
-				{
-					auto kp = iter->second.get();
-					kp->position() = s*(kp->position() - m_rotateCenter) + m_rotateCenter;
-				}
+				for (auto iter = panel.point_begin(); iter != panel.point_end(); ++iter)
+					iter->position() = s*(iter->position() - m_rotateCenter) + m_rotateCenter;
 				panel.updateBound();
 				m_transformed = true;
 				changed = true;
@@ -351,13 +342,12 @@ bool Transform2dPatternEventHandle::curveLevelTransform_MouseMove(QMouseEvent* e
 		{
 			ldp::ClothPiece* piece = manager->clothPiece(iPiece);
 			ldp::Graph& panel = piece->graphPanel();
-			for (auto iter = panel.curveBegin(); iter != panel.curveEnd(); ++iter)
+			for (auto iter = panel.curve_begin(); iter != panel.curve_end(); ++iter)
 			{
-				auto cv = iter->second.get();
-				if (cv->isSelected() || cv->isHighlighted())
+				if (iter->isSelected() || iter->isHighlighted())
 				{
-					for (int i = 0; i < cv->numKeyPoints(); i++)
-						validKpts.insert(cv->keyPoint(i));
+					for (int i = 0; i < iter->numKeyPoints(); i++)
+						validKpts.insert(iter->keyPoint(i));
 					m_transformed = true;
 					changed = true;
 				}
@@ -389,12 +379,11 @@ bool Transform2dPatternEventHandle::pointLevelTransform_MouseMove(QMouseEvent* e
 		{
 			ldp::ClothPiece* piece = manager->clothPiece(iPiece);
 			ldp::Graph& panel = piece->graphPanel();
-			for (auto iter = panel.pointBegin(); iter != panel.pointEnd(); ++iter)
+			for (auto iter = panel.point_begin(); iter != panel.point_end(); ++iter)
 			{
-				auto kp = iter->second.get();
-				if (kp->isSelected() || kp->isHighlighted())
+				if (iter->isSelected() || iter->isHighlighted())
 				{
-					kp->position() += p - lp;
+					iter->position() += p - lp;
 					m_transformed = true;
 					changed = true;
 				}

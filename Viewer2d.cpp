@@ -495,10 +495,9 @@ void Viewer2d::renderClothsPanels_Edge(const ldp::ClothPiece* piece, bool idxMod
 	else
 		glLineWidth(EDGE_RENDER_WIDTH);
 	glBegin(GL_LINES);
-	for (auto iter = panel.loopBegin(); iter != panel.loopEnd(); ++iter)
+	for (auto loop_iter = panel.loop_begin(); loop_iter != panel.loop_end(); ++loop_iter)
 	{
-		auto loop = iter->second.get();
-		for (auto edge_iter = loop->edge_begin(); !edge_iter.isEnd(); ++edge_iter)
+		for (auto edge_iter = loop_iter->edge_begin(); !edge_iter.isEnd(); ++edge_iter)
 		{
 			if (!idxMode)
 			{
@@ -518,7 +517,7 @@ void Viewer2d::renderClothsPanels_Edge(const ldp::ClothPiece* piece, bool idxMod
 				glVertex3f(pts[i][0], pts[i][1], EDGE_Z);
 			}
 		} // end for edge_iter
-	}
+	} // end for loop_iter
 	glEnd();
 }
 
@@ -534,18 +533,17 @@ void Viewer2d::renderClothsPanels_KeyPoint(const ldp::ClothPiece* piece, bool id
 	else
 		glPointSize(KEYPT_RENDER_WIDTH);
 	glBegin(GL_POINTS);
-	for (auto iter = panel.curveBegin(); iter != panel.curveEnd(); ++iter)
+	for (auto curve_iter = panel.curve_begin(); curve_iter != panel.curve_end(); ++curve_iter)
 	{
-		auto shape = iter->second;
-		for (int i = 0; i < shape->numKeyPoints(); i++)
+		for (int i = 0; i < curve_iter->numKeyPoints(); i++)
 		{
-			const auto& p = *shape->keyPoint(i);
+			const auto& p = *curve_iter->keyPoint(i);
 
 			if (!idxMode)
 			{
-				if (p.isHighlighted() || shape->isHighlighted() || panel.isHighlighted())
+				if (p.isHighlighted() || curve_iter->isHighlighted() || panel.isHighlighted())
 					glColor4fv(HIGHLIGHT_COLOR);
-				else if (p.isSelected() || shape->isSelected() || panel.isSelected())
+				else if (p.isSelected() || curve_iter->isSelected() || panel.isSelected())
 					glColor4fv(SELECT_COLOR);
 				else
 					glColor4fv(DEFAULT_COLOR);

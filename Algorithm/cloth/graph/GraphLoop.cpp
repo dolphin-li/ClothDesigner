@@ -25,26 +25,6 @@ namespace ldp
 		return iter.isClosed();
 	}
 
-	void GraphLoop::samplePoints(std::vector<Float2>& pts, float step, float angleThreCos)
-	{
-		pts.clear();
-		for (auto iter = edge_begin(); !iter.isEnd(); ++iter)
-		{
-			const std::vector<Float2>& samples = iter->samplePointsOnShape(step);
-			if (pts.size())
-			{
-				for (size_t i = 0; i < samples.size(); i++)
-				{
-					Float2 p = samples[i];
-					// if too close
-					if ((p - pts.back()).length() < step || (p - pts[0]).length() < step)
-						continue;
-					pts.push_back(p);
-				} // end for i
-			}
-		}
-	}
-
 	TiXmlElement* GraphLoop::toXML(TiXmlNode* parent)const
 	{
 		TiXmlElement* ele = AbstractGraphObject::toXML(parent);
@@ -123,6 +103,49 @@ namespace ldp
 			else
 				throw std::exception(("GraphLoop::EdgeIter: invalid loop " + std::to_string(m_loop->getId())).c_str());
 		}
+		return *this;
+	}
+
+	GraphLoop::KeyPointIter::KeyPointIter(GraphLoop* l, AbstractGraphCurve* s)
+	{
+		m_edgeIter = EdgeIter(l, s);
+		m_curPtPos = m_edgeIter.shouldReverse() ? m_edgeIter->numKeyPoints() - 1 : 0;
+		m_curPoint = m_edgeIter->keyPoint(m_curPtPos);
+	}
+
+	GraphLoop::KeyPointIter& GraphLoop::KeyPointIter::operator++()
+	{
+		m_curPtPos += m_edgeIter.shouldReverse() ? -1 : 1;
+		const int endPos = m_edgeIter.shouldReverse() ? m_edgeIter->numKeyPoints() : -1;
+		if (m_curPtPos == endPos)
+		{
+			++m_edgeIter;
+			m_curPtPos = m_edgeIter.shouldReverse() ? m_edgeIter->numKeyPoints() - 1 : 0;
+		}
+		m_curPoint = m_edgeIter->keyPoint(m_curPtPos);
+		return *this;
+	}
+
+	GraphLoop::SamplePointIter::SamplePointIter(GraphLoop* l, AbstractGraphCurve* s, float step)
+	{
+		m_edgeIter = EdgeIter(l, s);
+		m_step = step;
+		const auto& vec = m_edgeIter->samplePointsOnShape(m_step);
+		m_curPtPos = m_edgeIter.shouldReverse() ? (int)vec.size() - 1 : 0;
+		m_curSample = &vec[m_curPtPos];
+	}
+
+	GraphLoop::SamplePointIter& GraphLoop::SamplePointIter::operator++()
+	{
+		const auto& vec = m_edgeIter->samplePointsOnShape(m_step);
+		m_curPtPos += m_edgeIter.shouldReverse() ? -1 : 1;
+		const int endPos = m_edgeIter.shouldReverse() ? (int)vec.size() : -1;
+		if (m_curPtPos == endPos)
+		{
+			++m_edgeIter;
+			m_curPtPos = m_edgeIter.shouldReverse() ? (int)vec.size() - 1 : 0;
+		}
+		m_curSample = &vec[m_curPtPos];
 		return *this;
 	}
 }

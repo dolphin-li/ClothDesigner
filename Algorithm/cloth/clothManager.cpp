@@ -1524,11 +1524,10 @@ namespace ldp
 			// 2. remove loops
 			auto& panel = piece->graphPanel();
 			std::vector<GraphLoop*> tmpLoops;
-			for (auto iter = panel.loopBegin(); iter != panel.loopEnd(); ++iter)
+			for (auto iter = panel.loop_begin(); iter != panel.loop_begin(); ++iter)
 			{
-				auto loop = iter->second.get();
-				if (loop->isSelected())
-					tmpLoops.push_back(loop);
+				if (iter->isSelected())
+					tmpLoops.push_back(iter);
 			}
 			for (auto loop : tmpLoops)
 				panel.removeLoop(loop);
@@ -1536,11 +1535,10 @@ namespace ldp
 
 			// 3. remove curves
 			std::vector<AbstractGraphCurve*> tmpCurves;
-			for (auto iter = panel.curveBegin(); iter != panel.curveEnd(); ++iter)
+			for (auto iter = panel.curve_begin(); iter != panel.curve_end(); ++iter)
 			{
-				auto curve = iter->second.get();
-				if (curve->isSelected())
-					tmpCurves.push_back(curve);
+				if (iter->isSelected())
+					tmpCurves.push_back(iter);
 			}
 			for (auto curve : tmpCurves)
 				panel.removeCurve(curve);
@@ -1548,11 +1546,10 @@ namespace ldp
 
 			// 4. remove key points
 			std::vector<GraphPoint*> tmpPts;
-			for (auto iter = panel.pointBegin(); iter != panel.pointEnd(); ++iter)
+			for (auto iter = panel.point_begin(); iter != panel.point_end(); ++iter)
 			{
-				auto pt = iter->second.get();
-				if (pt->isSelected())
-					tmpPts.push_back(pt);
+				if (iter->isSelected())
+					tmpPts.push_back(iter);
 			}
 			for (auto pt : tmpPts)
 				panel.removeKeyPoints(pt);

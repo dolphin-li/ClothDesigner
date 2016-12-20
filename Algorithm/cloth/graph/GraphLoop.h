@@ -17,6 +17,7 @@ namespace ldp
 			bool m_startEdgeVisited = false;
 			bool m_shouldReverse = false;
 		public:
+			EdgeIter() {}
 			EdgeIter(GraphLoop* l, AbstractGraphCurve* s);
  			EdgeIter& operator++();
 			EdgeIter operator++()const { EdgeIter iter(*this); return ++iter; }
@@ -25,6 +26,37 @@ namespace ldp
 			AbstractGraphCurve* operator ->() { return m_curEdge;}
 			AbstractGraphCurve& operator*() { return *m_curEdge; }
 			bool shouldReverse()const { return m_shouldReverse; }
+		};
+		
+		class KeyPointIter
+		{
+			EdgeIter m_edgeIter;
+			GraphPoint* m_curPoint = nullptr;
+			int m_curPtPos = 0;
+		public:			
+			KeyPointIter(GraphLoop* l, AbstractGraphCurve* s);
+			KeyPointIter& operator++();
+			KeyPointIter operator++()const { KeyPointIter iter(*this); return ++iter; }
+			bool isEnd()const { return m_edgeIter.isEnd(); }
+			bool isClosed()const { return m_edgeIter.isClosed(); }
+			GraphPoint* operator ->() { return m_curPoint; }
+			GraphPoint& operator*() { return *m_curPoint; }
+		};
+
+		class SamplePointIter
+		{
+			EdgeIter m_edgeIter;
+			const Float2* m_curSample = nullptr;
+			int m_curPtPos = 0;
+			float m_step = 0;
+		public:
+			SamplePointIter(GraphLoop* l, AbstractGraphCurve* s, float step);
+			SamplePointIter& operator++();
+			SamplePointIter operator++()const { SamplePointIter iter(*this); return ++iter; }
+			bool isEnd()const { return m_edgeIter.isEnd(); }
+			bool isClosed()const { return m_edgeIter.isClosed(); }
+			const Float2* operator ->() { return m_curSample; }
+			const Float2& operator*() { return *m_curSample; }
 		};
 	public:
 		GraphLoop();
@@ -38,12 +70,17 @@ namespace ldp
 		bool isBoundingLoop()const { return m_isBoundingLoop; }
 		void setBoundingLoop(bool b) { m_isBoundingLoop = b; }
 
-		// sample points based on step and cos(angle)
-		void samplePoints(std::vector<Float2>& pts, float step, float angleThreCos);
-
 		// iteration over all edges
 		EdgeIter edge_begin() { return EdgeIter(this, m_startEdge); }
 		const EdgeIter edge_begin()const { return EdgeIter((GraphLoop*)this, m_startEdge); }
+
+		// iteration over all key points, including end points and bezeir points
+		KeyPointIter keyPoint_begin() { return KeyPointIter(this, m_startEdge); }
+		const KeyPointIter keyPoint_begin()const { return KeyPointIter((GraphLoop*)this, m_startEdge); }
+
+		// iteration over all sample points, including end points and bezeir points
+		SamplePointIter samplePoint_begin(float step) { return SamplePointIter(this, m_startEdge, step); }
+		const SamplePointIter samplePoint_begin(float step)const { return SamplePointIter((GraphLoop*)this, m_startEdge, step); }
 	protected:
 		// for winged edge
 		AbstractGraphCurve* getNextEdge(AbstractGraphCurve* curve);
