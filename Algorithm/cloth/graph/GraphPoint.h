@@ -10,6 +10,7 @@ namespace ldp
 		friend class Graph;
 		friend class GraphLoop;
 		friend class AbstractGraphCurve;
+		friend class BGraph;
 	public:
 		class EdgeIter
 		{

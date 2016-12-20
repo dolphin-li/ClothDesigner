@@ -154,6 +154,7 @@
     <ClCompile Include="Algorithm\cloth\device_memory.cpp" />
     <ClCompile Include="Algorithm\cloth\graph\AbstractGraphCurve.cpp" />
     <ClCompile Include="Algorithm\cloth\graph\AbstractGraphOjbect.cpp" />
+    <ClCompile Include="Algorithm\cloth\graph\BGraph.cpp" />
     <ClCompile Include="Algorithm\cloth\graph\Graph.cpp" />
     <ClCompile Include="Algorithm\cloth\graph\Graph2Mesh.cpp" />
     <ClCompile Include="Algorithm\cloth\graph\GraphCubic.cpp" />
@@ -423,6 +424,8 @@
     <ClInclude Include="Algorithm\cloth\device_utils.h" />
     <ClInclude Include="Algorithm\cloth\graph\AbstractGraphCurve.h" />
     <ClInclude Include="Algorithm\cloth\graph\AbstractGraphObject.h" />
+    <ClInclude Include="Algorithm\cloth\graph\BGraph.h" />
+    <ClInclude Include="Algorithm\cloth\graph\BGraph_private.h" />
     <ClInclude Include="Algorithm\cloth\graph\Graph.h" />
     <ClInclude Include="Algorithm\cloth\graph\Graph2Mesh.h" />
     <ClInclude Include="Algorithm\cloth\graph\GraphCubic.h" />

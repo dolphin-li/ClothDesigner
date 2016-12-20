@@ -649,6 +649,9 @@
     <ClCompile Include="Algorithm\cloth\definations.cpp">
       <Filter>algorithm\cloth</Filter>
     </ClCompile>
+    <ClCompile Include="Algorithm\cloth\graph\BGraph.cpp">
+      <Filter>algorithm\cloth\graph</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">
@@ -1023,6 +1026,12 @@
       <Filter>algorithm\cloth\graph</Filter>
     </ClInclude>
     <ClInclude Include="Algorithm\cloth\graph\Graph2Mesh.h">
+      <Filter>algorithm\cloth\graph</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\graph\BGraph.h">
+      <Filter>algorithm\cloth\graph</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\graph\BGraph_private.h">
       <Filter>algorithm\cloth\graph</Filter>
     </ClInclude>
   </ItemGroup>

@@ -74,6 +74,8 @@ namespace ldp
 		size_t m_id = 0;
 		bool m_selected = false;
 		bool m_highlighted = false;
+	public:
+		int m_flag = 0; // for others to tmporary usage
 	private:
 		static IdxObjMap s_idxObjMap;
 		static IdxSet s_freeIdx;
