@@ -81,12 +81,12 @@ namespace ldp
 	
 	AbstractGraphCurve* GraphLoop::getNextEdge(AbstractGraphCurve* curve)
 	{
-		if (curve->m_leftLoop == this)
-			return curve->m_leftNextEdge;
-		else if (curve->m_rightLoop == this)
-			return curve->m_rightNextEdge;
-		else
-			assert(0);
+		for (auto& lk : curve->m_graphLinks)
+		{
+			if (lk.loop == this)
+				return lk.next;
+		}
+		assert(0);
 		return nullptr;
 	}
 	

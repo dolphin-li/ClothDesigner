@@ -108,12 +108,7 @@ namespace ldp
 		auto shape = (AbstractGraphCurve*)AbstractGraphObject::create(getType());
 		shape->m_keyPoints = m_keyPoints;
 		shape->setSelected(isSelected());
-		shape->m_leftNextEdge = m_leftNextEdge;
-		shape->m_leftPrevEdge = m_leftPrevEdge;
-		shape->m_rightNextEdge = m_rightNextEdge;
-		shape->m_rightPrevEdge = m_rightPrevEdge;
-		shape->m_leftLoop = m_leftLoop;
-		shape->m_rightLoop = m_rightLoop;
+		shape->m_graphLinks = m_graphLinks;
 		shape->m_sewings = m_sewings;
 		return shape;
 	}

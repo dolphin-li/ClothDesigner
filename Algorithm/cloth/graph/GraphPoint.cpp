@@ -51,24 +51,4 @@ namespace ldp
 		m_p[1] = y;
 	}
 
-	/////////////////////////////////////////////////////////////////////////////
-	AbstractGraphCurve* GraphPoint::nextEdge(AbstractGraphCurve* e)
-	{
-		if (e->getStartPoint() == this)
-			return e->m_leftNextEdge;
-		if (e->getEndPoint() == this)
-			return e->m_rightNextEdge;
-		return nullptr;
-	}
-
-	GraphLoop* GraphPoint::leftLoop(AbstractGraphCurve* e)
-	{
-		return e->m_leftLoop;
-	}
-
-	GraphLoop* GraphPoint::rightLoop(AbstractGraphCurve* e)
-	{
-		return e->m_rightLoop;
-	}
-
 }

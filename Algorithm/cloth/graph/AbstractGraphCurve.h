@@ -5,39 +5,19 @@
 namespace ldp
 {
 	class GraphsSewing;
+	class AbstractGraphCurve;
+	class GraphLoop;
+	struct GraphDiskLink
+	{
+		AbstractGraphCurve* prev = nullptr;
+		AbstractGraphCurve* next = nullptr;
+		GraphLoop* loop = nullptr;
+	};
 	class AbstractGraphCurve : public AbstractGraphObject
 	{
 		friend class Graph;
 		friend class GraphLoop;
 		friend class GraphPoint;
-	public:
-		class LoopIter
-		{
-			AbstractGraphCurve* m_curve = nullptr;
-			GraphLoop* m_curLoop = nullptr;
-			GraphLoop* m_startLoop = nullptr;
-			bool m_startVisited = false;
-		public:
-			LoopIter(AbstractGraphCurve* c) : m_curve(c), m_startLoop(c->m_leftLoop)
-			{
-				if (m_startLoop == nullptr)
-					m_startLoop = c->m_rightLoop;
-				m_curLoop = m_startLoop;
-			}
-			bool isEnd()const
-			{
-				return (m_curLoop == nullptr || m_curLoop == m_startLoop) && m_startVisited;
-			}
-			LoopIter& operator++()
-			{
-				if (m_curLoop == m_curve->m_leftLoop)
-					m_curLoop = m_curve->m_rightLoop;
-				else
-					m_curLoop = m_curve->m_leftLoop;
-				m_startVisited = true;
-			}
-			LoopIter operator++()const { return ++LoopIter(*this); }
-		};
 	public:
 		AbstractGraphCurve();
 		AbstractGraphCurve(const std::vector<GraphPoint*>& pts);
@@ -107,19 +87,14 @@ namespace ldp
 		const std::hash_set<GraphsSewing*>& graphSewings()const { return m_sewings; }
 
 		// winged-edge related
-		LoopIter loop_begin()const { return LoopIter((AbstractGraphCurve*)this); }
+		const std::vector<GraphDiskLink>& graphLinks()const { return m_graphLinks; }
 	protected:
 		virtual float calcLength()const;
 	protected:
 		std::vector<GraphPoint*> m_keyPoints;
 
 		// for winged-edge data structure
-		AbstractGraphCurve* m_leftPrevEdge = nullptr; 
-		AbstractGraphCurve* m_rightPrevEdge = nullptr;
-		AbstractGraphCurve* m_leftNextEdge = nullptr;
-		AbstractGraphCurve* m_rightNextEdge = nullptr;
-		GraphLoop* m_leftLoop = nullptr;
-		GraphLoop* m_rightLoop = nullptr;
+		std::vector<GraphDiskLink> m_graphLinks;
 
 		// relate to sewings
 		std::hash_set<GraphsSewing*> m_sewings;

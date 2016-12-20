@@ -40,11 +40,6 @@ namespace ldp
 		// iteration over all edges
 		EdgeIter edge_begin() { return EdgeIter(this); }
 		const EdgeIter edge_begin()const { return EdgeIter((GraphPoint*)this); }
-	protected:
-		// for winged edge
-		AbstractGraphCurve* nextEdge(AbstractGraphCurve* e);
-		GraphLoop* leftLoop(AbstractGraphCurve* e);
-		GraphLoop* rightLoop(AbstractGraphCurve* e);
 	private:
 		Float2 m_p;
 		std::hash_set<AbstractGraphCurve*> m_edges;
