@@ -26,7 +26,7 @@ namespace ldp
 
 		Graph* graph = new Graph();
 		graph->setSelected(isSelected());
-
+		graph->setHighlighted(false);
 		// clone the objects
 		for (auto iter : m_keyPoints)
 		{
@@ -50,8 +50,10 @@ namespace ldp
 		// clone the graph relations
 		for (auto iter : graph->m_keyPoints)
 		{
-			for (auto e : iter.second->m_edges)
-				e = (AbstractGraphCurve*)m_ptrMapAfterClone[e];
+			auto tmpEdges = iter.second->m_edges;
+			iter.second->m_edges.clear();
+			for (auto e : tmpEdges)
+				iter.second->m_edges.insert((AbstractGraphCurve*)m_ptrMapAfterClone[e]);
 		}
 		for (auto iter : graph->m_curves)
 		{

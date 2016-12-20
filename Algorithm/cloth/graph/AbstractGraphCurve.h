@@ -39,6 +39,14 @@ namespace ldp
 		static void fittingOneCurve(std::vector<std::shared_ptr<GraphPoint>>& curves,
 			const std::vector<Float2>& keyPoints, float fittingThre);
 
+		bool isEndPointsSame(const AbstractGraphCurve* r)const
+		{
+			return getStartPoint() == r->getStartPoint() && getEndPoint() == r->getEndPoint();
+		}
+		bool isEndPointsReversed(const AbstractGraphCurve* r)const
+		{
+			return getStartPoint() == r->getEndPoint() && getEndPoint() == r->getStartPoint();
+		}
 		const GraphPoint* getStartPoint()const
 		{
 			return m_keyPoints[0];
