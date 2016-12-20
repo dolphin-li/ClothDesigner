@@ -33,7 +33,7 @@ namespace ldp
 		void reset_triangle_struct(triangulateio* io)const;
 		void prepareTriangulation();
 		void precomputeSewing();
-		void addPolygon(const GraphLoop& poly);
+		Float2 addPolygon(const GraphLoop& poly); // return the center of polygon
 		void addDart(const GraphLoop& dart);
 		void addLine(const GraphLoop& line);
 		void finalizeTriangulation();
@@ -45,7 +45,7 @@ namespace ldp
 			float t;
 			int idx;
 			SampleParam(float tt, int ii) :t(tt), idx(ii) {}
-			SampleParam() :t(0), idx(0) {}
+			SampleParam() :t(0), idx(-1) {}
 		};
 		struct SampleParamVec
 		{

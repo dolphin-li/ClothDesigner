@@ -94,13 +94,18 @@ namespace ldp
 				m_tree->buildIndex();
 			}
 
-			bool isValid()
+			bool isValid()const
 			{
 				return m_points.pts.size() != 0;
 			}
 
 			Point nearestPoint(Point p, T& dist)const
 			{
+				if (!isValid())
+				{
+					dist = FLT_MAX;
+					return Point();
+				}
 				size_t index;
 				T out_dist_sqr = T(0);
 				nanoflann::KNNResultSet<T> resultSet(1);

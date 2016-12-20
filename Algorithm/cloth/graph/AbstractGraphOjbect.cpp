@@ -85,6 +85,7 @@ namespace ldp
 		int id = 0;
 		if (!self->Attribute("id", &id))
 			throw std::exception(("cannot find id for " + getTypeString()).c_str());
+		m_loadedId = id;
 		s_idxObjMap_loading[id] = this;
 	}
 

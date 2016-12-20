@@ -80,9 +80,10 @@ namespace ldp
 		static size_t s_nextIdx;
 		static TypeStringMap s_typeStringMap;
 		static TypeStringMap generateTypeStringMap();
-
+	protected:
 		// for tmp idx maping when loading from files.
 		static IdxObjMap s_idxObjMap_loading;
+		size_t m_loadedId = 0;
 	protected:
 		static AbstractGraphObject* getObjByIdx_loading(size_t id)
 		{

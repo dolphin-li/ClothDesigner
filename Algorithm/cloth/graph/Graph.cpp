@@ -104,7 +104,7 @@ namespace ldp
 				{
 					GraphPointPtr kpt((GraphPoint*)AbstractGraphObject::create(child->Value()));
 					kpt->fromXML(child);
-					addKeyPoint(kpt, false);
+					s_idxObjMap_loading[kpt->m_loadedId] = addKeyPoint(kpt, false);
 				}
 			} // end if key-pts
 			if (groups->Value() == std::string("curves"))
@@ -113,7 +113,7 @@ namespace ldp
 				{
 					AbstractGraphCurvePtr kpt((AbstractGraphCurve*)AbstractGraphObject::create(child->Value()));
 					kpt->fromXML(child);
-					addCurve(kpt);
+					s_idxObjMap_loading[kpt->m_loadedId] = addCurve(kpt);
 				}
 			} // end if curves
 			if (groups->Value() == std::string("loops"))
@@ -122,7 +122,7 @@ namespace ldp
 				{
 					GraphLoopPtr kpt((GraphLoop*)AbstractGraphObject::create(child->Value()));
 					kpt->fromXML(child);
-					addLoop(kpt->m_loadedCurves, kpt->isBoundingLoop());	 // idxMapLoading of loop is corrupt here
+					s_idxObjMap_loading[kpt->m_loadedId] = addLoop(kpt->m_loadedCurves, kpt->isBoundingLoop());
 				}
 			} // end if loops
 		} // end for groups
@@ -289,7 +289,7 @@ namespace ldp
 			return curve.get();
 		}
 
-		// check curve points
+		// check curve points, both the curve and its reverse version is viewed as the same curve
 		for (auto iter : m_curves)
 		{
 			bool samePoints = true;
@@ -337,6 +337,44 @@ namespace ldp
 		return addLoop(ptr, isBoundingLoop);
 	}
 
+	void Graph::connectNextCurve(AbstractGraphCurve* curr, AbstractGraphCurve* next, GraphLoop* loop, bool reverse)
+	{
+		reverse = false; // ignore
+		if (curr->m_leftLoop == loop)
+		{
+			if (reverse)
+				curr->m_leftPrevEdge = next;
+			else
+				curr->m_leftNextEdge = next;
+		}
+		else if (curr->m_rightLoop == loop)
+		{
+			if (reverse)
+				curr->m_rightNextEdge = next;
+			else
+				curr->m_rightPrevEdge = next;
+		}
+	}
+
+	void Graph::connectPrevCurve(AbstractGraphCurve* curr, AbstractGraphCurve* prev, GraphLoop* loop, bool reverse)
+	{
+		reverse = false; // ignore
+		if (curr->m_leftLoop == loop)
+		{
+			if (reverse)
+				curr->m_leftNextEdge = prev;
+			else
+				curr->m_leftPrevEdge = prev;
+		}
+		else if (curr->m_rightLoop == loop)
+		{
+			if (reverse)
+				curr->m_rightPrevEdge = prev;
+			else
+				curr->m_rightNextEdge = prev;
+		}
+	}
+
 	GraphLoop* Graph::addLoop(const std::vector<AbstractGraphCurve*>& curves, bool isBoundingLoop)
 	{
 		if (curves.size() == 0)
@@ -346,23 +384,60 @@ namespace ldp
 			if (m_curves.find(c->getId()) == m_curves.end())
 				throw std::exception("addLoop: curve not exist!");
 		}
+
+		// check the connectivity
+		std::vector<int> shouldCurveReverse(curves.size(), 0);
 		for (size_t i = 1; i < curves.size(); i++)
 		{
-			if (curves[i - 1]->getEndPoint() != curves[i]->getStartPoint())
+			if (i == 1)
+			{
+				if (curves[0]->getEndPoint() != curves[1]->getStartPoint()
+					&& curves[0]->getEndPoint() != curves[1]->getEndPoint())
+					shouldCurveReverse[0] = 1;
+			}
+			auto lp = shouldCurveReverse[i - 1] ? curves[i - 1]->getStartPoint() : curves[i - 1]->getEndPoint();
+			if (curves[i]->getStartPoint() == lp)
+				shouldCurveReverse[i] = 0;
+			else if (curves[i]->getEndPoint() == lp)
+				shouldCurveReverse[i] = 1;
+			else
 				throw std::exception("addLoop: given curves not connected!");
-			curves[i - 1]->m_leftNextEdge = curves[i];
-			curves[i]->m_leftPrevEdge = curves[i - 1];
 		}
-		if (curves.back()->getEndPoint() == curves[0]->getStartPoint())
-		{
-			curves.back()->m_leftNextEdge = curves[0];
-			curves[0]->m_leftPrevEdge = curves.back();
-		}
+
+		// create the loop
 		std::shared_ptr<GraphLoop> loop(new GraphLoop);
 		loop->m_startEdge = curves[0];
 		loop->setBoundingLoop(isBoundingLoop);
-		for (auto& c : curves)
-			c->m_leftLoop = loop.get();
+
+		// relate edge to left/right loop
+		for (size_t i = 0; i < curves.size(); i++)
+		{
+			if (curves[i]->m_leftLoop == nullptr)
+				curves[i]->m_leftLoop = loop.get();
+			else if (curves[i]->m_rightLoop == nullptr)
+				curves[i]->m_rightLoop = loop.get();
+			else
+				throw std::exception(("error: more than 3 loops around curve:" 
+				+ std::to_string(curves[i]->getId())).c_str());
+		}
+
+		// connect curves with each other
+		for (size_t i = 1; i < curves.size(); i++)
+		{
+			connectNextCurve(curves[i - 1], curves[i], loop.get(), shouldCurveReverse[i - 1]);
+			connectPrevCurve(curves[i], curves[i - 1], loop.get(), shouldCurveReverse[i]);
+		}
+		if ((curves.back()->getEndPoint() == curves[0]->getStartPoint()
+			|| curves.back()->getEndPoint() == curves[0]->getEndPoint()
+			|| curves.back()->getStartPoint() == curves[0]->getEndPoint()
+			|| curves.back()->getStartPoint() == curves[0]->getStartPoint())
+			&& curves.back() != curves[0]
+			)
+		{
+			connectNextCurve(curves.back(), curves[0], loop.get(), shouldCurveReverse.back());
+			connectPrevCurve(curves[0], curves.back(), loop.get(), shouldCurveReverse[0]);
+		}
+
 		return addLoop(loop);
 	}
 
@@ -388,8 +463,6 @@ namespace ldp
 
 		// insert loop
 		m_loops.insert(std::make_pair(loop->getId(), loop));
-		for (auto iter = loop->edge_begin(); !iter.isEnd(); ++iter)
-			iter->m_leftLoop = loop.get();
 		return loop.get();
 	}
 

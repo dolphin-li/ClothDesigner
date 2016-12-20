@@ -4,13 +4,12 @@
 #include "ldpMat\ldp_basic_mat.h"
 namespace ldp
 {
-	class GraphPoint;
-	class GraphLoop;
 	class GraphsSewing;
 	class AbstractGraphCurve : public AbstractGraphObject
 	{
 		friend class Graph;
 		friend class GraphLoop;
+		friend class GraphPoint;
 	public:
 		AbstractGraphCurve();
 		AbstractGraphCurve(const std::vector<GraphPoint*>& pts);
@@ -75,6 +74,12 @@ namespace ldp
 		// relate to sewings
 		std::hash_set<GraphsSewing*>& graphSewings() { return m_sewings; }
 		const std::hash_set<GraphsSewing*>& graphSewings()const { return m_sewings; }
+
+		// winged-edge related
+		GraphLoop* leftLoop() { return m_leftLoop; }
+		const GraphLoop* leftLoop()const { return m_leftLoop; }
+		GraphLoop* rightLoop() { return m_rightLoop; }
+		const GraphLoop* rightLoop()const { return m_rightLoop; }
 	protected:
 		virtual float calcLength()const;
 	protected:

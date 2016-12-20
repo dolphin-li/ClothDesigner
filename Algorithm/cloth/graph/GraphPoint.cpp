@@ -1,5 +1,7 @@
 #include "GraphPoint.h"
 #include "tinyxml\tinyxml.h"
+#include "AbstractGraphCurve.h"
+#include "GraphLoop.h"
 namespace ldp
 {
 	GraphPoint g_graphPoint;
@@ -40,5 +42,54 @@ namespace ldp
 			throw std::exception(("cannot find y for " + getTypeString()).c_str());
 		m_p[0] = x;
 		m_p[1] = y;
+	}
+
+
+	AbstractGraphCurve* GraphPoint::nextEdge(AbstractGraphCurve* e)
+	{
+		if (e->keyPoint(0) == this)
+			return e->m_leftPrevEdge;
+		if (e->keyPoint(e->numKeyPoints() - 1) == this)
+			return e->m_rightNextEdge;
+		return nullptr;
+	}
+	GraphLoop* GraphPoint::leftLoop(AbstractGraphCurve* e)
+	{
+		return e->m_leftLoop;
+	}
+	GraphLoop* GraphPoint::rightLoop(AbstractGraphCurve* e)
+	{
+		return e->m_rightLoop;
+	}
+
+	GraphPoint::EdgeIter& GraphPoint::EdgeIter::operator++()
+	{
+		startEdgeVisited = true;
+		curEdge = point->nextEdge(curEdge);
+		return *this;
+	}
+
+	GraphPoint::EdgeIter GraphPoint::EdgeIter::operator++()const
+	{
+		EdgeIter iter(point, curEdge);
+		return ++iter;
+	}
+
+
+	GraphPoint::LoopIter::LoopIter(GraphPoint* p, GraphLoop* s) : point(p), curLoop(s)
+	{
+
+	}
+
+	GraphPoint::LoopIter& GraphPoint::LoopIter::operator++()
+	{
+		startEdgeVisited = true;
+		return *this;
+	}
+
+	GraphPoint::LoopIter GraphPoint::LoopIter::operator++()const
+	{
+		LoopIter iter(point, curLoop);
+		return ++iter;
 	}
 }

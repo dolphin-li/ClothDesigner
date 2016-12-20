@@ -4,20 +4,6 @@
 #include "tinyxml\tinyxml.h"
 namespace ldp
 {
-
-	GraphLoop::EdgeIter& GraphLoop::EdgeIter::operator++()
-	{
-		assert(curEdge);
-		startEdgeVisited = true;
-		curEdge = loop->getNextEdge(curEdge);
-		return *this;
-	}
-	GraphLoop::EdgeIter GraphLoop::EdgeIter::operator++()const
-	{
-		EdgeIter iter(loop, curEdge);
-		return ++iter;
-	}
-
 	GraphLoop::GraphLoop() : AbstractGraphObject()
 	{
 	
@@ -37,17 +23,6 @@ namespace ldp
 		auto iter = edge_begin();
 		for (; !iter.isEnd(); ++iter) {}
 		return iter.isClosed();
-	}
-
-	AbstractGraphCurve* GraphLoop::getNextEdge(AbstractGraphCurve* curve)
-	{
-		if (curve->m_leftLoop == this)
-			return curve->m_leftNextEdge;
-		else if (curve->m_rightLoop == this)
-			return curve->m_rightNextEdge;
-		else
-			assert(0);
-		return nullptr;
 	}
 
 	void GraphLoop::samplePoints(std::vector<Float2>& pts, float step, float angleThreCos)
@@ -107,5 +82,47 @@ namespace ldp
 			m_loadedCurves.push_back((AbstractGraphCurve*)obj);
 		} // end for child
 		assert(m_loadedCurves.size());
+	}
+
+	//////////////////////////////////////////////////////////////
+	GraphLoop::EdgeIter::EdgeIter(GraphLoop* l, AbstractGraphCurve* s) : m_loop(l), m_curEdge(s)
+	{
+		auto nl = m_loop->getNextEdge(m_curEdge);
+		if (nl)
+		{
+			if (m_curEdge->getEndPoint() == nl->getStartPoint() || m_curEdge->getEndPoint() == nl->getEndPoint())
+				m_shouldReverse = false;
+			else if (m_curEdge->getStartPoint() == nl->getStartPoint() || m_curEdge->getStartPoint() == nl->getEndPoint())
+				m_shouldReverse = true;
+			else
+				throw std::exception(("GraphLoop::EdgeIter: invalid loop " + std::to_string(m_loop->getId())).c_str());
+		}
+	}
+	AbstractGraphCurve* GraphLoop::getNextEdge(AbstractGraphCurve* curve)
+	{
+		if (curve->m_leftLoop == this)
+			return curve->m_leftNextEdge;
+		else if (curve->m_rightLoop == this)
+			return curve->m_rightPrevEdge;
+		else
+			assert(0);
+		return nullptr;
+	}
+	GraphLoop::EdgeIter& GraphLoop::EdgeIter::operator++()
+	{
+		assert(m_curEdge);
+		m_startEdgeVisited = true;
+		auto prevEndPt = m_shouldReverse ? m_curEdge->getStartPoint() : m_curEdge->getEndPoint();
+		m_curEdge = m_loop->getNextEdge(m_curEdge);
+		if (m_curEdge)
+		{
+			if (m_curEdge->getStartPoint() == prevEndPt)
+				m_shouldReverse = false;
+			else if (m_curEdge->getEndPoint() == prevEndPt)
+				m_shouldReverse = true;
+			else
+				throw std::exception(("GraphLoop::EdgeIter: invalid loop " + std::to_string(m_loop->getId())).c_str());
+		}
+		return *this;
 	}
 }

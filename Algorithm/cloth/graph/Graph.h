@@ -122,6 +122,9 @@ namespace ldp
 
 		// two curves can be merged into one iff they share a common point
 		bool mergeCurve(AbstractGraphCurve* curve1, AbstractGraphCurve* curve2);
+	protected:
+		void connectNextCurve(AbstractGraphCurve* curr, AbstractGraphCurve* next, GraphLoop* loop, bool reverse);
+		void connectPrevCurve(AbstractGraphCurve* curr, AbstractGraphCurve* prev, GraphLoop* loop, bool reverse);
 	private:
 		ldp::Float2 m_bbox[2];
 		PointMap m_keyPoints;

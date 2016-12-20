@@ -1567,7 +1567,7 @@ namespace ldp
 	{
 		TiXmlDocument doc;
 		if (!doc.LoadFile(filename.c_str()))
-			throw std::exception(("IOError" + filename).c_str());
+			throw std::exception(("IOError" + filename + "]: " + doc.ErrorDesc()).c_str());
 		clear();
 
 		auto root = doc.FirstChildElement();

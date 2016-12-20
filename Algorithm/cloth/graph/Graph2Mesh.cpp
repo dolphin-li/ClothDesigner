@@ -7,6 +7,7 @@
 #include "cloth\graph\GraphLoop.h"
 #include "cloth\TransformInfo.h"
 #include "Renderable\ObjMesh.h"
+#include "kdtree\PointTree.h"
 extern "C"{
 #include "triangle\triangle.h"
 };
@@ -54,6 +55,8 @@ namespace ldp
 	Graph2Mesh::~Graph2Mesh()
 	{
 		reset_triangle_struct(m_in);
+		m_out->numberofholes = 0;
+		m_out->holelist = nullptr;
 		reset_triangle_struct(m_out);
 		reset_triangle_struct(m_vro);
 		delete m_in;
@@ -91,7 +94,7 @@ namespace ldp
 			for (auto loop_iter = panel.loopBegin(); loop_iter != panel.loopEnd(); ++loop_iter)
 			{
 				auto loop = loop_iter->second.get();
-				if (loop->isClosed())
+				if (loop->isClosed() && loop != bloop)
 					addDart(*loop);
 			} // end for loop iter
 
@@ -111,6 +114,8 @@ namespace ldp
 	void Graph2Mesh::prepareTriangulation()
 	{
 		reset_triangle_struct(m_in);
+		m_out->numberofholes = 0;
+		m_out->holelist = nullptr;
 		reset_triangle_struct(m_out);
 		reset_triangle_struct(m_vro);
 		m_points.clear();
@@ -238,7 +243,7 @@ namespace ldp
 			(*ptr)[0]->end = 1;
 			(*ptr)[0]->step = step;
 			for (float s = 0.f; s < 1 + step - 1e-8; s += step)
-				(*ptr)[0]->params.push_back(SampleParam(std::min(1.f, s), 0));
+				(*ptr)[0]->params.push_back(SampleParam(std::min(1.f, s), -1));
 			m_shapeSegs[shape] = ptr;
 		} // end if iter not found
 		else
@@ -262,14 +267,14 @@ namespace ldp
 				oVec->end = tSegs;
 				oVec->params.clear();
 				for (float s = 0.f; s < 1 + oVec->step - 1e-8; s += oVec->step)
-					oVec->params.push_back(SampleParam(std::min(1.f, s), 0));
+					oVec->params.push_back(SampleParam(std::min(1.f, s), -1));
 				sVec->shape = oVec->shape;
 				sVec->step = calcForwardBackwardConsistentStep(oriStep * (segEnd - segBegin) / (segEnd - tSegs));
 				sVec->start = tSegs;
 				sVec->end = segEnd;
 				sVec->params.clear();
 				for (float s = 0.f; s < 1 + sVec->step - 1e-8; s += sVec->step)
-					sVec->params.push_back(SampleParam(std::min(1.f, s), 0));
+					sVec->params.push_back(SampleParam(std::min(1.f, s), -1));
 				return i;
 			} // end if >, <
 		} // end for i
@@ -296,63 +301,106 @@ namespace ldp
 		seg.step = step;
 		seg.params.clear();
 		for (float s = 0.f; s < 1 + seg.step - 1e-8; s += seg.step)
-			seg.params.push_back(SampleParam(std::min(1.f, s), 0));
+			seg.params.push_back(SampleParam(std::min(1.f, s), -1));
 	}
 
-	void Graph2Mesh::addPolygon(const GraphLoop& poly)
+	Float2 Graph2Mesh::addPolygon(const GraphLoop& poly)
 	{
+		// build a kdtree for existed points
+		typedef kdtree::PointTree<float, 2> Tree;
+		typedef Tree::Point Point;
+		std::vector<Point> treePoints;
+		for (int i = 0; i < m_points.size(); i++)
+			treePoints.push_back(Point(Float2(m_points[i]), i));
+		Tree tree;
+		tree.build(treePoints);
+
+		// begin
 		const float step = m_triSize;
 		const float thre = m_ptMergeThre;
 		int startIdx = (int)m_points.size();
 
 		// add points
+		std::vector<int> indices;
+		Float2 center = 0.f;
 		for (auto edge_iter = poly.edge_begin(); !edge_iter.isEnd(); ++edge_iter)
 		{
+			//TODO: reverse edge if needed
 			auto& shapeSegs = m_shapeSegs[&(*edge_iter)];
-			for (size_t iSeg = 0; iSeg < shapeSegs->size(); iSeg++)
+			int segBegin = 0, segEnd = (int)shapeSegs->size(), segInc = 1;
+			if (edge_iter.shouldReverse())
+			{
+				segBegin = (int)shapeSegs->size() - 1;
+				segEnd = -1;
+				segInc = -1;
+			}
+			for (int iSeg = segBegin; iSeg != segEnd; iSeg+=segInc)
 			{
 				auto& seg = shapeSegs->at(iSeg);
-				for (auto& sp : seg->params)
+				int paramBegin = 0, paramEnd = (int)seg->params.size(), paramInc = 1;
+				if (edge_iter.shouldReverse())
 				{
-					auto p = edge_iter->getPointByParam(sp.t * (seg->end - seg->start) + seg->start);
-					if (m_points.size() != startIdx)
-					{
-						if ((m_points.back() - p).length() < thre)
-						{
-							sp.idx = int(m_points.size()) - 1; // merged to the last point
-							continue;
-						}
-						if ((m_points[startIdx] - p).length() < thre)
-						{
-							sp.idx = startIdx; // merged to the last point
-							continue;
-						}
-					}
-					sp.idx = int(m_points.size());
-					m_points.push_back(p);
+					paramBegin = (int)seg->params.size() - 1;
+					paramEnd = -1;
+					paramInc = -1;
 				}
+				for (int iParam = paramBegin; iParam != paramEnd; iParam += paramInc)
+				{
+					auto& sp = seg->params[iParam];
+					auto p = edge_iter->getPointByParam(sp.t * (seg->end - seg->start) + seg->start);
+					// if this shape is not used, we create points for it
+					// else we just use its idx
+					if (sp.idx == -1)
+					{
+						if (m_points.size() != startIdx)
+						{
+							if ((m_points.back() - p).length() < thre)
+								sp.idx = int(m_points.size()) - 1; // merged to the last point
+							else if ((m_points[startIdx] - p).length() < thre)
+								sp.idx = startIdx; // merged to the last point
+						}
+						if (sp.idx == -1)
+						{
+							// if there exists too close points, just use it.
+							float dist = 0;
+							auto np = tree.nearestPoint(p, dist);
+							if (dist < thre)
+								sp.idx = np.idx;
+							else
+							{
+								sp.idx = int(m_points.size());
+								m_points.push_back(p);
+							}
+						}
+					} // end if sp.idx == -1
+					indices.push_back(sp.idx);
+					center += m_points[sp.idx];
+				} // end for sp
 			} // end for p
 		} // end for edge_iter
 
 		// add segments
-		for (int i = startIdx; i < (int)m_points.size()-1; i++)
-			m_segments.push_back(Int2(i, i+1));
-		if ((int)m_points.size() > startIdx)
-			m_segments.push_back(Int2((int)m_points.size()-1, startIdx));
+		for (int i = 0; i < (int)indices.size() - 1; i++)
+			m_segments.push_back(Int2(indices[i], indices[i+1]));
+		if (indices.size() > 1 && poly.isClosed())
+			m_segments.push_back(Int2(indices.back(), indices.front()));
+
+		if (indices.size())
+			center /= indices.size();
+		return center;
 	}
 
-	void Graph2Mesh::addDart(const GraphLoop& dart)
+	void Graph2Mesh::addDart(const GraphLoop& poly)
 	{
-
+		Float2 center = addPolygon(poly);
+		m_holeCenters.push_back(center);
 	}
 
 	void Graph2Mesh::addLine(const GraphLoop& line)
 	{
-		const float step = m_triSize;
-		const float thre = m_ptMergeThre;
-		int startIdx = (int)m_points.size();
-		return;
+		addPolygon(line);
 	}
+
 
 	void Graph2Mesh::finalizeTriangulation()
 	{
@@ -368,7 +416,14 @@ namespace ldp
 			m_in->pointlist[i * 2 + 1] = m_points[i][1];
 		}
 		
-		// init segments
+		// init segments, unique it before using it.
+		for (auto& s : m_segments)
+		{
+			if (s[0] > s[1])
+				std::swap(s[0], s[1]);
+		}
+		std::sort(m_segments.begin(), m_segments.end());
+		m_segments.resize(std::unique(m_segments.begin(), m_segments.end())-m_segments.begin());
 		m_in->numberofsegments = (int)m_segments.size();
 		if (m_in->numberofsegments)
 			m_in->segmentlist = (int *)malloc(m_in->numberofsegments * 2 * sizeof(int));
