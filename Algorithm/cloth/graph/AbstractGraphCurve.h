@@ -5,14 +5,6 @@
 namespace ldp
 {
 	class GraphsSewing;
-	class AbstractGraphCurve;
-	class BGDiskLink
-	{
-		friend class BGIter;
-		friend class BGraph;
-	private:
-		AbstractGraphCurve *next = nullptr, *prev = nullptr;
-	};
 	class AbstractGraphCurve : public AbstractGraphObject
 	{
 		friend class Graph;
@@ -112,15 +104,6 @@ namespace ldp
 		mutable bool m_lengthInvalid = true;
 		mutable float m_lastSampleStep = 0;
 		mutable float m_length = 0;
-
-		// for BGraph data structure
-		friend class BGraph;
-		friend class BGLoop;
-		friend class BGDiskLink;
-	private:
-		BGLoop *l = nullptr;
-		/* disk cycle pointers */
-		BGDiskLink v1_disk_link, v2_disk_link;
 	};
 	typedef std::shared_ptr<AbstractGraphCurve> AbstractGraphCurvePtr;
 }

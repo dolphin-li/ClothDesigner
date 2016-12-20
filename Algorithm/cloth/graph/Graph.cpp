@@ -292,19 +292,11 @@ namespace ldp
 		// check curve points, both the curve and its reverse version is viewed as the same curve
 		for (auto iter : m_curves)
 		{
-			bool samePoints = true;
-			if (iter.second->numKeyPoints() != curve->numKeyPoints())
-				samePoints = false;
-			for (int i = 0; i < iter.second->numKeyPoints(); i++)
-			{
-				if (iter.second->keyPoint(i) != curve->keyPoint(i)
-					&& iter.second->keyPoint(i) != curve->keyPoint(curve->numKeyPoints() - 1 - i))
-				{
-					samePoints = false;
-					break;
-				}
-			}
-			if (samePoints)
+			if (iter.second->getStartPoint() == curve->getStartPoint()
+				&& iter.second->getEndPoint() == curve->getEndPoint())
+				return iter.second.get();
+			if (iter.second->getStartPoint() == curve->getEndPoint()
+				&& iter.second->getEndPoint() == curve->getStartPoint())
 				return iter.second.get();
 		} // end for iter
 
@@ -375,7 +367,7 @@ namespace ldp
 		}
 	}
 
-	GraphLoop* Graph::addLoop(const std::vector<AbstractGraphCurve*>& curves, bool isBoundingLoop)
+	GraphLoop* Graph::addLoop(std::vector<AbstractGraphCurve*>& curves, bool isBoundingLoop)
 	{
 		if (curves.size() == 0)
 			return nullptr;
@@ -402,6 +394,40 @@ namespace ldp
 				shouldCurveReverse[i] = 1;
 			else
 				throw std::exception("addLoop: given curves not connected!");
+		}
+
+		// reverse and check if needed
+		bool shouldReverseVec = false;
+		for (size_t i = 0; i < curves.size(); i++)
+		{
+			int& rev = shouldCurveReverse[i];
+			if (curves[i]->m_leftLoop == nullptr && curves[i]->m_rightLoop == nullptr)
+			{
+				if (rev)
+				{
+					curves[i]->reverse();
+					rev = 0;
+				}
+			} // end if not related to loops
+			else
+			{
+				if (!rev)
+					shouldReverseVec = true;
+			} // end else
+		} // end for i
+		if (shouldReverseVec)
+		{
+			std::reverse(curves.begin(), curves.end());
+			std::reverse(shouldCurveReverse.begin(), shouldCurveReverse.end());
+			for (auto& r : shouldCurveReverse)
+				r = !r;
+			for (size_t i = 0; i < curves.size(); i++)
+			{
+				int& rev = shouldCurveReverse[i];
+				if ((curves[i]->m_leftLoop != nullptr || curves[i]->m_rightLoop != nullptr)
+					&& !shouldCurveReverse[i])
+					throw std::exception("error: non-manifold loops added");
+			} // end for i
 		}
 
 		// create the loop

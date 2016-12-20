@@ -146,7 +146,7 @@ namespace ldp
 		// a graph has and must has one bounding loop, that is, all other loops must be inside it.
 		GraphLoop* addLoop(const std::vector<std::vector<std::shared_ptr<GraphPoint>>>& curves, bool isBoundingLoop);
 		GraphLoop* addLoop(const std::vector<std::shared_ptr<AbstractGraphCurve>>& curves, bool isBoundingLoop);
-		GraphLoop* addLoop(const std::vector<AbstractGraphCurve*>& curves, bool isBoundingLoop);
+		GraphLoop* addLoop(std::vector<AbstractGraphCurve*>& curves, bool isBoundingLoop);
 		GraphLoop* addLoop(const std::shared_ptr<GraphLoop>& loop);
 
 		// topology operations: remove units, return false if not removed
