@@ -44,7 +44,7 @@ namespace ldp
 		m_p[1] = y;
 	}
 
-
+	/////////////////////////////////////////////////////////////////////////////
 	AbstractGraphCurve* GraphPoint::nextEdge(AbstractGraphCurve* e)
 	{
 		if (e->keyPoint(0) == this)
@@ -53,10 +53,12 @@ namespace ldp
 			return e->m_rightNextEdge;
 		return nullptr;
 	}
+
 	GraphLoop* GraphPoint::leftLoop(AbstractGraphCurve* e)
 	{
 		return e->m_leftLoop;
 	}
+
 	GraphLoop* GraphPoint::rightLoop(AbstractGraphCurve* e)
 	{
 		return e->m_rightLoop;
@@ -64,32 +66,19 @@ namespace ldp
 
 	GraphPoint::EdgeIter& GraphPoint::EdgeIter::operator++()
 	{
-		startEdgeVisited = true;
-		curEdge = point->nextEdge(curEdge);
+		m_startEdgeVisited = true;
+		m_curEdge = m_point->nextEdge(m_curEdge);
 		return *this;
 	}
 
-	GraphPoint::EdgeIter GraphPoint::EdgeIter::operator++()const
-	{
-		EdgeIter iter(point, curEdge);
-		return ++iter;
-	}
-
-
-	GraphPoint::LoopIter::LoopIter(GraphPoint* p, GraphLoop* s) : point(p), curLoop(s)
+	GraphPoint::LoopIter::LoopIter(GraphPoint* p, GraphLoop* s) : m_point(p), m_curLoop(s)
 	{
 
 	}
 
 	GraphPoint::LoopIter& GraphPoint::LoopIter::operator++()
 	{
-		startEdgeVisited = true;
+		m_startEdgeVisited = true;
 		return *this;
-	}
-
-	GraphPoint::LoopIter GraphPoint::LoopIter::operator++()const
-	{
-		LoopIter iter(point, curLoop);
-		return ++iter;
 	}
 }

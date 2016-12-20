@@ -25,6 +25,7 @@ namespace ldp
 			bool isClosed()const { return m_curEdge == m_loop->m_startEdge && m_startEdgeVisited; }
 			AbstractGraphCurve* operator ->() { return m_curEdge;}
 			AbstractGraphCurve& operator*() { return *m_curEdge; }
+			operator AbstractGraphCurve*() { return m_curEdge; }
 			bool shouldReverse()const { return m_shouldReverse; }
 		};
 		
@@ -41,6 +42,7 @@ namespace ldp
 			bool isClosed()const { return m_edgeIter.isClosed(); }
 			GraphPoint* operator ->() { return m_curPoint; }
 			GraphPoint& operator*() { return *m_curPoint; }
+			operator GraphPoint*() { return m_curPoint; }
 		};
 
 		class SamplePointIter
@@ -57,6 +59,7 @@ namespace ldp
 			bool isClosed()const { return m_edgeIter.isClosed(); }
 			const Float2* operator ->() { return m_curSample; }
 			const Float2& operator*() { return *m_curSample; }
+			operator const Float2* () { return m_curSample; }
 		};
 	public:
 		GraphLoop();

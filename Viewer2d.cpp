@@ -495,29 +495,26 @@ void Viewer2d::renderClothsPanels_Edge(const ldp::ClothPiece* piece, bool idxMod
 	else
 		glLineWidth(EDGE_RENDER_WIDTH);
 	glBegin(GL_LINES);
-	for (auto loop_iter = panel.loop_begin(); loop_iter != panel.loop_end(); ++loop_iter)
+	for (auto edge_iter = panel.curve_begin(); edge_iter != panel.curve_end(); ++edge_iter)
 	{
-		for (auto edge_iter = loop_iter->edge_begin(); !edge_iter.isEnd(); ++edge_iter)
+		if (!idxMode)
 		{
-			if (!idxMode)
-			{
-				if (edge_iter->isHighlighted() || panel.isHighlighted())
-					glColor4fv(HIGHLIGHT_COLOR);
-				else if (edge_iter->isSelected() || panel.isSelected())
-					glColor4fv(SELECT_COLOR);
-				else
-					glColor4fv(DEFAULT_COLOR);
-			}
+			if (edge_iter->isHighlighted() || panel.isHighlighted())
+				glColor4fv(HIGHLIGHT_COLOR);
+			else if (edge_iter->isSelected() || panel.isSelected())
+				glColor4fv(SELECT_COLOR);
 			else
-				glColor4fv(selectIdToColor(edge_iter->getId()).ptr());
-			const auto& pts = edge_iter->samplePointsOnShape(step / edge_iter->getLength());
-			for (size_t i = 1; i < pts.size(); i++)
-			{
-				glVertex3f(pts[i - 1][0], pts[i - 1][1], EDGE_Z);
-				glVertex3f(pts[i][0], pts[i][1], EDGE_Z);
-			}
-		} // end for edge_iter
-	} // end for loop_iter
+				glColor4fv(DEFAULT_COLOR);
+		}
+		else
+			glColor4fv(selectIdToColor(edge_iter->getId()).ptr());
+		const auto& pts = edge_iter->samplePointsOnShape(step / edge_iter->getLength());
+		for (size_t i = 1; i < pts.size(); i++)
+		{
+			glVertex3f(pts[i - 1][0], pts[i - 1][1], EDGE_Z);
+			glVertex3f(pts[i][0], pts[i][1], EDGE_Z);
+		}
+	} // end for edge_iter
 	glEnd();
 }
 
@@ -533,26 +530,29 @@ void Viewer2d::renderClothsPanels_KeyPoint(const ldp::ClothPiece* piece, bool id
 	else
 		glPointSize(KEYPT_RENDER_WIDTH);
 	glBegin(GL_POINTS);
-	for (auto curve_iter = panel.curve_begin(); curve_iter != panel.curve_end(); ++curve_iter)
+	for (auto point_iter = panel.point_begin(); point_iter != panel.point_end(); ++point_iter)
 	{
-		for (int i = 0; i < curve_iter->numKeyPoints(); i++)
+		const ldp::GraphPoint& p = *point_iter;
+		bool selected = p.isSelected() || panel.isSelected();
+		bool highlighted = p.isHighlighted() || panel.isHighlighted();
+		for (auto e_iter = point_iter->edge_begin(); !e_iter.isEnd(); ++e_iter)
 		{
-			const auto& p = *curve_iter->keyPoint(i);
-
-			if (!idxMode)
-			{
-				if (p.isHighlighted() || curve_iter->isHighlighted() || panel.isHighlighted())
-					glColor4fv(HIGHLIGHT_COLOR);
-				else if (p.isSelected() || curve_iter->isSelected() || panel.isSelected())
-					glColor4fv(SELECT_COLOR);
-				else
-					glColor4fv(DEFAULT_COLOR);
-			}
-			else
-				glColor4fv(selectIdToColor(p.getId()).ptr());
-			const auto& x = p.position();
-			glVertex3f(x[0], x[1], KEYPT_Z);
+			selected |= e_iter->isSelected();
+			highlighted |= e_iter->isHighlighted();
 		}
+		if (!idxMode)
+		{
+			if (selected)
+				glColor4fv(HIGHLIGHT_COLOR);
+			else if (highlighted)
+				glColor4fv(SELECT_COLOR);
+			else
+				glColor4fv(DEFAULT_COLOR);
+		}
+		else
+			glColor4fv(selectIdToColor(p.getId()).ptr());
+		const auto& x = p.position();
+		glVertex3f(x[0], x[1], KEYPT_Z);
 	}
 	glEnd();
 }

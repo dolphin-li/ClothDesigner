@@ -78,6 +78,7 @@ namespace ldp
 				throw std::exception(("GraphLoop::EdgeIter: invalid loop " + std::to_string(m_loop->getId())).c_str());
 		}
 	}
+	
 	AbstractGraphCurve* GraphLoop::getNextEdge(AbstractGraphCurve* curve)
 	{
 		if (curve->m_leftLoop == this)
@@ -88,6 +89,7 @@ namespace ldp
 			assert(0);
 		return nullptr;
 	}
+	
 	GraphLoop::EdgeIter& GraphLoop::EdgeIter::operator++()
 	{
 		assert(m_curEdge);
@@ -116,13 +118,16 @@ namespace ldp
 	GraphLoop::KeyPointIter& GraphLoop::KeyPointIter::operator++()
 	{
 		m_curPtPos += m_edgeIter.shouldReverse() ? -1 : 1;
-		const int endPos = m_edgeIter.shouldReverse() ? m_edgeIter->numKeyPoints() : -1;
+		const int endPos = m_edgeIter.shouldReverse() ? -1 : m_edgeIter->numKeyPoints();
 		if (m_curPtPos == endPos)
 		{
 			++m_edgeIter;
 			m_curPtPos = m_edgeIter.shouldReverse() ? m_edgeIter->numKeyPoints() - 1 : 0;
 		}
-		m_curPoint = m_edgeIter->keyPoint(m_curPtPos);
+		if (m_edgeIter)
+			m_curPoint = m_edgeIter->keyPoint(m_curPtPos);
+		else
+			m_curPoint = nullptr;
 		return *this;
 	}
 
@@ -130,22 +135,25 @@ namespace ldp
 	{
 		m_edgeIter = EdgeIter(l, s);
 		m_step = step;
-		const auto& vec = m_edgeIter->samplePointsOnShape(m_step);
+		const auto& vec = m_edgeIter->samplePointsOnShape(m_step/m_edgeIter->getLength());
 		m_curPtPos = m_edgeIter.shouldReverse() ? (int)vec.size() - 1 : 0;
 		m_curSample = &vec[m_curPtPos];
 	}
 
 	GraphLoop::SamplePointIter& GraphLoop::SamplePointIter::operator++()
 	{
-		const auto& vec = m_edgeIter->samplePointsOnShape(m_step);
+		const auto& vec = m_edgeIter->samplePointsOnShape(m_step/m_edgeIter->getLength());
 		m_curPtPos += m_edgeIter.shouldReverse() ? -1 : 1;
-		const int endPos = m_edgeIter.shouldReverse() ? (int)vec.size() : -1;
+		const int endPos = m_edgeIter.shouldReverse() ? -1 : (int)vec.size();
 		if (m_curPtPos == endPos)
 		{
 			++m_edgeIter;
 			m_curPtPos = m_edgeIter.shouldReverse() ? (int)vec.size() - 1 : 0;
 		}
-		m_curSample = &vec[m_curPtPos];
+		if (m_edgeIter)
+			m_curSample = &m_edgeIter->samplePointsOnShape(m_step/m_edgeIter->getLength())[m_curPtPos];
+		else
+			m_curSample = nullptr;
 		return *this;
 	}
 }

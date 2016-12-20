@@ -11,56 +11,37 @@ namespace ldp
 		friend class GraphLoop;
 		friend class AbstractGraphCurve;
 	public:
-		struct EdgeIter
+		class EdgeIter
 		{
-			GraphPoint* point = nullptr;
-			AbstractGraphCurve* curEdge = nullptr;
-			bool startEdgeVisited = false;
-			EdgeIter(GraphPoint* p, AbstractGraphCurve* s) : point(p), curEdge(s) {}
+			GraphPoint* m_point = nullptr;
+			AbstractGraphCurve* m_curEdge = nullptr;
+			bool m_startEdgeVisited = false;
+		public:
+			EdgeIter(GraphPoint* p, AbstractGraphCurve* s) : m_point(p), m_curEdge(s) {}
 			EdgeIter& operator++();
-			EdgeIter operator++()const;
-			bool isEnd()const
-			{
-				return curEdge == nullptr || isClosed();
-			}
-			bool isClosed()const
-			{
-				return curEdge == point->m_edge && startEdgeVisited;
-			}
-			AbstractGraphCurve* operator ->()
-			{
-				return curEdge;
-			}
-			AbstractGraphCurve& operator*()
-			{
-				return *curEdge;
-			}
+			EdgeIter operator++()const { EdgeIter it(*this); return ++it; }
+			bool isEnd()const { return m_curEdge == nullptr || isClosed(); }
+			bool isClosed()const { return m_curEdge == m_point->m_edge && m_startEdgeVisited; }
+			AbstractGraphCurve* operator ->() { return m_curEdge; }
+			AbstractGraphCurve& operator*() { return *m_curEdge; }
+			operator AbstractGraphCurve* () { return m_curEdge; }
 		};
-		struct LoopIter
+
+		class LoopIter
 		{
+			GraphPoint* m_point = nullptr;
+			GraphLoop* m_curLoop = nullptr;
+			GraphLoop* m_startLoop = nullptr;
+			bool m_startEdgeVisited = false;
+		public:
 			LoopIter(GraphPoint* p, GraphLoop* s);
-			GraphPoint* point = nullptr;
-			GraphLoop* curLoop = nullptr;
-			GraphLoop* startLoop = nullptr;
-			bool startEdgeVisited = false;
 			LoopIter& operator++();
-			LoopIter operator++()const;
-			bool isEnd()const
-			{
-				return curLoop == nullptr || isClosed();
-			}
-			bool isClosed()const
-			{
-				return curLoop == startLoop && startEdgeVisited;
-			}
-			GraphLoop* operator ->()
-			{
-				return curLoop;
-			}
-			GraphLoop& operator*()
-			{
-				return *curLoop;
-			}
+			LoopIter operator++()const { LoopIter it(*this); return ++it; }
+			bool isEnd()const { return m_curLoop == nullptr || isClosed(); }
+			bool isClosed()const { return m_curLoop == m_startLoop && m_startEdgeVisited; }
+			GraphLoop* operator ->() { return m_curLoop; }
+			GraphLoop& operator*() { return *m_curLoop; }
+			operator GraphLoop*() { return m_curLoop; }
 		};
 	public:
 		GraphPoint();
