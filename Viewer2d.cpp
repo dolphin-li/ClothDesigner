@@ -14,8 +14,8 @@
 
 const static float BODY_Z = -50;
 const static float BACK_Z = -10;
-const static float MESH_Z = -1;
-const static float EDGE_Z = 0;
+const static float MESH_Z = 0;
+const static float EDGE_Z = 0.1;
 const static float SEW_EDGE_Z = 1;
 const static float SEW_CONTACT_Z = 1.1;
 const static float KEYPT_Z = 2;

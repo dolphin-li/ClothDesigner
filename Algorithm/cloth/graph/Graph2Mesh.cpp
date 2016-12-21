@@ -84,7 +84,6 @@ namespace ldp
 			piece->mesh2d().clear();
 			piece->mesh3d().clear();
 			piece->mesh3dInit().clear();
-			piece->transformInfo().setIdentity();
 			const auto& panel = piece->graphPanel();
 			auto bloop = panel.getBoundingLoop();
 			if (bloop == nullptr)

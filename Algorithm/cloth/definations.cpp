@@ -14,7 +14,7 @@ namespace ldp
 		curveSampleStep = 1e-2;										// in meters
 		curveSampleAngleThreCos = cos(15.f * ldp::PI_S / 180.f);	// 15 degree
 		pointInsidePolyThre = 1e-2;									// in meters
-		curveFittingThre = 1e-3;									// in meters
+		curveFittingThre = 2e-3;									// in meters
 		triangulateThre = 2e-2;										// in meters
 	}
 
