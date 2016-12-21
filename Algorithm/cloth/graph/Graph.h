@@ -160,7 +160,8 @@ namespace ldp
 			Float2 splitPosition, AbstractGraphCurve*& newCurve);
 
 		// two curves can be merged into one iff they share a common point
-		bool mergeCurve(AbstractGraphCurve* curve1, AbstractGraphCurve* curve2);
+		bool mergeCurve(AbstractGraphCurve* curve1, AbstractGraphCurve* curve2,
+			AbstractGraphCurve*& mergedCurve);
 
 		// two points can be merged into one iff
 		bool mergeKeyPoints(GraphPoint* p1, GraphPoint* p2);

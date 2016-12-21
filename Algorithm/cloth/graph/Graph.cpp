@@ -2,6 +2,7 @@
 #include "GraphPoint.h"
 #include "AbstractGraphCurve.h"
 #include "GraphLoop.h"
+#include "GraphsSewing.h"
 #include "tinyxml\tinyxml.h"
 #include "cloth\definations.h"
 #include "GraphsSewing.h"
@@ -661,9 +662,83 @@ namespace ldp
 	}
 
 	/////////// two curves can be merged into one iff they share a common point///////////////////
-	bool Graph::mergeCurve(AbstractGraphCurve* curve1, AbstractGraphCurve* curve2)
+	bool Graph::mergeCurve(AbstractGraphCurve* curve1, AbstractGraphCurve* curve2,
+		AbstractGraphCurve*& mergedCurve)
 	{
-		return nullptr; // not implmented
+		mergedCurve = nullptr;
+		// perform security checking
+		if (curve1 == nullptr || curve2 == nullptr)
+			return false;
+		if (m_curves.find(curve1->getId()) == m_curves.end() 
+			|| m_curves.find(curve2->getId()) == m_curves.end())
+			throw std::exception("mergeCurve: given curve not in the graph!");
+		if (curve1 == curve2)
+			return false;
+		if (curve1->isEndPointsSame(curve2))
+			throw std::exception("mergeCurve: duplicated curves in the graph!");
+		if (curve1->getEndPoint() != curve2->getStartPoint())
+			std::swap(curve1, curve2);
+		if (curve1->getEndPoint() != curve2->getStartPoint())
+			return false; // not connected
+		if (curve1->m_graphLinks.size() != curve2->m_graphLinks.size())
+			return false; // not share same loops
+		for (auto iter1 = curve1->m_graphLinks.begin(), iter2 = curve2->m_graphLinks.begin();
+			iter1 != curve1->m_graphLinks.end() && iter2 != curve2->m_graphLinks.end(); ++iter1, ++iter2)
+		{
+			if (iter1->first != iter2->first)
+				return false; // not share same loops
+		}
+		if (curve1->m_sewings.size() != curve2->m_sewings.size())
+			return false; // not share same sewings
+		for (auto iter1 = curve1->m_sewings.begin(), iter2 = curve2->m_sewings.begin();
+			iter1 != curve1->m_sewings.end() && iter2 != curve2->m_sewings.end(); ++iter1, ++iter2)
+		{
+			if (*iter1 != *iter2)
+				return false; // not share same sewings
+		}
+		
+		// modify curve2 to fit curve1+curve2
+		auto vec1 = curve1->samplePointsOnShape(0.1);
+		auto vec2 = curve2->samplePointsOnShape(0.1);
+		vec1.insert(vec1.end(), vec2.begin(), vec2.end());
+		std::vector<GraphPointPtr> fittedCurvePts;
+		AbstractGraphCurve::fittingOneCurve(fittedCurvePts, vec1, g_designParam.curveFittingThre);
+		mergedCurve = addCurve(fittedCurvePts);
+		if (mergedCurve == nullptr)
+			return false;
+		assert(mergedCurve->getStartPoint() == curve1->getStartPoint() 
+			&& mergedCurve->getEndPoint() == curve2->getEndPoint());
+		mergedCurve->m_sewings = curve1->m_sewings;
+		mergedCurve->m_graphLinks = curve1->m_graphLinks;
+		mergedCurve->setSelected(curve1->isSelected());
+
+		// update the sewings
+		for (auto& sew : mergedCurve->m_sewings)
+		{
+			sew->swapCurve(curve1, mergedCurve);
+			sew->remove(curve2->getId());
+		}
+
+		// merge the links
+		for (auto& lk1 : mergedCurve->m_graphLinks)
+		{
+			assert(lk1.second.next == curve2);
+			lk1.second.next = curve2->m_graphLinks[lk1.first].next;
+			if (lk1.second.loop->m_startEdge == curve1 || lk1.second.loop->m_startEdge == curve2)
+				lk1.second.loop->m_startEdge = mergedCurve;
+			if (lk1.second.prev)
+				lk1.second.prev->m_graphLinks[lk1.first].next = mergedCurve;
+			if (lk1.second.next)
+				lk1.second.next->m_graphLinks[lk1.first].prev = mergedCurve;
+		} // end for lk
+
+		// remove old cuves
+		curve1->m_graphLinks.clear();
+		curve2->m_graphLinks.clear();
+		removeCurve(curve1);
+		removeCurve(curve2);
+		
+		return true;
 	}
 
 	// two points can be merged into one iff
@@ -717,9 +792,95 @@ namespace ldp
 		return nullptr; // not implemented
 	}
 
+	struct CurveLink
+	{
+		AbstractGraphCurve *prev = nullptr, *next = nullptr;
+	};
 	bool Graph::mergeSelectedCurves()
 	{
-		return false; // not implemented
+		std::hash_map<AbstractGraphCurve*, CurveLink> curves;
+		for (auto iter = m_curves.begin(); iter != m_curves.end(); ++iter)
+		if (iter->second->isSelected())
+			curves.insert(std::make_pair(iter->second.get(), CurveLink()));
+
+		if (curves.size() < 2)
+			return false;
+
+		// find a start curve
+		AbstractGraphCurve* startCurve = nullptr;
+		for (auto& curve : curves)
+		{
+			for (auto& other : curves)
+			{
+				if (other.first == curve.first)
+					continue;
+
+				// all the curves must be in the same loops
+				if (curve.first->m_graphLinks.size() != other.first->m_graphLinks.size())
+					return false;
+				for (auto iter1 = curve.first->m_graphLinks.begin(), iter2 = other.first->m_graphLinks.begin();
+					iter1 != curve.first->m_graphLinks.end() && iter2 != other.first->m_graphLinks.end(); 
+					++iter1, ++iter2)
+				{
+					if (iter1->first != iter2->first)
+						return false;
+				}
+
+				// all the curves must be the same sewings
+				if (curve.first->m_sewings.size() != other.first->m_sewings.size())
+					return false;
+				for (auto iter1 = curve.first->m_sewings.begin(), iter2 = other.first->m_sewings.begin();
+					iter1 != curve.first->m_sewings.end() && iter2 != other.first->m_sewings.end();
+					++iter1, ++iter2)
+				{
+					if (*iter1 != *iter2)
+						return false;
+				}
+
+				// find link
+				if (curve.first->getEndPoint() == other.first->getStartPoint()
+					|| curve.first->getEndPoint() == other.first->getEndPoint())
+				{
+					if (curve.second.next)
+						return false; // we donot allow multi-connection
+					curve.second.next = other.first;
+				}
+				if (curve.first->getStartPoint() == other.first->getStartPoint()
+					|| curve.first->getStartPoint() == other.first->getEndPoint())
+				{
+					if (curve.second.prev)
+						return false; // we donot allow multi-connection
+					curve.second.prev = other.first;
+				}
+			} // end for other
+
+			// we donot allow non-connected curves
+			if (curve.second.prev == nullptr && curve.second.next == nullptr)
+				return false;
+
+			// set an end point as the start point
+			if (curve.second.prev == nullptr || curve.second.next == nullptr)
+				startCurve = curve.first;
+		} // end for curve
+
+		// we do not allow closed polygon
+		if (startCurve == nullptr)
+			return false;
+		while (curves[startCurve].prev)
+			startCurve = curves[startCurve].prev;
+
+		// check connectivity and reorder
+		std::vector<AbstractGraphCurve*> curvesOrdered;
+		for (auto c = startCurve; c; c = curves[c].next)
+			curvesOrdered.push_back(c);
+
+		// perform merging
+		AbstractGraphCurve* mergedCurve = curvesOrdered[0];
+		for (size_t i = 1; i < curvesOrdered.size(); i++)
+		if (!mergeCurve(mergedCurve, curvesOrdered[i], mergedCurve))
+			return false;
+
+		return true;
 	}
 
 	bool Graph::splitTheSelectedCurve(Float2 position)

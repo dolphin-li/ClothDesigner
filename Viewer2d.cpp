@@ -299,44 +299,66 @@ void Viewer2d::mousePressEvent(QMouseEvent *ev)
 	setFocus();
 	m_lastPos = ev->pos();
 	m_buttons = ev->buttons();
-
-	m_currentEventHandle->mousePressEvent(ev);
-
+	try
+	{
+		m_currentEventHandle->mousePressEvent(ev);
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
 	updateGL();
 }
 
 void Viewer2d::keyPressEvent(QKeyEvent*ev)
 {
-	switch (ev->key())
+	try
 	{
-	default:
-		break;
-	case Qt::Key_E:
-		m_showType ^= Renderable::SW_E;
-		break;
-	case Qt::Key_F:
-		m_showType ^= Renderable::SW_F;
-		break;
-	case Qt::Key_T:
-		m_showType ^= Renderable::SW_TEXTURE;
-		break;
-	case Qt::Key_V:
-		m_showType ^= Renderable::SW_V;
-		break;
+		switch (ev->key())
+		{
+		default:
+			break;
+		case Qt::Key_E:
+			m_showType ^= Renderable::SW_E;
+			break;
+		case Qt::Key_F:
+			m_showType ^= Renderable::SW_F;
+			break;
+		case Qt::Key_T:
+			m_showType ^= Renderable::SW_TEXTURE;
+			break;
+		case Qt::Key_V:
+			m_showType ^= Renderable::SW_V;
+			break;
+		}
+		m_currentEventHandle->keyPressEvent(ev);
+		updateGL();
+	}catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
 	}
-	m_currentEventHandle->keyPressEvent(ev);
-	updateGL();
 }
 
 void Viewer2d::keyReleaseEvent(QKeyEvent*ev)
 {
-	m_currentEventHandle->keyReleaseEvent(ev);
-	updateGL();
+	try
+	{
+		m_currentEventHandle->keyReleaseEvent(ev);
+		updateGL();
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
 }
 
 void Viewer2d::mouseReleaseEvent(QMouseEvent *ev)
 {
-	m_currentEventHandle->mouseReleaseEvent(ev);
+	try
+	{
+		m_currentEventHandle->mouseReleaseEvent(ev);
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
 
 	// clear buttons
 	m_buttons = Qt::NoButton;
@@ -345,8 +367,13 @@ void Viewer2d::mouseReleaseEvent(QMouseEvent *ev)
 
 void Viewer2d::mouseMoveEvent(QMouseEvent*ev)
 {
-	m_currentEventHandle->mouseMoveEvent(ev);
-
+	try
+	{
+		m_currentEventHandle->mouseMoveEvent(ev);
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
 	// backup last position
 	m_lastPos = ev->pos();
 	updateGL();
@@ -354,14 +381,25 @@ void Viewer2d::mouseMoveEvent(QMouseEvent*ev)
 
 void Viewer2d::mouseDoubleClickEvent(QMouseEvent *ev)
 {
-	m_currentEventHandle->mouseDoubleClickEvent(ev);
-
+	try
+	{
+		m_currentEventHandle->mouseDoubleClickEvent(ev);
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
 	updateGL();
 }
 
 void Viewer2d::wheelEvent(QWheelEvent*ev)
 {
-	m_currentEventHandle->wheelEvent(ev);
+	try 
+	{
+		m_currentEventHandle->wheelEvent(ev);
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
 
 	updateGL();
 }

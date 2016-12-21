@@ -96,9 +96,21 @@ namespace ldp
 		}
 	}
 
+	void GraphsSewing::swapCurve(AbstractGraphCurve* oldCurve, AbstractGraphCurve* newCurve)
+	{
+		swapCurve(m_firsts, oldCurve, newCurve);
+		swapCurve(m_seconds, oldCurve, newCurve);
+	}
+
 	void GraphsSewing::swapUnit(Unit ou, Unit nu)
 	{
-		for (auto& u : m_firsts)
+		swapUnit(m_firsts, ou, nu);
+		swapUnit(m_seconds, ou, nu);
+	}
+
+	void GraphsSewing::swapUnit(std::vector<Unit>& units, Unit ou, Unit nu)
+	{
+		for (auto& u : units)
 		{
 			if (u.curve == ou.curve)
 			{
@@ -111,6 +123,25 @@ namespace ldp
 				u.curve->graphSewings().insert(this);
 			}
 		}
+	}
+
+	void GraphsSewing::swapCurve(std::vector<Unit>& units, AbstractGraphCurve* oldCurve, AbstractGraphCurve* newCurve)
+	{
+		Unit ou, nu;
+		for (auto& u : units)
+		{
+			if (u.curve == oldCurve)
+			{
+				ou = u;
+				break;
+			}
+		}
+
+		nu.curve = newCurve;
+		nu.reverse = ou.reverse;
+
+		if (ou.curve)
+			swapUnit(ou, nu);
 	}
 
 	void GraphsSewing::reverse(size_t curveId)

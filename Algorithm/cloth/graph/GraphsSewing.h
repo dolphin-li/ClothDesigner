@@ -56,6 +56,7 @@ namespace ldp
 		void reverse(size_t curveId);
 		void reverseFirsts();
 		void reverseSeconds();
+		void swapCurve(AbstractGraphCurve* oldCurve, AbstractGraphCurve* newCurve);
 		void swapUnit(Unit ou, Unit u);
 		bool select(int idx, SelectOp op);
 		bool select(const std::set<int>& indices, SelectOp op);
@@ -63,6 +64,8 @@ namespace ldp
 	protected:
 		void add(std::vector<Unit>& units, Unit unit)const;
 		void remove(std::vector<Unit>& units, size_t curveId)const;
+		void swapUnit(std::vector<Unit>& units, Unit ou, Unit u);
+		void swapCurve(std::vector<Unit>& units, AbstractGraphCurve* oldCurve, AbstractGraphCurve* newCurve);
 	private:
 		// take care of this function: it is not self-completed,
 		// it only clones the pointer, but not the object
