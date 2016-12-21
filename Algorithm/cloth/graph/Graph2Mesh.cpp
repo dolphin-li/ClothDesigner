@@ -89,7 +89,7 @@ namespace ldp
 			auto bloop = panel.getBoundingLoop();
 			if (bloop == nullptr)
 				continue;
-			prepareTriangulation();
+			prepareTriangulation(); 
 
 			// add bounding loop as the outer poly
 			addPolygon(*bloop);
