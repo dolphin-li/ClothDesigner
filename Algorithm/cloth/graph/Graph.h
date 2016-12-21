@@ -157,10 +157,19 @@ namespace ldp
 
 		// split a curve into two, return the inserted point and the newCurve generated
 		GraphPoint* splitEdgeMakePoint(AbstractGraphCurve* curveToSplit, 
-			float splitPosition, AbstractGraphCurve*& newCurve);
+			Float2 splitPosition, AbstractGraphCurve*& newCurve);
 
 		// two curves can be merged into one iff they share a common point
 		bool mergeCurve(AbstractGraphCurve* curve1, AbstractGraphCurve* curve2);
+
+		// two points can be merged into one iff
+		bool mergeKeyPoints(GraphPoint* p1, GraphPoint* p2);
+
+		// ui related
+		bool selectedCurvesToLoop();
+		bool mergeSelectedCurves();
+		bool splitTheSelectedCurve(Float2 position);
+		bool mergeSelectedKeyPoints();
 	protected:
 		void connectNextCurve(AbstractGraphCurve* curr, AbstractGraphCurve* next, GraphLoop* loop, bool reverse);
 		void connectPrevCurve(AbstractGraphCurve* curr, AbstractGraphCurve* prev, GraphLoop* loop, bool reverse);

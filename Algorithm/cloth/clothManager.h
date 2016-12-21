@@ -123,6 +123,10 @@ namespace ldp
 		bool removeSelectedSewings();
 		bool reverseSelectedSewings();
 		bool removeSelectedShapes();
+		bool makeSelectedCurvesToLoop();
+		bool mergeSelectedCurves();
+		bool mergeSelectedKeyPoints();
+		bool splitSelectedCurve(Float2 position);
 	protected:
 	private:
 		std::vector<std::shared_ptr<GraphsSewing>> m_graphSewings;

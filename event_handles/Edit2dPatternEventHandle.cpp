@@ -151,6 +151,42 @@ void Edit2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 				op), ldp::HistoryStack::TypeGeneral);
 		}
 		break;
+	case Qt::Key_L:
+		if (ev->modifiers() == Qt::NoModifier)
+		{
+			bool change = manager->makeSelectedCurvesToLoop();
+			if (m_viewer->getMainUI() && change)
+				m_viewer->getMainUI()->pushHistory(QString().sprintf("curves to loop",
+				op), ldp::HistoryStack::TypeGeneral);
+		}
+		break;
+	case Qt::Key_M:
+		if (ev->modifiers() == Qt::NoModifier)
+		{
+			bool change = manager->mergeSelectedCurves();
+			if (m_viewer->getMainUI() && change)
+				m_viewer->getMainUI()->pushHistory(QString().sprintf("merge curves",
+				op), ldp::HistoryStack::TypeGeneral);
+			if (!change)
+			{
+				change = manager->mergeSelectedKeyPoints();
+				if (m_viewer->getMainUI() && change)
+					m_viewer->getMainUI()->pushHistory(QString().sprintf("merge key points",
+					op), ldp::HistoryStack::TypeGeneral);
+			}
+		}
+		break;
+	case Qt::Key_S:
+		if (ev->modifiers() == Qt::NoModifier)
+		{
+			ldp::Float3 lp3(m_viewer->lastMousePos().x(), m_viewer->height() - 1 - m_viewer->lastMousePos().y(), 1);
+			lp3 = m_viewer->camera().getWorldCoords(lp3);
+			bool change = manager->splitSelectedCurve(ldp::Float2(lp3[0], lp3[1]));
+			if (m_viewer->getMainUI() && change)
+				m_viewer->getMainUI()->pushHistory(QString().sprintf("pattern removed",
+				op), ldp::HistoryStack::TypeGeneral);
+		}
+		break;
 	}
 
 	bool changed = false;

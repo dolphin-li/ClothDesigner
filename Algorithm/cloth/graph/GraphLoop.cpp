@@ -67,15 +67,21 @@ namespace ldp
 	//////////////////////////////////////////////////////////////
 	GraphLoop::EdgeIter::EdgeIter(GraphLoop* l, AbstractGraphCurve* s) : m_loop(l), m_curEdge(s)
 	{
-		auto nl = m_loop->getNextEdge(m_curEdge);
-		if (nl)
+		if (m_curEdge)
 		{
-			if (m_curEdge->getEndPoint() == nl->getStartPoint() || m_curEdge->getEndPoint() == nl->getEndPoint())
-				m_shouldReverse = false;
-			else if (m_curEdge->getStartPoint() == nl->getStartPoint() || m_curEdge->getStartPoint() == nl->getEndPoint())
-				m_shouldReverse = true;
-			else
-				throw std::exception(("GraphLoop::EdgeIter: invalid loop " + std::to_string(m_loop->getId())).c_str());
+			auto nl = m_loop->getNextEdge(m_curEdge);
+			if (nl)
+			{
+				if (m_curEdge->getEndPoint() == nl->getStartPoint() 
+					|| m_curEdge->getEndPoint() == nl->getEndPoint())
+					m_shouldReverse = false;
+				else if (m_curEdge->getStartPoint() == nl->getStartPoint() 
+					|| m_curEdge->getStartPoint() == nl->getEndPoint())
+					m_shouldReverse = true;
+				else
+					throw std::exception(("GraphLoop::EdgeIter: invalid loop " 
+					+ std::to_string(m_loop->getId())).c_str());
+			}
 		}
 	}
 	

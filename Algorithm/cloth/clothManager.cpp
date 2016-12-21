@@ -1512,7 +1512,7 @@ namespace ldp
 		for (auto& piece : tmpPieces)
 		{
 			auto& panel = piece->graphPanel();
-			if (panel.isSelected() || panel.getBoundingLoop()->isSelected())
+			if (panel.isSelected() || (panel.getBoundingLoop() && panel.getBoundingLoop()->isSelected()))
 			{
 				removeClothPiece(panel.getId());
 				removed = true;
@@ -1559,6 +1559,63 @@ namespace ldp
 		m_shouldTriangulate = true;
 		return removed;
 	}
+	
+	bool ClothManager::makeSelectedCurvesToLoop()
+	{
+		bool change = false;
+		for (auto& piece : m_clothPieces)
+		{
+			auto& panel = piece->graphPanel();
+			auto suc = panel.selectedCurvesToLoop();
+			change |= suc;
+		} // piece
+		if (change)
+			m_shouldTriangulate = true;
+		return change;
+	}
+
+	bool ClothManager::mergeSelectedCurves()
+	{
+		bool change = false;
+		for (auto& piece : m_clothPieces)
+		{
+			auto& panel = piece->graphPanel();
+			auto suc = panel.mergeSelectedCurves();
+			change |= suc;
+		} // piece
+		if (change)
+			m_shouldTriangulate = true;
+		return change;
+	}
+
+	bool ClothManager::splitSelectedCurve(Float2 position)
+	{
+		bool change = false;
+		for (auto& piece : m_clothPieces)
+		{
+			auto& panel = piece->graphPanel();
+			auto suc = panel.splitTheSelectedCurve(position);
+			change |= suc;
+		} // piece
+		if (change)
+			m_shouldTriangulate = true;
+		return change;
+	}
+
+	bool ClothManager::mergeSelectedKeyPoints()
+	{
+		bool change = false;
+		for (auto& piece : m_clothPieces)
+		{
+			auto& panel = piece->graphPanel();
+			auto suc = panel.mergeSelectedKeyPoints();
+			change |= suc;
+		} // piece
+		if (change)
+			m_shouldTriangulate = true;
+		return change;
+	}
+
 	///////////////////////////////////////////////////////////////////////////////////////////
 	void ClothManager::fromXml(std::string filename)
 	{
