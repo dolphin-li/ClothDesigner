@@ -69,7 +69,7 @@ namespace ldp
 				lk.second.loop = (GraphLoop*)m_ptrMapAfterClone[lk.second.loop];
 				lk.second.next = (AbstractGraphCurve*)m_ptrMapAfterClone[lk.second.next];
 				lk.second.prev = (AbstractGraphCurve*)m_ptrMapAfterClone[lk.second.prev];
-				iter.second->m_graphLinks.insert(lk);
+				iter.second->m_graphLinks.insert(std::make_pair(lk.second.loop, lk.second));
 			}
 			for (int i = 0; i < iter.second->numKeyPoints(); i++)
 				iter.second->keyPoint(i) = (GraphPoint*)m_ptrMapAfterClone[iter.second->keyPoint(i)];
