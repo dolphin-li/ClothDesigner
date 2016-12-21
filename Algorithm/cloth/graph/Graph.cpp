@@ -646,7 +646,26 @@ namespace ldp
 	GraphPoint* Graph::splitEdgeMakePoint(AbstractGraphCurve* curveToSplit, 
 		Float2 splitPos, AbstractGraphCurve*& newCurve)
 	{
-		
+		newCurve = nullptr;
+		const float step = g_designParam.curveSampleStep / curveToSplit->getLength();
+		const auto& vec = curveToSplit->samplePointsOnShape(step);
+
+		float minDist = FLT_MAX;
+		float tSplit = 0;
+		for (size_t i = 1; i < vec.size(); i++)
+		{
+			float dist = pointSegDistance(splitPos, vec[i - 1], vec[i]);
+			if (dist < minDist)
+			{
+				minDist = dist;
+				tSplit = (i - 1)*step + nearestPointOnSeg_getParam(splitPos, vec[i - 1], vec[i]) * step;
+			}
+		}
+
+		// too close, do not split
+		if (tSplit < 0.1 || tSplit > 0.9)
+			return nullptr;
+
 		return nullptr; // not implemented
 	}
 
@@ -962,7 +981,17 @@ namespace ldp
 
 	bool Graph::splitTheSelectedCurve(Float2 position)
 	{
-		return false; // not implemented
+		std::hash_set<AbstractGraphCurve*> curves;
+		for (auto iter = m_curves.begin(); iter != m_curves.end(); ++iter)
+		if (iter->second->isSelected())
+			curves.insert(iter->second.get());
+
+		if (curves.size() != 1)
+			return false;
+
+		AbstractGraphCurve* newCurve = nullptr, *oldCurve = *curves.begin();
+		auto kpt = splitEdgeMakePoint(oldCurve, position, newCurve);
+		return kpt != nullptr;
 	}
 
 	bool Graph::mergeSelectedKeyPoints()

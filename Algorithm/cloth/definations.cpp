@@ -13,7 +13,7 @@ namespace ldp
 		pointMergeDistThre = 1e-4;									// in meters
 		curveSampleStep = 1e-2;										// in meters
 		curveSampleAngleThreCos = cos(15.f * ldp::PI_S / 180.f);	// 15 degree
-		pointInsidePolyThre = 2e-2;									// in meters
+		pointInsidePolyThre = 1e-2;									// in meters
 		curveFittingThre = 1e-3;									// in meters
 		triangulateThre = 2e-2;										// in meters
 	}

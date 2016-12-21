@@ -7,6 +7,7 @@
 #include "GraphsSewing.h"
 #include "tinyxml\tinyxml.h"
 #include "ldpMat\ldp_basic_mat.h"
+#include "cloth\definations.h"
 namespace ldp
 {
 	AbstractGraphCurve::AbstractGraphCurve() : AbstractGraphObject()
@@ -215,27 +216,21 @@ namespace ldp
 	///////////////////////////////////////////////////////////////////////////////////////////
 	static std::pair<int, float> lineFitting(const std::vector<Float2>& pts, std::vector<GraphPointPtr>& line)
 	{
-		ldp::Float2 dir = (pts.back() - pts[0]).normalize();
-		ldp::Float2 ct = (pts.back() + pts[0]) * 0.5f;
-
 		int pos = -1;
 		float err = -1;
 		for (size_t i = 0; i < pts.size(); i++)
 		{
-			auto p = pts[i];
-			auto p0 = (p - ct).dot(dir) * dir + ct;
-			float dif = (p0 - p).length();
+			float dif = pointSegDistance(pts[i], pts[0], pts.back());
 			if (dif > err)
 			{
 				err = dif;
 				pos = i;
 			}
-			err = std::max(err, (p0 - p).length());
 		}
 
 		line.resize(2);
-		line[0].reset(new GraphPoint((pts[0] - ct).dot(dir) * dir + ct));
-		line[1].reset(new GraphPoint((pts.back() - ct).dot(dir) * dir + ct));
+		line[0].reset(new GraphPoint(pts[0]));
+		line[1].reset(new GraphPoint(pts.back()));
 
 		return std::make_pair(pos, err);
 	}
