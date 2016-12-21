@@ -53,6 +53,17 @@ namespace ldp
 		return true;
 	}
 
+	bool GraphLoop::containedBy(const std::vector<AbstractGraphCurve*>& rhs)const
+	{
+		std::hash_set<AbstractGraphCurve*> curves;
+		for (auto iter = rhs.begin(); iter != rhs.end(); ++iter)
+			curves.insert(*iter);
+		for (auto iter = edge_begin(); !iter.isEnd(); ++iter)
+		if (curves.find(iter) == curves.end())
+			return false;
+		return true;
+	}
+
 	bool GraphLoop::overlapped(const GraphLoop& rhs)const
 	{
 		std::hash_set<AbstractGraphCurve*> curves;

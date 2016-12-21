@@ -167,7 +167,7 @@ namespace ldp
 		bool mergeKeyPoints(GraphPoint* p1, GraphPoint* p2);
 
 		// ui related
-		bool selectedCurvesToLoop();
+		bool selectedCurvesToLoop(bool isBoundingLoop=false);
 		bool mergeSelectedCurves();
 		bool splitTheSelectedCurve(Float2 position);
 		bool mergeSelectedKeyPoints();

@@ -400,9 +400,9 @@ namespace ldp
 		// check contains
 		for (auto iter : m_loops)
 		{
-			if (iter.second->contains(curves))
+			if (iter.second->contains(curves) || iter.second->containedBy(curves))
 			{
-				printf("warning: addLoop: loop %d contains the given curves!\n", iter.second->getId());
+				printf("warning: addLoop: loop %d and the given curves may contains each other!\n", iter.second->getId());
 				return iter.second.get();
 			}
 		}
@@ -456,17 +456,6 @@ namespace ldp
 		{
 			if (iter.second->isSameCurves(*loop))
 				return iter.second.get();
-		}
-
-		// check contains
-		for (auto iter : m_loops)
-		{
-			if (iter.second->contains(*loop)
-				|| loop->contains(*iter.second))
-			{
-				printf("warning: addLoop: loop %d and %d may contains each other!\n", loop->getId(), iter.second->getId());
-				return iter.second.get();
-			}
 		}
 
 		// check that there is only one bounding loop
@@ -639,12 +628,12 @@ namespace ldp
 			curves.push_back(eiter);
 		} // end for eiter
 
-		// remove isolated curves
-		for (auto c : curves)
-		{
-			if (c->m_graphLinks.empty())
-				removeCurve(c);
-		}
+		//// remove isolated curves
+		//for (auto c : curves)
+		//{
+		//	if (c->m_graphLinks.empty())
+		//		removeCurve(c);
+		//}
 
 		// remove self
 		loop_iter = m_loops.find(id);
@@ -787,21 +776,98 @@ namespace ldp
 	}
 
 	/////////////// ui operations///////////////////////////////////
-	bool Graph::selectedCurvesToLoop()
+	bool Graph::selectedCurvesToLoop(bool isBoundingLoop)
 	{
-		return nullptr; // not implemented
-	}
-
-	struct CurveLink
-	{
-		AbstractGraphCurve *prev = nullptr, *next = nullptr;
-	};
-	bool Graph::mergeSelectedCurves()
-	{
-		std::hash_map<AbstractGraphCurve*, CurveLink> curves;
+		std::hash_map<AbstractGraphCurve*, GraphDiskLink> curves;
 		for (auto iter = m_curves.begin(); iter != m_curves.end(); ++iter)
 		if (iter->second->isSelected())
-			curves.insert(std::make_pair(iter->second.get(), CurveLink()));
+			curves.insert(std::make_pair(iter->second.get(), GraphDiskLink()));
+
+		if (curves.size() < 1)
+			return false;
+
+		if (curves.size() == 1)
+		{
+			std::vector<AbstractGraphCurve*> tc;
+			tc.push_back((AbstractGraphCurve*)(curves.begin()->first));
+			return addLoop(tc, isBoundingLoop) != nullptr;
+		}
+
+		// find a start curve
+		AbstractGraphCurve* startCurve = nullptr;
+		for (auto& curve : curves)
+		{
+			for (auto& other : curves)
+			{
+				if (other.first == curve.first)
+					continue;
+
+				// find link
+				if (curve.first->getEndPoint() == other.first->getStartPoint()
+					|| curve.first->getEndPoint() == other.first->getEndPoint())
+				{
+					if (curve.second.next)
+						return false; // we donot allow multi-connection
+					curve.second.next = other.first;
+				}
+				if (curve.first->getStartPoint() == other.first->getStartPoint()
+					|| curve.first->getStartPoint() == other.first->getEndPoint())
+				{
+					if (curve.second.prev)
+						return false; // we donot allow multi-connection
+					curve.second.prev = other.first;
+				}
+			} // end for other
+
+			// we donot allow non-connected curves
+			if (curve.second.prev == nullptr && curve.second.next == nullptr)
+				return false;
+		} // end for curve
+
+		// set an end point as the start point
+		for (auto& curve : curves)
+		if (curve.second.prev == nullptr || curve.second.next == nullptr)
+			startCurve = curve.first;
+
+		// find start curve
+		if (startCurve)
+		{
+			while (curves[startCurve].prev)
+				startCurve = curves[startCurve].prev;
+		}
+		else
+		{
+			startCurve = curves.begin()->first;
+		}
+		
+
+		// check connectivity and reorder
+		std::hash_set<AbstractGraphCurve*> visited;
+		std::vector<AbstractGraphCurve*> curvesOrdered;
+		auto c = startCurve;
+		do
+		{
+			curvesOrdered.push_back(c);
+			visited.insert(c);
+			if (visited.find(curves[c].next) == visited.end())
+				c = curves[c].next;
+			else if (visited.find(curves[c].prev) == visited.end())
+				c = curves[c].prev;
+			else
+				break;
+		} while (c && c != startCurve);
+		
+		if (addLoop(curvesOrdered, isBoundingLoop))
+			return true;
+		return false;
+	}
+
+	bool Graph::mergeSelectedCurves()
+	{
+		std::hash_map<AbstractGraphCurve*, GraphDiskLink> curves;
+		for (auto iter = m_curves.begin(); iter != m_curves.end(); ++iter)
+		if (iter->second->isSelected())
+			curves.insert(std::make_pair(iter->second.get(), GraphDiskLink()));
 
 		if (curves.size() < 2)
 			return false;
@@ -870,9 +936,20 @@ namespace ldp
 			startCurve = curves[startCurve].prev;
 
 		// check connectivity and reorder
+		std::hash_set<AbstractGraphCurve*> visited;
 		std::vector<AbstractGraphCurve*> curvesOrdered;
-		for (auto c = startCurve; c; c = curves[c].next)
+		auto c = startCurve;
+		do
+		{
 			curvesOrdered.push_back(c);
+			visited.insert(c);
+			if (visited.find(curves[c].next) == visited.end())
+				c = curves[c].next;
+			else if (visited.find(curves[c].prev) == visited.end())
+				c = curves[c].prev;
+			else
+				break;
+		} while (c && c != startCurve);
 
 		// perform merging
 		AbstractGraphCurve* mergedCurve = curvesOrdered[0];

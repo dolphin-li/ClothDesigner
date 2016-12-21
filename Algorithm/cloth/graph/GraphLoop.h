@@ -76,6 +76,7 @@ namespace ldp
 		bool contains(const GraphLoop& rhs)const;
 		bool overlapped(const GraphLoop& rhs)const;
 		bool contains(const std::vector<AbstractGraphCurve*>& rhs)const;
+		bool containedBy(const std::vector<AbstractGraphCurve*>& rhs)const;
 		bool overlapped(const std::vector<AbstractGraphCurve*>& rhs)const;
 
 		// iteration over all edges
