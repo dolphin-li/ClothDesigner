@@ -2,6 +2,7 @@
 #include "AbstractGraphCurve.h"
 #include "GraphPoint.h"
 #include "tinyxml\tinyxml.h"
+#include <set>
 namespace ldp
 {
 	GraphLoop::GraphLoop() : AbstractGraphObject()
@@ -23,6 +24,55 @@ namespace ldp
 		auto iter = edge_begin();
 		for (; !iter.isEnd(); ++iter) {}
 		return iter.isClosed();
+	}
+
+	bool GraphLoop::isSameCurves(const GraphLoop& rhs)const
+	{
+		return contains(rhs) && rhs.contains(*this);
+	}
+
+	bool GraphLoop::contains(const GraphLoop& rhs)const
+	{
+		std::hash_set<AbstractGraphCurve*> curves;
+		for (auto iter = edge_begin(); !iter.isEnd(); ++iter)
+			curves.insert(iter);
+		for (auto iter = rhs.edge_begin(); !iter.isEnd(); ++iter)
+		if (curves.find(iter) == curves.end())
+			return false;
+		return true;
+	}
+
+	bool GraphLoop::contains(const std::vector<AbstractGraphCurve*>& rhs)const
+	{
+		std::hash_set<AbstractGraphCurve*> curves;
+		for (auto iter = edge_begin(); !iter.isEnd(); ++iter)
+			curves.insert(iter);
+		for (auto iter = rhs.begin(); iter != rhs.end(); ++iter)
+		if (curves.find(*iter) == curves.end())
+			return false;
+		return true;
+	}
+
+	bool GraphLoop::overlapped(const GraphLoop& rhs)const
+	{
+		std::hash_set<AbstractGraphCurve*> curves;
+		for (auto iter = edge_begin(); !iter.isEnd(); ++iter)
+			curves.insert(iter);
+		for (auto iter = rhs.edge_begin(); !iter.isEnd(); ++iter)
+		if (curves.find(iter) != curves.end())
+			return true;
+		return false;
+	}
+
+	bool GraphLoop::overlapped(const std::vector<AbstractGraphCurve*>& rhs)const
+	{
+		std::hash_set<AbstractGraphCurve*> curves;
+		for (auto iter = edge_begin(); !iter.isEnd(); ++iter)
+			curves.insert(iter);
+		for (auto iter = rhs.begin(); iter != rhs.end(); ++iter)
+		if (curves.find(*iter) != curves.end())
+			return true;
+		return false;
 	}
 
 	TiXmlElement* GraphLoop::toXML(TiXmlNode* parent)const

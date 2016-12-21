@@ -72,6 +72,11 @@ namespace ldp
 		bool isClosed()const;
 		bool isBoundingLoop()const { return m_isBoundingLoop; }
 		void setBoundingLoop(bool b) { m_isBoundingLoop = b; }
+		bool isSameCurves(const GraphLoop& rhs)const;
+		bool contains(const GraphLoop& rhs)const;
+		bool overlapped(const GraphLoop& rhs)const;
+		bool contains(const std::vector<AbstractGraphCurve*>& rhs)const;
+		bool overlapped(const std::vector<AbstractGraphCurve*>& rhs)const;
 
 		// iteration over all edges
 		EdgeIter edge_begin() { return EdgeIter(this, m_startEdge); }

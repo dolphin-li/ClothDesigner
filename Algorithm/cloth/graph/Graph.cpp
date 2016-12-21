@@ -396,6 +396,16 @@ namespace ldp
 			} // end if not related to loops
 		} // end for i
 
+		// check contains
+		for (auto iter : m_loops)
+		{
+			if (iter.second->contains(curves))
+			{
+				printf("warning: addLoop: loop %d contains the given curves!\n", iter.second->getId());
+				return iter.second.get();
+			}
+		}
+
 		// create the loop
 		std::shared_ptr<GraphLoop> loop(new GraphLoop);
 		loop->m_startEdge = curves[0];
@@ -438,6 +448,24 @@ namespace ldp
 		{
 			printf("warning: addLoop: loop %d already existed!\n", loop->getId());
 			return loop.get();
+		}
+
+		// check same loop
+		for (auto iter : m_loops)
+		{
+			if (iter.second->isSameCurves(*loop))
+				return iter.second.get();
+		}
+
+		// check contains
+		for (auto iter : m_loops)
+		{
+			if (iter.second->contains(*loop)
+				|| loop->contains(*iter.second))
+			{
+				printf("warning: addLoop: loop %d and %d may contains each other!\n", loop->getId(), iter.second->getId());
+				return iter.second.get();
+			}
 		}
 
 		// check that there is only one bounding loop
@@ -657,6 +685,13 @@ namespace ldp
 		{
 			if (p2->m_edges.find(e1) != p2->m_edges.end())
 				return false;
+			// if the two points share common loops, we cannot merge them
+			for (auto& e2 : p2->m_edges)
+			{
+				for (auto lk : e1->m_graphLinks)
+				if (e2->m_graphLinks.find(lk.first) != e2->m_graphLinks.end())
+					return false;
+			}
 		}
 
 		// merge p2 into p1 for p2_edges
