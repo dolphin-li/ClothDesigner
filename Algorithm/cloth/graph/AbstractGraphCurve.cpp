@@ -8,6 +8,7 @@
 #include "tinyxml\tinyxml.h"
 #include "ldpMat\ldp_basic_mat.h"
 #include "cloth\definations.h"
+#include <eigen\Dense>
 namespace ldp
 {
 	AbstractGraphCurve::AbstractGraphCurve() : AbstractGraphObject()
@@ -235,46 +236,78 @@ namespace ldp
 		return std::make_pair(pos, err);
 	}
 
-	// bezier params
-	inline float B0(float u)
+	static std::pair<int, float> quadraticFitting(std::vector<Float2> pts, std::vector<GraphPointPtr>& curve)
 	{
-		return (1 - u)*(1 - u)*(1 - u);
-	}
+		const int nInputs = (int)pts.size();
 
-	inline float B1(float u)
-	{
-		return 3 * u * (1 - u) * (1 - u);
-	}
+		// prevent overfitting
+		std::vector<int> idxMap(pts.size(), 0);
+		for (size_t i = 0; i < idxMap.size(); i++)
+			idxMap[i] = i;
+		float avgLength = 0;
+		for (size_t i = 1; i < pts.size(); i++)
+			avgLength += (pts[i] - pts[i - 1]).length();
+		avgLength /= pts.size() - 1;
+		std::vector<Float2> ptsInc;
+		idxMap.clear();
+		for (size_t i = 0; i < pts.size(); i++)
+		{
+			ptsInc.push_back(pts[i]);
+			idxMap.push_back(i);
+			if (i + 1 < pts.size())
+			{
+				const float totalLen = (pts[i + 1] - pts[i]).length();
+				for (float t = 0; t < totalLen; t += avgLength)
+				{
+					ptsInc.push_back((1 - t / totalLen)*pts[i] + t / totalLen*pts[i + 1]);
+					idxMap.push_back(i);
+				}
+			}
+		}
+		pts = ptsInc;
 
-	inline float B2(float u)
-	{
-		return 3 * u * u * (1 - u);
-	}
-
-	inline float B3(float u)
-	{
-		return u*u*u;
-	}
-
-	static std::pair<int, float> quadraticFitting(const std::vector<Float2>& pts, std::vector<GraphPointPtr>& curve)
-	{
-		const Float2 lTan = (pts[1] - pts[0]).normalize();
-		const Float2 rTan = (pts[pts.size() - 2] - pts[pts.size() - 1]).normalize();
+		// calculate params
 		std::vector<float> paramLen(pts.size(), 0);
 		for (size_t i = 1; i < pts.size(); i++)
 			paramLen[i] = (pts[i] - pts[i - 1]).length() + paramLen[i - 1];
 		for (auto& l : paramLen)
 			l /= paramLen.back();
 
-		ldp::Float2 bezCurve[3] = { pts[0], 0, pts.back() };
-		float area = rTan.cross(lTan);
-		if (area == 0.f)
-			bezCurve[1] = (pts[0] + pts.back()) * 0.5f;
-		else
+		// weighted least square fitting
+		const double lambda = 1e4;
+		Eigen::MatrixXd A, B;
+		A.resize(pts.size() + 2, 3);
+		A.setZero();
+		B.resize(A.rows(), 2);
+		B.setZero();
+		for (int r = 0; r < (int)pts.size(); r++)
 		{
-			float tr = Float2(pts[0] - pts.back()).cross(lTan) / area;
-			bezCurve[1] = pts.back() + tr * rTan;
+			float t = paramLen[r];
+			float w = 0;
+			if (r > 0)
+				w += t - paramLen[r - 1];
+			if (r < (int)pts.size() - 1)
+				w += paramLen[r + 1] - t;
+			A(r, 0) = w * (1 - t)*(1 - t);
+			A(r, 1) = w * 2 * (1 - t)*t;
+			A(r, 2) = w * t*t;
+			B(r, 0) = w * pts[r][0];
+			B(r, 1) = w * pts[r][1];
 		}
+		A(pts.size(), 0) = lambda;
+		B(pts.size(), 0) = lambda * pts[0][0];
+		B(pts.size(), 1) = lambda * pts[0][1];
+		A(pts.size() + 1, 2) = lambda;
+		B(pts.size() + 1, 0) = lambda * pts.back()[0];
+		B(pts.size() + 1, 1) = lambda * pts.back()[1];
+		auto AtA = A.transpose() * A;
+		auto AtB = A.transpose() * B;
+		Eigen::MatrixXd X = AtA.inverse() * AtB;
+
+		// create cruve
+		Float2 bezCurve[3];
+		for (int i = 0; i < 3; i++)
+			bezCurve[i] = Float2(X(i, 0), X(i, 1));
 
 		curve.resize(3);
 		for (int i = 0; i < curve.size(); i++)
@@ -296,73 +329,84 @@ namespace ldp
 				err = dif;
 				pos = i;
 			}
-			err = std::max(err, (p0 - pts[i]).length());
 		}
 
-		return std::make_pair(pos, err);
+		return std::make_pair(std::min(nInputs-1, std::max(1, idxMap[pos])), err);
 	}
 
-	static std::pair<int, float> cubicFitting(const std::vector<Float2>& pts, std::vector<GraphPointPtr>& curve)
+	static std::pair<int, float> cubicFitting(std::vector<Float2> pts, std::vector<GraphPointPtr>& curve)
 	{
-		const Float2 lTan = (pts[1] - pts[0]).normalize();
-		const Float2 rTan = (pts[pts.size() - 2] - pts[pts.size() - 1]).normalize();
+		const int nInputs = (int)pts.size();
+
+		// prevent overfitting
+		std::vector<int> idxMap(pts.size(), 0);
+		for (size_t i = 0; i < idxMap.size(); i++)
+			idxMap[i] = i;
+		float avgLength = 0;
+		for (size_t i = 1; i < pts.size(); i++)
+			avgLength += (pts[i] - pts[i - 1]).length();
+		avgLength /= pts.size() - 1;
+		std::vector<Float2> ptsInc;
+		idxMap.clear();
+		for (size_t i = 0; i < pts.size(); i++)
+		{
+			ptsInc.push_back(pts[i]);
+			idxMap.push_back(i);
+			if (i + 1 < pts.size())
+			{
+				const float totalLen = (pts[i + 1] - pts[i]).length();
+				for (float t = 0; t < totalLen; t += avgLength)
+				{
+					ptsInc.push_back((1-t/totalLen)*pts[i] + t/totalLen*pts[i + 1]);
+					idxMap.push_back(i);
+				}
+			}
+		}
+		pts = ptsInc;
+
+		// compute params
 		std::vector<float> paramLen(pts.size(), 0);
 		for (size_t i = 1; i < pts.size(); i++)
 			paramLen[i] = (pts[i] - pts[i - 1]).length() + paramLen[i - 1];
 		for (auto& l : paramLen)
 			l /= paramLen.back();
 
-		// create C and X matrices
-		Mat2f C = Mat2f().zeros();
-		Float2 X = Float2(0);
-		for (size_t i = 0; i < pts.size(); i++)
+		// weighted least square fitting
+		const double lambda = 1e4;
+		Eigen::MatrixXd A, B;
+		A.resize(pts.size() + 2, 4);
+		A.setZero();
+		B.resize(A.rows(), 2);
+		B.setZero();
+		for (int r = 0; r < (int)pts.size(); r++)
 		{
-			const auto v0 = lTan * B1(paramLen[i]);
-			const auto v1 = rTan * rTan * B2(paramLen[i]);
-			C(0, 0) += v0.dot(v0);
-			C(1, 0) += v1.dot(v0);
-			C(1, 1) += v1.dot(v1);
-			C(0, 1) += v0.dot(v1);
-			const auto tmp = pts[i] - B0(paramLen[i])*pts[0] - B1(paramLen[i])*pts[0] -
-				B2(paramLen[i])*pts.back() - B3(paramLen[i])*pts.back();
-			X[0] += v0.dot(tmp);
-			X[1] += v1.dot(tmp);
+			float t = paramLen[r];
+			float w = 0;
+			if (r > 0)
+				w += t - paramLen[r - 1];
+			if (r < (int)pts.size() - 1)
+				w += paramLen[r + 1] - t;
+			A(r, 0) = w * (1 - t)*(1 - t)*(1 - t);
+			A(r, 1) = w * 3 * (1 - t) * (1 - t)*t;
+			A(r, 2) = w * 3 * (1 - t) * t*t;
+			A(r, 3) = w * t* t*t;
+			B(r, 0) = w * pts[r][0];
+			B(r, 1) = w * pts[r][1];
 		}
+		A(pts.size(), 0) = lambda;
+		B(pts.size(), 0) = lambda * pts[0][0];
+		B(pts.size(), 1) = lambda * pts[0][1];
+		A(pts.size() + 1, 3) = lambda;
+		B(pts.size() + 1, 0) = lambda * pts.back()[0];
+		B(pts.size() + 1, 1) = lambda * pts.back()[1];
+		auto AtA = A.transpose() * A;
+		auto AtB = A.transpose() * B;
+		Eigen::MatrixXd X = AtA.inverse() * AtB;
 
-		// compute the determinants of C and X
-		float det_C0_C1 = C.det();
-		const float det_C0_X = C(0, 0) * X[1] - C(0, 1) * X[0];
-		const float det_X_C1 = X[0] * C(1, 1) - X[1] * C(0, 1);
-		if (det_C0_C1 == 0.f)
-			det_C0_C1 = C(0, 0) * C(1, 1) * 1e-6f;
-		const float alpha_l = det_X_C1 / det_C0_C1;
-		const float alpha_r = det_C0_X / det_C0_C1;
-
-		ldp::Float2 bezCurve[4];
-		//If alpha negative, use the Wu/Barsky heuristic (see text)
-		//(if alpha is 0, you get coincident control points that lead to
-		//divide by zero in any subsequent NewtonRaphsonRootFind() call.
-		if (alpha_l < 1.0e-6 || alpha_r < 1.0e-6)
-		{
-			float dist = (pts[0] - pts.back()).length() / 3.f;
-
-			bezCurve[0] = pts[0];
-			bezCurve[3] = pts.back();
-			bezCurve[1] = bezCurve[0] + lTan * dist;
-			bezCurve[2] = bezCurve[3] + rTan * dist;
-		}
-		else
-		{
-			//  First and last control points of the Bezier curve are
-			//  positioned exactly at the first and last data points
-			//  Control points 1 and 2 are positioned an alpha distance out
-			//  on the tangent vectors, left and right, respectively
-			bezCurve[0] = pts[0];
-			bezCurve[3] = pts.back();
-			bezCurve[1] = bezCurve[0] + lTan * alpha_l;
-			bezCurve[2] = bezCurve[3] + rTan * alpha_r;
-		}
-
+		// create curve
+		Float2 bezCurve[4];
+		for (int i = 0; i < 4; i++)
+			bezCurve[i] = Float2(X(i, 0), X(i, 1));
 
 		curve.resize(4);
 		for (int i = 0; i < curve.size(); i++)
@@ -384,10 +428,9 @@ namespace ldp
 				err = dif;
 				pos = i;
 			}
-			err = std::max(err, (p0 - pts[i]).length());
 		}
 
-		return std::make_pair(pos, err);
+		return std::make_pair(std::min(nInputs - 1, std::max(1, idxMap[pos])), err);
 	}
 
 	void AbstractGraphCurve::fittingOneCurve(std::vector<GraphPointPtr>& curve,
