@@ -156,8 +156,8 @@ namespace ldp
 		bool removeLoop(const GraphLoop* loop);
 
 		// split a curve into two, return the inserted point and the newCurve generated
-		GraphPoint* splitEdgeMakePoint(AbstractGraphCurve* curveToSplit, 
-			Float2 splitPosition, AbstractGraphCurve*& newCurve);
+		bool splitEdge(AbstractGraphCurve* curveToSplit, 
+			Float2 splitPosition, AbstractGraphCurve* newCurves[2] = nullptr);
 
 		// two curves can be merged into one iff they share a common point
 		bool mergeCurve(AbstractGraphCurve* curve1, AbstractGraphCurve* curve2,

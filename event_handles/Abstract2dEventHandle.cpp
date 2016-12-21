@@ -1,6 +1,8 @@
 #include <QEvent>
 #include <GL\glew.h>
+#include "../clothdesigner.h"
 #include "Viewer2d.h"
+#include "Viewer3d.h"
 #include "cloth\clothManager.h"
 #include "cloth\clothPiece.h"
 #include "Renderable\ObjMesh.h"
@@ -84,6 +86,8 @@ void Abstract2dEventHandle::highLight(QPoint pos)
 		auto& panel = piece->graphPanel();
 		panel.highLight(m_highLightInfo.renderId, m_highLightInfo.lastId);
 	} // end for iPiece
+	if (m_highLightInfo.renderId != m_highLightInfo.lastId)
+		m_viewer->getMainUI()->m_widget3d->updateGL();
 }
 
 Abstract2dEventHandle* Abstract2dEventHandle::create(ProcessorType type, Viewer2d* v)

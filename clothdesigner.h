@@ -55,7 +55,7 @@ public:
 	///
 	void on_pbFlipPolygon_clicked();
 	void on_sbDparamTriangleSize_valueChanged(double v);
-private:
+public:
 	Ui::ClothDesignerClass ui;
 	Viewer2d* m_widget2d;
 	Viewer3d* m_widget3d;

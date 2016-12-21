@@ -643,30 +643,123 @@ namespace ldp
 	}
 
 	/////////// split a curve into two, return the inserted point and the newCurve generated/////////////
-	GraphPoint* Graph::splitEdgeMakePoint(AbstractGraphCurve* curveToSplit, 
-		Float2 splitPos, AbstractGraphCurve*& newCurve)
+	bool Graph::splitEdge(AbstractGraphCurve* curveToSplit,
+		Float2 splitPos, AbstractGraphCurve* newCurves[2])
 	{
-		newCurve = nullptr;
+		if (newCurves)
+			newCurves[0] = newCurves[1] = nullptr;
+		if (curveToSplit == nullptr)
+			return nullptr;
 		const float step = g_designParam.curveSampleStep / curveToSplit->getLength();
 		const auto& vec = curveToSplit->samplePointsOnShape(step);
 
 		float minDist = FLT_MAX;
 		float tSplit = 0;
+		int iSplit = 0;
 		for (size_t i = 1; i < vec.size(); i++)
 		{
 			float dist = pointSegDistance(splitPos, vec[i - 1], vec[i]);
 			if (dist < minDist)
 			{
 				minDist = dist;
+				iSplit = i;
 				tSplit = (i - 1)*step + nearestPointOnSeg_getParam(splitPos, vec[i - 1], vec[i]) * step;
 			}
-		}
+		} // end for i in vec
 
 		// too close, do not split
-		if (tSplit < 0.1 || tSplit > 0.9)
+		if (iSplit == 0 || iSplit == (int)vec.size()-1)
 			return nullptr;
 
-		return nullptr; // not implemented
+		// check reverse info
+		std::hash_map<const GraphLoop*, bool> reverseInfo;
+		for (auto iter = curveToSplit->diskLink_begin(); !iter.isEnd(); ++iter)
+		{
+			for (auto eiter = iter.loop()->edge_begin(); !eiter.isEnd(); ++eiter)
+			if (eiter == curveToSplit)
+			{
+				reverseInfo[iter.loop()] = eiter.shouldReverse();
+				break;
+			}
+		} // end for iter
+
+		// perform curve fitting
+		std::vector<Float2> vec1(vec.begin(), vec.begin() + iSplit);
+		vec1.push_back(curveToSplit->getPointByParam(tSplit));
+		std::vector<Float2> vec2(vec.begin() + iSplit + 1, vec.end());
+		vec2.insert(vec2.begin(), vec1.back());
+
+		std::vector<GraphPointPtr> points1, points2;
+		AbstractGraphCurve::fittingOneCurve(points1, vec1, g_designParam.curveFittingThre);
+		AbstractGraphCurve::fittingOneCurve(points2, vec2, g_designParam.curveFittingThre);
+
+		// create the splitted curves
+		std::vector<AbstractGraphCurve*> curves;
+		curves.push_back(addCurve(points1));
+		curves.push_back(addCurve(points2));
+		assert(curves[0]->getEndPoint() == curves[1]->getStartPoint());
+		for (auto& c : curves)
+		{
+			c->m_sewings = curveToSplit->m_sewings;
+			c->m_graphLinks = curveToSplit->m_graphLinks;
+			c->setSelected(curveToSplit->isSelected());
+		}
+
+		// update the sewings
+		auto tmpSewings = curveToSplit->m_sewings;
+		for (auto& sew : tmpSewings)
+			sew->swapCurve(curveToSplit, curves);
+
+		// merge the links
+		for (auto iter = curves[0]->diskLink_begin(); !iter.isEnd(); ++iter)
+		{
+			if (!reverseInfo[iter.loop()])
+			{
+				iter.next() = curves[1];
+				if (iter.loopStartEdge() == curveToSplit)
+					iter.loopStartEdge() = curves[0];
+				if (iter.prev())
+					iter.prev()->m_graphLinks[(GraphLoop*)iter.loop()].next = curves[0];
+			}
+			else
+			{
+				iter.prev() = curves[1];
+				if (iter.loopStartEdge() == curveToSplit)
+					iter.loopStartEdge() = curves[1];
+				if (iter.next())
+					iter.next()->m_graphLinks[(GraphLoop*)iter.loop()].prev = curves[0];
+			}
+		} // end for lk
+		for (auto iter = curves[1]->diskLink_begin(); !iter.isEnd(); ++iter)
+		{
+			if (!reverseInfo[iter.loop()])
+			{
+				iter.prev() = curves[0];
+				if (iter.loopStartEdge() == curveToSplit)
+					iter.loopStartEdge() = curves[0];
+				if (iter.next())
+					iter.next()->m_graphLinks[(GraphLoop*)iter.loop()].prev = curves[1];
+			}
+			else
+			{
+				iter.next() = curves[0];
+				if (iter.loopStartEdge() == curveToSplit)
+					iter.loopStartEdge() = curves[1];
+				if (iter.prev())
+					iter.prev()->m_graphLinks[(GraphLoop*)iter.loop()].next = curves[1];
+			}
+		} // end for lk
+
+		// remove old cuves
+		curveToSplit->m_graphLinks.clear();
+		removeCurve(curveToSplit);
+
+		if (newCurves)
+		{
+			newCurves[0] = curves[0];
+			newCurves[1] = curves[1];
+		}
+		return true;
 	}
 
 	/////////// two curves can be merged into one iff they share a common point///////////////////
@@ -745,7 +838,7 @@ namespace ldp
 		curve2->m_graphLinks.clear();
 		removeCurve(curve1);
 		removeCurve(curve2);
-		
+
 		return true;
 	}
 
@@ -989,9 +1082,7 @@ namespace ldp
 		if (curves.size() != 1)
 			return false;
 
-		AbstractGraphCurve* newCurve = nullptr, *oldCurve = *curves.begin();
-		auto kpt = splitEdgeMakePoint(oldCurve, position, newCurve);
-		return kpt != nullptr;
+		return splitEdge(*curves.begin(), position);
 	}
 
 	bool Graph::mergeSelectedKeyPoints()

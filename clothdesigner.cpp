@@ -45,13 +45,16 @@ void ClothDesigner::timerEvent(QTimerEvent* ev)
 {
 	if (ev->timerId() == m_simulateTimer)
 	{
-		try
+		if (g_dataholder.m_clothManager->getSimulationMode() == ldp::SimulationOn)
 		{
-			g_dataholder.m_clothManager->simulationUpdate();
-			m_widget3d->updateGL();
-		} catch (std::exception e)
-		{
-			std::cout << e.what() << std::endl;
+			try
+			{
+				g_dataholder.m_clothManager->simulationUpdate();
+				m_widget3d->updateGL();
+			} catch (std::exception e)
+			{
+				std::cout << e.what() << std::endl;
+			}
 		}
 	}
 

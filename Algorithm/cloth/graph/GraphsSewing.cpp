@@ -102,10 +102,22 @@ namespace ldp
 		swapCurve(m_seconds, oldCurve, newCurve);
 	}
 
+	void GraphsSewing::swapCurve(AbstractGraphCurve* oldCurve, const std::vector<AbstractGraphCurve*>& newCurves)
+	{
+		swapCurve(m_firsts, oldCurve, newCurves);
+		swapCurve(m_seconds, oldCurve, newCurves);
+	}
+
 	void GraphsSewing::swapUnit(Unit ou, Unit nu)
 	{
 		swapUnit(m_firsts, ou, nu);
 		swapUnit(m_seconds, ou, nu);
+	}
+
+	void GraphsSewing::swapUnit(Unit ou, const std::vector<Unit>& nus)
+	{
+		swapUnit(m_firsts, ou, nus);
+		swapUnit(m_seconds, ou, nus);
 	}
 
 	void GraphsSewing::swapUnit(std::vector<Unit>& units, Unit ou, Unit nu)
@@ -122,7 +134,31 @@ namespace ldp
 				u = nu;
 				u.curve->graphSewings().insert(this);
 			}
-		}
+		} // end for u
+	}
+
+	void GraphsSewing::swapUnit(std::vector<Unit>& units, Unit ou, const std::vector<Unit>& nus)
+	{
+		std::vector<Unit> tmpUnits;
+		for (const auto& u : units)
+		{
+			if (u.curve == ou.curve)
+			{
+				if (u.curve->graphSewings().find(this) == u.curve->graphSewings().end())
+					printf("GraphsSewing::swapUnit warning: curve %d does not relate to sew %d\n",
+					u.curve->getId(), getId());
+				else
+					u.curve->graphSewings().erase(this);
+				for (auto nu : nus)
+				{
+					nu.curve->graphSewings().insert(this);
+					tmpUnits.push_back(nu);
+				} // end for nu
+			}
+			else
+				tmpUnits.push_back(u);
+		} // end for u
+		units = tmpUnits;
 	}
 
 	void GraphsSewing::swapCurve(std::vector<Unit>& units, AbstractGraphCurve* oldCurve, AbstractGraphCurve* newCurve)
@@ -141,8 +177,34 @@ namespace ldp
 		nu.reverse = ou.reverse;
 
 		if (ou.curve)
-			swapUnit(ou, nu);
+			swapUnit(units, ou, nu);
 	}
+
+	void GraphsSewing::swapCurve(std::vector<Unit>& units, AbstractGraphCurve* oldCurve, 
+		const std::vector<AbstractGraphCurve*>& newCurves)
+	{
+		Unit ou;
+		for (auto& u : units)
+		{
+			if (u.curve == oldCurve)
+			{
+				ou = u;
+				break;
+			}
+		}
+
+		std::vector<Unit> nus;
+		for (auto c : newCurves)
+			nus.push_back(Unit(c, ou.reverse));
+
+		if (ou.curve)
+		{
+			if (ou.reverse)
+				std::reverse(nus.begin(), nus.end());
+			swapUnit(units, ou, nus);
+		}
+	}
+
 
 	void GraphsSewing::reverse(size_t curveId)
 	{
