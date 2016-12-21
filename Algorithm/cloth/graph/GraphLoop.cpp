@@ -87,10 +87,10 @@ namespace ldp
 	
 	AbstractGraphCurve* GraphLoop::getNextEdge(AbstractGraphCurve* curve)
 	{
-		for (auto& lk : curve->m_graphLinks)
+		for (auto lk = curve->diskLink_begin(); !lk.isEnd(); ++lk)
 		{
-			if (lk.loop == this)
-				return lk.next;
+			if (lk.loop() == this)
+				return lk.next();
 		}
 		assert(0);
 		return nullptr;

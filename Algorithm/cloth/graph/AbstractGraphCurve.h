@@ -2,6 +2,7 @@
 
 #include "AbstractGraphObject.h"
 #include "ldpMat\ldp_basic_mat.h"
+#include <set>
 namespace ldp
 {
 	class GraphsSewing;
@@ -18,6 +19,24 @@ namespace ldp
 		friend class Graph;
 		friend class GraphLoop;
 		friend class GraphPoint;
+	public:
+		class DiskLinkIter
+		{
+			AbstractGraphCurve* m_curve = nullptr;
+			std::hash_map<GraphLoop*, GraphDiskLink>::iterator m_lkIter;
+		public:
+			DiskLinkIter(AbstractGraphCurve* s) :m_curve(s), m_lkIter(s->m_graphLinks.begin()) {}
+			DiskLinkIter& operator++() { ++m_lkIter; return*this; }
+			DiskLinkIter operator++()const { DiskLinkIter iter(*this); return ++iter; }
+			bool isEnd()const { return m_curve->m_graphLinks.end() == m_lkIter; }
+			const GraphLoop*const& loop()const { return m_lkIter->second.loop; }
+			AbstractGraphCurve*& loopStartEdge();
+			const AbstractGraphCurve*const& loopStartEdge()const;
+			AbstractGraphCurve*& prev() { return m_lkIter->second.prev; }
+			const AbstractGraphCurve*const& prev()const { return m_lkIter->second.prev; }
+			AbstractGraphCurve*& next() { return m_lkIter->second.next; }
+			const AbstractGraphCurve*const& next()const { return m_lkIter->second.next; }
+		};
 	public:
 		AbstractGraphCurve();
 		AbstractGraphCurve(const std::vector<GraphPoint*>& pts);
@@ -94,15 +113,16 @@ namespace ldp
 		std::hash_set<GraphsSewing*>& graphSewings() { return m_sewings; }
 		const std::hash_set<GraphsSewing*>& graphSewings()const { return m_sewings; }
 
-		// winged-edge related
-		const std::vector<GraphDiskLink>& graphLinks()const { return m_graphLinks; }
+		// winged edge related
+		DiskLinkIter diskLink_begin() { return DiskLinkIter((AbstractGraphCurve*)this); }
+		const DiskLinkIter diskLink_begin()const { return DiskLinkIter((AbstractGraphCurve*)this); }
 	protected:
 		virtual float calcLength()const;
 	protected:
 		std::vector<GraphPoint*> m_keyPoints;
 
 		// for winged-edge data structure
-		std::vector<GraphDiskLink> m_graphLinks;
+		std::hash_map<GraphLoop*, GraphDiskLink> m_graphLinks;
 
 		// relate to sewings
 		std::hash_set<GraphsSewing*> m_sewings;

@@ -62,11 +62,14 @@ namespace ldp
 		}
 		for (auto iter : graph->m_curves)
 		{
-			for (auto& lk : iter.second->m_graphLinks)
+			auto tmp = iter.second->m_graphLinks;
+			iter.second->m_graphLinks.clear();
+			for (auto lk : tmp)
 			{
-				lk.loop = (GraphLoop*)m_ptrMapAfterClone[lk.loop];
-				lk.next = (AbstractGraphCurve*)m_ptrMapAfterClone[lk.next];
-				lk.prev = (AbstractGraphCurve*)m_ptrMapAfterClone[lk.prev];
+				lk.second.loop = (GraphLoop*)m_ptrMapAfterClone[lk.second.loop];
+				lk.second.next = (AbstractGraphCurve*)m_ptrMapAfterClone[lk.second.next];
+				lk.second.prev = (AbstractGraphCurve*)m_ptrMapAfterClone[lk.second.prev];
+				iter.second->m_graphLinks.insert(lk);
 			}
 			for (int i = 0; i < iter.second->numKeyPoints(); i++)
 				iter.second->keyPoint(i) = (GraphPoint*)m_ptrMapAfterClone[iter.second->keyPoint(i)];
@@ -337,19 +340,19 @@ namespace ldp
 
 	void Graph::connectNextCurve(AbstractGraphCurve* curr, AbstractGraphCurve* next, GraphLoop* loop, bool reverse)
 	{
-		for (auto& lk : curr->m_graphLinks)
+		for (auto lk = curr->diskLink_begin(); !lk.isEnd(); ++lk)
 		{
-			if (lk.loop == loop)
-				lk.next = next;
+			if (lk.loop() == loop)
+				lk.next() = next;
 		}
 	}
 
 	void Graph::connectPrevCurve(AbstractGraphCurve* curr, AbstractGraphCurve* prev, GraphLoop* loop, bool reverse)
 	{
-		for (auto& lk : curr->m_graphLinks)
+		for (auto lk = curr->diskLink_begin(); !lk.isEnd(); ++lk)
 		{
-			if (lk.loop == loop)
-				lk.prev = prev;
+			if (lk.loop() == loop)
+				lk.prev() = prev;
 		}
 	}
 
@@ -403,7 +406,7 @@ namespace ldp
 		{
 			GraphDiskLink link;
 			link.loop = loop.get();
-			c->m_graphLinks.push_back(link);
+			c->m_graphLinks.insert(std::make_pair(link.loop, link));
 		}
 
 		// connect curves with each other
@@ -533,41 +536,34 @@ namespace ldp
 			return false;
 
 		// modify associated loops
-		for (auto& lk : curve_iter->second->m_graphLinks)
+		for (auto lk = curve_iter->second->diskLink_begin(); !lk.isEnd(); ++lk)
 		{
-			if (!lk.loop->isClosed())
+			if (!lk.loop()->isClosed())
 			{
 				std::vector<AbstractGraphCurve*> newLoop;
-				for (auto eiter = lk.loop->edge_begin(); !eiter.isEnd(); ++eiter)
+				for (auto eiter = lk.loop()->edge_begin(); !eiter.isEnd(); ++eiter)
 				{
 					if (eiter == curve_iter->second.get())
 						break;
 					newLoop.push_back(eiter);
 				} // end for eiter
 				for (auto c : newLoop)
-				{
-					for (auto lk_iter = c->m_graphLinks.begin(); lk_iter != c->m_graphLinks.end(); ++lk_iter)
-					if (lk_iter->loop == lk.loop)
-					{
-						c->m_graphLinks.erase(lk_iter);
-						break;
-					} // end for lk_iter, if
-				} // end for c
+					c->m_graphLinks.erase((GraphLoop*)lk.loop());
 				addLoop(newLoop, false);
 			} // end if non-closed
 
-			lk.loop->m_startEdge = lk.next;
-			if (lk.prev)
+			lk.loopStartEdge() = lk.next();
+			if (lk.prev())
 			{
-				for (auto& prev_lk : lk.prev->m_graphLinks)
-				if (prev_lk.loop == lk.loop)
-					prev_lk.next = nullptr;
+				for (auto prev_lk = lk.prev()->diskLink_begin(); !prev_lk.isEnd(); ++prev_lk)
+				if (prev_lk.loop() == lk.loop())
+					prev_lk.next() = nullptr;
 			}
-			if (lk.next)
+			if (lk.next())
 			{
-				for (auto& next_lk : lk.next->m_graphLinks)
-				if (next_lk.loop == lk.loop)
-					next_lk.prev = nullptr;
+				for (auto next_lk = lk.next()->diskLink_begin(); !next_lk.isEnd(); ++next_lk)
+				if (next_lk.loop() == lk.loop())
+					next_lk.prev() = nullptr;
 			}
 		} // end for lk
 
@@ -575,8 +571,8 @@ namespace ldp
 		auto tmpLinks = curve_iter->second->m_graphLinks;
 		for (auto& lk : tmpLinks)
 		{
-			if (lk.loop->m_startEdge == nullptr)
-				removeLoop(lk.loop);
+			if (lk.second.loop->m_startEdge == nullptr)
+				removeLoop(lk.second.loop);
 		}
 
 		// remove isolated points
@@ -610,12 +606,7 @@ namespace ldp
 		std::vector<AbstractGraphCurve*> curves;
 		for (auto eiter = loop->edge_begin(); !eiter.isEnd(); ++eiter)
 		{
-			for (auto lk_iter = eiter->m_graphLinks.begin(); lk_iter != eiter->m_graphLinks.end(); ++lk_iter)
-			if (lk_iter->loop == loop)
-			{
-				eiter->m_graphLinks.erase(lk_iter);
-				break;
-			}
+			eiter->m_graphLinks.erase(loop_iter->second.get());
 			curves.push_back(eiter);
 		} // end for eiter
 
@@ -647,6 +638,44 @@ namespace ldp
 		return nullptr; // not implmented
 	}
 
+	// two points can be merged into one iff
+	bool Graph::mergeKeyPoints(GraphPoint* p1, GraphPoint* p2)
+	{
+		if (p1 == p2 || p1 == nullptr || p2 == nullptr)
+			return false;
+
+		// only end point can be merged
+		for (auto& e1 : p1->m_edges)
+		if (e1->getStartPoint() != p1 && e1->getEndPoint() != p1)
+			return false;
+		for (auto& e2 : p2->m_edges)
+		if (e2->getStartPoint() != p2 && e2->getEndPoint() != p2)
+			return false;
+		
+		// if the two points share common edges, we cannot merge them
+		for (auto& e1 : p1->m_edges)
+		{
+			if (p2->m_edges.find(e1) != p2->m_edges.end())
+				return false;
+		}
+
+		// merge p2 into p1 for p2_edges
+		for (auto& e2 : p2->m_edges)
+		{
+			for (auto& e2_p : e2->m_keyPoints)
+			if (e2_p == p2)
+				e2_p = p1;
+			e2->requireResample();
+			p1->m_edges.insert(e2);
+		}
+
+		// remove p2
+		p2->m_edges.clear();
+		removeKeyPoints(p2);
+
+		return true;
+	}
+
 	/////////////// ui operations///////////////////////////////////
 	bool Graph::selectedCurvesToLoop()
 	{
@@ -665,7 +694,19 @@ namespace ldp
 
 	bool Graph::mergeSelectedKeyPoints()
 	{
-		return false; // not implemented
+		std::vector<GraphPoint*> points;
+		for (auto iter = point_begin(); iter != point_end(); ++iter)
+		if (iter->isSelected())
+			points.push_back(iter);
+		bool changed = false;
+		for (size_t i = 1; i < points.size(); i++)
+		{
+			if (mergeKeyPoints(points[0], points[i]))
+				changed = true;
+			else
+				return false;
+		}
+		return changed;
 	}
 
 }

@@ -3,6 +3,7 @@
 #include "GraphLine.h"
 #include "GraphQuadratic.h"
 #include "GraphCubic.h"
+#include "GraphLoop.h"
 #include "GraphsSewing.h"
 #include "tinyxml\tinyxml.h"
 #include "ldpMat\ldp_basic_mat.h"
@@ -456,5 +457,16 @@ namespace ldp
 		std::vector<Float2> right(keyPoints.begin() + err.first, keyPoints.end());
 		fittingCurves(curves, left, thre);
 		fittingCurves(curves, right, thre);
+	}
+
+	////////////////////////////////////////////////////////////////////////////////
+
+	AbstractGraphCurve*& AbstractGraphCurve::DiskLinkIter::loopStartEdge() 
+	{ 
+		return m_lkIter->second.loop->m_startEdge; 
+	}
+	const AbstractGraphCurve*const& AbstractGraphCurve::DiskLinkIter::loopStartEdge()const 
+	{ 
+		return m_lkIter->second.loop->m_startEdge; 
 	}
 }
