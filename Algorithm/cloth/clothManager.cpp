@@ -1431,10 +1431,11 @@ namespace ldp
 	}
 
 	////sewings/////////////////////////////////////////////////////////////////////////////////
-	void ClothManager::addGraphSewing(std::shared_ptr<GraphsSewing> sewing)
+	bool ClothManager::addGraphSewing(std::shared_ptr<GraphsSewing> sewing)
 	{
 		m_graphSewings.push_back(sewing);
 		m_shouldTriangulate = true;
+		return true;
 	}
 
 	void ClothManager::addGraphSewings(const std::vector<std::shared_ptr<GraphsSewing>>& sewings)

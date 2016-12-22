@@ -1,6 +1,7 @@
 #include <QEvent>
 #include <GL\glew.h>
 #include "Viewer2d.h"
+#include "Viewer3d.h"
 #include "cloth\clothManager.h"
 #include "cloth\clothPiece.h"
 #include "Renderable\ObjMesh.h"
@@ -29,13 +30,18 @@ void Sewing2dPatternEventHandle::handleEnter()
 	Abstract2dEventHandle::handleEnter();
 	m_viewer->setFocus();
 	m_viewer->beginSewingMode();
+	m_viewer->deleteCurrentUISew();
+	m_viewer->deleteCurrentUISew();
+	m_viewer->setSewAddingState(Viewer2d::SewAddingEnd);
 }
+
 void Sewing2dPatternEventHandle::handleLeave()
 {
 	m_viewer->endSewingMode();
 	m_viewer->clearFocus();
 	m_viewer->endDragBox();
 	Abstract2dEventHandle::handleLeave();
+	m_viewer->setSewAddingState(Viewer2d::SewAddingEnd);
 }
 
 void Sewing2dPatternEventHandle::mousePressEvent(QMouseEvent *ev)
@@ -72,6 +78,13 @@ void Sewing2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 			if (m_viewer->getMainUI() && changed)
 				m_viewer->getMainUI()->pushHistory(QString().sprintf("sew select: %d",
 				pickInfo().renderId), ldp::HistoryStack::TypePatternSelect);
+
+			auto obj = ldp::GraphsSewing::getObjByIdx(highLightInfo().renderId);
+			if (obj)
+			{
+				if (obj->isCurve())
+					m_viewer->makeSewUnit((ldp::AbstractGraphCurve*)obj, ev->pos());
+			}
 		}
 		else
 		{
@@ -105,6 +118,19 @@ void Sewing2dPatternEventHandle::mouseDoubleClickEvent(QMouseEvent *ev)
 void Sewing2dPatternEventHandle::mouseMoveEvent(QMouseEvent *ev)
 {
 	Abstract2dEventHandle::mouseMoveEvent(ev);
+
+	bool valid = false;
+	auto obj = ldp::GraphsSewing::getObjByIdx(highLightInfo().renderId);
+	if (obj)
+	{
+		if (obj->isCurve())
+		{
+			m_viewer->makeSewUnit((ldp::AbstractGraphCurve*)obj, ev->pos(), true);
+			valid = true;
+		}
+	}
+	if (!valid)
+		m_viewer->makeSewUnit(nullptr, ev->pos(), true);
 }
 
 void Sewing2dPatternEventHandle::wheelEvent(QWheelEvent *ev)
@@ -123,9 +149,25 @@ void Sewing2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 	{
 	default:
 		break;
+	case Qt::Key_Escape:
+		if (ev->modifiers() == Qt::NoModifier)
+		{
+			m_viewer->deleteCurrentUISew();
+			m_viewer->setSewAddingState(Viewer2d::SewAddingEnd);
+		}
+		break;
 	case Qt::Key_A:
 		if (ev->modifiers() == Qt::CTRL)
 			op = ldp::AbstractGraphObject::SelectAll;
+		if (ev->modifiers() == Qt::NoModifier)
+		{
+			auto r = m_viewer->setNextSewAddingState();
+			if (r == Viewer2d::SewAddedToPanel && m_viewer->getMainUI())
+			{
+				m_viewer->getMainUI()->viewer3d()->updateGL();
+				m_viewer->getMainUI()->pushHistory("add a sew", ldp::HistoryStack::TypeGeneral);
+			}
+		}
 		break;
 	case Qt::Key_D:
 		if (ev->modifiers() == Qt::CTRL)
@@ -140,8 +182,11 @@ void Sewing2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 		{
 			bool change = manager->removeSelectedSewings();
 			if (m_viewer->getMainUI() && change)
+			{
+				m_viewer->getMainUI()->viewer3d()->updateGL();
 				m_viewer->getMainUI()->pushHistory(QString().sprintf("sewing removed",
 				op), ldp::HistoryStack::TypeGeneral);
+			}
 		}
 		break;
 	case Qt::Key_R:
@@ -149,8 +194,11 @@ void Sewing2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 		{
 			bool change = manager->reverseSelectedSewings();
 			if (m_viewer->getMainUI() && change)
+			{
+				m_viewer->getMainUI()->viewer3d()->updateGL();
 				m_viewer->getMainUI()->pushHistory(QString().sprintf("sewing reversed",
-				op), ldp::HistoryStack::TypeGeneral);
+					op), ldp::HistoryStack::TypeGeneral);
+			}
 		}
 		break;
 	}

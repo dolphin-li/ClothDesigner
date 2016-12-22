@@ -5,15 +5,36 @@
 #include "Camera\camera.h"
 #include "event_handles\Abstract2dEventHandle.h"
 #include "cloth\clothManager.h"
+#include "cloth\graph\GraphsSewing.h"
 class ClothDesigner;
 namespace ldp
 {
 	class ClothPiece;
+	class AbstractGraphCurve;
 }
 class Viewer2d : public QGLWidget
 {
 	Q_OBJECT
 
+public:
+	enum SewAddingState
+	{
+		SewAddingFirst,
+		SewAddingSecond,
+		SewAddingEnd
+	};
+	enum SewChanges
+	{
+		SewNoChange,
+		SewAddedToPanel,
+		SewUiTmpChanged,
+	};
+	struct UiSewData
+	{
+		std::vector<ldp::GraphsSewing::Unit> firsts;
+		std::vector<ldp::GraphsSewing::Unit> seconds;
+		ldp::GraphsSewing::Unit f, s;
+	};
 public:
 	Viewer2d(QWidget *parent);
 	~Viewer2d();
@@ -40,6 +61,12 @@ public:
 	void beginSewingMode();
 	void endSewingMode();
 	bool isSewingMode()const { return m_isSewingMode; }
+	SewChanges addCurrentUISew();
+	SewChanges makeSewUnit(ldp::AbstractGraphCurve* curve, QPoint pos, bool tmp = false);
+	SewChanges deleteCurrentUISew();
+	SewAddingState getSewAddingState()const { return m_sewState; }
+	SewChanges setSewAddingState(SewAddingState s);
+	SewChanges setNextSewAddingState();
 
 	int fboRenderedIndex(QPoint p)const;
 	void getModelBound(ldp::Float3& bmin, ldp::Float3& bmax)const;
@@ -59,6 +86,8 @@ protected:
 	void renderClothsPanels_KeyPoint(const ldp::ClothPiece* piece, bool idxMode);
 	void renderClothsSewing(bool idxMode);
 	void renderMeshes(bool idxMode);
+	void renderOneSew(const ldp::GraphsSewing* sew, bool idxMode);
+	void renderOneSewUnit(const ldp::GraphsSewing::Unit& sew, bool idxMode);
 protected:
 	ldp::Camera m_camera;
 	QPoint m_lastPos;
@@ -73,5 +102,8 @@ protected:
 	std::vector<std::shared_ptr<Abstract2dEventHandle>> m_eventHandles;
 	ldp::ClothManager* m_clothManager;
 	ClothDesigner* m_mainUI;
+
+	UiSewData m_uiSews;
+	SewAddingState m_sewState = SewAddingEnd;
 };
 

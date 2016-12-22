@@ -92,7 +92,7 @@ namespace ldp
 		int numGraphSewings()const { return m_graphSewings.size(); }
 		const GraphsSewing* graphSewing(int i)const { return m_graphSewings.at(i).get(); }
 		GraphsSewing* graphSewing(int i) { return m_graphSewings.at(i).get(); }
-		void addGraphSewing(std::shared_ptr<GraphsSewing> sewing);
+		bool addGraphSewing(std::shared_ptr<GraphsSewing> sewing);
 		void addGraphSewings(const std::vector<std::shared_ptr<GraphsSewing>>& sewings);
 		void removeGraphSewing(size_t id);
 		void removeGraphSewing(GraphsSewing* sewing);
