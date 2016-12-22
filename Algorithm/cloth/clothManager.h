@@ -92,6 +92,7 @@ namespace ldp
 		int numGraphSewings()const { return m_graphSewings.size(); }
 		const GraphsSewing* graphSewing(int i)const { return m_graphSewings.at(i).get(); }
 		GraphsSewing* graphSewing(int i) { return m_graphSewings.at(i).get(); }
+		std::shared_ptr<GraphsSewing> graphSewingShared(int i) { return m_graphSewings.at(i); }
 		bool addGraphSewing(std::shared_ptr<GraphsSewing> sewing);
 		void addGraphSewings(const std::vector<std::shared_ptr<GraphsSewing>>& sewings);
 		void removeGraphSewing(size_t id);
@@ -111,6 +112,7 @@ namespace ldp
 		int numClothPieces()const { return (int)m_clothPieces.size(); }
 		const ClothPiece* clothPiece(int i)const { return m_clothPieces.at(i).get(); }
 		ClothPiece* clothPiece(int i) { return m_clothPieces.at(i).get(); }
+		std::shared_ptr<ClothPiece> clothPieceShared(int i) { return m_clothPieces.at(i); }
 		void clearClothPieces();
 		void addClothPiece(std::shared_ptr<ClothPiece> piece);
 		void removeClothPiece(size_t graphPanelId);

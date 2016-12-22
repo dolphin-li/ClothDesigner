@@ -28,6 +28,7 @@ ClothDesigner::ClothDesigner(QWidget *parent)
 	init2dActions();
 
 	g_dataholder.init();
+	g_dataholder.m_historyStack->init(g_dataholder.m_clothManager.get(), m_widget2d);
 	m_widget3d->init(g_dataholder.m_clothManager.get(), this);
 	m_widget2d->init(g_dataholder.m_clothManager.get(), this);
 
@@ -74,6 +75,7 @@ void ClothDesigner::on_actionLoad_svg_triggered()
 		g_dataholder.m_historyStack->push("init", ldp::HistoryStack::TypeGeneral);
 		m_widget3d->init(g_dataholder.m_clothManager.get(), this);
 		m_widget2d->init(g_dataholder.m_clothManager.get(), this);
+		m_widget2d->setEventHandleType(Abstract2dEventHandle::ProcessorTypeEditPattern);
 		m_widget2d->updateGL();
 		m_widget3d->updateGL();
 	} catch (std::exception e)
@@ -94,6 +96,7 @@ void ClothDesigner::on_actionLoad_project_triggered()
 		g_dataholder.m_clothManager->simulationInit();
 		m_widget3d->init(g_dataholder.m_clothManager.get(), this);
 		m_widget2d->init(g_dataholder.m_clothManager.get(), this);
+		m_widget2d->setEventHandleType(Abstract2dEventHandle::ProcessorTypeEditPattern);
 		m_widget2d->updateGL();
 		m_widget3d->updateGL();
 	} catch (std::exception e)
@@ -128,6 +131,10 @@ void ClothDesigner::pushHistory(QString name, ldp::HistoryStack::Type type)
 	{
 		std::cout << e.what() << std::endl;
 	}
+	catch (...)
+	{
+		std::cout << "pushHistory(): unknown exception!" << std::endl;
+	}
 }
 
 void ClothDesigner::on_actionPrev_triggered()
@@ -141,6 +148,9 @@ void ClothDesigner::on_actionPrev_triggered()
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "on_actionPrev_triggered(): unknown exception!" << std::endl;
 	}
 }
 
@@ -155,6 +165,9 @@ void ClothDesigner::on_actionNext_triggered()
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "on_actionNext_triggered(): unknown exception!" << std::endl;
 	}
 }
 

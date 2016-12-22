@@ -6,35 +6,37 @@
 #include "event_handles\Abstract2dEventHandle.h"
 #include "cloth\clothManager.h"
 #include "cloth\graph\GraphsSewing.h"
+#include <stack>
 class ClothDesigner;
 namespace ldp
 {
 	class ClothPiece;
 	class AbstractGraphCurve;
 }
+enum UiSewAddingState
+{
+	UiSewAddingFirst,
+	UiSewAddingSecond,
+	UiSewAddingEnd
+};
+enum UiSewChanges
+{
+	UiSewNoChange,
+	UiSewAddedToPanel,
+	UiSewUiTmpChanged,
+};
+struct UiSewData
+{
+	std::vector<ldp::GraphsSewing::Unit> firsts;
+	std::vector<ldp::GraphsSewing::Unit> seconds;
+	ldp::GraphsSewing::Unit f, s;
+	UiSewAddingState state = UiSewAddingEnd;
+};
 class Viewer2d : public QGLWidget
 {
 	Q_OBJECT
 
 public:
-	enum SewAddingState
-	{
-		SewAddingFirst,
-		SewAddingSecond,
-		SewAddingEnd
-	};
-	enum SewChanges
-	{
-		SewNoChange,
-		SewAddedToPanel,
-		SewUiTmpChanged,
-	};
-	struct UiSewData
-	{
-		std::vector<ldp::GraphsSewing::Unit> firsts;
-		std::vector<ldp::GraphsSewing::Unit> seconds;
-		ldp::GraphsSewing::Unit f, s;
-	};
 public:
 	Viewer2d(QWidget *parent);
 	~Viewer2d();
@@ -61,12 +63,13 @@ public:
 	void beginSewingMode();
 	void endSewingMode();
 	bool isSewingMode()const { return m_isSewingMode; }
-	SewChanges addCurrentUISew();
-	SewChanges makeSewUnit(ldp::AbstractGraphCurve* curve, QPoint pos, bool tmp = false);
-	SewChanges deleteCurrentUISew();
-	SewAddingState getSewAddingState()const { return m_sewState; }
-	SewChanges setSewAddingState(SewAddingState s);
-	SewChanges setNextSewAddingState();
+	UiSewChanges makeSewUnit(ldp::AbstractGraphCurve* curve, QPoint pos, bool tmp = false);
+	UiSewAddingState getSewAddingState()const { return m_uiSews.state; }
+	UiSewChanges setSewAddingState(UiSewAddingState s);
+	UiSewChanges setNextSewAddingState();
+	UiSewChanges deleteCurrentUISew();
+	const UiSewData& getUiSewData()const { return m_uiSews; }
+	void setUiSewData(const UiSewData& data) { m_uiSews = data; }
 
 	int fboRenderedIndex(QPoint p)const;
 	void getModelBound(ldp::Float3& bmin, ldp::Float3& bmax)const;
@@ -88,6 +91,8 @@ protected:
 	void renderMeshes(bool idxMode);
 	void renderOneSew(const ldp::GraphsSewing* sew, bool idxMode);
 	void renderOneSewUnit(const ldp::GraphsSewing::Unit& sew, bool idxMode);
+
+	UiSewChanges addCurrentUISew();
 protected:
 	ldp::Camera m_camera;
 	QPoint m_lastPos;
@@ -104,6 +109,5 @@ protected:
 	ClothDesigner* m_mainUI;
 
 	UiSewData m_uiSews;
-	SewAddingState m_sewState = SewAddingEnd;
 };
 

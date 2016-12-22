@@ -11,7 +11,6 @@ void GlobalDataHolder::init()
 {
 	m_clothManager.reset(new ldp::ClothManager);
 	m_historyStack.reset(new ldp::HistoryStack);
-	m_historyStack->init(m_clothManager.get());
 }
 
 void GlobalDataHolder::loadSvg(std::string name)

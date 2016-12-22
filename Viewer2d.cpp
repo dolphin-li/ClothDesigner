@@ -9,6 +9,7 @@
 #include "cloth\graph\GraphLoop.h"
 #include "cloth\graph\GraphsSewing.h"
 #include "Renderable\ObjMesh.h"
+#include "../clothdesigner.h"
 
 #pragma region --mat_utils
 
@@ -602,10 +603,10 @@ void Viewer2d::endSewingMode()
 	m_isSewingMode = false;
 }
 
-Viewer2d::SewChanges Viewer2d::addCurrentUISew()
+UiSewChanges Viewer2d::addCurrentUISew()
 {
 	if (m_uiSews.firsts.empty() || m_uiSews.seconds.empty())
-		return SewNoChange;
+		return UiSewNoChange;
 
 	bool added = false;
 
@@ -615,26 +616,28 @@ Viewer2d::SewChanges Viewer2d::addCurrentUISew()
 	sew->setSelected(true);
 	if (m_clothManager->addGraphSewing(sew))
 		added = true;
-	
 	deleteCurrentUISew();
 	if (added)
-		return SewUiTmpChanged;
-	return SewAddedToPanel;
+		return UiSewAddedToPanel;
+	return UiSewUiTmpChanged;
 }
 
-Viewer2d::SewChanges Viewer2d::deleteCurrentUISew()
+UiSewChanges Viewer2d::deleteCurrentUISew()
 {
 	m_uiSews.firsts.clear();
 	m_uiSews.seconds.clear();
 	m_uiSews.f.curve = nullptr;
 	m_uiSews.s.curve = nullptr;
-	return SewUiTmpChanged;
+	m_uiSews.state = UiSewAddingEnd;
+	if (getMainUI())
+		getMainUI()->pushHistory("delete curent ui sew", ldp::HistoryStack::TypeUiSewChanged);
+	return UiSewUiTmpChanged;
 }
 
-Viewer2d::SewChanges Viewer2d::makeSewUnit(ldp::AbstractGraphCurve* curve, QPoint pos, bool tmp)
+UiSewChanges Viewer2d::makeSewUnit(ldp::AbstractGraphCurve* curve, QPoint pos, bool tmp)
 {
-	if (m_sewState == SewAddingEnd)
-		return SewNoChange;
+	if (m_uiSews.state == UiSewAddingEnd)
+		return UiSewNoChange;
 
 	// check existence
 	for (auto& f : m_uiSews.firsts)
@@ -651,7 +654,7 @@ Viewer2d::SewChanges Viewer2d::makeSewUnit(ldp::AbstractGraphCurve* curve, QPoin
 			m_uiSews.f.curve = nullptr;
 			m_uiSews.s.curve = nullptr;
 		}
-		return SewNoChange;
+		return UiSewNoChange;
 	}
 
 	ldp::Float3 lp3(lastMousePos().x(), height() - 1 - lastMousePos().y(), 1);
@@ -681,50 +684,54 @@ Viewer2d::SewChanges Viewer2d::makeSewUnit(ldp::AbstractGraphCurve* curve, QPoin
 	{
 		m_uiSews.f.curve = nullptr;
 		m_uiSews.s.curve = nullptr;
-		if (m_sewState == SewAddingFirst)
+		if (m_uiSews.state == UiSewAddingFirst)
 			m_uiSews.f = unit;
-		else if (m_sewState == SewAddingSecond)
+		else if (m_uiSews.state == UiSewAddingSecond)
 			m_uiSews.s = unit;
 	}
 	else
 	{
-		if (m_sewState == SewAddingFirst)
+		if (m_uiSews.state == UiSewAddingFirst)
 			m_uiSews.firsts.push_back(unit);
-		else if (m_sewState == SewAddingSecond)
+		else if (m_uiSews.state == UiSewAddingSecond)
 			m_uiSews.seconds.push_back(unit);
+		if (getMainUI())
+			getMainUI()->pushHistory("add one ui sew unit", ldp::HistoryStack::TypeUiSewChanged);
 	}
-
-	return SewUiTmpChanged;
+	return UiSewUiTmpChanged;
 }
 
-Viewer2d::SewChanges Viewer2d::setSewAddingState(SewAddingState s)
+UiSewChanges Viewer2d::setSewAddingState(UiSewAddingState s)
 {
-	m_sewState = s;
-	switch (m_sewState)
+	m_uiSews.state = s;
+	switch (m_uiSews.state)
 	{
-	case Viewer2d::SewAddingFirst:
-		return deleteCurrentUISew();
-		return SewUiTmpChanged;
-	case Viewer2d::SewAddingSecond:
+	case UiSewAddingFirst:
 		m_uiSews.f.curve = nullptr;
-		return SewUiTmpChanged;
-	case Viewer2d::SewAddingEnd:
+		m_uiSews.s.curve = nullptr;
+		return UiSewNoChange;
+	case UiSewAddingSecond:
+		m_uiSews.f.curve = nullptr;
+		m_uiSews.s.curve = nullptr;
+		return UiSewNoChange;
+	case UiSewAddingEnd:
 		return addCurrentUISew();
 	default:
 		break;
 	}
-	return SewNoChange;
+	return UiSewNoChange;
 }
 
-Viewer2d::SewChanges Viewer2d::setNextSewAddingState()
+UiSewChanges Viewer2d::setNextSewAddingState()
 {
-	if (m_sewState == SewAddingEnd)
-		m_sewState = SewAddingFirst;
-	else if (m_sewState == SewAddingFirst)
-		m_sewState = SewAddingSecond;
-	else if (m_sewState == SewAddingSecond)
-		m_sewState = SewAddingEnd;
-	return setSewAddingState(m_sewState);
+	if (m_uiSews.state == UiSewAddingFirst)
+		m_uiSews.state = UiSewAddingSecond;
+	else if (m_uiSews.state == UiSewAddingSecond)
+		m_uiSews.state = UiSewAddingEnd;
+	else if (m_uiSews.state == UiSewAddingEnd)
+		m_uiSews.state = UiSewAddingFirst;
+
+	return setSewAddingState(m_uiSews.state);
 }
 
 void Viewer2d::renderClothsSewing(bool idxMode)
@@ -770,10 +777,14 @@ void Viewer2d::renderClothsSewing(bool idxMode)
 
 	// render the ui sewing
 	ldp::GraphsSewingPtr sew(new ldp::GraphsSewing);
-	sew->addFirsts(m_uiSews.firsts);
+	for (auto& f : m_uiSews.firsts)
+	if (f.curve)
+		sew->addFirst(f);
 	if (m_uiSews.f.curve)
 		sew->addFirst(m_uiSews.f);
-	sew->addSeconds(m_uiSews.seconds);
+	for (auto& s : m_uiSews.seconds)
+	if (s.curve)
+		sew->addSecond(s);
 	if (m_uiSews.s.curve)
 		sew->addSecond(m_uiSews.s);
 	sew->setHighlighted(true);

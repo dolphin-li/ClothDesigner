@@ -31,17 +31,15 @@ void Sewing2dPatternEventHandle::handleEnter()
 	m_viewer->setFocus();
 	m_viewer->beginSewingMode();
 	m_viewer->deleteCurrentUISew();
-	m_viewer->deleteCurrentUISew();
-	m_viewer->setSewAddingState(Viewer2d::SewAddingEnd);
 }
 
 void Sewing2dPatternEventHandle::handleLeave()
 {
+	m_viewer->deleteCurrentUISew();
 	m_viewer->endSewingMode();
 	m_viewer->clearFocus();
 	m_viewer->endDragBox();
 	Abstract2dEventHandle::handleLeave();
-	m_viewer->setSewAddingState(Viewer2d::SewAddingEnd);
 }
 
 void Sewing2dPatternEventHandle::mousePressEvent(QMouseEvent *ev)
@@ -153,7 +151,6 @@ void Sewing2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 		if (ev->modifiers() == Qt::NoModifier)
 		{
 			m_viewer->deleteCurrentUISew();
-			m_viewer->setSewAddingState(Viewer2d::SewAddingEnd);
 		}
 		break;
 	case Qt::Key_A:
@@ -162,10 +159,18 @@ void Sewing2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 		if (ev->modifiers() == Qt::NoModifier)
 		{
 			auto r = m_viewer->setNextSewAddingState();
-			if (r == Viewer2d::SewAddedToPanel && m_viewer->getMainUI())
+			if (m_viewer->getMainUI())
 			{
-				m_viewer->getMainUI()->viewer3d()->updateGL();
-				m_viewer->getMainUI()->pushHistory("add a sew", ldp::HistoryStack::TypeGeneral);
+				if (r == UiSewAddedToPanel)
+				{
+					m_viewer->getMainUI()->viewer3d()->updateGL();
+					m_viewer->getMainUI()->pushHistory("add a sew", ldp::HistoryStack::TypeGeneral);
+				}
+				if (r == UiSewUiTmpChanged)
+				{
+					m_viewer->getMainUI()->viewer3d()->updateGL();
+					m_viewer->getMainUI()->pushHistory("add a sew on ui", ldp::HistoryStack::TypeUiSewChanged);
+				}
 			}
 		}
 		break;
