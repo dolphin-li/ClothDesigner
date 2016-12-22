@@ -507,10 +507,15 @@ namespace ldp
 		// check contains
 		for (auto iter : m_loops)
 		{
-			if (iter.second->contains(curves) || iter.second->containedBy(curves))
+			if (iter.second->contains(curves))
 			{
-				printf("warning: addLoop: loop %d and the given curves may contains each other!\n", iter.second->getId());
+				printf("warning: addLoop: loop %d contains the given curves!\n", iter.second->getId());
 				return iter.second.get();
+			}
+			if (iter.second->containedBy(curves))
+			{
+				removeLoop(iter.second.get());
+				break;
 			}
 		}
 
@@ -716,7 +721,7 @@ namespace ldp
 		return true;
 	}
 
-	bool Graph::removeLoop(const GraphLoop* loop)
+	bool Graph::removeLoop(const GraphLoop* loop, bool removeCurvesPoints)
 	{
 		if (loop == nullptr)
 			return false;
@@ -730,17 +735,19 @@ namespace ldp
 		// remove links related with it
 		std::vector<AbstractGraphCurve*> curves;
 		for (auto eiter = loop->edge_begin(); !eiter.isEnd(); ++eiter)
-		{
-			eiter->m_graphLinks.erase(loop_iter->second.get());
 			curves.push_back(eiter);
-		} // end for eiter
+		for (auto c : curves)
+			c->m_graphLinks.erase(loop_iter->second.get());
 
-		//// remove isolated curves
-		//for (auto c : curves)
-		//{
-		//	if (c->m_graphLinks.empty())
-		//		removeCurve(c);
-		//}
+		// remove isolated curves
+		if (removeCurvesPoints)
+		{
+			for (auto c : curves)
+			{
+				if (c->m_graphLinks.empty())
+					removeCurve(c);
+			}
+		}
 
 		// remove self
 		loop_iter = m_loops.find(id);

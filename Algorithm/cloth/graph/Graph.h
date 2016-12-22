@@ -153,7 +153,7 @@ namespace ldp
 		bool remove(size_t id);
 		bool removeKeyPoints(const GraphPoint* kp);
 		bool removeCurve(const AbstractGraphCurve* curve);
-		bool removeLoop(const GraphLoop* loop);
+		bool removeLoop(const GraphLoop* loop, bool removeCurvesPoints = false);
 
 		// split a curve into two, return the inserted point and the newCurve generated
 		bool splitEdge(AbstractGraphCurve* curveToSplit, 
