@@ -1575,6 +1575,20 @@ namespace ldp
 		return change;
 	}
 
+	bool ClothManager::removeLoopsOfSelectedCurves()
+	{
+		bool change = false;
+		for (auto& piece : m_clothPieces)
+		{
+			auto& panel = piece->graphPanel();
+			auto suc = panel.removeLoopsOfSelectedCurves();
+			change |= suc;
+		} // piece
+		if (change)
+			m_shouldTriangulate = true;
+		return change;
+	}
+
 	bool ClothManager::mergeSelectedCurves()
 	{
 		bool change = false;

@@ -125,6 +125,7 @@ namespace ldp
 		bool removeSelectedSewings();
 		bool reverseSelectedSewings();
 		bool removeSelectedShapes();
+		bool removeLoopsOfSelectedCurves();
 		bool makeSelectedCurvesToLoop();
 		bool mergeSelectedCurves();
 		bool mergeSelectedKeyPoints();

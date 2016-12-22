@@ -1118,6 +1118,37 @@ namespace ldp
 		return false;
 	}
 
+	bool Graph::removeLoopsOfSelectedCurves()
+	{
+		std::vector<AbstractGraphCurve*> selectedCurves;
+		for (auto iter = m_curves.begin(); iter != m_curves.end(); ++iter)
+		if (iter->second->isSelected())
+			selectedCurves.push_back(iter->second.get());
+
+		if (selectedCurves.size() == 0)
+			return false;
+
+		std::vector<GraphLoop*> loops;
+		for (auto loop_iter = loop_begin(); loop_iter != loop_end(); ++loop_iter)
+		{
+			std::vector<AbstractGraphCurve*> curves;
+			for (auto curve_iter = loop_iter->edge_begin(); !curve_iter.isEnd(); ++curve_iter)
+				curves.push_back(curve_iter);
+
+			if (loop_iter->containedBy(selectedCurves))
+				loops.push_back(loop_iter);
+		} // end for loop_iter
+
+		if (loops.empty())
+			return false;
+
+		bool changed = false;
+		for (auto& loop : loops)
+			changed |= removeLoop(loop);
+
+		return changed;
+	}
+
 	bool Graph::mergeSelectedCurves()
 	{
 		std::hash_map<AbstractGraphCurve*, GraphDiskLink> curves;

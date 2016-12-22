@@ -155,10 +155,22 @@ void Edit2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 		if (ev->modifiers() == Qt::NoModifier)
 		{
 			bool change = manager->makeSelectedCurvesToLoop();
-			manager->triangulate();
 			if (m_viewer->getMainUI() && change)
+			{
+				manager->triangulate();
 				m_viewer->getMainUI()->pushHistory(QString().sprintf("curves to loop",
-				op), ldp::HistoryStack::TypeGeneral);
+					op), ldp::HistoryStack::TypeGeneral);
+			}
+		}
+		if (ev->modifiers() == Qt::SHIFT)
+		{
+			bool change = manager->removeLoopsOfSelectedCurves();
+			if (m_viewer->getMainUI() && change)
+			{
+				manager->triangulate();
+				m_viewer->getMainUI()->pushHistory(QString().sprintf("remove loop",
+					op), ldp::HistoryStack::TypeGeneral);
+			}
 		}
 		break;
 	case Qt::Key_M:

@@ -171,6 +171,7 @@ namespace ldp
 
 		// ui related
 		bool selectedCurvesToLoop(bool isBoundingLoop=false);
+		bool removeLoopsOfSelectedCurves();
 		bool mergeSelectedCurves();
 		bool splitTheSelectedCurve(Float2 position);
 		bool mergeSelectedKeyPoints();
