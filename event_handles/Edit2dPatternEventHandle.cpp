@@ -155,6 +155,7 @@ void Edit2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 		if (ev->modifiers() == Qt::NoModifier)
 		{
 			bool change = manager->makeSelectedCurvesToLoop();
+			manager->triangulate();
 			if (m_viewer->getMainUI() && change)
 				m_viewer->getMainUI()->pushHistory(QString().sprintf("curves to loop",
 				op), ldp::HistoryStack::TypeGeneral);
