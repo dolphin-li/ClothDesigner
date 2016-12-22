@@ -128,6 +128,7 @@ namespace ldp
 		bool makeSelectedCurvesToLoop();
 		bool mergeSelectedCurves();
 		bool mergeSelectedKeyPoints();
+		bool mergeTheSelectedKeyPointToCurve();
 		bool splitSelectedCurve(Float2 position);
 		void clearHighLights();
 	protected:

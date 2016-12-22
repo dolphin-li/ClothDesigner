@@ -43,7 +43,7 @@ namespace ldp
 		gravity = ldp::Float3(0, 0, -9.8);
 	}
 
-	bool pointInPolygon(int n, const Float2* v, Float2 p, int* nearestEdgeId)
+	bool pointInPolygon(int n, const Float2* v, Float2 p, int* nearestEdgeId, float* minDistPtr)
 	{
 		float d = -1;
 		const float x = p[0], y = p[1];
@@ -64,6 +64,8 @@ namespace ldp
 					*nearestEdgeId = i;
 			}
 		}
+		if (minDistPtr)
+			*minDistPtr = minDist;
 		minDist *= d;
 		return minDist >= -g_designParam.pointInsidePolyThre;
 	}

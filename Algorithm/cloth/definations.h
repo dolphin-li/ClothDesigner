@@ -71,7 +71,8 @@ namespace ldp
 	// pts: a closed polygon of n points, the last connects to the first.
 	// decide whether p is inside pts, thresholded by g_designParam.pointInsidePolyThre
 	// if nearestEdgeId != nullptr, return the nearest edge index from it.
-	bool pointInPolygon(int n, const Float2* pts, Float2 p, int* nearestEdgeId=nullptr);
+	bool pointInPolygon(int n, const Float2* pts, Float2 p, 
+		int* nearestEdgeId=nullptr, float* minDist = nullptr);
 
 	inline float nearestPointOnSeg_getParam(Float2 p, Float2 a, Float2 b)
 	{

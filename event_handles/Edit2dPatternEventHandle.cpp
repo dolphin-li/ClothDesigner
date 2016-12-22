@@ -169,6 +169,13 @@ void Edit2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 				op), ldp::HistoryStack::TypeGeneral);
 			if (!change)
 			{
+				change = manager->mergeTheSelectedKeyPointToCurve();
+				if (m_viewer->getMainUI() && change)
+					m_viewer->getMainUI()->pushHistory(QString().sprintf("merge point to curve",
+					op), ldp::HistoryStack::TypeGeneral);
+			}
+			if (!change)
+			{
 				change = manager->mergeSelectedKeyPoints();
 				if (m_viewer->getMainUI() && change)
 					m_viewer->getMainUI()->pushHistory(QString().sprintf("merge key points",

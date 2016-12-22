@@ -242,7 +242,107 @@ namespace ldp
 
 	bool Graph::makeGraphValid(std::vector<std::shared_ptr<GraphsSewing>>& graphSewings)
 	{
+		// 0. find all closed loops and non-closed loops, non-closed curves
+		std::vector<GraphLoop*> closedLoops, openLoops;
+		std::vector<AbstractGraphCurve*> openCurves;
+		for (auto iter = loop_begin(); iter != loop_end(); ++iter)
+		{
+			if (iter->isClosed())
+				closedLoops.push_back(iter);
+			else
+				openLoops.push_back(iter);
+		}
+		for (auto iter = curve_begin(); iter != curve_end(); ++iter)
+		{
+			bool opened = true;
+			for (auto lk = iter->diskLink_begin(); !lk.isEnd(); ++lk)
+			if (lk.next() && lk.prev())
+			{
+				opened = false;
+				break;
+			}
+			if (opened)
+				openCurves.push_back(iter);
+		}
+
 		// 1. check the bounding loop
+
+
+		// 2. for all curves with isolated end points, check if the point is on a closed loop
+		std::vector<Float2> curveSamples;
+		std::vector<AbstractGraphCurve*> sampleCurveMap;
+		for (auto& curve : openCurves)
+		{
+			// find the opened edge points
+			std::set<const GraphPoint*> keyPts;
+			keyPts.insert(curve->getStartPoint());
+			keyPts.insert(curve->getEndPoint());
+			for (auto lk = curve->diskLink_begin(); !lk.isEnd(); ++lk)
+			{
+				if (lk.next())
+				{
+					if (keyPts.find(lk.next()->getStartPoint()) != keyPts.end())
+						keyPts.erase(lk.next()->getStartPoint());
+					if (keyPts.find(lk.next()->getEndPoint()) != keyPts.end())
+						keyPts.erase(lk.next()->getEndPoint());
+				}
+				if (lk.prev())
+				{
+					if (keyPts.find(lk.prev()->getStartPoint()) != keyPts.end())
+						keyPts.erase(lk.prev()->getStartPoint());
+					if (keyPts.find(lk.prev()->getEndPoint()) != keyPts.end())
+						keyPts.erase(lk.prev()->getEndPoint());
+				}
+			} // end for lk
+
+			if (keyPts.empty())
+				continue;
+
+			// iterate over all loops to check point-on-seg
+			float minDist = FLT_MAX;
+			GraphPoint* minPoint = nullptr;
+			AbstractGraphCurve* curveToSplit = nullptr;
+			for (auto& loop : closedLoops)
+			{
+				curveSamples.clear();
+				sampleCurveMap.clear();
+				for (auto iter = loop->samplePoint_begin(g_designParam.curveSampleStep); !iter.isEnd(); ++iter)
+				{
+					if (curveSamples.size())
+					if ((*iter - curveSamples.back()).length() < g_designParam.pointMergeDistThre
+						|| (*iter - curveSamples[0]).length() < g_designParam.pointMergeDistThre)
+						continue;
+					curveSamples.push_back(*iter);
+					sampleCurveMap.push_back(iter.edgeIter());
+				}
+
+				for (auto& p : keyPts)
+				{
+					float dist = 0;
+					int eid = 0;
+					pointInPolygon(curveSamples.size(), curveSamples.data(), p->getPosition(), &eid, &dist);
+					if (dist < minDist)
+					{
+						minDist = dist;
+						minPoint = (GraphPoint*)p;
+						curveToSplit = sampleCurveMap[eid];
+					}
+				}
+			} // end for loop
+
+			assert(minPoint);
+
+			if (minDist < g_designParam.pointInsidePolyThre && curveToSplit->getStartPoint() != minPoint
+				&& curveToSplit->getEndPoint() != minPoint)
+			{
+				printf("trying to merge point %d to curve %d, dist too small: %f...",
+					minPoint->getId(), curveToSplit->getId(), minDist);
+				if (mergeCurvePoint(curveToSplit, minPoint))
+					printf("done\n");
+				else
+					printf("failed\n");
+			}
+		} // end for curve
 
 		return true;
 	}
@@ -278,9 +378,16 @@ namespace ldp
 
 	AbstractGraphCurve* Graph::addCurve(const std::vector<std::shared_ptr<GraphPoint>>& kpts)
 	{
+		std::set<GraphPoint*> ptrSet;
 		std::vector<GraphPoint*> ptr;
 		for (const auto& kp : kpts)
-			ptr.push_back(addKeyPoint(kp, kp == kpts.front() || kp == kpts.back()));
+		{
+			auto p = addKeyPoint(kp, kp == kpts.front() || kp == kpts.back());
+			if (ptrSet.find(p) != ptrSet.end())
+				throw std::exception("addCurve(): trying to add curve with overlapped keyPoints!");
+			ptrSet.insert(p);
+			ptr.push_back(p);
+		}
 		return addCurve(ptr);
 	}
 
@@ -662,13 +769,13 @@ namespace ldp
 			if (dist < minDist)
 			{
 				minDist = dist;
-				iSplit = i;
+				iSplit = i - 1;
 				tSplit = (i - 1)*step + nearestPointOnSeg_getParam(splitPos, vec[i - 1], vec[i]) * step;
 			}
 		} // end for i in vec
 
 		// too close, do not split
-		if (iSplit == 0 || iSplit == (int)vec.size()-1)
+		if ((iSplit == 0 && tSplit < 0.1) || (iSplit == vec.size()-1 && tSplit > 0.9))
 			return nullptr;
 
 		// check reverse info
@@ -684,7 +791,7 @@ namespace ldp
 		} // end for iter
 
 		// perform curve fitting
-		std::vector<Float2> vec1(vec.begin(), vec.begin() + iSplit);
+		std::vector<Float2> vec1(vec.begin(), vec.begin() + iSplit + 1);
 		vec1.push_back(curveToSplit->getPointByParam(tSplit));
 		std::vector<Float2> vec2(vec.begin() + iSplit + 1, vec.end());
 		vec2.insert(vec2.begin(), vec1.back());
@@ -692,6 +799,7 @@ namespace ldp
 		std::vector<GraphPointPtr> points1, points2;
 		AbstractGraphCurve::fittingOneCurve(points1, vec1, g_designParam.curveFittingThre);
 		AbstractGraphCurve::fittingOneCurve(points2, vec2, g_designParam.curveFittingThre);
+
 
 		// create the splitted curves
 		std::vector<AbstractGraphCurve*> curves;
@@ -751,14 +859,43 @@ namespace ldp
 		} // end for lk
 
 		// remove old cuves
-		curveToSplit->m_graphLinks.clear();
-		removeCurve(curveToSplit);
+		if (curveToSplit != curves[0] && curveToSplit != curves[1])
+		{
+			curveToSplit->m_graphLinks.clear();
+			removeCurve(curveToSplit);
+		}
 
 		if (newCurves)
 		{
 			newCurves[0] = curves[0];
 			newCurves[1] = curves[1];
 		}
+		return true;
+	}
+
+	bool Graph::mergeCurvePoint(AbstractGraphCurve* curveToSplit, GraphPoint* p)
+	{
+		if (curveToSplit == nullptr || p == nullptr)
+			return false;
+		if (curveToSplit->getStartPoint() == p || curveToSplit->getEndPoint() == p)
+			return false;
+		AbstractGraphCurve* newCurves[2];
+		if (!splitEdge(curveToSplit, p->getPosition(), newCurves))
+			return false;
+
+		GraphPoint* newP = nullptr;
+		if (newCurves[0]->getEndPoint() == newCurves[1]->getStartPoint()
+			|| newCurves[0]->getEndPoint() == newCurves[1]->getEndPoint())
+			newP = (GraphPoint*)newCurves[0]->getEndPoint();
+		if (newCurves[0]->getStartPoint() == newCurves[1]->getStartPoint()
+			|| newCurves[0]->getStartPoint() == newCurves[1]->getEndPoint())
+			newP = (GraphPoint*)newCurves[0]->getStartPoint();
+
+		assert(newP);
+
+		if (!mergeKeyPoints(newP, p))
+			return false;
+
 		return true;
 	}
 
@@ -1102,4 +1239,20 @@ namespace ldp
 		return changed;
 	}
 
+	bool Graph::mergeTheSelectedKeyPointToCurve()
+	{
+		std::hash_set<AbstractGraphCurve*> curves;
+		for (auto iter = m_curves.begin(); iter != m_curves.end(); ++iter)
+		if (iter->second->isSelected())
+			curves.insert(iter->second.get());
+		std::hash_set<GraphPoint*> points;
+		for (auto iter = m_keyPoints.begin(); iter != m_keyPoints.end(); ++iter)
+		if (iter->second->isSelected())
+			points.insert(iter->second.get());
+
+		if (curves.size() != 1 || points.size() != 1)
+			return false;
+
+		return mergeCurvePoint(*curves.begin(), *points.begin());
+	}
 }

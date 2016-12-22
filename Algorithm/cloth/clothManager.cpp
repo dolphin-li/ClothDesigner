@@ -1617,6 +1617,20 @@ namespace ldp
 		return change;
 	}
 
+	bool ClothManager::mergeTheSelectedKeyPointToCurve()
+	{
+		bool change = false;
+		for (auto& piece : m_clothPieces)
+		{
+			auto& panel = piece->graphPanel();
+			auto suc = panel.mergeTheSelectedKeyPointToCurve();
+			change |= suc;
+		} // piece
+		if (change)
+			m_shouldTriangulate = true;
+		return change;
+	}
+
 	void ClothManager::clearHighLights()
 	{
 		for (auto& piece : m_clothPieces)

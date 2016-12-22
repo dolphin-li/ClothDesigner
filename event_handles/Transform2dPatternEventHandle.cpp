@@ -1,6 +1,7 @@
 #include <QEvent>
 #include <GL\glew.h>
 #include "Viewer2d.h"
+#include "Viewer3d.h"
 #include "cloth\clothManager.h"
 #include "cloth\clothPiece.h"
 #include "cloth\HistoryStack.h"
@@ -93,6 +94,7 @@ void Transform2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 	if (m_viewer->getMainUI() && m_transformed)
 	{
 		m_viewer->getManager()->triangulate();
+		m_viewer->getMainUI()->viewer3d()->updateGL();
 		m_viewer->getMainUI()->pushHistory(QString().sprintf("pattern transform: %d",
 			pickInfo().renderId), ldp::HistoryStack::TypeGeneral);
 		m_transformed = false;
@@ -318,6 +320,8 @@ bool Transform2dPatternEventHandle::panelLevelTransform_MouseMove(QMouseEvent* e
 			}
 		} // end for iPiece
 	} // end if right button + ALT
+	if (changed && m_viewer->getMainUI())
+		m_viewer->getMainUI()->viewer3d()->updateGL();
 	return changed;
 } 
 
@@ -356,6 +360,8 @@ bool Transform2dPatternEventHandle::curveLevelTransform_MouseMove(QMouseEvent* e
 		for (auto iter : validKpts)
 			iter->setPosition(iter->getPosition() + p - lp);
 	} // end if left button
+	if (changed && m_viewer->getMainUI())
+		m_viewer->getMainUI()->viewer3d()->updateGL();
 	return changed;
 }
 
@@ -390,5 +396,7 @@ bool Transform2dPatternEventHandle::pointLevelTransform_MouseMove(QMouseEvent* e
 			}
 		} // end for iPiece
 	} // end if left button
+	if (changed && m_viewer->getMainUI())
+		m_viewer->getMainUI()->viewer3d()->updateGL();
 	return changed;
 }

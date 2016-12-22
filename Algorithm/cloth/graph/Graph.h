@@ -166,11 +166,15 @@ namespace ldp
 		// two points can be merged into one iff
 		bool mergeKeyPoints(GraphPoint* p1, GraphPoint* p2);
 
+		// split the curve by the point and merge the point to it
+		bool mergeCurvePoint(AbstractGraphCurve* curveToSplit, GraphPoint* p);
+
 		// ui related
 		bool selectedCurvesToLoop(bool isBoundingLoop=false);
 		bool mergeSelectedCurves();
 		bool splitTheSelectedCurve(Float2 position);
 		bool mergeSelectedKeyPoints();
+		bool mergeTheSelectedKeyPointToCurve();
 	protected:
 		void connectNextCurve(AbstractGraphCurve* curr, AbstractGraphCurve* next, GraphLoop* loop, bool reverse);
 		void connectPrevCurve(AbstractGraphCurve* curr, AbstractGraphCurve* prev, GraphLoop* loop, bool reverse);

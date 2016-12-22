@@ -60,6 +60,7 @@ namespace ldp
 			const Float2* operator ->() { return m_curSample; }
 			const Float2& operator*() { return *m_curSample; }
 			operator const Float2* () { return m_curSample; }
+			EdgeIter edgeIter() { return m_edgeIter; }
 		};
 	public:
 		GraphLoop();
