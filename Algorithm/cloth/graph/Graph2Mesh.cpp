@@ -242,7 +242,7 @@ namespace ldp
 			(*ptr)[0]->start = 0;
 			(*ptr)[0]->end = 1;
 			(*ptr)[0]->step = step;
-			for (float s = 0.f; s < 1 + step - 1e-8; s += step)
+			for (float s = 0.f; s < 1 + step - g_designParam.pointMergeDistThre; s += step)
 				(*ptr)[0]->params.push_back(SampleParam(std::min(1.f, s), -1));
 			m_shapeSegs[shape] = ptr;
 		} // end if iter not found
@@ -300,7 +300,7 @@ namespace ldp
 			return;
 		seg.step = step;
 		seg.params.clear();
-		for (float s = 0.f; s < 1 + seg.step - 1e-8; s += seg.step)
+		for (float s = 0.f; s < 1 + seg.step - g_designParam.pointMergeDistThre; s += seg.step)
 			seg.params.push_back(SampleParam(std::min(1.f, s), -1));
 	}
 
