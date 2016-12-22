@@ -129,6 +129,7 @@ namespace ldp
 		bool mergeSelectedCurves();
 		bool mergeSelectedKeyPoints();
 		bool splitSelectedCurve(Float2 position);
+		void clearHighLights();
 	protected:
 	private:
 		std::vector<std::shared_ptr<GraphsSewing>> m_graphSewings;

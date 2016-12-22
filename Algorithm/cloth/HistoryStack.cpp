@@ -161,6 +161,9 @@ namespace ldp
 			myData.uiSewData->s.curve = nullptr;
 		}
 		m_viewer2d->setUiSewData(tmpUiSewData);
+
+		if (m_viewer2d->getManager())
+			m_viewer2d->getManager()->clearHighLights();
 	}
 
 	int HistoryStack::size()const

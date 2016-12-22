@@ -39,6 +39,8 @@ QString Abstract2dEventHandle::inactiveIconFile()const
 
 void Abstract2dEventHandle::handleEnter()
 {
+	if (m_viewer->getManager())
+		m_viewer->getManager()->clearHighLights();
 	m_viewer->setFocus();
 }
 void Abstract2dEventHandle::handleLeave()

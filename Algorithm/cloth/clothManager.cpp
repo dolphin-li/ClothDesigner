@@ -1617,6 +1617,23 @@ namespace ldp
 		return change;
 	}
 
+	void ClothManager::clearHighLights()
+	{
+		for (auto& piece : m_clothPieces)
+		{
+			auto& panel = piece->graphPanel();
+			for (auto iter = panel.point_begin(); iter != panel.point_end(); ++iter)
+				iter->setHighlighted(false);
+			for (auto iter = panel.curve_begin(); iter != panel.curve_end(); ++iter)
+				iter->setHighlighted(false);
+			for (auto iter = panel.loop_begin(); iter != panel.loop_end(); ++iter)
+				iter->setHighlighted(false);
+			panel.setHighlighted(false);
+		}
+
+		for (auto& sew : m_graphSewings)
+			sew->setHighlighted(false);
+	}
 	///////////////////////////////////////////////////////////////////////////////////////////
 	void ClothManager::fromXml(std::string filename)
 	{
