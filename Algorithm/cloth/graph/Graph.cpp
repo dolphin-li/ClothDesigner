@@ -245,12 +245,14 @@ namespace ldp
 		// 0. find all closed loops and non-closed loops, non-closed curves
 		std::vector<GraphLoop*> closedLoops, openLoops;
 		std::vector<AbstractGraphCurve*> openCurves;
+		bool hasBoundingLoop = false;
 		for (auto iter = loop_begin(); iter != loop_end(); ++iter)
 		{
 			if (iter->isClosed())
 				closedLoops.push_back(iter);
 			else
 				openLoops.push_back(iter);
+			hasBoundingLoop |= iter->isBoundingLoop();
 		}
 		for (auto iter = curve_begin(); iter != curve_end(); ++iter)
 		{
@@ -266,7 +268,31 @@ namespace ldp
 		}
 
 		// 1. check the bounding loop
-
+		if (!hasBoundingLoop)
+		{
+			// make the largest closed loop as boundingLoop
+			GraphLoop* largest = nullptr;
+			float largestArea = 0.f;
+			for (auto& loop : closedLoops)
+			{
+				float area = 0.f;
+				Float2 lastP = std::numeric_limits<float>::quiet_NaN();
+				for (auto iter = loop->samplePoint_begin(g_designParam.curveSampleStep); !iter.isEnd(); ++iter)
+				{
+					if (!std::isnan(lastP[0]))
+						area += (*iter).cross(lastP) * 0.5f;
+					lastP = *iter;
+				}
+				area = abs(area);
+				if (area > largestArea)
+				{
+					largestArea = area;
+					largest = loop;
+				}
+			} // end for loop
+			if (largest)
+				largest->setBoundingLoop(true);
+		} // end if !hasBoundingLoop
 
 		// 2. for all curves with isolated end points, check if the point is on a closed loop
 		std::vector<Float2> curveSamples;

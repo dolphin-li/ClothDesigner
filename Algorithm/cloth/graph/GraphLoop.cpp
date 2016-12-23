@@ -209,16 +209,17 @@ namespace ldp
 
 	GraphLoop::SamplePointIter& GraphLoop::SamplePointIter::operator++()
 	{
-		const auto& vec = m_edgeIter->samplePointsOnShape(m_step/m_edgeIter->getLength());
+		const auto* vec = &m_edgeIter->samplePointsOnShape(m_step/m_edgeIter->getLength());
 		m_curPtPos += m_edgeIter.shouldReverse() ? -1 : 1;
-		const int endPos = m_edgeIter.shouldReverse() ? -1 : (int)vec.size();
+		const int endPos = m_edgeIter.shouldReverse() ? -1 : (int)vec->size();
 		if (m_curPtPos == endPos)
 		{
 			++m_edgeIter;
-			m_curPtPos = m_edgeIter.shouldReverse() ? (int)vec.size() - 1 : 0;
+			vec = &m_edgeIter->samplePointsOnShape(m_step / m_edgeIter->getLength());
+			m_curPtPos = m_edgeIter.shouldReverse() ? (int)vec->size() - 1 : 0;
 		}
 		if (m_edgeIter)
-			m_curSample = &m_edgeIter->samplePointsOnShape(m_step/m_edgeIter->getLength())[m_curPtPos];
+			m_curSample = &(*vec)[m_curPtPos];
 		else
 			m_curSample = nullptr;
 		return *this;
