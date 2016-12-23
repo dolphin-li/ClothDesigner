@@ -89,6 +89,9 @@
     <Filter Include="algorithm\cloth\graph">
       <UniqueIdentifier>{cc08b4b8-0605-480e-bb49-bf7cf42e9687}</UniqueIdentifier>
     </Filter>
+    <Filter Include="algorithm\matio">
+      <UniqueIdentifier>{586f37b6-d739-4343-b64c-f86c4558c584}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -649,6 +652,9 @@
     <ClCompile Include="Algorithm\cloth\definations.cpp">
       <Filter>algorithm\cloth</Filter>
     </ClCompile>
+    <ClCompile Include="Algorithm\cloth\SmplManager.cpp">
+      <Filter>algorithm\cloth</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">
@@ -1024,6 +1030,15 @@
     </ClInclude>
     <ClInclude Include="Algorithm\cloth\graph\Graph2Mesh.h">
       <Filter>algorithm\cloth\graph</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\SmplManager.h">
+      <Filter>algorithm\cloth</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\matio\matio.h">
+      <Filter>algorithm\matio</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\matio\matio_pubconf.h">
+      <Filter>algorithm\matio</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

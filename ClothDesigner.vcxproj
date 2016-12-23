@@ -103,9 +103,9 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <OutputFile>$(OutDir)\$(ProjectName)d.exe</OutputFile>
-      <AdditionalLibraryDirectories>$(ProjectDir)\algorithm\GL;$(ProjectDir)\algorithm\freeImage;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)\algorithm\matio;$(ProjectDir)\algorithm\GL;$(ProjectDir)\algorithm\freeImage;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>glew32.lib;qtmaind.lib;Qt5Cored.lib;Qt5Guid.lib;Qt5OpenGLd.lib;opengl32.lib;glu32.lib;Qt5Widgetsd.lib;Qt5Xmld.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libmatio.lib;glew32.lib;qtmaind.lib;Qt5Cored.lib;Qt5Guid.lib;Qt5OpenGLd.lib;opengl32.lib;glu32.lib;Qt5Widgetsd.lib;Qt5Xmld.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <CudaCompile>
       <CodeGeneration>compute_30,sm_30</CodeGeneration>
@@ -138,9 +138,9 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
-      <AdditionalLibraryDirectories>$(ProjectDir)\algorithm\GL;$(ProjectDir)\algorithm\freeImage;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)\algorithm\matio;$(ProjectDir)\algorithm\GL;$(ProjectDir)\algorithm\freeImage;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>glew32.lib;qtmain.lib;Qt5Core.lib;Qt5Gui.lib;Qt5OpenGL.lib;opengl32.lib;glu32.lib;Qt5Widgets.lib;Qt5Xml.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libmatio.lib;glew32.lib;qtmain.lib;Qt5Core.lib;Qt5Gui.lib;Qt5OpenGL.lib;opengl32.lib;glu32.lib;Qt5Widgets.lib;Qt5Xml.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <CudaCompile>
       <CodeGeneration>compute_30,sm_30</CodeGeneration>
@@ -164,6 +164,7 @@
     <ClCompile Include="Algorithm\cloth\graph\GraphsSewing.cpp" />
     <ClCompile Include="Algorithm\cloth\HistoryStack.cpp" />
     <ClCompile Include="Algorithm\cloth\LevelSet3D.cpp" />
+    <ClCompile Include="Algorithm\cloth\SmplManager.cpp" />
     <ClCompile Include="Algorithm\cloth\TransformInfo.cpp" />
     <ClCompile Include="Algorithm\conv\ConvolutionPyramid.cpp" />
     <ClCompile Include="Algorithm\conv\Convolution_Helper.cpp" />
@@ -436,6 +437,7 @@
     <ClInclude Include="Algorithm\cloth\kernel_containers.h" />
     <ClInclude Include="Algorithm\cloth\LevelSet3D.h" />
     <ClInclude Include="Algorithm\cloth\LEVEL_SET_COLLISION.h" />
+    <ClInclude Include="Algorithm\cloth\SmplManager.h" />
     <ClInclude Include="Algorithm\cloth\TransformInfo.h" />
     <ClInclude Include="Algorithm\conv\ConvolutionPyramid.h" />
     <ClInclude Include="Algorithm\conv\Convolution_Helper.h" />
@@ -457,6 +459,8 @@
     <ClInclude Include="Algorithm\ldpMat\Quaternion.h" />
     <ClInclude Include="Algorithm\ldputil.h" />
     <ClInclude Include="Algorithm\LMSolver.h" />
+    <ClInclude Include="Algorithm\matio\matio.h" />
+    <ClInclude Include="Algorithm\matio\matio_pubconf.h" />
     <ClInclude Include="Algorithm\qimdebug.h" />
     <ClInclude Include="Algorithm\Renderable\bmesh.h" />
     <ClInclude Include="Algorithm\Renderable\bmesh_private.h" />
