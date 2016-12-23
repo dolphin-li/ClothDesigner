@@ -146,12 +146,18 @@ namespace ldp
 		if (m_X.size() == 0)
 			return;
 		updateDependency();
-		calcLevelSet();
-		triangulate();
-		mergePieces();
-		buildTopology();
-		buildNumerical();
-		buildStitch();
+		if (m_shouldLevelSetUpdate)
+			calcLevelSet();
+		if (m_shouldTriangulate)
+			triangulate();
+		if (m_shouldMergePieces)
+			mergePieces();
+		if (m_shouldTopologyUpdate)
+			buildTopology();
+		if (m_shouldNumericUpdate)
+			buildNumerical();
+		if (m_shouldStitchUpdate)
+			buildStitch();
 
 		gtime_t t_begin = ldp::gtime_now();
 		for (int oiter = 0; oiter < m_simulationParam.out_iter; oiter++)
@@ -906,8 +912,6 @@ namespace ldp
 
 	void ClothManager::calcLevelSet()
 	{
-		if (!m_shouldLevelSetUpdate)
-			return;
 		const float step = 0.01;
 		m_bodyMesh->updateBoundingBox();
 		auto bmin = m_bodyMesh->boundingBox[0];

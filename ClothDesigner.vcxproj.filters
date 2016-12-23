@@ -100,12 +100,6 @@
     <ClCompile Include="clothdesigner.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="GeneratedFiles\Debug\moc_clothdesigner.cpp">
-      <Filter>Generated Files\Debug</Filter>
-    </ClCompile>
-    <ClCompile Include="GeneratedFiles\Release\moc_clothdesigner.cpp">
-      <Filter>Generated Files\Release</Filter>
-    </ClCompile>
     <ClCompile Include="GeneratedFiles\qrc_clothdesigner.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
@@ -166,12 +160,6 @@
     <ClCompile Include="viewer3d.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="GeneratedFiles\Debug\moc_viewer3d.cpp">
-      <Filter>Generated Files\Debug</Filter>
-    </ClCompile>
-    <ClCompile Include="GeneratedFiles\Release\moc_viewer3d.cpp">
-      <Filter>Generated Files\Release</Filter>
-    </ClCompile>
     <ClCompile Include="event_handles\Abstract3dEventHandle.cpp">
       <Filter>event_handle</Filter>
     </ClCompile>
@@ -195,12 +183,6 @@
     </ClCompile>
     <ClCompile Include="Viewer2d.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="GeneratedFiles\Debug\moc_Viewer2d.cpp">
-      <Filter>Generated Files\Debug</Filter>
-    </ClCompile>
-    <ClCompile Include="GeneratedFiles\Release\moc_Viewer2d.cpp">
-      <Filter>Generated Files\Release</Filter>
     </ClCompile>
     <ClCompile Include="event_handles\Abstract2dEventHandle.cpp">
       <Filter>event_handle</Filter>
@@ -261,9 +243,6 @@
     </ClCompile>
     <ClCompile Include="algorithm\svgpp\SvgGroup.cpp">
       <Filter>algorithm\svgpp</Filter>
-    </ClCompile>
-    <ClCompile Include="Algorithm\svgpp\SvgPolyPath.cpp">
-      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Algorithm\tinyxml\tinystr.cpp">
       <Filter>algorithm\tinyxml</Filter>
@@ -655,6 +634,27 @@
     <ClCompile Include="Algorithm\cloth\SmplManager.cpp">
       <Filter>algorithm\cloth</Filter>
     </ClCompile>
+    <ClCompile Include="GeneratedFiles\Debug\moc_Viewer2d.cpp">
+      <Filter>Generated Files\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Release\moc_Viewer2d.cpp">
+      <Filter>Generated Files\Release</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Debug\moc_viewer3d.cpp">
+      <Filter>Generated Files\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Release\moc_viewer3d.cpp">
+      <Filter>Generated Files\Release</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\svgpp\SvgPolyPath.cpp">
+      <Filter>algorithm\svgpp</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Debug\moc_clothdesigner.cpp">
+      <Filter>Generated Files\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Release\moc_clothdesigner.cpp">
+      <Filter>Generated Files\Release</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">
@@ -666,13 +666,13 @@
     <CustomBuild Include="qdarkstyle\style.qrc">
       <Filter>Resource Files</Filter>
     </CustomBuild>
-    <CustomBuild Include="clothdesigner.h">
+    <CustomBuild Include="Viewer2d.h">
       <Filter>Source Files</Filter>
     </CustomBuild>
     <CustomBuild Include="viewer3d.h">
       <Filter>Source Files</Filter>
     </CustomBuild>
-    <CustomBuild Include="Viewer2d.h">
+    <CustomBuild Include="clothdesigner.h">
       <Filter>Source Files</Filter>
     </CustomBuild>
   </ItemGroup>
