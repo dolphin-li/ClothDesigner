@@ -13,6 +13,7 @@ namespace ldp
 	class ClothPiece;
 	class ClothDesignParam;
 	class AbstractGraphObject;
+	class TransformInfo;
 	class HistoryStack
 	{
 	public:
@@ -57,6 +58,7 @@ namespace ldp
 			std::vector<std::shared_ptr<GraphsSewing>> graphSewings;
 			std::vector<std::shared_ptr<ClothPiece>> pieces;
 			std::shared_ptr<ClothDesignParam> dparam;
+			std::shared_ptr<TransformInfo> bodyTrans;
 
 			// for TypeUiSewChanged
 			std::shared_ptr<UiSewData> uiSewData;

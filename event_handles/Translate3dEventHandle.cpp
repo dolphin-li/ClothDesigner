@@ -35,6 +35,7 @@ void Translate3dEventHandle::handleEnter()
 		m_viewer->beginTrackBall(Viewer3d::TrackBall_Trans, m_pickInfo.pickPos, 
 			ldp::Mat3d().eye(), (box[1] - box[0]).length()* m_axisScale);
 	}
+	m_transformed = false;
 }
 
 void Translate3dEventHandle::handleLeave()
@@ -60,6 +61,14 @@ void Translate3dEventHandle::mousePressEvent(QMouseEvent *ev)
 void Translate3dEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 {
 	Abstract3dEventHandle::mouseReleaseEvent(ev);
+
+	if (m_transformed)
+	{
+		if (m_viewer->getMainUI())
+			m_viewer->getMainUI()->pushHistory("translate piece", ldp::HistoryStack::Type3dTransform);
+		m_transformed = false;
+	}
+
 	if (m_viewer->buttons() == Qt::LeftButton)
 	{
 		if (m_viewer->getActiveTrackBallAxis() > 0)
@@ -124,17 +133,14 @@ void Translate3dEventHandle::mouseMoveEvent(QMouseEvent *ev)
 			{
 				m_pickInfo.piece->transformInfo().translate(dir);
 				m_viewer->getManager()->updateCloths3dMeshBy2d();
-				if (m_viewer->getMainUI())
-					m_viewer->getMainUI()->pushHistory("translate piece", ldp::HistoryStack::Type3dTransform);
 			}
 			else // body mesh
 			{
 				auto tr = m_viewer->getManager()->getBodyMeshTransform();
 				tr.translate(dir);
 				m_viewer->getManager()->setBodyMeshTransform(tr);
-				if (m_viewer->getMainUI())
-					m_viewer->getMainUI()->pushHistory("translate body", ldp::HistoryStack::Type3dTransform);
 			}
+			m_transformed = true;
 			m_viewer->translateTrackBall(dir);
 			if (m_viewer->getMainUI())
 				m_viewer->getMainUI()->viewer2d()->updateGL();

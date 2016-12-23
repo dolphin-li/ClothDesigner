@@ -1,5 +1,6 @@
 #include "HistoryStack.h"
 #include "clothManager.h"
+#include "TransformInfo.h"
 #include "graph\GraphsSewing.h"
 #include "graph\Graph.h"
 #include "graph\AbstractGraphCurve.h"
@@ -48,6 +49,7 @@ namespace ldp
 		myData.type = type;
 		myData.name = name;
 		myData.dparam.reset(new ClothDesignParam(m_manager->getClothDesignParam()));
+		myData.bodyTrans.reset(new TransformInfo(m_manager->getBodyMeshTransform()));
 		m_shouldGeneralUpdate = (myData.type > Type_CloneFlag);
 
 		// general type operation
@@ -119,6 +121,7 @@ namespace ldp
 		// perform general type transfer
 		Graph::PtrMap ptrMap;
 		m_manager->setClothDesignParam(*myData.dparam);
+		m_manager->setBodyMeshTransform(*myData.bodyTrans);
 		if (m_shouldGeneralUpdate)
 		{
 			// clone ptr related

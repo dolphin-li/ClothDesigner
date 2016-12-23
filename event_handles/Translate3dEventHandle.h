@@ -21,4 +21,5 @@ public:
 	virtual void handleLeave();
 private:
 	float m_axisScale;
+	bool m_transformed = false;
 };

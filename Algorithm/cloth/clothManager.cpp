@@ -130,7 +130,6 @@ namespace ldp
 		for (size_t i = 0; i < m_clothPieces.size(); i++)
 			m_clothPieces[i]->mesh3d().cloneFrom(&m_clothPieces[i]->mesh3dInit());
 		m_shouldTriangulate = true;
-		calcLevelSet();
 		updateDependency();
 		triangulate();
 		mergePieces();
@@ -147,18 +146,12 @@ namespace ldp
 		if (m_X.size() == 0)
 			return;
 		updateDependency();
-		if (m_shouldLevelSetUpdate)
-			calcLevelSet();
-		if (m_shouldTriangulate)
-			triangulate();
-		if (m_shouldMergePieces)
-			mergePieces();
-		if (m_shouldTopologyUpdate)
-			buildTopology();
-		if (m_shouldNumericUpdate)
-			buildNumerical();
-		if (m_shouldStitchUpdate)
-			buildStitch();
+		calcLevelSet();
+		triangulate();
+		mergePieces();
+		buildTopology();
+		buildNumerical();
+		buildStitch();
 
 		gtime_t t_begin = ldp::gtime_now();
 		for (int oiter = 0; oiter < m_simulationParam.out_iter; oiter++)
@@ -1704,7 +1697,7 @@ namespace ldp
 					} catch (std::exception e)
 					{
 						m_shouldLevelSetUpdate = true;
-						calcLevelSet();
+						//calcLevelSet();
 						//m_bodyLvSet->save(setFile.c_str());
 					}
 				} // end if not obj empty

@@ -41,6 +41,7 @@ void Rotate3dEventHandle::handleEnter()
 		m_viewer->beginTrackBall(Viewer3d::TrackBall_Rot, m_pickInfo.meshCenter,
 			m_trackBallMouseClickR, (box[1] - box[0]).length()* m_axisScale);
 	}
+	m_transformed = false;
 }
 
 void Rotate3dEventHandle::handleLeave()
@@ -74,6 +75,14 @@ void Rotate3dEventHandle::mousePressEvent(QMouseEvent *ev)
 void Rotate3dEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 {
 	Abstract3dEventHandle::mouseReleaseEvent(ev);
+
+	if (m_transformed)
+	{
+		if (m_viewer->getMainUI())
+			m_viewer->getMainUI()->pushHistory("rotate piece", ldp::HistoryStack::Type3dTransform);
+		m_transformed = false;
+	}
+
 	if (m_viewer->buttons() == Qt::LeftButton)
 	{
 		if (m_viewer->getActiveTrackBallAxis() > 0)
@@ -156,8 +165,6 @@ void Rotate3dEventHandle::mouseMoveEvent(QMouseEvent *ev)
 				m_pickInfo.piece->transformInfo().rotate(R*lastR.inv(), m_pickInfo.meshCenter);
 				m_viewer->getManager()->updateCloths3dMeshBy2d();
 				m_viewer->rotateTrackBall(R*lastR.inv());
-				if (m_viewer->getMainUI())
-					m_viewer->getMainUI()->pushHistory("rotate piece", ldp::HistoryStack::Type3dTransform);
 			}
 			else // body mesh
 			{
@@ -166,9 +173,8 @@ void Rotate3dEventHandle::mouseMoveEvent(QMouseEvent *ev)
 				tr.rotate(R*lastR.inv(), m_pickInfo.meshCenter);
 				m_viewer->getManager()->setBodyMeshTransform(tr);
 				m_viewer->rotateTrackBall(R*lastR.inv());
-				if (m_viewer->getMainUI())
-					m_viewer->getMainUI()->pushHistory("rotate body", ldp::HistoryStack::Type3dTransform);
 			}
+			m_transformed = true;
 
 			if (m_viewer->getMainUI())
 				m_viewer->getMainUI()->viewer2d()->updateGL();

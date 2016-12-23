@@ -22,4 +22,5 @@ public:
 private:
 	float m_axisScale;
 	ldp::Mat3f m_trackBallMouseClickR;
+	bool m_transformed = false;
 };
