@@ -230,6 +230,14 @@ namespace ldp
 		} // end for pair
 	}
 
+	void Graph2Mesh::SampleParamVec::reSample(float step)
+	{
+		this->step = step;
+		params.clear();
+		for (float s = 0.f; s < 1 + step - g_designParam.pointMergeDistThre; s += step)
+			params.push_back(Graph2Mesh::SampleParam(std::min(1.f, s), -1));
+	}
+
 	void Graph2Mesh::createShapeSeg(const AbstractGraphCurve* shape, float step)
 	{
 		auto iter = m_shapeSegs.find(shape);
@@ -241,9 +249,7 @@ namespace ldp
 			(*ptr)[0]->shape = shape;
 			(*ptr)[0]->start = 0;
 			(*ptr)[0]->end = 1;
-			(*ptr)[0]->step = step;
-			for (float s = 0.f; s < 1 + step - g_designParam.pointMergeDistThre; s += step)
-				(*ptr)[0]->params.push_back(SampleParam(std::min(1.f, s), -1));
+			(*ptr)[0]->reSample(step);
 			m_shapeSegs[shape] = ptr;
 		} // end if iter not found
 		else
@@ -272,9 +278,7 @@ namespace ldp
 				sVec->step = calcForwardBackwardConsistentStep(oriStep * (segEnd - segBegin) / (segEnd - tSegs));
 				sVec->start = tSegs;
 				sVec->end = segEnd;
-				sVec->params.clear();
-				for (float s = 0.f; s < 1 + sVec->step - 1e-8; s += sVec->step)
-					sVec->params.push_back(SampleParam(std::min(1.f, s), -1));
+				sVec->reSample(sVec->step);
 				return i;
 			} // end if >, <
 		} // end for i
@@ -298,10 +302,7 @@ namespace ldp
 	{
 		if (fabs(seg.step - step) < std::numeric_limits<float>::epsilon())
 			return;
-		seg.step = step;
-		seg.params.clear();
-		for (float s = 0.f; s < 1 + seg.step - g_designParam.pointMergeDistThre; s += seg.step)
-			seg.params.push_back(SampleParam(std::min(1.f, s), -1));
+		seg.reSample(step);
 	}
 
 	Float2 Graph2Mesh::addPolygon(const GraphLoop& poly)

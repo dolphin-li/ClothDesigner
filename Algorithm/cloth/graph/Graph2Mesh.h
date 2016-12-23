@@ -55,6 +55,7 @@ namespace ldp
 			float start;
 			float end;
 			SampleParamVec() :step(0), start(0), end(0), shape(nullptr) {}
+			void reSample(float step);
 		};
 		typedef std::shared_ptr<SampleParamVec> SampleParamVecPtr;
 		typedef	std::vector<SampleParamVecPtr> ShapeSegs;
