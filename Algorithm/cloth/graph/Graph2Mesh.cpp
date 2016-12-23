@@ -512,7 +512,8 @@ namespace ldp
 				std::reverse(param0.begin(), param0.end());
 			if (pair.reverse[1])
 				std::reverse(param1.begin(), param1.end());
-			for (size_t i = 0; i < param0.size(); i++)
+			const size_t n = std::min(param0.size(), param1.size());
+			for (size_t i = 0; i < n; i++)
 			{
 				auto piece0 = m_shapePieceMap[pair.seg[0]->shape];
 				auto piece1 = m_shapePieceMap[pair.seg[1]->shape];
