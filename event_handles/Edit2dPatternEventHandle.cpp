@@ -147,8 +147,11 @@ void Edit2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 		{
 			bool change = manager->removeSelectedShapes();
 			if (m_viewer->getMainUI() && change)
+			{
+				manager->triangulate();
 				m_viewer->getMainUI()->pushHistory(QString().sprintf("pattern removed",
 				op), ldp::HistoryStack::TypeGeneral);
+			}
 		}
 		break;
 	case Qt::Key_L:

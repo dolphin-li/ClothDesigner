@@ -111,6 +111,9 @@ public:
 	void rotateBy(ldp::Mat3f r, ldp::Float3 c);
 	void transform(ldp::Mat4f T);
 
+	virtual ldp::Float3 getCenter()const { return (boundingBox[0] + boundingBox[1])*0.5f; }
+	virtual ldp::Float3 getBoundingBox(int i)const { return boundingBox[i]; }
+
 	// bmesh structure, which is covinient for per-element oparation
 	ldp::BMesh* get_bmesh(bool triangulate);
 	ldp::BMVert* get_bmesh_vert(int i){ return m_bmeshVerts[i]; }

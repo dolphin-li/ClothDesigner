@@ -30,11 +30,36 @@ namespace ldp
 
 	void TransformInfo::apply(ObjMesh& mesh)
 	{
+		// 1. flip normal if needed
 		if (m_flipNormal)
 		{
 			for (auto& f : mesh.face_list)
 				std::reverse(f.vertex_index, f.vertex_index + f.vertex_count);
 		}
+
+		// 2. apply cylinder transform
+		if (hasCylinderTransform())
+		{
+			const Float3 center = mesh.getCenter();
+			const float radius = m_cylinderTrans.radius;
+			const Float3 y_dir(m_cylinderTrans.axis.normalize());
+			Float3 x_dir(mesh.getBoundingBox(1) - center);
+			const Float3 z_dir = x_dir.cross(y_dir).normalize();
+			x_dir = y_dir.cross(z_dir).normalize();
+			for (auto& v : mesh.vertex_list)
+			{
+				Float3 shift = v - center;
+				float y = shift.dot(y_dir);
+				float x = shift.dot(x_dir);
+				float z = shift.dot(z_dir);
+				float x1 = radius * sin(x / radius);
+				float z1 = radius * (1-cos(x / radius));
+				float y1 = y;
+				v = y1 * y_dir + x1 * x_dir + z1 * z_dir + center;
+			} // end for v
+		} // end if hasCylinderTransform
+
+		// 3. apply linear transform
 		mesh.transform(m_T);
 	}
 
@@ -64,33 +89,61 @@ namespace ldp
 		m_T.setTranslationPart(SM * (m_T.getTranslationPart() - center) + center);
 	}
 
-
 	TiXmlElement* TransformInfo::toXML(TiXmlNode* parent)const
 	{
 		TiXmlElement* ele = new TiXmlElement(getTypeString().c_str());
 		parent->LinkEndChild(ele);
+
+		// flip normal
 		ele->SetAttribute("FlipNormal", m_flipNormal);
+
+		// transform
 		std::string s;
 		for (int i = 0; i < m_T.nRow(); i++)
 		for (int j = 0; j < m_T.nCol(); j++)
 			s += std::to_string(m_T(i, j)) + " ";
 		ele->SetAttribute("T", s.c_str());
+
+		// cylinder
+		if (hasCylinderTransform())
+		{
+			std::string s = std::to_string(m_cylinderTrans.axis[0]) 
+				+ " " + std::to_string(m_cylinderTrans.axis[1])
+				+ " " + std::to_string(m_cylinderTrans.axis[2]);
+			ele->SetAttribute("cylinder_axis", s.c_str());
+			ele->SetAttribute("cylinder_radius", std::to_string(m_cylinderTrans.radius).c_str());
+		}
 		return ele;
 	}
 
 	void TransformInfo::fromXML(TiXmlElement* self)
 	{
+		// flip normal
 		int tmp = 0;
 		if (!self->Attribute("FlipNormal", &tmp))
 			printf("warning: transformInfo.flipNormal lost");
 		m_flipNormal = !!tmp;
-		std::string s = self->Attribute("T");
-		if (s.empty())
-			printf("warning: transformInfo.T lost");
-		std::stringstream ts(s);
-		m_T.eye();
-		for (int i = 0; i < m_T.nRow(); i++)
-		for (int j = 0; j < m_T.nCol(); j++)
-			ts >> m_T(i, j);
+
+		// transform
+		if (self->Attribute("T"))
+		{
+			std::stringstream ts(self->Attribute("T"));
+			m_T.eye();
+			for (int i = 0; i < m_T.nRow(); i++)
+			for (int j = 0; j < m_T.nCol(); j++)
+				ts >> m_T(i, j);
+		}
+
+		// cylinder
+		if (self->Attribute("cylinder_axis"))
+		{
+			std::stringstream ts(self->Attribute("cylinder_axis"));
+			ts >> m_cylinderTrans.axis[0] >> m_cylinderTrans.axis[1] >> m_cylinderTrans.axis[2];
+		}
+		if (self->Attribute("cylinder_radius"))
+		{
+			std::stringstream ts(self->Attribute("cylinder_radius"));
+			ts >> m_cylinderTrans.radius;
+		}
 	}
 }

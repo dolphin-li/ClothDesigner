@@ -521,7 +521,10 @@ namespace ldp
 		} // end for id
 
 		if (fmesh == nullptr || smesh == nullptr)
-			throw std::exception("getStitchPos() error: given stitch not found!\n");
+		{
+			printf("getStitchPos() error: given stitch not found!\n");
+			return std::pair<Float3, Float3>();
+		}
 
 		std::pair<Float3, Float3> vp;
 		vp.first = fmesh->vertex_list[stp.first.vids[0]] * (1 - stp.first.w) 
