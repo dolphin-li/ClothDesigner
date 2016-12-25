@@ -18,6 +18,16 @@ namespace ldp
 		triangulateThre = 2e-2;										// in meters
 	}
 
+	PieceParam::PieceParam()
+	{
+		setDefaultParam();
+	}
+
+	void PieceParam::setDefaultParam()
+	{
+		bending_k_mult = 1;
+	}
+
 	SimulationParam::SimulationParam()
 	{
 		setDefaultParam();

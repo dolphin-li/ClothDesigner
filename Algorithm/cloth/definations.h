@@ -4,6 +4,14 @@
 class ObjMesh;
 namespace ldp
 {
+	// param for a single cloth piece
+	struct PieceParam
+	{
+		float bending_k_mult;			// multiplied on SimulationParam.bending_k for each piece
+		PieceParam();
+		void setDefaultParam();
+	};
+
 	struct SimulationParam
 	{
 		float rho;						// for chebshev accereration

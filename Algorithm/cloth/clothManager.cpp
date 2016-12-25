@@ -76,6 +76,7 @@ namespace ldp
 		simulationDestroy();
 
 		m_V.clear();
+		m_V_bending_k_mult.clear();
 		m_allE.clear();
 		m_allVV.clear();
 		m_allVL.clear();
@@ -402,18 +403,22 @@ namespace ldp
 			triangulate();
 		m_X.clear();
 		m_T.clear();
+		m_V_bending_k_mult.clear();
 		m_clothVertBegin.clear();
 		m_avgArea = 0;
 		m_avgEdgeLength = 0;
 		int fcnt = 0;
 		int ecnt = 0;
 		int vid_s = 0;
-		for (int iCloth = 0; iCloth < numClothPieces(); iCloth++)
+		for (auto& piece : m_clothPieces)
 		{
-			const auto& mesh = clothPiece(iCloth)->mesh3d();
+			const auto& mesh = piece->mesh3d();
 			m_clothVertBegin.insert(std::make_pair(&mesh, vid_s));
 			for (const auto& v : mesh.vertex_list)
+			{
 				m_X.push_back(v);
+				m_V_bending_k_mult.push_back(piece->param().bending_k_mult);
+			}
 			for (const auto& f : mesh.face_list)
 			{
 				m_T.push_back(ldp::Int3(f.vertex_index[0], f.vertex_index[1],
@@ -882,7 +887,8 @@ namespace ldp
 			v[3] = se[1];
 			v[4] = be[0];
 			v[5] = be[1];
-			const float w = m_simulationParam.stitch_bending_k*weight;
+
+			const float w = weight * m_simulationParam.stitch_bending_k;
 			m_stitchVC[v[0]] += k[0] * k[0] * w / 2;
 			m_stitchVC[v[1]] += k[1] * k[1] * w / 2;
 			m_stitchVC[v[2]] += k[0] * k[0] * w / 2;
@@ -902,7 +908,7 @@ namespace ldp
 			m_stitchVW[findStitchNeighbor(v[4], v[0])] += k[2] * k[0] * w;
 			m_stitchVW[findStitchNeighbor(v[4], v[1])] += k[2] * k[1] * w;
 			m_stitchVW[findStitchNeighbor(v[4], v[5])] += k[2] * k[3] * w;
-
+																		
 			m_stitchVW[findStitchNeighbor(v[5], v[2])] += k[3] * k[0] * w;
 			m_stitchVW[findStitchNeighbor(v[5], v[3])] += k[3] * k[1] * w;
 			m_stitchVW[findStitchNeighbor(v[5], v[4])] += k[3] * k[2] * w;
@@ -1052,6 +1058,7 @@ namespace ldp
 			if (v[2] == -1 || v[3] == -1)
 				continue;
 
+
 			// second, handle bending weights
 			ValueType c01 = Cotangent(m_X[v[0]].ptr(), m_X[v[1]].ptr(), m_X[v[2]].ptr());
 			ValueType c02 = Cotangent(m_X[v[0]].ptr(), m_X[v[1]].ptr(), m_X[v[3]].ptr());
@@ -1066,13 +1073,18 @@ namespace ldp
 			k[2] = -c01 - c03;
 			k[3] = -c02 - c04;
 
+			// gather the per-vertex bending
+			Float4 vbendk;
+			for (int k = 0; k < 4; k++)
+				vbendk[k] = m_V_bending_k_mult[v[k]] * m_simulationParam.bending_k * weight;
+
 			for (int i = 0; i<4; i++)
 			for (int j = 0; j<4; j++)
 			{
 				if (i == j)
-					m_allVC[v[i]] += k[i] * k[j] * m_simulationParam.bending_k*weight;
+					m_allVC[v[i]] += k[i] * k[j] * sqrt(vbendk[i] * vbendk[j]);
 				else
-					m_allVW[findNeighbor(v[i], v[j])] += k[i] * k[j] * m_simulationParam.bending_k*weight;
+					m_allVW[findNeighbor(v[i], v[j])] += k[i] * k[j] * sqrt(vbendk[i] * vbendk[j]);
 			}
 		} // end for all edges
 
@@ -1764,6 +1776,12 @@ namespace ldp
 						m_clothPieces.back()->transformInfo().fromXML(child);
 					else if (child->Value() == m_clothPieces.back()->graphPanel().getTypeString())
 						m_clothPieces.back()->graphPanel().fromXML(child);
+					else if (child->Value() == std::string("Param"))
+					{
+						double tmp = 0;
+						if (child->Attribute("bend_k_mult", &tmp))
+							m_clothPieces.back()->param().bending_k_mult = tmp;
+					}
 				}
 			} // end for piece
 			else if (pele->Value() == tmpGraphSewing.getTypeString())
@@ -1840,7 +1858,16 @@ namespace ldp
 		{
 			TiXmlElement* pele = new TiXmlElement("Piece");
 			root->LinkEndChild(pele);
+
+			// param
+			TiXmlElement* param_ele = new TiXmlElement("Param");
+			pele->LinkEndChild(param_ele);
+			param_ele->SetAttribute("bend_k_mult", piece->param().bending_k_mult);
+
+			// transform info
 			piece->transformInfo().toXML(pele);
+
+			// panel
 			piece->graphPanel().toXML(pele);
 		} // end for piece
 

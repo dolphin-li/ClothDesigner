@@ -4,6 +4,7 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include "definations.h"
 class ObjMesh;
 namespace ldp
 {
@@ -26,6 +27,9 @@ namespace ldp
 		const TransformInfo& transformInfo()const { return *m_transfromInfo; }
 		TransformInfo& transformInfo() { return *m_transfromInfo; }
 
+		PieceParam& param() { return m_param; }
+		const PieceParam& param()const { return m_param; }
+
 		std::string getName()const { return m_name; }
 		std::string setName(std::string name); // return a unique name
 
@@ -39,6 +43,7 @@ namespace ldp
 		std::shared_ptr<ObjMesh> m_mesh2d;
 		std::shared_ptr<Graph> m_graphPanel;
 		std::shared_ptr<TransformInfo> m_transfromInfo;
+		PieceParam m_param;
 		std::string m_name;
 		static std::set<std::string> s_nameSet;
 	};

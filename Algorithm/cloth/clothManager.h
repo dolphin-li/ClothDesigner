@@ -180,6 +180,7 @@ namespace ldp
 		std::map<std::pair<const ObjMesh*, int>, std::set<Int3>> m_sewVofFMap;// two boundary faces that stitched, for normal calculation
 		std::vector<Vec3> m_X;							// vertex position list
 		std::vector<Vec3> m_V;							// vertex velocity list
+		std::vector<float> m_V_bending_k_mult;			// bending param of each vertex
 		std::vector<Int3> m_T;							// triangle list
 		std::vector<Int2> m_allE;						// edges + bending edges, sorted, for [0,1,2]+[0,1,3], bend_e=[2,3]
 		std::vector<int> m_allVV;						// one-ring vertex of each vertex based an allE, NOT including self
