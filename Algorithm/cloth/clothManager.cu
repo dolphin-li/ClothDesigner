@@ -94,7 +94,10 @@ namespace ldp
 
 	void ClothManager::updateAfterLap()
 	{
-		cudaMemcpyToSymbol(g_gravity, m_simulationParam.gravity.ptr(), 3 * sizeof(float));
+		// ldp hack here: make the gravity not important when we are stitching.
+		Float3 gravity = m_simulationParam.gravity * powf(1 - std::max(0.f, std::min(1.f, m_curStitchRatio)), 2);
+
+		cudaMemcpyToSymbol(g_gravity, gravity.ptr(), 3 * sizeof(float));
 		const int blocksPerGrid = divUp(m_X.size(), threadsPerBlock);
 		Update_Kernel << <blocksPerGrid, threadsPerBlock >> >(
 			m_dev_X.ptr(), m_dev_V.ptr(), m_dev_fixed.ptr(), m_dev_more_fixed.ptr(), 
