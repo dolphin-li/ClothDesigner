@@ -129,6 +129,7 @@ void Viewer3d::init(ldp::ClothManager* clothManager, ClothDesigner* ui)
 {
 	m_clothManager = clothManager;
 	m_mainUI = ui;
+	getEventHandle(getEventHandleType())->resetSelection();
 	resetCamera();
 }
 
@@ -560,6 +561,10 @@ void Viewer3d::renderTrackBall(bool indexMode)
 		glutSolidTorus(m_trackBallScale * 0.03, m_trackBallScale, 16, 128);
 	else if (m_trackBallMode == TrackBall_Trans)
 		solid_axis(m_trackBallScale * 0.03, m_trackBallScale);
+	else if (m_trackBallMode == TrackBall_Cylinder)
+	{
+		solid_axis(m_trackBallScale * 0.03, m_trackBallScale);
+	}
 	glMultMatrixf(get_z2x_rot().trans().ptr());
 
 	// y axis
@@ -574,6 +579,10 @@ void Viewer3d::renderTrackBall(bool indexMode)
 		glutSolidTorus(m_trackBallScale * 0.03, m_trackBallScale, 16, 128);
 	else if (m_trackBallMode == TrackBall_Trans)
 		solid_axis(m_trackBallScale * 0.03, m_trackBallScale);
+	else if (m_trackBallMode == TrackBall_Cylinder)
+	{
+		glutSolidTorus(m_trackBallScale * 0.03, m_trackBallScale, 16, 128);
+	}
 	glMultMatrixf(get_z2y_rot().trans().ptr());
 
 	// z axis
@@ -587,6 +596,10 @@ void Viewer3d::renderTrackBall(bool indexMode)
 		glutSolidTorus(m_trackBallScale * 0.03, m_trackBallScale, 16, 128);
 	else if (m_trackBallMode == TrackBall_Trans)
 		solid_axis(m_trackBallScale * 0.03, m_trackBallScale);
+	else if (m_trackBallMode == TrackBall_Cylinder)
+	{
+		glutSolidTorus(m_trackBallScale * 0.03, m_trackBallScale, 16, 128);
+	}
 
 	// sphere
 	if (!indexMode && m_trackBallMode == TrackBall_Rot)

@@ -655,6 +655,9 @@
     <ClCompile Include="GeneratedFiles\Release\moc_clothdesigner.cpp">
       <Filter>Generated Files\Release</Filter>
     </ClCompile>
+    <ClCompile Include="event_handles\Cylinder3dEventHandle.cpp">
+      <Filter>event_handle</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">
@@ -1039,6 +1042,9 @@
     </ClInclude>
     <ClInclude Include="Algorithm\matio\matio_pubconf.h">
       <Filter>algorithm\matio</Filter>
+    </ClInclude>
+    <ClInclude Include="event_handles\Cylinder3dEventHandle.h">
+      <Filter>event_handle</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

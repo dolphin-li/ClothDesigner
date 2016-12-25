@@ -61,6 +61,8 @@ public:
 	QString inactiveIconFile()const;
 	QString toolTips()const;
 
+	void resetSelection();
+
 	void pick(QPoint pos);
 	void highLight(QPoint pos);
 	const PickInfo& pickInfo()const { return m_pickInfo; }

@@ -144,6 +144,8 @@ void ClothDesigner::on_actionPrev_triggered()
 		g_dataholder.m_historyStack->stepBackward();
 		m_widget2d->updateGL();
 		m_widget3d->updateGL();
+		m_widget3d->getEventHandle(m_widget3d->getEventHandleType())->resetSelection();
+		m_widget2d->getEventHandle(m_widget2d->getEventHandleType())->resetSelection();
 		updateUiByParam();
 	} catch (std::exception e)
 	{
@@ -161,6 +163,8 @@ void ClothDesigner::on_actionNext_triggered()
 		g_dataholder.m_historyStack->stepForward();
 		m_widget2d->updateGL();
 		m_widget3d->updateGL();
+		m_widget3d->getEventHandle(m_widget3d->getEventHandleType())->resetSelection();
+		m_widget2d->getEventHandle(m_widget2d->getEventHandleType())->resetSelection();
 		updateUiByParam();
 	} catch (std::exception e)
 	{

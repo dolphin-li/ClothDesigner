@@ -37,6 +37,12 @@ QString Abstract2dEventHandle::inactiveIconFile()const
 	return m_inactiveIconFile;
 }
 
+void Abstract2dEventHandle::resetSelection()
+{
+	m_pickInfo.clear();
+	m_highLightInfo.clear();
+}
+
 void Abstract2dEventHandle::handleEnter()
 {
 	if (m_viewer->getManager())

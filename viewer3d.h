@@ -21,7 +21,8 @@ public:
 	enum TrackBallMode{
 		TrackBall_None,
 		TrackBall_Rot,
-		TrackBall_Trans
+		TrackBall_Trans,
+		TrackBall_Cylinder
 	};
 public:
 	Viewer3d(QWidget *parent);

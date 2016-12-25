@@ -37,6 +37,7 @@ public:
 		ProcessorTypeSelect,
 		ProcessorTypeTranslate,
 		ProcessorTypeRotate,
+		ProcessorTypeCylinder,
 		ProcessorTypeEnd, // the end, no processor for this
 	};
 public:
@@ -49,6 +50,8 @@ public:
 	QString iconFile()const;
 	QString inactiveIconFile()const;
 	QString toolTips()const;
+
+	void resetSelection();
 
 	void pick(QPoint pos);
 	const PickInfo& pickInfo()const { return m_pickInfo; }

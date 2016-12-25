@@ -33,6 +33,8 @@ namespace ldp
 		const CylinderTransform& cylinderTransform()const { return m_cylinderTrans; }
 		CylinderTransform& cylinderTransform() { return m_cylinderTrans; }
 		void disableCylinderTransform() { m_cylinderTrans.radius = std::numeric_limits<float>::quiet_NaN(); }
+		float cylinderCalcAngleFromRadius(const ObjMesh& mesh, float radius);
+		float cylinderCalcRadiusFromAngle(const ObjMesh& mesh, float angle);
 
 		void flipNormal();
 		bool isFlipNormal() { return m_flipNormal; }

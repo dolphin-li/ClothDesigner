@@ -9,15 +9,15 @@
 #include "Translate3dEventHandle.h"
 #include "Select3dEventHandle.h"
 #include "Rotate3dEventHandle.h"
+#include "Cylinder3dEventHandle.h"
 Abstract3dEventHandle::Abstract3dEventHandle(Viewer3d* v)
 {
 	m_viewer = v;
-	m_lastHighlightShapeId = -1;
-	m_currentSelectedId = -1;
 	m_cursor = QCursor(Qt::CursorShape::ArrowCursor);
 	m_iconFile = "";
 	m_inactiveIconFile = "";
 	m_toolTips = "general handle";
+	resetSelection();
 }
 
 Abstract3dEventHandle::~Abstract3dEventHandle()
@@ -40,6 +40,16 @@ void Abstract3dEventHandle::handleEnter()
 	m_viewer->setFocus();
 	m_pickInfo.mesh = nullptr;
 }
+
+void Abstract3dEventHandle::resetSelection()
+{
+	m_lastHighlightShapeId = -1;
+	m_currentSelectedId = -1;
+	m_pickInfo.faceId = -1;
+	m_pickInfo.mesh = nullptr;
+	m_pickInfo.piece = nullptr;
+}
+
 void Abstract3dEventHandle::handleLeave()
 {
 	m_viewer->clearFocus();
@@ -145,6 +155,8 @@ Abstract3dEventHandle* Abstract3dEventHandle::create(ProcessorType type, Viewer3
 		return new Translate3dEventHandle(v);
 	case Abstract3dEventHandle::ProcessorTypeRotate:
 		return new Rotate3dEventHandle(v);
+	case Abstract3dEventHandle::ProcessorTypeCylinder:
+		return new Cylinder3dEventHandle(v);
 	case Abstract3dEventHandle::ProcessorTypeEnd:
 	default:
 		return nullptr;

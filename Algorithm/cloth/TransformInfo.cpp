@@ -48,14 +48,11 @@ namespace ldp
 			x_dir = y_dir.cross(z_dir).normalize();
 			for (auto& v : mesh.vertex_list)
 			{
-				Float3 shift = v - center;
-				float y = shift.dot(y_dir);
-				float x = shift.dot(x_dir);
-				float z = shift.dot(z_dir);
+				float y = (v - center).dot(y_dir);
+				float x = (v - center).dot(x_dir);
 				float x1 = radius * sin(x / radius);
 				float z1 = radius * (1-cos(x / radius));
-				float y1 = y;
-				v = y1 * y_dir + x1 * x_dir + z1 * z_dir + center;
+				v = y * y_dir + x1 * x_dir + z1 * z_dir + center;
 			} // end for v
 		} // end if hasCylinderTransform
 
@@ -145,5 +142,46 @@ namespace ldp
 			std::stringstream ts(self->Attribute("cylinder_radius"));
 			ts >> m_cylinderTrans.radius;
 		}
+	}
+
+	float TransformInfo::cylinderCalcAngleFromRadius(const ObjMesh& mesh, float radius)
+	{
+		if (std::isnan(radius) || std::isinf(radius))
+			return 0;
+
+		if (radius == 0)
+			return std::numeric_limits<float>::infinity();
+
+		const Float3 center = mesh.getCenter();
+		const Float3 y_dir(m_cylinderTrans.axis.normalize());
+		Float3 x_dir(mesh.getBoundingBox(1) - center);
+		const Float3 z_dir = x_dir.cross(y_dir).normalize();
+		x_dir = y_dir.cross(z_dir).normalize();
+
+		float maxX = -FLT_MAX;
+		for (auto& v : mesh.vertex_list)
+			maxX = std::max((v - center).dot(x_dir), maxX);
+
+		return maxX / radius * ldp::PI_S / 2;
+	}
+
+	float TransformInfo::cylinderCalcRadiusFromAngle(const ObjMesh& mesh, float angle)
+	{
+		if (angle == 0)
+			return std::numeric_limits<float>::quiet_NaN();
+		if (std::isinf(angle))
+			return 0;
+
+		const Float3 center = mesh.getCenter();
+		const Float3 y_dir(m_cylinderTrans.axis.normalize());
+		Float3 x_dir(mesh.getBoundingBox(1) - center);
+		const Float3 z_dir = x_dir.cross(y_dir).normalize();
+		x_dir = y_dir.cross(z_dir).normalize();
+
+		float maxX = -FLT_MAX;
+		for (auto& v : mesh.vertex_list)
+			maxX = std::max((v - center).dot(x_dir), maxX);
+
+		return maxX / angle * ldp::PI_S / 2;
 	}
 }

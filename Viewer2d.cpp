@@ -124,6 +124,7 @@ void Viewer2d::init(ldp::ClothManager* clothManager, ClothDesigner* ui)
 {
 	m_clothManager = clothManager;
 	m_mainUI = ui;
+	getEventHandle(getEventHandleType())->resetSelection();
 	resetCamera();
 }
 
