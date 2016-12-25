@@ -73,6 +73,7 @@ namespace ldp
 		void setSimulationMode(SimulationMode mode);
 		void setSimulationParam(SimulationParam param);
 		void setClothDesignParam(ClothDesignParam param);
+		void setPieceParam(const ClothPiece* piece, PieceParam param);
 		float getFps()const { return m_fps; }
 		SimulationMode getSimulationMode()const { return m_simulationMode; }
 		SimulationParam getSimulationParam()const { return m_simulationParam; }

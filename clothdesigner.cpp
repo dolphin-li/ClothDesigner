@@ -549,3 +549,14 @@ void ClothDesigner::on_sbDparamTriangleSize_valueChanged(double v)
 		std::cout << e.what() << std::endl;
 	}
 }
+
+void ClothDesigner::on_dbPieceBendMult_valueChanged(double v)
+{
+	auto info = m_widget3d->getEventHandle(m_widget3d->getEventHandleType())->pickInfo();
+	if (info.piece == nullptr)
+		return;
+	auto param = info.piece->param();
+	param.bending_k_mult = v;
+	g_dataholder.m_clothManager->setPieceParam(info.piece, param);
+	printf("%s, bend_k_mult = %f\n", info.piece->getName().c_str(), v);
+}

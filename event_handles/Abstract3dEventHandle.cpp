@@ -3,7 +3,11 @@
 #include "Viewer3d.h"
 #include "cloth\clothManager.h"
 #include "cloth\clothPiece.h"
+#include "cloth\graph\Graph.h"
 #include "Renderable\ObjMesh.h"
+
+#include "..\clothdesigner.h"
+#include "../Viewer2d.h"
 
 #include "Abstract3dEventHandle.h"
 #include "Translate3dEventHandle.h"
@@ -72,6 +76,7 @@ void Abstract3dEventHandle::pick(QPoint pos)
 	auto manager = m_viewer->getManager();
 	if (manager == nullptr)
 		return;
+	manager->clearHighLights();
 
 	int renderedId = m_viewer->fboRenderedIndex(pos);
 	if (renderedId >= m_viewer->FaceIndex && renderedId < m_viewer->TrackBallIndex_X)
@@ -94,17 +99,23 @@ void Abstract3dEventHandle::pick(QPoint pos)
 		{
 			for (int iMesh = 0; iMesh < manager->numClothPieces(); iMesh++)
 			{
+				auto piece = manager->clothPiece(iMesh);
 				auto mesh = &manager->clothPiece(iMesh)->mesh3d();
+				piece->graphPanel().select(0, ldp::AbstractGraphObject::SelectNone);
 				if (renderedId >= curIdx && renderedId < curIdx + mesh->face_list.size())
 				{
-					m_pickInfo.piece = manager->clothPiece(iMesh);
+					m_pickInfo.piece = piece;
 					m_pickInfo.mesh = mesh;
 					m_pickInfo.faceId = renderedId - curIdx;
 					picked = true;
-					break;
+					piece->graphPanel().setSelected(true);
+					if (m_viewer->getMainUI())
+						m_viewer->getMainUI()->ui.dbPieceBendMult->setValue(m_pickInfo.piece->param().bending_k_mult);
 				}
 				curIdx += mesh->face_list.size();
-			}
+			} // end for iMesh
+			if (m_viewer->getMainUI())
+				m_viewer->getMainUI()->viewer2d()->updateGL();
 		}
 
 		// 3. if picked, we compute the detailed info

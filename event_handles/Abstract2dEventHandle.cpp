@@ -58,12 +58,7 @@ void Abstract2dEventHandle::handleLeave()
 	auto manager = m_viewer->getManager();
 	if (manager == nullptr)
 		return;
-	for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
-	{
-		auto piece = manager->clothPiece(iPiece);
-		auto& panel = piece->graphPanel();
-		panel.highLight(0, m_highLightInfo.lastId);
-	} // end for iPiece
+	manager->clearHighLights();
 }
 
 QString Abstract2dEventHandle::toolTips()const

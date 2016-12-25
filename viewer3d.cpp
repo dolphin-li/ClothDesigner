@@ -223,6 +223,8 @@ void Viewer3d::paintGL()
 			if (piece->mesh3d().material_list.size())
 			{
 				if (piece->graphPanel().isHighlighted())
+					piece->mesh3d().material_list[0].diff = ldp::Float3(0.0, 0.6, 0.8);
+				else if (piece->graphPanel().isSelected())
 					piece->mesh3d().material_list[0].diff = ldp::Float3(0.8, 0.6, 0);
 				else
 					piece->mesh3d().material_list[0].diff = ldp::Float3(1, 1, 1);

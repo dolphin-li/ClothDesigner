@@ -306,6 +306,19 @@ namespace ldp
 			m_shouldTriangulate = true;
 	}
 
+	void ClothManager::setPieceParam(const ClothPiece* piece, PieceParam param)
+	{
+		for (auto& pc : m_clothPieces)
+		{
+			if (pc.get() != piece)
+				continue;
+			if (fabs(param.bending_k_mult - pc->param().bending_k_mult) < std::numeric_limits<float>::epsilon())
+				break;
+			pc->param() = param;
+			m_shouldNumericUpdate = true;
+		}
+	}
+
 	void ClothManager::updateCurrentClothsToInitial()
 	{
 		for (auto& cloth : m_clothPieces)
@@ -403,7 +416,6 @@ namespace ldp
 			triangulate();
 		m_X.clear();
 		m_T.clear();
-		m_V_bending_k_mult.clear();
 		m_clothVertBegin.clear();
 		m_avgArea = 0;
 		m_avgEdgeLength = 0;
@@ -415,10 +427,7 @@ namespace ldp
 			const auto& mesh = piece->mesh3d();
 			m_clothVertBegin.insert(std::make_pair(&mesh, vid_s));
 			for (const auto& v : mesh.vertex_list)
-			{
 				m_X.push_back(v);
-				m_V_bending_k_mult.push_back(piece->param().bending_k_mult);
-			}
 			for (const auto& f : mesh.face_list)
 			{
 				m_T.push_back(ldp::Int3(f.vertex_index[0], f.vertex_index[1],
@@ -1034,6 +1043,17 @@ namespace ldp
 		updateDependency();
 		if (m_shouldTopologyUpdate)
 			buildTopology();
+
+		// update per-vertex bending
+		m_V_bending_k_mult.clear();
+		for (auto& piece : m_clothPieces)
+		{
+			const auto& mesh = piece->mesh3d();
+			for (const auto& v : mesh.vertex_list)
+				m_V_bending_k_mult.push_back(piece->param().bending_k_mult);
+		} // end for iCloth
+		assert(m_V_bending_k_mult.size() == m_V.size());
+
 		// compute matrix related values
 		m_allVL.resize(m_allVV.size());
 		m_allVW.resize(m_allVV.size());

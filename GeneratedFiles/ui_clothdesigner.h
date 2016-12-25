@@ -92,6 +92,10 @@ public:
     QGridLayout *gridLayout_3;
     QLabel *label_14;
     QDoubleSpinBox *sbDparamTriangleSize;
+    QGroupBox *groupBox_2;
+    QGridLayout *gridLayout_6;
+    QLabel *label_16;
+    QDoubleSpinBox *dbPieceBendMult;
     QSpacerItem *verticalSpacer_2;
     QDockWidget *dockWidgetLower;
     QWidget *dockWidgetContentsLower;
@@ -104,7 +108,7 @@ public:
     {
         if (ClothDesignerClass->objectName().isEmpty())
             ClothDesignerClass->setObjectName(QStringLiteral("ClothDesignerClass"));
-        ClothDesignerClass->resize(1123, 881);
+        ClothDesignerClass->resize(1123, 1068);
         actionLoad_project = new QAction(ClothDesignerClass);
         actionLoad_project->setObjectName(QStringLiteral("actionLoad_project"));
         actionOpen_body_mesh = new QAction(ClothDesignerClass);
@@ -363,9 +367,30 @@ public:
 
         gridLayout_3->addWidget(sbDparamTriangleSize, 0, 1, 1, 1);
 
-        verticalSpacer_2 = new QSpacerItem(20, 745, QSizePolicy::Minimum, QSizePolicy::Expanding);
+        groupBox_2 = new QGroupBox(tabDesign);
+        groupBox_2->setObjectName(QStringLiteral("groupBox_2"));
+        gridLayout_6 = new QGridLayout(groupBox_2);
+        gridLayout_6->setSpacing(6);
+        gridLayout_6->setContentsMargins(11, 11, 11, 11);
+        gridLayout_6->setObjectName(QStringLiteral("gridLayout_6"));
+        label_16 = new QLabel(groupBox_2);
+        label_16->setObjectName(QStringLiteral("label_16"));
 
-        gridLayout_3->addItem(verticalSpacer_2, 1, 0, 1, 2);
+        gridLayout_6->addWidget(label_16, 0, 0, 1, 1);
+
+        dbPieceBendMult = new QDoubleSpinBox(groupBox_2);
+        dbPieceBendMult->setObjectName(QStringLiteral("dbPieceBendMult"));
+        dbPieceBendMult->setDecimals(4);
+        dbPieceBendMult->setMaximum(999999);
+
+        gridLayout_6->addWidget(dbPieceBendMult, 0, 1, 1, 1);
+
+
+        gridLayout_3->addWidget(groupBox_2, 1, 0, 1, 2);
+
+        verticalSpacer_2 = new QSpacerItem(20, 40, QSizePolicy::Minimum, QSizePolicy::Expanding);
+
+        gridLayout_3->addItem(verticalSpacer_2, 2, 0, 1, 2);
 
         tabWidget->addTab(tabDesign, QString());
 
@@ -454,6 +479,8 @@ public:
         label_15->setText(QApplication::translate("ClothDesignerClass", "stitch bend", 0));
         tabWidget->setTabText(tabWidget->indexOf(tabSimulation), QApplication::translate("ClothDesignerClass", "Simulation", 0));
         label_14->setText(QApplication::translate("ClothDesignerClass", "triangle size (mm)", 0));
+        groupBox_2->setTitle(QApplication::translate("ClothDesignerClass", "Piece Param", 0));
+        label_16->setText(QApplication::translate("ClothDesignerClass", "bend mult", 0));
         tabWidget->setTabText(tabWidget->indexOf(tabDesign), QApplication::translate("ClothDesignerClass", "Design", 0));
         pbResetSimulation->setText(QApplication::translate("ClothDesignerClass", "reset simulaton", 0));
         pbResetSimulation->setShortcut(QApplication::translate("ClothDesignerClass", "1", 0));
