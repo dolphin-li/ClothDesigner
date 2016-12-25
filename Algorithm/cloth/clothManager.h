@@ -19,6 +19,7 @@ namespace svg
 	class SvgManager;
 	class SvgPolyPath;
 }
+class SmplManager;
 namespace ldp
 {
 	class GraphsSewing;
@@ -133,23 +134,26 @@ namespace ldp
 		bool splitSelectedCurve(Float2 position);
 		void clearHighLights();
 	protected:
+		static void initSmplDatabase();
 	private:
 		std::vector<std::shared_ptr<GraphsSewing>> m_graphSewings;
 		std::vector<std::shared_ptr<ClothPiece>> m_clothPieces;
 		std::shared_ptr<ObjMesh> m_bodyMesh, m_bodyMeshInit;
+		static std::shared_ptr<SmplManager> m_smplMale, m_smplFemale;
+		SmplManager* m_smplBody = nullptr;
 		std::shared_ptr<TransformInfo> m_bodyTransform;
 		std::shared_ptr<LevelSet3D> m_bodyLvSet;
-		SimulationMode m_simulationMode;
+		SimulationMode m_simulationMode = SimulationNotInit;
 		SimulationParam m_simulationParam;
-		ValueType m_avgArea;
-		ValueType m_avgEdgeLength;
-		ValueType m_fps;
-		bool m_shouldTriangulate;
-		bool m_shouldMergePieces;
-		bool m_shouldTopologyUpdate;
-		bool m_shouldNumericUpdate;
-		bool m_shouldStitchUpdate;
-		bool m_shouldLevelSetUpdate;
+		ValueType m_avgArea = ValueType(0);
+		ValueType m_avgEdgeLength = ValueType(0);
+		ValueType m_fps = ValueType(0);
+		bool m_shouldTriangulate = false;
+		bool m_shouldMergePieces = false;
+		bool m_shouldTopologyUpdate = false;
+		bool m_shouldNumericUpdate = false;
+		bool m_shouldStitchUpdate = false;
+		bool m_shouldLevelSetUpdate = false;
 		DragInfoInternal m_curDragInfo;
 		// 2D-3D triangulation related---------------------------------------------------
 		std::shared_ptr<Graph2Mesh> m_graph2mesh;

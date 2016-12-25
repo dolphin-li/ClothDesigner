@@ -36,17 +36,30 @@ public:
 	virtual ldp::Float3 getBoundingBox(int i)const{ return m_bbox[i]; }
 	virtual void clear();
 
+	bool isInitialized()const { return m_inited; }
+
 	void loadFromMat(const char* filename);
 	void toObjMesh(ObjMesh& mesh)const;
 	int numShapes()const{ return m_curShapes.size(); }
 	int numVarEachPose()const{ return m_curPoses.cols(); }
 	int numPoses()const{ return m_curPoses.rows(); }
 	void setPoseShapeVals(const std::vector<float>* poses = nullptr, const std::vector<float>* shapes = nullptr);
+
+	int numFaces()const { return (int)m_faces.size(); }
+	const Face* facePtr()const { return  m_faces.data(); }
+	int numVertices()const { return (int)m_curVerts.size(); }
+	const ldp::Float3* vertexPtr()const { return m_curVerts.data(); }
 public:
 	ldp::Float3 getCurNodeCenter(int idx)const;
-	float getCurShapeCoef(int idx){ return m_curShapes(idx, 0); }
-protected:
+	float getCurShapeCoef(int idx) const { return m_curShapes(idx, 0); }
+	float getCurPoseCoef(int idx, int axis) const { return m_curPoses(idx, axis); }
+
 	void updateCurMesh();
+
+	// call updateCurMesh() after set
+	void setCurShapeCoef(int idx, float val) { m_curShapes(idx, 0) = val; }
+	void setCurPoseCoef(int idx, int axis, float val) { m_curPoses(idx, axis) = val; }
+protected:
 	void calcPoseVector207(const DMat& poses_24x3, DMat& poses_207);
 	void calcGlobalTrans();
 	void selectAction_mouseMove(int selectedId);

@@ -2,6 +2,7 @@
 #include "LevelSet3D.h"
 #include "clothPiece.h"
 #include "TransformInfo.h"
+#include "SmplManager.h"
 #include "graph\Graph.h"
 #include "graph\GraphsSewing.h"
 #include "graph\GraphPoint.h"
@@ -23,6 +24,21 @@
 
 namespace ldp
 {
+	std::shared_ptr<SmplManager> ClothManager::m_smplMale;
+	std::shared_ptr<SmplManager> ClothManager::m_smplFemale;
+
+	void ClothManager::initSmplDatabase()
+	{
+		if (m_smplMale.get() == nullptr)
+			m_smplMale.reset(new SmplManager);
+		if (m_smplFemale.get() == nullptr)
+			m_smplFemale.reset(new SmplManager);
+		if (!m_smplMale->isInitialized())
+			m_smplMale->loadFromMat("data/smpl/basicModel_m_lbs_10_207_0_v1.0.0_wrap.mat");
+		if (!m_smplFemale->isInitialized())
+			m_smplFemale->loadFromMat("data/smpl/basicModel_f_lbs_10_207_0_v1.0.0_wrap.mat");
+	}
+
 	PROGRESSING_BAR g_debug_save_bar(0);
 	template<class T> static void debug_save_gpu_array(DeviceArray<T> D, std::string filename)
 	{
@@ -47,17 +63,7 @@ namespace ldp
 		m_bodyTransform->setIdentity();
 		m_bodyLvSet.reset(new LevelSet3D);
 		m_graph2mesh.reset(new Graph2Mesh);
-		m_simulationMode = SimulationNotInit;
-		m_fps = 0;
-		m_avgArea = 0;
-		m_avgEdgeLength = 0;
-		m_curStitchRatio = 0;
-		m_shouldMergePieces = false;
-		m_shouldTopologyUpdate = false;
-		m_shouldNumericUpdate = false;
-		m_shouldStitchUpdate = false;
-		m_shouldTriangulate = false;
-		m_shouldLevelSetUpdate = false;
+		initSmplDatabase();
 	}
 
 	ClothManager::~ClothManager()
@@ -85,6 +91,7 @@ namespace ldp
 		m_bodyLvSet->clear();
 
 		m_fps = 0;
+		m_smplBody = nullptr;
 
 		clearSewings();
 		clearClothPieces();
@@ -1691,21 +1698,63 @@ namespace ldp
 				{
 					m_bodyMeshInit->loadObj(objfile.c_str(), true, false);
 					setBodyMeshTransform(*m_bodyTransform);
-					std::string path, name, ext;
-					ldp::fileparts(objfile, path, name, ext);
-					std::string setFile = ldp::fullfile(path, name + ".set");
-					try
-					{
-						m_bodyLvSet->load(setFile.c_str());
-						m_shouldLevelSetUpdate = false;
-					} catch (std::exception e)
-					{
-						m_shouldLevelSetUpdate = true;
-						//calcLevelSet();
-						//m_bodyLvSet->save(setFile.c_str());
-					}
+					m_shouldLevelSetUpdate = true;
 				} // end if not obj empty
 			} // end for BodyMesh
+			else if (pele->Value() == std::string("SmplBody"))
+			{
+				m_smplBody = m_smplFemale.get(); // by default, use the female model
+				if (pele->Attribute("Gender"))
+				{
+					if (std::string(pele->Attribute("Gender")) == "female")
+						m_smplBody = m_smplFemale.get();
+					else if (std::string(pele->Attribute("Gender")) == "male")
+						m_smplBody = m_smplMale.get();
+				}
+				for (auto child = pele->FirstChildElement(); child; child = child->NextSiblingElement())
+				{
+					if (child->Value() == m_bodyTransform->getTypeString())
+						m_bodyTransform->fromXML(child);
+					else if (child->Value() == std::string("joints"))
+					{
+						for (auto jele = child->FirstChildElement(); jele; jele = jele->NextSiblingElement())
+						if (jele->Value() == std::string("joint"))
+						{
+							int id = 0;
+							auto idatt = jele->Attribute("id", &id);
+							std::vector<float> vars(m_smplBody->numVarEachPose(), 0);
+							if (auto ratt = jele->Attribute("rotation"))
+							{
+								std::stringstream stm(ratt);
+								for (auto& v : vars)
+									stm >> v;
+							}
+							if (idatt)
+							{
+								for (size_t i_axis = 0; i_axis < vars.size(); i_axis++)
+									m_smplBody->setCurPoseCoef(id, i_axis, vars[i_axis]);
+							}
+						} // end for jele of all joint
+					} // end if joints
+					else if (child->Value() == std::string("shapes"))
+					{
+						for (auto jele = child->FirstChildElement(); jele; jele = jele->NextSiblingElement())
+						if (jele->Value() == std::string("shape"))
+						{
+							int id = 0;
+							auto idatt = jele->Attribute("id", &id);
+							double var = 0;
+							auto vatt = jele->Attribute("pca", &var);
+							if (idatt && vatt)
+								m_smplBody->setCurShapeCoef(id, var);
+						} // end for jele of all shape
+					} // end if shapes
+				} // end if child of smplBody
+				m_smplBody->updateCurMesh();
+				m_smplBody->toObjMesh(*m_bodyMeshInit);
+				setBodyMeshTransform(*m_bodyTransform);
+				m_shouldLevelSetUpdate = true;
+			} // end for SmplBody
 			else if (pele->Value() == std::string("Piece"))
 			{
 				m_clothPieces.push_back(std::shared_ptr<ClothPiece>(new ClothPiece()));
@@ -1739,14 +1788,54 @@ namespace ldp
 		TiXmlElement* root = new TiXmlElement("ClothManager");
 		doc.LinkEndChild(root);
 
-		if (m_bodyMesh->scene_filename)
+		// body mesh as obj file
+		if (std::string(m_bodyMesh->scene_filename) != "")
 		{
 			TiXmlElement* pele = new TiXmlElement("BodyMesh");
 			root->LinkEndChild(pele);
 			pele->SetAttribute("ObjFile", m_bodyMesh->scene_filename);
 			m_bodyTransform->toXML(pele);
 		}
+		// body mesh as smpl model
+		else if (m_smplBody)
+		{
+			TiXmlElement* smpl_ele = new TiXmlElement("SmplBody");
+			root->LinkEndChild(smpl_ele);
+			if (m_smplBody == m_smplFemale.get())
+				smpl_ele->SetAttribute("Gender", "female");
+			else if (m_smplBody == m_smplMale.get())
+				smpl_ele->SetAttribute("Gender", "male");
 
+			// joints
+			m_bodyTransform->toXML(smpl_ele);
+			TiXmlElement* joints_ele = new TiXmlElement("joints");
+			smpl_ele->LinkEndChild(joints_ele);
+			for (int i_pose = 0; i_pose < m_smplBody->numPoses(); i_pose++)
+			{
+				TiXmlElement* ele = new TiXmlElement("joint");
+				joints_ele->LinkEndChild(ele);
+				std::string s;
+				for (int i_axis = 0; i_axis < m_smplBody->numVarEachPose(); i_axis++)
+					s += std::to_string(m_smplBody->getCurPoseCoef(i_pose, i_axis)) + " ";
+				if (s.size())
+					s.erase(s.begin() + s.size() - 1);
+				ele->SetAttribute("id", i_pose);
+				ele->SetAttribute("rotation", s.c_str());
+			} // end for i_pose
+
+			// shapes
+			TiXmlElement* shapes_ele = new TiXmlElement("shapes");
+			smpl_ele->LinkEndChild(shapes_ele);
+			for (int i_shape = 0; i_shape < m_smplBody->numShapes(); i_shape++)
+			{
+				TiXmlElement* ele = new TiXmlElement("shape");
+				shapes_ele->LinkEndChild(ele);
+				ele->SetAttribute("id", i_shape);
+				ele->SetAttribute("pca", m_smplBody->getCurShapeCoef(i_shape));
+			} // end for i_shape
+		} // end smplBody
+
+		// close pieces
 		for (const auto& piece : m_clothPieces)
 		{
 			TiXmlElement* pele = new TiXmlElement("Piece");
