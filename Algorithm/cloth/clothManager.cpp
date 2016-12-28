@@ -349,6 +349,21 @@ namespace ldp
 		m_shouldMergePieces = true;
 	}
 
+	void ClothManager::resetCloths3dMeshBy2d()
+	{
+		for (auto& cloth : m_clothPieces)
+		{
+			cloth->mesh3dInit().cloneFrom(&cloth->mesh2d());
+			cloth->transformInfo().setIdentity();
+			cloth->transformInfo().transform().setRotationPart(ldp::QuaternionF().
+				fromAngles(ldp::Float3(ldp::PI_S / 2, 0, 0)).toRotationMatrix3());
+			cloth->transformInfo().transform().setTranslationPart(ldp::Float3(0, 0, -0.3));
+			cloth->transformInfo().apply(cloth->mesh3dInit());
+			cloth->mesh3d().cloneFrom(&cloth->mesh3dInit());
+		}
+		m_shouldMergePieces = true;
+	}
+
 	const TransformInfo& ClothManager::getBodyMeshTransform()const
 	{
 		return *m_bodyTransform;

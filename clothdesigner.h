@@ -23,6 +23,12 @@ public:
 
 	void timerEvent(QTimerEvent* ev);
 	virtual void resizeEvent(QResizeEvent* ev);
+	void dragEnterEvent(QDragEnterEvent* ev);
+	void dropEvent(QDropEvent* ev);
+	void closeEvent(QCloseEvent* ev);
+
+	void loadSvg(QString name);
+	void loadProjectXml(QString name);
 
 	void updateUiByParam();
 	Viewer2d* viewer2d() { return m_widget2d; }
@@ -33,6 +39,7 @@ public:
 	void on_actionLoad_project_triggered();
 	void on_actionSave_project_triggered();
 	void on_actionLoad_svg_triggered();
+	void on_actionPlace_3d_by_2d_triggered();
 	void on_actionPrev_triggered();
 	void on_actionNext_triggered();
 	void on_pbResetSimulation_clicked();

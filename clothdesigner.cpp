@@ -15,7 +15,7 @@ ClothDesigner::ClothDesigner(QWidget *parent)
 	: QMainWindow(parent)
 {
 	ui.setupUi(this);
-	
+	setAcceptDrops(true);
 	ui.centralWidget->setLayout(new QGridLayout());
 	m_splitter = new QSplitter(ui.centralWidget);
 	ui.centralWidget->layout()->addWidget(m_splitter);
@@ -63,21 +63,79 @@ void ClothDesigner::timerEvent(QTimerEvent* ev)
 		setWindowTitle(QString().sprintf("fps: %f", g_dataholder.m_clothManager->getFps()));
 }
 
+void ClothDesigner::closeEvent(QCloseEvent* ev)
+{
+	g_dataholder.saveLastDirs();
+}
+
+void ClothDesigner::dragEnterEvent(QDragEnterEvent* event)
+{
+	if (event->mimeData()->hasUrls())
+	{
+		QList<QUrl> urls = event->mimeData()->urls();
+		if (urls[0].fileName().toLower().endsWith(".svg")
+			|| urls[0].fileName().endsWith(".xml"))
+			event->acceptProposedAction();
+	}
+}
+
+void ClothDesigner::dropEvent(QDropEvent* event)
+{
+	QUrl url = event->mimeData()->urls()[0];
+	QString name = url.toLocalFile();
+	try
+	{
+		if (name.toLower().endsWith(".svg"))
+			loadSvg(name);
+		else if (name.toLower().endsWith(".xml"))
+			loadProjectXml(name);
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
+	}
+
+	event->acceptProposedAction();
+}
+
+void ClothDesigner::loadSvg(QString name)
+{
+	g_dataholder.loadSvg(name.toStdString());
+	g_dataholder.m_lastSvgDir = name.toStdString();
+	g_dataholder.saveLastDirs();
+	g_dataholder.m_historyStack->push("init", ldp::HistoryStack::TypeGeneral);
+	m_widget3d->init(g_dataholder.m_clothManager.get(), this);
+	m_widget2d->init(g_dataholder.m_clothManager.get(), this);
+	m_widget2d->setEventHandleType(Abstract2dEventHandle::ProcessorTypeEditPattern);
+	m_widget2d->updateGL();
+	m_widget3d->updateGL();
+}
+
+void ClothDesigner::loadProjectXml(QString name)
+{
+	g_dataholder.m_clothManager->fromXml(name.toStdString());
+	g_dataholder.m_lastProXmlDir = name.toStdString();
+	g_dataholder.saveLastDirs();
+	g_dataholder.m_historyStack->push("load project", ldp::HistoryStack::TypeGeneral);
+	g_dataholder.m_clothManager->simulationInit();
+	m_widget3d->init(g_dataholder.m_clothManager.get(), this);
+	m_widget2d->init(g_dataholder.m_clothManager.get(), this);
+	m_widget2d->setEventHandleType(Abstract2dEventHandle::ProcessorTypeEditPattern);
+	m_widget2d->updateGL();
+	m_widget3d->updateGL();
+}
+
 //////main menu/////////////////////////////////////////////////////////////////////////////////
 void ClothDesigner::on_actionLoad_svg_triggered()
 {
 	try
 	{
-		QString name = QFileDialog::getOpenFileName(this, "load svg", "", "*.svg");
+		QString name = QFileDialog::getOpenFileName(this, "load svg", g_dataholder.m_lastSvgDir.c_str(), "*.svg");
 		if (name.isEmpty())
 			return;
-		g_dataholder.loadSvg(name.toStdString());
-		g_dataholder.m_historyStack->push("init", ldp::HistoryStack::TypeGeneral);
-		m_widget3d->init(g_dataholder.m_clothManager.get(), this);
-		m_widget2d->init(g_dataholder.m_clothManager.get(), this);
-		m_widget2d->setEventHandleType(Abstract2dEventHandle::ProcessorTypeEditPattern);
-		m_widget2d->updateGL();
-		m_widget3d->updateGL();
+		loadSvg(name);
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
@@ -88,17 +146,10 @@ void ClothDesigner::on_actionLoad_project_triggered()
 {
 	try
 	{
-		QString name = QFileDialog::getOpenFileName(this, "Load Project", "", "*.xml");
+		QString name = QFileDialog::getOpenFileName(this, "Load Project", g_dataholder.m_lastProXmlDir.c_str(), "*.xml");
 		if (name.isEmpty())
 			return;
-		g_dataholder.m_clothManager->fromXml(name.toStdString());
-		g_dataholder.m_historyStack->push("load project", ldp::HistoryStack::TypeGeneral);
-		g_dataholder.m_clothManager->simulationInit();
-		m_widget3d->init(g_dataholder.m_clothManager.get(), this);
-		m_widget2d->init(g_dataholder.m_clothManager.get(), this);
-		m_widget2d->setEventHandleType(Abstract2dEventHandle::ProcessorTypeEditPattern);
-		m_widget2d->updateGL();
-		m_widget3d->updateGL();
+		loadProjectXml(name);
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
@@ -115,6 +166,17 @@ void ClothDesigner::on_actionSave_project_triggered()
 		if (!name.toLower().endsWith(".xml"))
 			name.append(".xml");
 		g_dataholder.m_clothManager->toXml(name.toStdString());
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+}
+
+void ClothDesigner::on_actionPlace_3d_by_2d_triggered()
+{
+	try
+	{
+		g_dataholder.m_clothManager->resetCloths3dMeshBy2d();
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;

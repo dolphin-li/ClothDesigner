@@ -42,6 +42,7 @@ public:
     QAction *actionLoad_svg;
     QAction *actionPrev;
     QAction *actionNext;
+    QAction *actionPlace_3d_by_2d;
     QWidget *centralWidget;
     QMenuBar *menuBar;
     QMenu *menuFile;
@@ -123,6 +124,8 @@ public:
         actionPrev->setObjectName(QStringLiteral("actionPrev"));
         actionNext = new QAction(ClothDesignerClass);
         actionNext->setObjectName(QStringLiteral("actionNext"));
+        actionPlace_3d_by_2d = new QAction(ClothDesignerClass);
+        actionPlace_3d_by_2d->setObjectName(QStringLiteral("actionPlace_3d_by_2d"));
         centralWidget = new QWidget(ClothDesignerClass);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
         ClothDesignerClass->setCentralWidget(centralWidget);
@@ -434,6 +437,7 @@ public:
         menuFile->addAction(actionImport_cloth_mesh);
         menuFile->addAction(actionSave_project);
         menuFile->addAction(actionLoad_svg);
+        menuEdit->addAction(actionPlace_3d_by_2d);
         menuHistory->addAction(actionPrev);
         menuHistory->addAction(actionNext);
 
@@ -459,6 +463,7 @@ public:
         actionPrev->setShortcut(QApplication::translate("ClothDesignerClass", "Ctrl+Z", 0));
         actionNext->setText(QApplication::translate("ClothDesignerClass", "next", 0));
         actionNext->setShortcut(QApplication::translate("ClothDesignerClass", "Ctrl+Shift+Z", 0));
+        actionPlace_3d_by_2d->setText(QApplication::translate("ClothDesignerClass", "place 3d by 2d", 0));
         menuFile->setTitle(QApplication::translate("ClothDesignerClass", "file", 0));
         menuEdit->setTitle(QApplication::translate("ClothDesignerClass", "edit", 0));
         menuHistory->setTitle(QApplication::translate("ClothDesignerClass", "history", 0));
