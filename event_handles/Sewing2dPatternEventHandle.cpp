@@ -17,7 +17,7 @@ Sewing2dPatternEventHandle::Sewing2dPatternEventHandle(Viewer2d* v)
 	m_cursor = QCursor(img, 1, 1);
 	m_iconFile = name;
 	m_inactiveIconFile = name;
-	m_toolTips = "edit pattern";
+	m_toolTips = "edit sewing";
 }
 
 Sewing2dPatternEventHandle::~Sewing2dPatternEventHandle()
