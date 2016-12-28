@@ -165,6 +165,10 @@ void ClothDesigner::on_actionSave_project_triggered()
 			return;
 		if (!name.toLower().endsWith(".xml"))
 			name.append(".xml");
+
+		g_dataholder.m_lastProXmlDir = name.toStdString();
+		g_dataholder.saveLastDirs();
+
 		g_dataholder.m_clothManager->toXml(name.toStdString());
 	} catch (std::exception e)
 	{
