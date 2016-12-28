@@ -282,7 +282,8 @@ void Viewer2d::renderBackground()
 	glPushMatrix();
 	m_camera.apply();
 	glRotatef(90, 1, 0, 0);
-	glTranslatef(0, BODY_Z, 0);
+	glRotatef(180, 0, 0, 1);
+	glTranslatef(0, -BODY_Z, 0);
 	glColor3f(0.6, 0.6, 0.6);
 	if (m_clothManager)
 	{

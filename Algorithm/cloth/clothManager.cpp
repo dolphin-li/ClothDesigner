@@ -354,10 +354,9 @@ namespace ldp
 		for (auto& cloth : m_clothPieces)
 		{
 			cloth->mesh3dInit().cloneFrom(&cloth->mesh2d());
-			cloth->transformInfo().setIdentity();
 			cloth->transformInfo().transform().setRotationPart(ldp::QuaternionF().
-				fromAngles(ldp::Float3(ldp::PI_S / 2, 0, 0)).toRotationMatrix3());
-			cloth->transformInfo().transform().setTranslationPart(ldp::Float3(0, 0, -0.3));
+				fromAngles(ldp::Float3(ldp::PI_S/2, -ldp::PI_S, 0)).toRotationMatrix3());
+			cloth->transformInfo().transform().setTranslationPart(ldp::Float3(0, 0.3, 0));
 			cloth->transformInfo().apply(cloth->mesh3dInit());
 			cloth->mesh3d().cloneFrom(&cloth->mesh3dInit());
 		}

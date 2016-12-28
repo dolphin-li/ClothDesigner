@@ -177,6 +177,7 @@ void ClothDesigner::on_actionPlace_3d_by_2d_triggered()
 	try
 	{
 		g_dataholder.m_clothManager->resetCloths3dMeshBy2d();
+		m_widget3d->updateGL();
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
