@@ -1370,12 +1370,6 @@ namespace ldp
 			if (group.insideOtherPolyId >= 0)
 				continue;
 
-			//if (!group.isClosed)
-			//{
-			//	printf("warning: line %d not inside any closed region!\n", group.id);
-			//	continue;
-			//}
-
 			// add piece
 			m_clothPieces.push_back(std::shared_ptr<ClothPiece>(new ClothPiece()));
 			const auto& piece = m_clothPieces.back();
@@ -1469,6 +1463,19 @@ namespace ldp
 		updateDependency();
 		m_shouldStitchUpdate = true;
 		m_shouldLevelSetUpdate = true;
+
+		// 5. load body
+		m_smplBody = m_smplFemale.get();
+		m_smplBody->toObjMesh(*m_bodyMeshInit);
+		ldp::TransformInfo info;
+		info.setIdentity();
+		ldp::Mat4f T = ldp::Mat4f().zeros();
+		T(0, 0) = -1;
+		T(1, 2) = T(2, 1) = 1;
+		T(2, 3) = 0.365427;
+		T(3, 3) = 1;
+		info.transform() = T;
+		setBodyMeshTransform(info);
 	}
 
 	void ClothManager::triangulate()

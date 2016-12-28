@@ -56,7 +56,6 @@ public:
     QTabWidget *tabWidget;
     QWidget *tabSimulation;
     QGridLayout *gridLayout_5;
-    QSpacerItem *verticalSpacer;
     QGroupBox *groupBox;
     QGridLayout *gridLayout;
     QLabel *label_9;
@@ -89,6 +88,7 @@ public:
     QDoubleSpinBox *sbSparamRho;
     QLabel *label_15;
     QSpinBox *sbSparamInnerIter;
+    QSpacerItem *verticalSpacer;
     QWidget *tabDesign;
     QGridLayout *gridLayout_3;
     QLabel *label_14;
@@ -109,7 +109,7 @@ public:
     {
         if (ClothDesignerClass->objectName().isEmpty())
             ClothDesignerClass->setObjectName(QStringLiteral("ClothDesignerClass"));
-        ClothDesignerClass->resize(1123, 1068);
+        ClothDesignerClass->resize(890, 784);
         actionLoad_project = new QAction(ClothDesignerClass);
         actionLoad_project->setObjectName(QStringLiteral("actionLoad_project"));
         actionOpen_body_mesh = new QAction(ClothDesignerClass);
@@ -131,7 +131,7 @@ public:
         ClothDesignerClass->setCentralWidget(centralWidget);
         menuBar = new QMenuBar(ClothDesignerClass);
         menuBar->setObjectName(QStringLiteral("menuBar"));
-        menuBar->setGeometry(QRect(0, 0, 1123, 21));
+        menuBar->setGeometry(QRect(0, 0, 890, 21));
         menuFile = new QMenu(menuBar);
         menuFile->setObjectName(QStringLiteral("menuFile"));
         menuEdit = new QMenu(menuBar);
@@ -147,7 +147,7 @@ public:
         ClothDesignerClass->setStatusBar(statusBar);
         dockWidgetRight = new QDockWidget(ClothDesignerClass);
         dockWidgetRight->setObjectName(QStringLiteral("dockWidgetRight"));
-        dockWidgetRight->setMinimumSize(QSize(250, 863));
+        dockWidgetRight->setMinimumSize(QSize(250, 482));
         dockWidgetRight->setMaximumSize(QSize(250, 524287));
         dockWidgetRight->setFeatures(QDockWidget::NoDockWidgetFeatures);
         dockWidgetContentsRight = new QWidget();
@@ -164,10 +164,6 @@ public:
         gridLayout_5->setSpacing(6);
         gridLayout_5->setContentsMargins(11, 11, 11, 11);
         gridLayout_5->setObjectName(QStringLiteral("gridLayout_5"));
-        verticalSpacer = new QSpacerItem(20, 40, QSizePolicy::Minimum, QSizePolicy::Expanding);
-
-        gridLayout_5->addItem(verticalSpacer, 2, 0, 1, 1);
-
         groupBox = new QGroupBox(tabSimulation);
         groupBox->setObjectName(QStringLiteral("groupBox"));
         gridLayout = new QGridLayout(groupBox);
@@ -348,6 +344,10 @@ public:
 
         gridLayout_5->addWidget(groupBox, 1, 0, 1, 1);
 
+        verticalSpacer = new QSpacerItem(20, 40, QSizePolicy::Minimum, QSizePolicy::Expanding);
+
+        gridLayout_5->addItem(verticalSpacer, 2, 0, 1, 1);
+
         tabWidget->addTab(tabSimulation, QString());
         tabDesign = new QWidget();
         tabDesign->setObjectName(QStringLiteral("tabDesign"));
@@ -443,7 +443,7 @@ public:
 
         retranslateUi(ClothDesignerClass);
 
-        tabWidget->setCurrentIndex(1);
+        tabWidget->setCurrentIndex(0);
 
 
         QMetaObject::connectSlotsByName(ClothDesignerClass);
