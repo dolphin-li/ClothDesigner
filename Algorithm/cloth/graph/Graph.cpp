@@ -240,7 +240,18 @@ namespace ldp
 		}
 	}
 
-	bool Graph::makeGraphValid(std::vector<std::shared_ptr<GraphsSewing>>& graphSewings)
+	void Graph::merge(Graph& other)
+	{
+		for (auto& val : other.m_keyPoints)
+			m_keyPoints.insert(val);
+		for (auto& val : other.m_curves)
+			m_curves.insert(val);
+		for (auto& val : other.m_loops)
+			m_loops.insert(val);
+		makeGraphValid();
+	}
+
+	bool Graph::makeGraphValid()
 	{
 		// 0. find all closed loops and non-closed loops, non-closed curves
 		std::vector<GraphLoop*> closedLoops, openLoops;
@@ -356,7 +367,8 @@ namespace ldp
 				}
 			} // end for loop
 
-			assert(minPoint);
+			if (minPoint == nullptr)
+				continue;
 
 			if (minDist < g_designParam.pointInsidePolyThre && curveToSplit->getStartPoint() != minPoint
 				&& curveToSplit->getEndPoint() != minPoint)
@@ -1027,18 +1039,24 @@ namespace ldp
 			return false;
 		
 		// if the two points share common edges, we cannot merge them
+		std::vector<std::pair<AbstractGraphCurve::DiskLinkIter, AbstractGraphCurve::DiskLinkIter>> commonLoopLinks;
 		for (auto& e1 : p1->m_edges)
 		{
 			if (p2->m_edges.find(e1) != p2->m_edges.end())
 				return false;
-			// if the two points share common loops, we cannot merge them
+			// if the two points share common loops, and are not loop end points, we cannot merge them
 			for (auto& e2 : p2->m_edges)
 			{
-				for (auto lk : e1->m_graphLinks)
-				if (e2->m_graphLinks.find(lk.first) != e2->m_graphLinks.end())
-					return false;
-			}
-		}
+				for (auto lk1 = e1->diskLink_begin(); !lk1.isEnd(); ++lk1)
+				for (auto lk2 = e2->diskLink_begin(); !lk2.isEnd(); ++lk2)
+				{
+					if (lk2.loop() == lk1.loop() && (p1->m_edges.size() > 1 || p2->m_edges.size() > 1))
+							return false;
+					if (p1->m_edges.size() == 1 && p2->m_edges.size() == 1 && lk2.loop() == lk1.loop())
+						commonLoopLinks.push_back(std::make_pair(lk1, lk2));
+				} // end for lk1
+			} // end for e2
+		} // end for e1
 
 		// merge p2 into p1 for p2_edges
 		for (auto& e2 : p2->m_edges)
@@ -1048,7 +1066,22 @@ namespace ldp
 				e2_p = p1;
 			e2->requireResample();
 			p1->m_edges.insert(e2);
-		}
+		} // end for e2
+
+		// connect the loop of p1 and p2
+		for (auto& iter : commonLoopLinks)
+		{
+			auto& lk1 = iter.first;
+			auto& lk2 = iter.second;
+			if (lk1.prev() == nullptr)
+				lk1.prev() = lk2.curve();
+			else if (lk1.next() == nullptr)
+				lk1.next() = lk2.curve();
+			if (lk2.prev() == nullptr)
+				lk2.prev() = lk1.curve();
+			else if (lk2.next() == nullptr)
+				lk2.next() = lk1.curve();
+		} // end for iter
 
 		// remove p2
 		p2->m_edges.clear();

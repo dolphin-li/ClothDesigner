@@ -181,21 +181,30 @@ void Edit2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 		{
 			bool change = manager->mergeSelectedCurves();
 			if (m_viewer->getMainUI() && change)
+			{
+				manager->triangulate();
 				m_viewer->getMainUI()->pushHistory(QString().sprintf("merge curves",
 				op), ldp::HistoryStack::TypeGeneral);
+			}
 			if (!change)
 			{
 				change = manager->mergeTheSelectedKeyPointToCurve();
 				if (m_viewer->getMainUI() && change)
+				{
+					manager->triangulate();
 					m_viewer->getMainUI()->pushHistory(QString().sprintf("merge point to curve",
 					op), ldp::HistoryStack::TypeGeneral);
+				}
 			}
 			if (!change)
 			{
 				change = manager->mergeSelectedKeyPoints();
 				if (m_viewer->getMainUI() && change)
+				{
+					manager->triangulate();
 					m_viewer->getMainUI()->pushHistory(QString().sprintf("merge key points",
 					op), ldp::HistoryStack::TypeGeneral);
+				}
 			}
 		}
 		break;
@@ -206,8 +215,11 @@ void Edit2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 			lp3 = m_viewer->camera().getWorldCoords(lp3);
 			bool change = manager->splitSelectedCurve(ldp::Float2(lp3[0], lp3[1]));
 			if (m_viewer->getMainUI() && change)
-				m_viewer->getMainUI()->pushHistory(QString().sprintf("pattern removed",
+			{
+				manager->triangulate();
+				m_viewer->getMainUI()->pushHistory(QString().sprintf("split curve",
 				op), ldp::HistoryStack::TypeGeneral);
+			}
 		}
 		break;
 	}

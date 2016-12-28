@@ -1370,11 +1370,11 @@ namespace ldp
 			if (group.insideOtherPolyId >= 0)
 				continue;
 
-			if (!group.isClosed)
-			{
-				printf("warning: line %d not inside any closed region!\n", group.id);
-				continue;
-			}
+			//if (!group.isClosed)
+			//{
+			//	printf("warning: line %d not inside any closed region!\n", group.id);
+			//	continue;
+			//}
 
 			// add piece
 			m_clothPieces.push_back(std::shared_ptr<ClothPiece>(new ClothPiece()));
@@ -1393,7 +1393,13 @@ namespace ldp
 			} // end for line
 
 			// add outer loop
-			piece->graphPanel().addLoop(fittedCurves, true);
+			piece->graphPanel().addLoop(fittedCurves, group.isClosed);
+
+			if (!group.isClosed)
+			{
+				printf("warning: line %d not inside any closed region!\n", group.id);
+				piece->graphPanel().setSelected(true);
+			}
 
 			// copy transform:
 			// the 2D-to-3D transform defined in the SVG is:
@@ -1456,7 +1462,7 @@ namespace ldp
 
 		// 4. validate all graphs, the corresponding sewings will be updated
 		for (auto& piece : m_clothPieces)
-			piece->graphPanel().makeGraphValid(m_graphSewings);
+			piece->graphPanel().makeGraphValid();
 
 		// 3. triangluation
 		triangulate();
@@ -1471,6 +1477,97 @@ namespace ldp
 		if (m_clothPieces.empty())
 			return;
 
+		// make each panel valid
+		for (auto& piece : m_clothPieces)
+			piece->graphPanel().makeGraphValid();
+
+		// merge all isolated curves into its closed panel
+		std::map<Graph*, std::vector<Float2>> closedGraphs, openGraphs;
+		for (auto& piece : m_clothPieces)
+		{
+			auto& panel = piece->graphPanel();
+			auto loop = panel.getBoundingLoop();
+			panel.updateBound();
+			std::vector<Float2> samples;
+			if (loop)
+			{
+				Float2 lastP = std::numeric_limits<float>::quiet_NaN();
+				for (auto iter = loop->samplePoint_begin(g_designParam.curveSampleStep); !iter.isEnd(); ++iter)
+				{
+					if (samples.size())
+					if ((*iter - samples.back()).length() < g_designParam.pointMergeDistThre
+						|| (*iter - samples[0]).length() < g_designParam.pointMergeDistThre)
+						continue;
+					samples.push_back(*iter);
+				}
+				closedGraphs.insert(std::make_pair(&panel, samples));
+			} // end if loop != nullptr
+			else
+			{
+				for (auto iter = panel.point_begin(); iter != panel.point_end(); ++iter)
+				{
+					bool isEndPoint = false;
+					for (auto edge = iter->edge_begin(); !edge.isEnd(); ++edge)
+					if (edge->getStartPoint() == iter || edge->getEndPoint() == iter)
+					{
+						isEndPoint = true;
+						break;
+					}
+					if (isEndPoint)
+						samples.push_back(iter->getPosition());
+				}
+				openGraphs.insert(std::make_pair(&panel, samples));
+			} // end if loop == nullptr
+		} // end for piece
+
+		// merge opengraphs to closed graphs if possible
+		std::set<Graph*> mergedGraph;
+		for (auto& openGraph : openGraphs)
+		{
+			const ldp::Float2 *obox = openGraph.first->bound();
+			const auto& opts = openGraph.second;
+			for (auto& closedGraph : closedGraphs)
+			{
+				const ldp::Float2 *cbox = closedGraph.first->bound();
+				const auto& cpts = closedGraph.second;
+				bool overlap = true;
+				for (int k = 0; k<2; k++)
+				{
+					if (obox[0][k] > cbox[1][k] || obox[1][k] < cbox[0][k])
+						overlap = false;
+				}
+				if (!overlap)
+					continue;
+
+				bool allIn = true;
+				for (const auto& op : opts)
+				{
+					if (!pointInPolygon((int)cpts.size() - 1, cpts.data(), op))
+					{
+						allIn = false;
+						break;
+					}
+				}
+
+				if (allIn)
+				{
+					closedGraph.first->merge(*openGraph.first);
+					mergedGraph.insert(openGraph.first);
+					break;
+				}
+			} // end for closeGraphs
+		} // end for openGraph
+
+		// erase those merged
+		auto tmpPieces = m_clothPieces;
+		m_clothPieces.clear();
+		for (auto& piece : tmpPieces)
+		{
+			if (mergedGraph.find(&piece->graphPanel()) == mergedGraph.end())
+				m_clothPieces.push_back(piece);
+		}
+
+		// do triangulation
 		m_graph2mesh->triangulate(m_clothPieces, m_graphSewings,
 			g_designParam.pointMergeDistThre,
 			g_designParam.triangulateThre,
@@ -1828,7 +1925,7 @@ namespace ldp
 
 		// . validate all graphs, the corresponding sewings will be updated
 		for (auto& piece : m_clothPieces)
-			piece->graphPanel().makeGraphValid(m_graphSewings);
+			piece->graphPanel().makeGraphValid();
 
 		// finally initilaize simulation
 		simulationInit();

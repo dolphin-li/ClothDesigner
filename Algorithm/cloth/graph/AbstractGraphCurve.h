@@ -31,6 +31,8 @@ namespace ldp
 			bool isEnd()const { return m_curve->m_graphLinks.end() == m_lkIter; }
 			const GraphLoop*const& loop()const { return m_lkIter->second.loop; }
 			AbstractGraphCurve*& loopStartEdge();
+			AbstractGraphCurve* curve() { return m_curve; }
+			const AbstractGraphCurve* curve()const { return m_curve; }
 			const AbstractGraphCurve*const& loopStartEdge()const;
 			AbstractGraphCurve*& prev() { return m_lkIter->second.prev; }
 			const AbstractGraphCurve*const& prev()const { return m_lkIter->second.prev; }
