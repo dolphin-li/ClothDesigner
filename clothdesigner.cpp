@@ -834,6 +834,7 @@ void ClothDesigner::onSmplShapeSlidersValueChanged(int v)
 		if (m_sliderEnableSmplUpdate)
 		{
 			smpl->setPoseShapeVals(nullptr, &shapes);
+			g_dataholder.m_clothManager->simulationInit();
 			g_dataholder.m_clothManager->updateSmplBody();
 			m_widget3d->updateGL();
 		}
@@ -886,6 +887,7 @@ void ClothDesigner::on_pbLoadSmplCoeffs_clicked()
 
 		updateSmplUI();
 
+		g_dataholder.m_clothManager->simulationInit();
 		g_dataholder.m_clothManager->updateSmplBody();
 		m_widget3d->updateGL();
 	} catch (std::exception e)
@@ -917,6 +919,7 @@ void ClothDesigner::on_pbResetSmplCoeffs_clicked()
 		m_sliderEnableSmplUpdate = true;
 
 		smpl->setPoseShapeVals(nullptr, &shapes);
+		g_dataholder.m_clothManager->simulationInit();
 		g_dataholder.m_clothManager->updateSmplBody();
 		m_widget3d->updateGL();
 	} catch (std::exception e)
