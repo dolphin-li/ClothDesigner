@@ -53,8 +53,6 @@ void Translate3dEventHandle::mousePressEvent(QMouseEvent *ev)
 		m_viewer->setHoverTrackBallAxis(sid);
 		if (sid >= Viewer3d::TrackBallIndex_X && sid <= Viewer3d::TrackBallIndex_Z)
 			m_viewer->setActiveTrackBallAxis(sid);
-		else
-			pick(ev->pos());
 	} // end if initial_location and left button
 }
 
@@ -77,11 +75,15 @@ void Translate3dEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 		} // end if track ball axis active
 		else
 		{
-			if (m_pickInfo.mesh && ev->pos() == m_mouse_press_pt)
+			if (ev->pos() == m_mouse_press_pt)
 			{
-				auto box = m_pickInfo.mesh->boundingBox;
-				m_viewer->beginTrackBall(Viewer3d::TrackBall_Trans, m_pickInfo.pickPos,
-					ldp::Mat3d().eye(), (box[1] - box[0]).length()* m_axisScale);
+				pick(ev->pos());
+				if (m_pickInfo.mesh)
+				{
+					auto box = m_pickInfo.mesh->boundingBox;
+					m_viewer->beginTrackBall(Viewer3d::TrackBall_Trans, m_pickInfo.pickPos,
+						ldp::Mat3d().eye(), (box[1] - box[0]).length()* m_axisScale);
+				}
 			}
 		} // end else
 	} // end if left button and initial_cloth

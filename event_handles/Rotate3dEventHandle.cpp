@@ -67,8 +67,6 @@ void Rotate3dEventHandle::mousePressEvent(QMouseEvent *ev)
 			else
 				m_trackBallMouseClickR = m_viewer->getManager()->getBodyMeshTransform().transform().getRotationPart();
 		}
-		else
-			pick(ev->pos());
 	} // end if initial_location and left button
 }
 
@@ -91,17 +89,21 @@ void Rotate3dEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 		} // end if track ball axis active
 		else
 		{
-			if (m_pickInfo.mesh && ev->pos() == m_mouse_press_pt)
+			if (ev->pos() == m_mouse_press_pt)
 			{
-				auto box = m_pickInfo.mesh->boundingBox;
-				m_trackBallMouseClickR.eye();
+				pick(ev->pos());
+				if (m_pickInfo.mesh)
+				{
+					auto box = m_pickInfo.mesh->boundingBox;
+					m_trackBallMouseClickR.eye();
 
-				if (m_pickInfo.piece) // cloth mesh
-					m_trackBallMouseClickR = m_pickInfo.piece->transformInfo().transform().getRotationPart();
-				else
-					m_trackBallMouseClickR = m_viewer->getManager()->getBodyMeshTransform().transform().getRotationPart();
-				m_viewer->beginTrackBall(Viewer3d::TrackBall_Rot, m_pickInfo.meshCenter,
-					m_trackBallMouseClickR, (box[1] - box[0]).length()* m_axisScale);
+					if (m_pickInfo.piece) // cloth mesh
+						m_trackBallMouseClickR = m_pickInfo.piece->transformInfo().transform().getRotationPart();
+					else
+						m_trackBallMouseClickR = m_viewer->getManager()->getBodyMeshTransform().transform().getRotationPart();
+					m_viewer->beginTrackBall(Viewer3d::TrackBall_Rot, m_pickInfo.meshCenter,
+						m_trackBallMouseClickR, (box[1] - box[0]).length()* m_axisScale);
+				}
 			}
 		} // end else
 	} // end if left button and initial_cloth
