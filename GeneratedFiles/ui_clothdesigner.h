@@ -98,6 +98,10 @@ public:
     QLabel *label_16;
     QDoubleSpinBox *dbPieceBendMult;
     QSpacerItem *verticalSpacer_2;
+    QWidget *tab;
+    QGridLayout *gridLayout_7;
+    QGroupBox *gpSmplBodyCoeffs;
+    QSpacerItem *verticalSpacer_3;
     QDockWidget *dockWidgetLower;
     QWidget *dockWidgetContentsLower;
     QGridLayout *gridLayout_4;
@@ -398,6 +402,22 @@ public:
         gridLayout_3->addItem(verticalSpacer_2, 2, 0, 1, 2);
 
         tabWidget->addTab(tabDesign, QString());
+        tab = new QWidget();
+        tab->setObjectName(QStringLiteral("tab"));
+        gridLayout_7 = new QGridLayout(tab);
+        gridLayout_7->setSpacing(6);
+        gridLayout_7->setContentsMargins(11, 11, 11, 11);
+        gridLayout_7->setObjectName(QStringLiteral("gridLayout_7"));
+        gpSmplBodyCoeffs = new QGroupBox(tab);
+        gpSmplBodyCoeffs->setObjectName(QStringLiteral("gpSmplBodyCoeffs"));
+
+        gridLayout_7->addWidget(gpSmplBodyCoeffs, 0, 0, 1, 1);
+
+        verticalSpacer_3 = new QSpacerItem(20, 40, QSizePolicy::Minimum, QSizePolicy::Expanding);
+
+        gridLayout_7->addItem(verticalSpacer_3, 1, 0, 1, 1);
+
+        tabWidget->addTab(tab, QString());
 
         gridLayout_2->addWidget(tabWidget, 0, 0, 1, 1);
 
@@ -457,7 +477,7 @@ public:
 
         retranslateUi(ClothDesignerClass);
 
-        tabWidget->setCurrentIndex(0);
+        tabWidget->setCurrentIndex(1);
 
 
         QMetaObject::connectSlotsByName(ClothDesignerClass);
@@ -501,6 +521,8 @@ public:
         groupBox_2->setTitle(QApplication::translate("ClothDesignerClass", "Piece Param", 0));
         label_16->setText(QApplication::translate("ClothDesignerClass", "bend mult", 0));
         tabWidget->setTabText(tabWidget->indexOf(tabDesign), QApplication::translate("ClothDesignerClass", "Design", 0));
+        gpSmplBodyCoeffs->setTitle(QApplication::translate("ClothDesignerClass", "smpl body coeffs", 0));
+        tabWidget->setTabText(tabWidget->indexOf(tab), QApplication::translate("ClothDesignerClass", "Body", 0));
         pbFlipPolygon->setText(QApplication::translate("ClothDesignerClass", "flip polygon", 0));
         pbResetSimulation->setText(QApplication::translate("ClothDesignerClass", "reset simulaton", 0));
         pbResetSimulation->setShortcut(QApplication::translate("ClothDesignerClass", "1", 0));

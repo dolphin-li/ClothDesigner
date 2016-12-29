@@ -10,6 +10,7 @@
 #include "cloth\TransformInfo.h"
 #include "cloth\graph\Graph.h"
 #include "Renderable\ObjMesh.h"
+#include "cloth\SmplManager.h"
 
 ClothDesigner::ClothDesigner(QWidget *parent)
 	: QMainWindow(parent)
@@ -32,6 +33,7 @@ ClothDesigner::ClothDesigner(QWidget *parent)
 	m_widget3d->init(g_dataholder.m_clothManager.get(), this);
 	m_widget2d->init(g_dataholder.m_clothManager.get(), this);
 
+	setupSmplUI();
 	updateUiByParam();
 	m_simulateTimer = startTimer(1);
 	m_fpsTimer = startTimer(200);
@@ -112,6 +114,7 @@ void ClothDesigner::loadSvg(QString name)
 	m_widget3d->init(g_dataholder.m_clothManager.get(), this);
 	m_widget2d->init(g_dataholder.m_clothManager.get(), this);
 	m_widget2d->setEventHandleType(Abstract2dEventHandle::ProcessorTypeEditPattern);
+	updateUiByParam();
 	m_widget2d->updateGL();
 	m_widget3d->updateGL();
 }
@@ -126,6 +129,7 @@ void ClothDesigner::loadProjectXml(QString name)
 	m_widget3d->init(g_dataholder.m_clothManager.get(), this);
 	m_widget2d->init(g_dataholder.m_clothManager.get(), this);
 	m_widget2d->setEventHandleType(Abstract2dEventHandle::ProcessorTypeEditPattern);
+	updateUiByParam();
 	m_widget2d->updateGL();
 	m_widget3d->updateGL();
 }
@@ -282,6 +286,8 @@ void ClothDesigner::updateUiByParam()
 		///
 		auto dparam = g_dataholder.m_clothManager->getClothDesignParam();
 		ui.sbDparamTriangleSize->setValue(dparam.triangulateThre * 1000);
+
+		updateSmplUI();
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
@@ -735,6 +741,82 @@ void ClothDesigner::on_pbCopySelected_clicked()
 			m_widget2d->updateGL();
 			m_widget3d->updateGL();
 			pushHistory(QString().sprintf("mirror selected"), ldp::HistoryStack::TypeGeneral);
+		}
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+void ClothDesigner::setupSmplUI()
+{
+	m_smplShapeSliders.resize(10);
+	ui.gpSmplBodyCoeffs->setLayout(new QGridLayout());
+	for (size_t i = 0; i < m_smplShapeSliders.size(); i++)
+	{
+		m_smplShapeSliders[i].reset(new QSlider(Qt::Orientation::Horizontal, this));
+		m_smplShapeSliders[i]->setMinimum(-500);
+		m_smplShapeSliders[i]->setMaximum(500);
+		m_smplShapeSliders[i]->setValue(0);
+		ui.gpSmplBodyCoeffs->layout()->addWidget(m_smplShapeSliders[i].data());
+		connect(m_smplShapeSliders[i].data(), SIGNAL(valueChanged(int)), SLOT(onSmplShapeSlidersValueChanged(int)));
+	}
+}
+
+void ClothDesigner::updateSmplUI()
+{
+	try
+	{
+		m_sliderEnableSmplUpdate = false;
+		auto smpl = g_dataholder.m_clothManager->bodySmplManager();
+		if (smpl == nullptr)
+		{
+			ui.gpSmplBodyCoeffs->setEnabled(false);
+			m_sliderEnableSmplUpdate = true;
+			return;
+		}
+		if (m_smplShapeSliders.size() != smpl->numShapes())
+			throw std::exception("smpl ui update: size not matched!");
+		ui.gpSmplBodyCoeffs->setEnabled(true);
+		for (size_t i = 0; i < m_smplShapeSliders.size(); i++)
+			m_smplShapeSliders[i]->setValue(std::lroundf(smpl->getCurShapeCoef(i) * 100));
+		m_sliderEnableSmplUpdate = true;
+	} catch (std::exception e)
+	{
+		m_sliderEnableSmplUpdate = true;
+		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		m_sliderEnableSmplUpdate = true;
+		std::cout << "unknown error" << std::endl;
+	}
+}
+
+void ClothDesigner::onSmplShapeSlidersValueChanged(int v)
+{
+	try
+	{
+		auto smpl = g_dataholder.m_clothManager->bodySmplManager();
+		if (smpl == nullptr)
+			return;
+		if (m_smplShapeSliders.size() != smpl->numShapes())
+			throw std::exception("smpl ui update: size not matched!");
+		std::vector<float> shapes(smpl->numShapes(), 0.f);
+		for (size_t i = 0; i < m_smplShapeSliders.size(); i++)
+		{
+			float val = m_smplShapeSliders[i]->value() / 100.f;
+			shapes[i] = val;
+			m_smplShapeSliders[i]->setToolTip(QString().sprintf("%f", val));
+		}
+		if (m_sliderEnableSmplUpdate)
+		{
+			smpl->setPoseShapeVals(nullptr, &shapes);
+			g_dataholder.m_clothManager->updateSmplBody();
+			m_widget3d->updateGL();
 		}
 	} catch (std::exception e)
 	{

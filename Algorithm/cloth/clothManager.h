@@ -110,6 +110,9 @@ namespace ldp
 		void setBodyMeshTransform(const TransformInfo& info);
 		const LevelSet3D* bodyLevelSet()const { return m_bodyLvSet.get(); }
 		LevelSet3D* bodyLevelSet() { return m_bodyLvSet.get(); }
+		SmplManager* bodySmplManager() { return m_smplBody; }
+		const SmplManager* bodySmplManager()const { return m_smplBody; }
+		void updateSmplBody();
 
 		/// cloth pieces
 		int numClothPieces()const { return (int)m_clothPieces.size(); }

@@ -80,6 +80,14 @@ protected:
 	void add2dButton(Abstract2dEventHandle::ProcessorType type);
 	public slots:
 	void on_mainToolBar_actionTriggered(QAction* action);
+	/////////////////////////////////////////////////////////////////////////
+protected:
+	QVector<QSharedPointer<QSlider>> m_smplShapeSliders;
+	bool m_sliderEnableSmplUpdate = true;
+	void setupSmplUI();
+	void updateSmplUI();
+	public slots:
+	void onSmplShapeSlidersValueChanged(int v);
 };
 
 #endif // CLOTHDESIGNER_H

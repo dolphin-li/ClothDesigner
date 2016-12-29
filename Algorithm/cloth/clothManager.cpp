@@ -957,19 +957,31 @@ namespace ldp
 		m_shouldStitchUpdate = false;
 	}
 
+	void ClothManager::updateSmplBody()
+	{
+		if (m_smplBody == nullptr)
+			return;
+		m_shouldLevelSetUpdate = true;
+		m_smplBody->toObjMesh(*m_bodyMeshInit);
+		setBodyMeshTransform(*m_bodyTransform);
+	}
+
 	void ClothManager::calcLevelSet()
 	{
-		const float step = 0.01;
+		const float step = 0.005;
 		m_bodyMesh->updateBoundingBox();
 		auto bmin = m_bodyMesh->boundingBox[0];
 		auto bmax = m_bodyMesh->boundingBox[1];
 		auto brag = bmax - bmin;
-		bmin -= 0.1f * brag;
-		bmax += 0.1f * brag;
+		bmin -= 0.2f * brag;
+		bmax += 0.2f * brag;
 		ldp::Int3 res = (bmax - bmin) / step;
 		ldp::Float3 start = bmin;
 		m_bodyLvSet->create(res, start, step);
 		m_bodyLvSet->fromMesh(*m_bodyMesh);
+		//// ldp hack: make the cloth go outside a bit
+		//for (int i = 0; i < m_bodyLvSet->sizeXYZ(); i++)
+		//	m_bodyLvSet->value()[i] -= 0;
 		m_dev_phi.upload(m_bodyLvSet->value(), m_bodyLvSet->sizeXYZ());
 		m_shouldLevelSetUpdate = false;
 	}
