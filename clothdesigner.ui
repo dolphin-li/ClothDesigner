@@ -420,14 +420,35 @@
          <string>Body</string>
         </attribute>
         <layout class="QGridLayout" name="gridLayout_7">
-         <item row="0" column="0">
+         <item row="2" column="0">
+          <widget class="QPushButton" name="pbSaveSmplCoeffs">
+           <property name="text">
+            <string>save smpl coeffs</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QPushButton" name="pbLoadSmplCoeffs">
+           <property name="text">
+            <string>load smpl coeffs</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QPushButton" name="pbResetSmplCoeffs">
+           <property name="text">
+            <string>reset smpl coeffs</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0" colspan="2">
           <widget class="QGroupBox" name="gpSmplBodyCoeffs">
            <property name="title">
             <string>smpl body coeffs</string>
            </property>
           </widget>
          </item>
-         <item row="1" column="0">
+         <item row="3" column="0" colspan="2">
           <spacer name="verticalSpacer_3">
            <property name="orientation">
             <enum>Qt::Vertical</enum>

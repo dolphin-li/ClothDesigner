@@ -826,3 +826,85 @@ void ClothDesigner::onSmplShapeSlidersValueChanged(int v)
 		std::cout << "unknown error" << std::endl;
 	}
 }
+
+void ClothDesigner::on_pbSaveSmplCoeffs_clicked()
+{
+	try
+	{
+		auto smpl = g_dataholder.m_clothManager->bodySmplManager();
+		if (smpl == nullptr)
+			return;
+		QString name = QFileDialog::getSaveFileName(this, "save shape coef", 
+			g_dataholder.m_lastSmplShapeCoeffDir.c_str(), "*.shape.txt");
+		if (name.isEmpty())
+			return;
+		if (!name.endsWith(".shape.txt"))
+			name.append(".shape.txt");
+		smpl->saveShapeCoeffs(name.toStdString());
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
+	}
+}
+
+void ClothDesigner::on_pbLoadSmplCoeffs_clicked()
+{
+	try
+	{
+		auto smpl = g_dataholder.m_clothManager->bodySmplManager();
+		if (smpl == nullptr)
+			return;
+		QString name = QFileDialog::getOpenFileName(this, "open shape coef",
+			g_dataholder.m_lastSmplShapeCoeffDir.c_str(), "*.shape.txt");
+		if (name.isEmpty())
+			return;
+		smpl->loadShapeCoeffs(name.toStdString());
+		if (m_smplShapeSliders.size() != smpl->numShapes())
+			throw std::exception("smpl ui update: size not matched!");
+
+		updateSmplUI();
+
+		g_dataholder.m_clothManager->updateSmplBody();
+		m_widget3d->updateGL();
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
+	} 
+}
+
+void ClothDesigner::on_pbResetSmplCoeffs_clicked()
+{
+	try
+	{
+		auto smpl = g_dataholder.m_clothManager->bodySmplManager();
+		if (smpl == nullptr)
+			return;
+		if (m_smplShapeSliders.size() != smpl->numShapes())
+			throw std::exception("smpl ui update: size not matched!");
+
+		std::vector<float> shapes(smpl->numShapes(), 0.f);
+		m_sliderEnableSmplUpdate = false;
+		for (size_t i = 0; i < m_smplShapeSliders.size(); i++)
+		{
+			m_smplShapeSliders[i]->setValue(0);
+			m_smplShapeSliders[i]->setToolTip("0");
+		}
+		m_sliderEnableSmplUpdate = true;
+
+		smpl->setPoseShapeVals(nullptr, &shapes);
+		g_dataholder.m_clothManager->updateSmplBody();
+		m_widget3d->updateGL();
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
+	}
+}

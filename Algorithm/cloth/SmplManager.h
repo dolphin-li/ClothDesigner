@@ -49,6 +49,11 @@ public:
 	const Face* facePtr()const { return  m_faces.data(); }
 	int numVertices()const { return (int)m_curVerts.size(); }
 	const ldp::Float3* vertexPtr()const { return m_curVerts.data(); }
+
+	void saveShapeCoeffs(std::string filename)const;
+	void loadShapeCoeffs(std::string filename);
+	void savePoseCoeffs(std::string filename)const;
+	void loadPoseCoeffs(std::string filename);
 public:
 	ldp::Float3 getCurNodeCenter(int idx)const;
 	float getCurShapeCoef(int idx) const { return m_curShapes(idx, 0); }

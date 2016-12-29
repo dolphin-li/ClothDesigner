@@ -955,3 +955,85 @@ void SmplManager::toObjMesh(ObjMesh& mesh)const
 	mesh.updateNormals();
 	mesh.updateBoundingBox();
 }
+
+void SmplManager::saveShapeCoeffs(std::string filename)const
+{
+	if (!m_inited)
+		return;
+	FILE* pFile = fopen(filename.c_str(), "w");
+	if (!pFile)
+		throw std::exception(("io error: " + filename).c_str());
+
+	for (int i = 0; i < m_curShapes.rows(); i++)
+	{
+		for (int j = 0; j < m_curShapes.cols(); j++)
+			fprintf(pFile, "%f ", m_curShapes(i, j));
+		fprintf(pFile, "\n");
+	}
+
+	fclose(pFile);
+}
+
+void SmplManager::loadShapeCoeffs(std::string filename)
+{
+	if (!m_inited)
+		return;
+	FILE* pFile = fopen(filename.c_str(), "r");
+	if (!pFile)
+		throw std::exception(("io error: " + filename).c_str());
+
+	for (int i = 0; i < m_curShapes.rows(); i++)
+	{
+		float tmp = 0;
+		for (int j = 0; j < m_curShapes.cols(); j++)
+		{
+			fscanf(pFile, "%f", &tmp);
+			m_curShapes(i, j) = tmp;
+		}
+	}
+
+	fclose(pFile);
+
+	updateCurMesh();
+}
+
+void SmplManager::savePoseCoeffs(std::string filename)const
+{
+	if (!m_inited)
+		return;
+	FILE* pFile = fopen(filename.c_str(), "w");
+	if (!pFile)
+		throw std::exception(("io error: " + filename).c_str());
+
+	for (int i = 0; i < m_curPoses.rows(); i++)
+	{
+		for (int j = 0; j < m_curPoses.cols(); j++)
+			fprintf(pFile, "%f ", m_curPoses(i, j));
+		fprintf(pFile, "\n");
+	}
+
+	fclose(pFile);
+}
+
+void SmplManager::loadPoseCoeffs(std::string filename)
+{
+	if (!m_inited)
+		return;
+	FILE* pFile = fopen(filename.c_str(), "r");
+	if (!pFile)
+		throw std::exception(("io error: " + filename).c_str());
+
+	for (int i = 0; i < m_curPoses.rows(); i++)
+	{
+		float tmp = 0;
+		for (int j = 0; j < m_curPoses.cols(); j++)
+		{
+			fscanf(pFile, "%f", &tmp);
+			m_curPoses(i, j) = tmp;
+		}
+	}
+
+	fclose(pFile);
+
+	updateCurMesh();
+}

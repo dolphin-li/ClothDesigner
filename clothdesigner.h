@@ -87,6 +87,9 @@ protected:
 	void setupSmplUI();
 	void updateSmplUI();
 	public slots:
+	void on_pbSaveSmplCoeffs_clicked();
+	void on_pbLoadSmplCoeffs_clicked();
+	void on_pbResetSmplCoeffs_clicked();
 	void onSmplShapeSlidersValueChanged(int v);
 };
 

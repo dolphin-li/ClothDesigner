@@ -32,6 +32,8 @@ void GlobalDataHolder::loadLastDirs()
 			m_lastSvgDir = lineBuffer;
 		else if (lineLabel == "proj_dir")
 			m_lastProXmlDir = lineBuffer;
+		else if (lineLabel == "smpl_shape_dir")
+			m_lastSmplShapeCoeffDir = lineBuffer;
 	}
 	stream.close();
 }
@@ -43,6 +45,7 @@ void GlobalDataHolder::saveLastDirs()
 		return;
 	stm << "svg_dir: " << m_lastSvgDir << std::endl;
 	stm << "proj_dir: " << m_lastProXmlDir << std::endl;
+	stm << "smpl_shape_dir: " << m_lastSmplShapeCoeffDir << std::endl;
 	stm.close();
 }
 

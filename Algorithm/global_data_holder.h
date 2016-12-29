@@ -24,6 +24,7 @@ public:
 
 	std::string m_lastSvgDir;
 	std::string m_lastProXmlDir;
+	std::string m_lastSmplShapeCoeffDir;
 };
 
 extern GlobalDataHolder g_dataholder;
