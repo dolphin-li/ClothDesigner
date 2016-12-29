@@ -215,8 +215,11 @@ namespace ldp
 		if (m_curPtPos == endPos)
 		{
 			++m_edgeIter;
-			vec = &m_edgeIter->samplePointsOnShape(m_step / m_edgeIter->getLength());
-			m_curPtPos = m_edgeIter.shouldReverse() ? (int)vec->size() - 1 : 0;
+			if (m_edgeIter)
+			{
+				vec = &m_edgeIter->samplePointsOnShape(m_step / m_edgeIter->getLength());
+				m_curPtPos = m_edgeIter.shouldReverse() ? (int)vec->size() - 1 : 0;
+			}
 		}
 		if (m_edgeIter)
 			m_curSample = &(*vec)[m_curPtPos];

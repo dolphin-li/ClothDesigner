@@ -10,7 +10,7 @@ namespace ldp
 
 	void ClothDesignParam::setDefaultParam()
 	{
-		pointMergeDistThre = 1e-4;									// in meters
+		pointMergeDistThre = 1e-3;									// in meters
 		curveSampleStep = 1e-2;										// in meters
 		curveSampleAngleThreCos = cos(15.f * ldp::PI_S / 180.f);	// 15 degree
 		pointInsidePolyThre = 1e-2;									// in meters

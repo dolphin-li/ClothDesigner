@@ -358,7 +358,7 @@ namespace ldp
 					float dist = 0;
 					int eid = 0;
 					pointInPolygon(curveSamples.size(), curveSamples.data(), p->getPosition(), &eid, &dist);
-					if (dist < minDist)
+					if (dist < g_designParam.pointMergeDistThre && dist < minDist)
 					{
 						minDist = dist;
 						minPoint = (GraphPoint*)p;
@@ -367,19 +367,19 @@ namespace ldp
 				}
 			} // end for loop
 
-			if (minPoint == nullptr)
-				continue;
-
-			if (minDist < g_designParam.pointInsidePolyThre && curveToSplit->getStartPoint() != minPoint
-				&& curveToSplit->getEndPoint() != minPoint)
+			if (minPoint)
 			{
-				printf("trying to merge point %d to curve %d, dist too small: %f...",
-					minPoint->getId(), curveToSplit->getId(), minDist);
-				if (mergeCurvePoint(curveToSplit, minPoint))
-					printf("done\n");
-				else
-					printf("failed\n");
-			}
+				if (curveToSplit->getStartPoint() != minPoint && curveToSplit->getEndPoint() != minPoint)
+				{
+					printf("trying to merge point %d to curve %d, dist too small...",
+						minPoint->getId(), curveToSplit->getId());
+					if (mergeCurvePoint(curveToSplit, minPoint))
+						printf("done\n");
+					else
+						printf("failed\n");
+				}
+			} // end for i
+
 		} // end for curve
 
 		return true;
@@ -706,18 +706,15 @@ namespace ldp
 		// modify associated loops
 		for (auto lk = curve_iter->second->diskLink_begin(); !lk.isEnd(); ++lk)
 		{
+			std::vector<AbstractGraphCurve*> newLoop;
 			if (!lk.loop()->isClosed())
 			{
-				std::vector<AbstractGraphCurve*> newLoop;
 				for (auto eiter = lk.loop()->edge_begin(); !eiter.isEnd(); ++eiter)
 				{
 					if (eiter == curve_iter->second.get())
 						break;
 					newLoop.push_back(eiter);
 				} // end for eiter
-				for (auto c : newLoop)
-					c->m_graphLinks.erase((GraphLoop*)lk.loop());
-				addLoop(newLoop, false);
 			} // end if non-closed
 
 			lk.loopStartEdge() = lk.next();
@@ -732,6 +729,13 @@ namespace ldp
 				for (auto next_lk = lk.next()->diskLink_begin(); !next_lk.isEnd(); ++next_lk)
 				if (next_lk.loop() == lk.loop())
 					next_lk.prev() = nullptr;
+			}
+
+			if (!newLoop.empty())
+			{
+				for (auto c : newLoop)
+					c->m_graphLinks.erase((GraphLoop*)lk.loop());
+				addLoop(newLoop, false);
 			}
 		} // end for lk
 
@@ -820,7 +824,10 @@ namespace ldp
 		} // end for i in vec
 
 		// too close, do not split
-		if ((iSplit == 0 && tSplit < 0.1) || (iSplit == vec.size()-1 && tSplit > 0.9))
+		auto sp = curveToSplit->getPointByParam(tSplit);
+		float dist = (sp - curveToSplit->getStartPoint()->getPosition()).length();
+		dist = std::min(dist, (sp - curveToSplit->getEndPoint()->getPosition()).length());
+		if (dist < g_designParam.pointMergeDistThre)
 			return nullptr;
 
 		// check reverse info
@@ -924,6 +931,12 @@ namespace ldp
 			return false;
 		if (curveToSplit->getStartPoint() == p || curveToSplit->getEndPoint() == p)
 			return false;
+
+		if ((p->getPosition() - curveToSplit->getStartPoint()->getPosition()).length() < g_designParam.pointMergeDistThre)
+			return mergeKeyPoints(p, curveToSplit->keyPoint(0));
+		if ((p->getPosition() - curveToSplit->getEndPoint()->getPosition()).length() < g_designParam.pointMergeDistThre)
+			return mergeKeyPoints(p, curveToSplit->keyPoint(curveToSplit->numKeyPoints()-1));
+
 		AbstractGraphCurve* newCurves[2];
 		if (!splitEdge(curveToSplit, p->getPosition(), newCurves))
 			return false;
