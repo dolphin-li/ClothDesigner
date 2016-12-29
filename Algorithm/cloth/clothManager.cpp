@@ -27,6 +27,17 @@ namespace ldp
 	std::shared_ptr<SmplManager> ClothManager::m_smplMale;
 	std::shared_ptr<SmplManager> ClothManager::m_smplFemale;
 
+	inline float cot_constrained(const float* a, const float* b, const float* c)
+	{
+		float val = Cotangent(a, b, c);
+		return std::min(5.f, std::max(-5.f, val));
+	}
+	inline float areaWeight_constrained(float area1, float area2, float avgArea)
+	{
+		float b = 1.f / avgArea;
+		return std::min(b * 10.f, std::max(b * 0.1f, 1.f / (area1 + area2)));
+	}
+
 	void ClothManager::initSmplDatabase()
 	{
 		if (m_smplMale.get() == nullptr)
@@ -890,13 +901,13 @@ namespace ldp
 			e[1] = -e[1];
 
 			// second, handle bending weights
-			ValueType c01 = Cotangent(m_X[e[0]].ptr(), m_X[e[1]].ptr(), m_X[be[0]].ptr());
-			ValueType c02 = Cotangent(m_X[se[0]].ptr(), m_X[se[1]].ptr(), m_X[be[1]].ptr());
-			ValueType c03 = Cotangent(m_X[e[1]].ptr(), m_X[e[0]].ptr(), m_X[be[0]].ptr());
-			ValueType c04 = Cotangent(m_X[se[1]].ptr(), m_X[se[0]].ptr(), m_X[be[1]].ptr());
+			ValueType c01 = cot_constrained(m_X[e[0]].ptr(), m_X[e[1]].ptr(), m_X[be[0]].ptr());
+			ValueType c02 = cot_constrained(m_X[se[0]].ptr(), m_X[se[1]].ptr(), m_X[be[1]].ptr());
+			ValueType c03 = cot_constrained(m_X[e[1]].ptr(), m_X[e[0]].ptr(), m_X[be[0]].ptr());
+			ValueType c04 = cot_constrained(m_X[se[1]].ptr(), m_X[se[0]].ptr(), m_X[be[1]].ptr());
 			ValueType area0 = sqrt(Area_Squared(m_X[e[0]].ptr(), m_X[e[1]].ptr(), m_X[be[0]].ptr()));
 			ValueType area1 = sqrt(Area_Squared(m_X[se[0]].ptr(), m_X[se[1]].ptr(), m_X[be[1]].ptr()));
-			ValueType weight = 1 / (area0 + area1);
+			ValueType weight = areaWeight_constrained(area0, area1, m_avgArea);
 			ValueType k[4];
 			k[0] = c03 + c04;
 			k[1] = c01 + c02;
@@ -1094,13 +1105,13 @@ namespace ldp
 
 
 			// second, handle bending weights
-			ValueType c01 = Cotangent(m_X[v[0]].ptr(), m_X[v[1]].ptr(), m_X[v[2]].ptr());
-			ValueType c02 = Cotangent(m_X[v[0]].ptr(), m_X[v[1]].ptr(), m_X[v[3]].ptr());
-			ValueType c03 = Cotangent(m_X[v[1]].ptr(), m_X[v[0]].ptr(), m_X[v[2]].ptr());
-			ValueType c04 = Cotangent(m_X[v[1]].ptr(), m_X[v[0]].ptr(), m_X[v[3]].ptr());
+			ValueType c01 = cot_constrained(m_X[v[0]].ptr(), m_X[v[1]].ptr(), m_X[v[2]].ptr());
+			ValueType c02 = cot_constrained(m_X[v[0]].ptr(), m_X[v[1]].ptr(), m_X[v[3]].ptr());
+			ValueType c03 = cot_constrained(m_X[v[1]].ptr(), m_X[v[0]].ptr(), m_X[v[2]].ptr());
+			ValueType c04 = cot_constrained(m_X[v[1]].ptr(), m_X[v[0]].ptr(), m_X[v[3]].ptr());
 			ValueType area0 = sqrt(Area_Squared(m_X[v[0]].ptr(), m_X[v[1]].ptr(), m_X[v[2]].ptr()));
 			ValueType area1 = sqrt(Area_Squared(m_X[v[0]].ptr(), m_X[v[1]].ptr(), m_X[v[3]].ptr()));
-			ValueType weight = 1 / (area0 + area1);
+			ValueType weight = areaWeight_constrained(area0, area1, m_avgArea);
 			ValueType k[4];
 			k[0] = c03 + c04;
 			k[1] = c01 + c02;
