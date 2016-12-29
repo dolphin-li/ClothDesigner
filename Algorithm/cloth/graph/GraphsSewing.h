@@ -10,6 +10,7 @@ namespace ldp
 	{
 	public:
 		friend class HistoryStack;
+		friend class ClothManager;
 		struct Unit
 		{
 			AbstractGraphCurve* curve;

@@ -710,6 +710,7 @@ void ClothDesigner::on_pbMirrorSelected_clicked()
 		auto& manager = g_dataholder.m_clothManager;
 		if (manager->mirrorSelectedPanel())
 		{
+			manager->triangulate();
 			m_widget2d->updateGL();
 			m_widget3d->updateGL();
 			pushHistory(QString().sprintf("mirror selected"), ldp::HistoryStack::TypeGeneral);
@@ -730,6 +731,7 @@ void ClothDesigner::on_pbCopySelected_clicked()
 		auto& manager = g_dataholder.m_clothManager;
 		if (manager->copySelectedPanel())
 		{
+			manager->triangulate();
 			m_widget2d->updateGL();
 			m_widget3d->updateGL();
 			pushHistory(QString().sprintf("mirror selected"), ldp::HistoryStack::TypeGeneral);

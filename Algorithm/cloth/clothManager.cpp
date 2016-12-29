@@ -1843,24 +1843,80 @@ namespace ldp
 	bool ClothManager::copySelectedPanel()
 	{
 		bool change = false;
+		std::vector<std::shared_ptr<ClothPiece>> copied;
+
+		Graph::PtrMap ptrMap;
 		for (auto& piece : m_clothPieces)
 		{
 			auto& panel = piece->graphPanel();
 			if (!panel.isSelected())
 				continue;
 			auto piece_copy = piece->lightClone();
-			for (auto iter = panel.point_begin(); iter != panel.point_end(); ++iter)
+			auto& panel_copy = piece_copy->graphPanel();
+			for (auto iter : panel.getPtrMapAfterClone())
+				ptrMap.insert(iter);
+			for (auto iter = panel_copy.point_begin(); iter != panel_copy.point_end(); ++iter)
 			{
 				auto p = iter->getPosition();
 				iter->setPosition(Float2(-p[0], p[1]));
 			}
-			for (auto iter = panel.curve_begin(); iter != panel.curve_end(); ++iter)
-			{
-				iter->graphSewings().clear();
-			}
-
+			//for (auto iter = panel_copy.curve_begin(); iter != panel_copy.curve_end(); ++iter)
+			//	iter->graphSewings().clear();
+			copied.push_back(std::shared_ptr<ClothPiece>(piece_copy));
 			change = true;
 		} // piece
+
+		// clone sew relations
+		const size_t nSew = m_graphSewings.size();
+		for (size_t iSew = 0; iSew < nSew; iSew++)
+		{
+			auto oldSew = m_graphSewings[iSew].get();
+
+			// check if the sew should be cloned
+			bool shouldClone = true;
+			for (auto& u : oldSew->firsts())
+			if (ptrMap.find(u.curve) == ptrMap.end())
+			{
+				shouldClone = false;
+				break;
+			}
+			for (auto& u : oldSew->seconds())
+			if (ptrMap.find(u.curve) == ptrMap.end())
+			{
+				shouldClone = false;
+				break;
+			}
+			if (!shouldClone)
+				continue;
+
+			auto sew = oldSew->clone();
+			for (auto& u : sew->m_firsts)
+			{
+				u.curve = (AbstractGraphCurve*)ptrMap[(AbstractGraphObject*)u.curve];
+				if (u.curve->graphSewings().find(oldSew) == u.curve->graphSewings().end())
+					printf("copySelectedPanel warning: curve %d does not relate to sew %d\n",
+					u.curve->getId(), oldSew->getId());
+				else
+					u.curve->graphSewings().erase(oldSew);
+				u.curve->graphSewings().insert(sew);
+			}
+			for (auto& u : sew->m_seconds)
+			{
+				u.curve = (AbstractGraphCurve*)ptrMap[(AbstractGraphObject*)u.curve];
+				if (u.curve->graphSewings().find(oldSew) == u.curve->graphSewings().end())
+					printf("copySelectedPanel warning: curve %d does not relate to sew %d\n",
+					u.curve->getId(), oldSew->getId());
+				else
+					u.curve->graphSewings().erase(oldSew);
+				u.curve->graphSewings().insert(sew);
+			}
+
+			m_graphSewings.push_back(std::shared_ptr<GraphsSewing>(sew));
+		} // end for iSew
+
+		// insert the generated pieces
+		m_clothPieces.insert(m_clothPieces.end(), copied.begin(), copied.end());
+
 		if (change)
 			m_shouldTriangulate = true;
 		return change;

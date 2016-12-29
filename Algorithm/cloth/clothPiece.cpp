@@ -66,6 +66,9 @@ namespace ldp
 		ClothPiece* piece = new ClothPiece(*this);
 		piece->m_transfromInfo.reset(new TransformInfo(*m_transfromInfo.get()));
 		piece->m_graphPanel.reset((Graph*)m_graphPanel->clone());
+		piece->m_mesh2d.reset(new ObjMesh);
+		piece->m_mesh3d.reset(new ObjMesh);
+		piece->m_mesh3dInit.reset(new ObjMesh);
 		return piece;
 	}
 }
