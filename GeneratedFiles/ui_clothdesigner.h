@@ -97,6 +97,8 @@ public:
     QGridLayout *gridLayout_6;
     QLabel *label_16;
     QDoubleSpinBox *dbPieceBendMult;
+    QLabel *label_17;
+    QDoubleSpinBox *dbPieceOutgoDist;
     QSpacerItem *verticalSpacer_2;
     QWidget *tab;
     QGridLayout *gridLayout_7;
@@ -397,6 +399,18 @@ public:
 
         gridLayout_6->addWidget(dbPieceBendMult, 0, 1, 1, 1);
 
+        label_17 = new QLabel(groupBox_2);
+        label_17->setObjectName(QStringLiteral("label_17"));
+
+        gridLayout_6->addWidget(label_17, 1, 0, 1, 1);
+
+        dbPieceOutgoDist = new QDoubleSpinBox(groupBox_2);
+        dbPieceOutgoDist->setObjectName(QStringLiteral("dbPieceOutgoDist"));
+        dbPieceOutgoDist->setDecimals(4);
+        dbPieceOutgoDist->setMaximum(999999);
+
+        gridLayout_6->addWidget(dbPieceOutgoDist, 1, 1, 1, 1);
+
 
         gridLayout_3->addWidget(groupBox_2, 1, 0, 1, 2);
 
@@ -538,6 +552,7 @@ public:
         label_14->setText(QApplication::translate("ClothDesignerClass", "triangle size (mm)", 0));
         groupBox_2->setTitle(QApplication::translate("ClothDesignerClass", "Piece Param", 0));
         label_16->setText(QApplication::translate("ClothDesignerClass", "bend mult", 0));
+        label_17->setText(QApplication::translate("ClothDesignerClass", "outgo dist", 0));
         tabWidget->setTabText(tabWidget->indexOf(tabDesign), QApplication::translate("ClothDesignerClass", "Design", 0));
         pbSaveSmplCoeffs->setText(QApplication::translate("ClothDesignerClass", "save smpl coeffs", 0));
         pbLoadSmplCoeffs->setText(QApplication::translate("ClothDesignerClass", "load smpl coeffs", 0));

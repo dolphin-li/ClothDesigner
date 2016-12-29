@@ -26,6 +26,7 @@ namespace ldp
 	void PieceParam::setDefaultParam()
 	{
 		bending_k_mult = 1;
+		piece_outgo_dist = 0;
 	}
 
 	SimulationParam::SimulationParam()

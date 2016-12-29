@@ -698,15 +698,34 @@ void ClothDesigner::on_sbDparamTriangleSize_valueChanged(double v)
 	}
 }
 
+void ClothDesigner::on_dbPieceOutgoDist_valueChanged(double v)
+{
+	for (int ipiece = 0; ipiece < g_dataholder.m_clothManager->numClothPieces(); ipiece++)
+	{
+		auto piece = g_dataholder.m_clothManager->clothPiece(ipiece);
+		auto& panel = piece->graphPanel();
+		if (!panel.isSelected())
+			continue;
+		auto param = piece->param();
+		param.piece_outgo_dist = v;
+		g_dataholder.m_clothManager->setPieceParam(piece, param);
+		printf("%s, outgo_dist = %f meters\n", piece->getName().c_str(), v);
+	}
+}
+
 void ClothDesigner::on_dbPieceBendMult_valueChanged(double v)
 {
-	auto info = m_widget3d->getEventHandle(m_widget3d->getEventHandleType())->pickInfo();
-	if (info.piece == nullptr)
-		return;
-	auto param = info.piece->param();
-	param.bending_k_mult = v;
-	g_dataholder.m_clothManager->setPieceParam(info.piece, param);
-	printf("%s, bend_k_mult = %f\n", info.piece->getName().c_str(), v);
+	for (int ipiece = 0; ipiece < g_dataholder.m_clothManager->numClothPieces(); ipiece++)
+	{
+		auto piece = g_dataholder.m_clothManager->clothPiece(ipiece);
+		auto& panel = piece->graphPanel();
+		if (!panel.isSelected())
+			continue;
+		auto param = piece->param();
+		param.bending_k_mult = v;
+		g_dataholder.m_clothManager->setPieceParam(piece, param);
+		printf("%s, bend_k_mult = %f\n", piece->getName().c_str(), v);
+	}
 }
 
 void ClothDesigner::on_pbMirrorSelected_clicked()

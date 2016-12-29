@@ -184,7 +184,8 @@ namespace ldp
 		std::map<std::pair<const ObjMesh*, int>, std::set<Int3>> m_sewVofFMap;// two boundary faces that stitched, for normal calculation
 		std::vector<Vec3> m_X;							// vertex position list
 		std::vector<Vec3> m_V;							// vertex velocity list
-		std::vector<float> m_V_bending_k_mult;			// bending param of each vertex
+		std::vector<ValueType> m_V_bending_k_mult;			// bending param of each vertex
+		std::vector<ValueType> m_V_outgo_dist;			// we want some vertices to go outside some distance
 		std::vector<Int3> m_T;							// triangle list
 		std::vector<Int2> m_allE;						// edges + bending edges, sorted, for [0,1,2]+[0,1,3], bend_e=[2,3]
 		std::vector<int> m_allVV;						// one-ring vertex of each vertex based an allE, NOT including self
@@ -224,6 +225,7 @@ namespace ldp
 		DeviceArray<ValueType> m_dev_fixed;			// fixed constraint, indicating which vertex should be fixed
 		DeviceArray<ValueType> m_dev_more_fixed;	// for dragging
 		DeviceArray<ValueType> m_dev_V;				// velocity
+		DeviceArray<ValueType> m_dev_V_outgo_dist;	// vertex outgo shifts
 		DeviceArray<ValueType> m_dev_init_B;		// Initialized momentum condition in B
 		DeviceArray<int> m_dev_T;					// trangle list
 		DeviceArray<int> m_dev_all_VV;				// one-ring vertex list, NOT including itself

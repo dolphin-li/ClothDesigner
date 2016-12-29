@@ -100,8 +100,12 @@ void Abstract3dEventHandle::pick(QPoint pos)
 			for (int iMesh = 0; iMesh < manager->numClothPieces(); iMesh++)
 			{
 				auto piece = manager->clothPiece(iMesh);
-				auto mesh = &manager->clothPiece(iMesh)->mesh3d();
 				piece->graphPanel().select(0, ldp::AbstractGraphObject::SelectNone);
+			}
+			for (int iMesh = 0; iMesh < manager->numClothPieces(); iMesh++)
+			{
+				auto piece = manager->clothPiece(iMesh);
+				auto mesh = &manager->clothPiece(iMesh)->mesh3d();
 				if (renderedId >= curIdx && renderedId < curIdx + mesh->face_list.size())
 				{
 					m_pickInfo.piece = piece;
@@ -110,7 +114,11 @@ void Abstract3dEventHandle::pick(QPoint pos)
 					picked = true;
 					piece->graphPanel().setSelected(true);
 					if (m_viewer->getMainUI())
+					{
 						m_viewer->getMainUI()->ui.dbPieceBendMult->setValue(m_pickInfo.piece->param().bending_k_mult);
+						m_viewer->getMainUI()->ui.dbPieceOutgoDist->setValue(m_pickInfo.piece->param().piece_outgo_dist);
+					}
+					break;
 				}
 				curIdx += mesh->face_list.size();
 			} // end for iMesh

@@ -7,28 +7,29 @@ namespace ldp
 	// param for a single cloth piece
 	struct PieceParam
 	{
-		float bending_k_mult;			// multiplied on SimulationParam.bending_k for each piece
+		float bending_k_mult = 0.f;			// multiplied on SimulationParam.bending_k for each piece
+		float piece_outgo_dist = 0.f;		// we want some pieces to be outside of others, this hack may be helpful		
 		PieceParam();
 		void setDefaultParam();
 	};
 
 	struct SimulationParam
 	{
-		float rho;						// for chebshev accereration
-		float under_relax;				// jacobi relax param
-		int lap_damping;				// loops of laplacian damping
-		float air_damping;				// damping of the air
-		float bending_k;				// related to the thickness of the cloth
-		float spring_k;					// related to the elasticity of the cloth
-		float spring_k_raw;				// spring_k_raw / avgArea = spring_k
-		float stitch_k;					// stiffness of stithed vertex, for sewing
-		float stitch_k_raw;				// stitch_k_raw / avgArea = stitch_k
-		float stitch_bending_k;			// bending of stitch sewings.
-		float stitch_ratio;				// for each stitch, the length will -= ratio*time_step each update
-		int out_iter;					// number of iterations
-		int inner_iter;					// number of iterations
-		float control_mag;				// for dragging, the stiffness of dragged point
-		float time_step;				// simulation time step
+		float rho = 0.f;						// for chebshev accereration
+		float under_relax = 0.f;				// jacobi relax param
+		int lap_damping = 0;					// loops of laplacian damping
+		float air_damping = 0.f;				// damping of the air
+		float bending_k = 0.f;					// related to the thickness of the cloth
+		float spring_k = 0.f;					// related to the elasticity of the cloth
+		float spring_k_raw = 0.f;				// spring_k_raw / avgArea = spring_k
+		float stitch_k = 0.f;					// stiffness of stithed vertex, for sewing
+		float stitch_k_raw = 0.f;				// stitch_k_raw / avgArea = stitch_k
+		float stitch_bending_k = 0.f;			// bending of stitch sewings.
+		float stitch_ratio = 0.f;				// for each stitch, the length will -= ratio*time_step each update
+		int out_iter = 0;						// number of iterations
+		int inner_iter = 0;						// number of iterations
+		float control_mag = 0.f;				// for dragging, the stiffness of dragged point
+		float time_step = 0.f;					// simulation time step
 		ldp::Float3 gravity;
 		SimulationParam();
 		void setDefaultParam();
@@ -36,12 +37,12 @@ namespace ldp
 
 	struct ClothDesignParam
 	{
-		float pointMergeDistThre;				// ignore two close points, in meters
-		float curveSampleStep;					// sample points on curves, in meters
-		float curveSampleAngleThreCos;			// if the cos(angle) of the points corner is too small, the point should be sampled.
-		float pointInsidePolyThre;				// in meters
-		float curveFittingThre;					// fitting inputs into cubics, in meters
-		float triangulateThre;					// size of triangle edges, in meters
+		float pointMergeDistThre = 0.f;					// ignore two close points, in meters
+		float curveSampleStep = 0.f;					// sample points on curves, in meters
+		float curveSampleAngleThreCos = 0.f;			// if the cos(angle) of the points corner is too small, the point should be sampled.
+		float pointInsidePolyThre = 0.f;				// in meters
+		float curveFittingThre = 0.f;					// fitting inputs into cubics, in meters
+		float triangulateThre = 0.f;					// size of triangle edges, in meters
 
 		ClothDesignParam();
 		void setDefaultParam();

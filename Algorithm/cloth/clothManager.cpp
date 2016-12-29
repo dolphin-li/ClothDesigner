@@ -89,6 +89,7 @@ namespace ldp
 
 		m_V.clear();
 		m_V_bending_k_mult.clear();
+		m_V_outgo_dist.clear();
 		m_allE.clear();
 		m_allVV.clear();
 		m_allVL.clear();
@@ -322,7 +323,8 @@ namespace ldp
 		{
 			if (pc.get() != piece)
 				continue;
-			if (fabs(param.bending_k_mult - pc->param().bending_k_mult) < std::numeric_limits<float>::epsilon())
+			if (fabs(param.bending_k_mult - pc->param().bending_k_mult) < std::numeric_limits<float>::epsilon()
+				&& fabs(param.piece_outgo_dist - pc->param().piece_outgo_dist) < std::numeric_limits<float>::epsilon())
 				break;
 			pc->param() = param;
 			m_shouldNumericUpdate = true;
@@ -850,9 +852,6 @@ namespace ldp
 		ldp::Float3 start = bmin;
 		m_bodyLvSet->create(res, start, step);
 		m_bodyLvSet->fromMesh(*m_bodyMesh);
-		//// ldp hack: make the cloth go outside a bit
-		//for (int i = 0; i < m_bodyLvSet->sizeXYZ(); i++)
-		//	m_bodyLvSet->value()[i] -= 0;
 		m_dev_phi.upload(m_bodyLvSet->value(), m_bodyLvSet->sizeXYZ());
 		m_shouldLevelSetUpdate = false;
 	}
@@ -954,13 +953,17 @@ namespace ldp
 		if (m_shouldTopologyUpdate)
 			buildTopology();
 
-		// update per-vertex bending
+		// update per-vertex bending and outgo dist
 		m_V_bending_k_mult.clear();
+		m_V_outgo_dist.clear();
 		for (auto& piece : m_clothPieces)
 		{
 			const auto& mesh = piece->mesh3d();
 			for (const auto& v : mesh.vertex_list)
+			{
 				m_V_bending_k_mult.push_back(piece->param().bending_k_mult);
+				m_V_outgo_dist.push_back(piece->param().piece_outgo_dist);
+			}
 		} // end for iCloth
 		assert(m_V_bending_k_mult.size() == m_V.size());
 
@@ -1026,6 +1029,7 @@ namespace ldp
 		m_dev_fixed.upload(m_fixed);
 		m_dev_more_fixed.upload(m_fixed);
 		m_dev_V.upload((const ValueType*)m_V.data(), m_V.size() * 3);
+		m_dev_V_outgo_dist.upload(m_V_outgo_dist);
 		m_dev_init_B.create(m_X.size()*3);
 		cudaMemset(m_dev_init_B.ptr(), 0, m_dev_init_B.sizeBytes());
 		m_dev_all_VL.upload(m_allVL);

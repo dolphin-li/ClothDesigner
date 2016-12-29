@@ -346,7 +346,7 @@ __global__ void Constraint_1_Kernel(const float* X, const float* init_B,
 
 #pragma region --constrain3
 	__global__ void Constraint_3_Kernel(float* X, const float *old_X, int number,
-		const float *phi, const float3 start, 
+		const float *phi, const float* outgo_dist, const float3 start, 
 		const float h, const float inv_h, const int size_x, const int size_y, 
 		const int size_z)
 	{
@@ -356,10 +356,11 @@ __global__ void Constraint_1_Kernel(const float* X, const float* init_B,
 
 		if (phi)
 		{
+			const float level_set_goal = 1.0f + outgo_dist[i] * inv_h;
 			float3 xi = make_float3(X[i * 3 + 0], X[i * 3 + 1], X[i * 3 + 2]);
 			float3 oxi = make_float3(old_X[i * 3 + 0], old_X[i * 3 + 1], old_X[i * 3 + 2]);
 			float3 t = (xi - start) * inv_h;
-			float depth = Level_Set_Depth(phi, t.x, t.y, t.z, 1.0f, size_x, size_y, size_z, size_y*size_z)*h;
+			float depth = Level_Set_Depth(phi, t.x, t.y, t.z, level_set_goal, size_x, size_y, size_z, size_y*size_z)*h;
 			if (depth<0)
 			{
 				t = xi - oxi;
@@ -371,7 +372,7 @@ __global__ void Constraint_1_Kernel(const float* X, const float* init_B,
 					if (t_length<0)	t_length = 0;
 				}
 				t = (oxi + t*t_length - start)*inv_h;
-				Level_Set_Projection(phi, t.x, t.y, t.z, 1.0f, size_x, size_y, size_z, size_y*size_z);
+				Level_Set_Projection(phi, t.x, t.y, t.z, level_set_goal, size_x, size_y, size_z, size_y*size_z);
 				X[i * 3 + 0] = t.x*h + start.x;
 				X[i * 3 + 1] = t.y*h + start.y;
 				X[i * 3 + 2] = t.z*h + start.z;
@@ -388,7 +389,7 @@ __global__ void Constraint_1_Kernel(const float* X, const float* init_B,
 		const int blocksPerGrid = divUp(m_X.size(), threadsPerBlock);
 		Constraint_3_Kernel << <blocksPerGrid, threadsPerBlock >> >(
 			m_dev_X.ptr(), m_dev_old_X.ptr(), m_X.size(),
-			m_dev_phi.ptr(), make_float3(start[0], start[1], start[2]), h, inv_h, 
+			m_dev_phi.ptr(), m_dev_V_outgo_dist.ptr(), make_float3(start[0], start[1], start[2]), h, inv_h, 
 			size[0], size[1], size[2]);
 		cudaSafeCall(cudaGetLastError(), "constrain3");
 	}
