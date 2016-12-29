@@ -55,6 +55,9 @@ void ClothDesigner::timerEvent(QTimerEvent* ev)
 			} catch (std::exception e)
 			{
 				std::cout << e.what() << std::endl;
+			} catch (...)
+			{
+				std::cout << "timerEvent: unknown error" << std::endl;
 			}
 		}
 	}
@@ -139,6 +142,9 @@ void ClothDesigner::on_actionLoad_svg_triggered()
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 }
 
@@ -153,6 +159,9 @@ void ClothDesigner::on_actionLoad_project_triggered()
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 }
 
@@ -173,6 +182,9 @@ void ClothDesigner::on_actionSave_project_triggered()
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 }
 
@@ -185,6 +197,9 @@ void ClothDesigner::on_actionPlace_3d_by_2d_triggered()
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 }
 
@@ -270,6 +285,9 @@ void ClothDesigner::updateUiByParam()
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 }
 
@@ -282,6 +300,9 @@ void ClothDesigner::on_pbResetSimulation_clicked()
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 }
 
@@ -295,6 +316,9 @@ void ClothDesigner::on_sbSparamOuterIter_valueChanged(int v)
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 }
 
@@ -308,6 +332,9 @@ void ClothDesigner::on_sbSparamInnerIter_valueChanged(int v)
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 }
 
@@ -321,6 +348,9 @@ void ClothDesigner::on_sbSparamTimeStepInv_valueChanged(int v)
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 }
 
@@ -334,6 +364,9 @@ void ClothDesigner::on_sbSparamLapDampIter_valueChanged(int v)
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 }
 
@@ -347,6 +380,9 @@ void ClothDesigner::on_sbSparamAirDamp_valueChanged(double v)
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 }
 
@@ -360,6 +396,9 @@ void ClothDesigner::on_sbSparamControlStiff_valueChanged(double v)
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 }
 
@@ -373,6 +412,9 @@ void ClothDesigner::on_sbSparamRho_valueChanged(double v)
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 }
 
@@ -386,6 +428,9 @@ void ClothDesigner::on_sbSparamUnderRelax_valueChanged(double v)
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 }
 
@@ -399,6 +444,9 @@ void ClothDesigner::on_sbSparamSpringStiff_valueChanged(double v)
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 }
 
@@ -412,6 +460,9 @@ void ClothDesigner::on_sbSparamBendStiff_valueChanged(double v)
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 }
 
@@ -425,6 +476,9 @@ void ClothDesigner::on_sbSparamStitchStiff_valueChanged(double v)
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 }
 
@@ -438,6 +492,9 @@ void ClothDesigner::on_sbSparamStitchSpeed_valueChanged(double v)
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 }
 
@@ -451,6 +508,9 @@ void ClothDesigner::on_sbSparamStitchBend_valueChanged(double v)
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 }
 
@@ -464,6 +524,9 @@ void ClothDesigner::on_sbSparamGravityX_valueChanged(double v)
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 }
 
@@ -477,6 +540,9 @@ void ClothDesigner::on_sbSparamGravityY_valueChanged(double v)
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 }
 
@@ -490,6 +556,9 @@ void ClothDesigner::on_sbSparamGravityZ_valueChanged(double v)
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 }
 
@@ -595,6 +664,9 @@ void ClothDesigner::on_pbFlipPolygon_clicked()
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 }
 
@@ -614,6 +686,9 @@ void ClothDesigner::on_sbDparamTriangleSize_valueChanged(double v)
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 }
 
@@ -626,4 +701,44 @@ void ClothDesigner::on_dbPieceBendMult_valueChanged(double v)
 	param.bending_k_mult = v;
 	g_dataholder.m_clothManager->setPieceParam(info.piece, param);
 	printf("%s, bend_k_mult = %f\n", info.piece->getName().c_str(), v);
+}
+
+void ClothDesigner::on_pbMirrorSelected_clicked()
+{
+	try
+	{
+		auto& manager = g_dataholder.m_clothManager;
+		if (manager->mirrorSelectedPanel())
+		{
+			m_widget2d->updateGL();
+			m_widget3d->updateGL();
+			pushHistory(QString().sprintf("mirror selected"), ldp::HistoryStack::TypeGeneral);
+		}
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
+	}
+}
+
+void ClothDesigner::on_pbCopySelected_clicked()
+{
+	try
+	{
+		auto& manager = g_dataholder.m_clothManager;
+		if (manager->copySelectedPanel())
+		{
+			m_widget2d->updateGL();
+			m_widget3d->updateGL();
+			pushHistory(QString().sprintf("mirror selected"), ldp::HistoryStack::TypeGeneral);
+		}
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
+	}
 }

@@ -1819,6 +1819,52 @@ namespace ldp
 		for (auto& sew : m_graphSewings)
 			sew->setHighlighted(false);
 	}
+
+	bool ClothManager::mirrorSelectedPanel()
+	{
+		bool change = false;
+		for (auto& piece : m_clothPieces)
+		{
+			auto& panel = piece->graphPanel();
+			if (!panel.isSelected())
+				continue;
+			for (auto iter = panel.point_begin(); iter != panel.point_end(); ++iter)
+			{
+				auto p = iter->getPosition();
+				iter->setPosition(Float2(-p[0], p[1]));
+			}
+			change = true;
+		} // piece
+		if (change)
+			m_shouldTriangulate = true;
+		return change;
+	}
+
+	bool ClothManager::copySelectedPanel()
+	{
+		bool change = false;
+		for (auto& piece : m_clothPieces)
+		{
+			auto& panel = piece->graphPanel();
+			if (!panel.isSelected())
+				continue;
+			auto piece_copy = piece->lightClone();
+			for (auto iter = panel.point_begin(); iter != panel.point_end(); ++iter)
+			{
+				auto p = iter->getPosition();
+				iter->setPosition(Float2(-p[0], p[1]));
+			}
+			for (auto iter = panel.curve_begin(); iter != panel.curve_end(); ++iter)
+			{
+				iter->graphSewings().clear();
+			}
+
+			change = true;
+		} // piece
+		if (change)
+			m_shouldTriangulate = true;
+		return change;
+	}
 	///////////////////////////////////////////////////////////////////////////////////////////
 	void ClothManager::fromXml(std::string filename)
 	{

@@ -63,6 +63,8 @@ public:
 	void on_pbFlipPolygon_clicked();
 	void on_sbDparamTriangleSize_valueChanged(double v);
 	void on_dbPieceBendMult_valueChanged(double v);
+	void on_pbMirrorSelected_clicked();
+	void on_pbCopySelected_clicked();
 public:
 	Ui::ClothDesignerClass ui;
 	Viewer2d* m_widget2d;

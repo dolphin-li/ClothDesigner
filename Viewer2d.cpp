@@ -208,13 +208,22 @@ void Viewer2d::paintGL()
 	// show cloth simulation=============================
 	m_camera.apply();
 
-	renderBackground();
+	try
+	{
+		renderBackground();
 
-	m_camera.apply();
-	renderMeshes(false);
-	m_camera.apply();
-	renderClothsPanels(false);
-	renderDragBox();
+		m_camera.apply();
+		renderMeshes(false);
+		m_camera.apply();
+		renderClothsPanels(false);
+		renderDragBox();
+	} catch (std::exception e)
+	{
+		std::cout << "paintGL: " << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "paintGL: unknown error" << std::endl;
+	}
 }
 
 void Viewer2d::renderSelectionOnFbo()
@@ -305,6 +314,9 @@ void Viewer2d::mousePressEvent(QMouseEvent *ev)
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 	updateGL();
 }
@@ -335,6 +347,9 @@ void Viewer2d::keyPressEvent(QKeyEvent*ev)
 	}catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 }
 
@@ -347,6 +362,9 @@ void Viewer2d::keyReleaseEvent(QKeyEvent*ev)
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 }
 
@@ -358,6 +376,9 @@ void Viewer2d::mouseReleaseEvent(QMouseEvent *ev)
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 
 	// clear buttons
@@ -373,6 +394,9 @@ void Viewer2d::mouseMoveEvent(QMouseEvent*ev)
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 	// backup last position
 	m_lastPos = ev->pos();
@@ -387,6 +411,9 @@ void Viewer2d::mouseDoubleClickEvent(QMouseEvent *ev)
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 	updateGL();
 }
@@ -399,6 +426,9 @@ void Viewer2d::wheelEvent(QWheelEvent*ev)
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
 	}
 
 	updateGL();

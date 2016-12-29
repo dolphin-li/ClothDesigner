@@ -424,7 +424,7 @@
    <property name="minimumSize">
     <size>
      <width>270</width>
-     <height>150</height>
+     <height>156</height>
     </size>
    </property>
    <property name="features">
@@ -435,15 +435,18 @@
    </attribute>
    <widget class="QWidget" name="dockWidgetContentsLower">
     <layout class="QGridLayout" name="gridLayout_4">
-     <item row="0" column="0">
-      <widget class="QPushButton" name="pbResetSimulation">
-       <property name="text">
-        <string>reset simulaton</string>
+     <item row="0" column="1" rowspan="3">
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
        </property>
-       <property name="shortcut">
-        <string>1</string>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>937</width>
+         <height>20</height>
+        </size>
        </property>
-      </widget>
+      </spacer>
      </item>
      <item row="1" column="0">
       <widget class="QPushButton" name="pbFlipPolygon">
@@ -458,18 +461,41 @@
        </property>
       </widget>
      </item>
-     <item row="0" column="1" rowspan="3">
-      <spacer name="horizontalSpacer">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+     <item row="0" column="0">
+      <widget class="QPushButton" name="pbResetSimulation">
+       <property name="text">
+        <string>reset simulaton</string>
        </property>
-       <property name="sizeHint" stdset="0">
+       <property name="shortcut">
+        <string>1</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QPushButton" name="pbMirrorSelected">
+       <property name="minimumSize">
         <size>
-         <width>937</width>
-         <height>20</height>
+         <width>0</width>
+         <height>25</height>
         </size>
        </property>
-      </spacer>
+       <property name="text">
+        <string>mirror selected</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QPushButton" name="pbCopySelected">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>25</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>copy selected</string>
+       </property>
+      </widget>
      </item>
     </layout>
    </widget>

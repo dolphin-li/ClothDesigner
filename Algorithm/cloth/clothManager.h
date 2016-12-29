@@ -135,6 +135,8 @@ namespace ldp
 		bool mergeTheSelectedKeyPointToCurve();
 		bool splitSelectedCurve(Float2 position);
 		void clearHighLights();
+		bool mirrorSelectedPanel();
+		bool copySelectedPanel();
 	protected:
 		static void initSmplDatabase();
 	private:

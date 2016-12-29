@@ -101,9 +101,11 @@ public:
     QDockWidget *dockWidgetLower;
     QWidget *dockWidgetContentsLower;
     QGridLayout *gridLayout_4;
-    QPushButton *pbResetSimulation;
-    QPushButton *pbFlipPolygon;
     QSpacerItem *horizontalSpacer;
+    QPushButton *pbFlipPolygon;
+    QPushButton *pbResetSimulation;
+    QPushButton *pbMirrorSelected;
+    QPushButton *pbCopySelected;
 
     void setupUi(QMainWindow *ClothDesignerClass)
     {
@@ -403,7 +405,7 @@ public:
         ClothDesignerClass->addDockWidget(static_cast<Qt::DockWidgetArea>(2), dockWidgetRight);
         dockWidgetLower = new QDockWidget(ClothDesignerClass);
         dockWidgetLower->setObjectName(QStringLiteral("dockWidgetLower"));
-        dockWidgetLower->setMinimumSize(QSize(270, 150));
+        dockWidgetLower->setMinimumSize(QSize(270, 156));
         dockWidgetLower->setFeatures(QDockWidget::NoDockWidgetFeatures);
         dockWidgetContentsLower = new QWidget();
         dockWidgetContentsLower->setObjectName(QStringLiteral("dockWidgetContentsLower"));
@@ -411,10 +413,9 @@ public:
         gridLayout_4->setSpacing(6);
         gridLayout_4->setContentsMargins(11, 11, 11, 11);
         gridLayout_4->setObjectName(QStringLiteral("gridLayout_4"));
-        pbResetSimulation = new QPushButton(dockWidgetContentsLower);
-        pbResetSimulation->setObjectName(QStringLiteral("pbResetSimulation"));
+        horizontalSpacer = new QSpacerItem(937, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
 
-        gridLayout_4->addWidget(pbResetSimulation, 0, 0, 1, 1);
+        gridLayout_4->addItem(horizontalSpacer, 0, 1, 3, 1);
 
         pbFlipPolygon = new QPushButton(dockWidgetContentsLower);
         pbFlipPolygon->setObjectName(QStringLiteral("pbFlipPolygon"));
@@ -422,9 +423,22 @@ public:
 
         gridLayout_4->addWidget(pbFlipPolygon, 1, 0, 1, 1);
 
-        horizontalSpacer = new QSpacerItem(937, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+        pbResetSimulation = new QPushButton(dockWidgetContentsLower);
+        pbResetSimulation->setObjectName(QStringLiteral("pbResetSimulation"));
 
-        gridLayout_4->addItem(horizontalSpacer, 0, 1, 3, 1);
+        gridLayout_4->addWidget(pbResetSimulation, 0, 0, 1, 1);
+
+        pbMirrorSelected = new QPushButton(dockWidgetContentsLower);
+        pbMirrorSelected->setObjectName(QStringLiteral("pbMirrorSelected"));
+        pbMirrorSelected->setMinimumSize(QSize(0, 25));
+
+        gridLayout_4->addWidget(pbMirrorSelected, 2, 0, 1, 1);
+
+        pbCopySelected = new QPushButton(dockWidgetContentsLower);
+        pbCopySelected->setObjectName(QStringLiteral("pbCopySelected"));
+        pbCopySelected->setMinimumSize(QSize(0, 25));
+
+        gridLayout_4->addWidget(pbCopySelected, 3, 0, 1, 1);
 
         dockWidgetLower->setWidget(dockWidgetContentsLower);
         ClothDesignerClass->addDockWidget(static_cast<Qt::DockWidgetArea>(8), dockWidgetLower);
@@ -487,9 +501,11 @@ public:
         groupBox_2->setTitle(QApplication::translate("ClothDesignerClass", "Piece Param", 0));
         label_16->setText(QApplication::translate("ClothDesignerClass", "bend mult", 0));
         tabWidget->setTabText(tabWidget->indexOf(tabDesign), QApplication::translate("ClothDesignerClass", "Design", 0));
+        pbFlipPolygon->setText(QApplication::translate("ClothDesignerClass", "flip polygon", 0));
         pbResetSimulation->setText(QApplication::translate("ClothDesignerClass", "reset simulaton", 0));
         pbResetSimulation->setShortcut(QApplication::translate("ClothDesignerClass", "1", 0));
-        pbFlipPolygon->setText(QApplication::translate("ClothDesignerClass", "flip polygon", 0));
+        pbMirrorSelected->setText(QApplication::translate("ClothDesignerClass", "mirror selected", 0));
+        pbCopySelected->setText(QApplication::translate("ClothDesignerClass", "copy selected", 0));
     } // retranslateUi
 
 };
