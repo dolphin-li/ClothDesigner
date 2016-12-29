@@ -8,18 +8,14 @@
 #include <set>
 #include "definations.h"
 #include "graph\AbstractGraphObject.h"
-//#define ENABLE_SELF_COLLISION
-#ifdef ENABLE_SELF_COLLISION
-#include "COLLISION_HANDLER.h"
-#endif
 
-//#define ENABLE_EDGE_WISE_STITCH
 namespace svg
 {
 	class SvgManager;
 	class SvgPolyPath;
 }
 class SmplManager;
+class COLLISION_HANDLER;
 namespace ldp
 {
 	class GraphsSewing;
@@ -142,6 +138,7 @@ namespace ldp
 		bool copySelectedPanel();
 	protected:
 		static void initSmplDatabase();
+		void initCollisionHandler();
 	private:
 		std::vector<std::shared_ptr<GraphsSewing>> m_graphSewings;
 		std::vector<std::shared_ptr<ClothPiece>> m_clothPieces;
@@ -203,15 +200,7 @@ namespace ldp
 		std::vector<ValueType> m_stitchVW;
 		std::vector<ValueType> m_stitchVC;
 		std::vector<ValueType> m_stitchVL;
-#ifdef ENABLE_EDGE_WISE_STITCH
-		std::vector<int> m_stitchEV_num;				// csr header of the sparse matrix ev
-		std::vector<int> m_stitchEV;					// edge-wise stitch, map e to v
-		std::vector<ValueType> m_stitchEV_W;			// edge-wise stitch, map e to v
-		std::vector<ValueType> m_stitchE_length;		// edge-wise stitch, the input length of each stitch
-		std::vector<int> m_stitchVE_num;				// csr header of the sparse matrix ve
-		std::vector<int> m_stitchVE;					// edge-wise stich, map v to e
-		std::vector<ValueType> m_stitchVE_W;			// edge-wise stich, map v to e
-#endif
+
 		ValueType m_curStitchRatio;						// the stitchEdge * ratio is the current stitched length
 		// GPU related-------------------------------------------------------------------
 	protected:
@@ -225,6 +214,7 @@ namespace ldp
 		void constrain2(float omega);				// inner loop, chebshev relax
 		void constrain3();							// collision handle using level set.
 		void constrain4();							// update velocity
+		void constrain_selfCollision();
 		void resetMoreFixed();						// for draging
 	private:
 		DeviceArray<ValueType> m_dev_X;				// position
@@ -248,18 +238,8 @@ namespace ldp
 		DeviceArray<ValueType> m_dev_stitch_VW;
 		DeviceArray<ValueType> m_dev_stitch_VC;
 		DeviceArray<ValueType> m_dev_stitch_VL;
-#ifdef ENABLE_EDGE_WISE_STITCH
-		DeviceArray<int> m_dev_stitchEV_num;				// csr header of the sparse matrix ev
-		DeviceArray<int> m_dev_stitchEV;					// edge-wise stitch, map e to v
-		DeviceArray<ValueType> m_dev_stitchEV_W;			// edge-wise stitch, map e to v
-		DeviceArray<ValueType> m_dev_stitchE_length;		// edge-wise stitch, the input length of each stitch
-		DeviceArray<int> m_dev_stitchVE_num;				// csr header of the sparse matrix ve
-		DeviceArray<int> m_dev_stitchVE;					// edge-wise stich, map v to e
-		DeviceArray<ValueType> m_dev_stitchVE_W;			// edge-wise stich, map v to e
-		DeviceArray<ValueType> m_dev_stitchE_curVec;		// length * ratio * last_stitch_edge_dir
-#endif
-#ifdef ENABLE_SELF_COLLISION
-		COLLISION_HANDLER<ValueType> m_collider;
-#endif
+
+		//// self collision handler--------------------------------------------------------
+		std::shared_ptr<COLLISION_HANDLER> m_collider;
 	};
 }

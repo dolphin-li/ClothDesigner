@@ -3,6 +3,15 @@
 #include "LevelSet3D.h"
 #include "LEVEL_SET_COLLISION.h"
 #include "helper_math.h"
+
+
+//#define ENABLE_SELF_COLLISION
+
+#ifdef ENABLE_SELF_COLLISION
+#include "MY_MATH.h"
+#include "COLLISION_HANDLER.h"
+#endif
+
 namespace ldp
 {
 	enum
@@ -433,6 +442,23 @@ __global__ void Constraint_1_Kernel(const float* X, const float* init_B,
 			m_dev_X.ptr(), m_dev_more_fixed.ptr(), m_simulationParam.control_mag, 
 			m_X.size(), m_curDragInfo.vert_id);
 		cudaSafeCall(cudaGetLastError(), "resetMoreFixed");
+	}
+#pragma endregion
+
+#pragma region --collision handler
+	void ClothManager::initCollisionHandler()
+	{
+#ifdef ENABLE_SELF_COLLISION
+		m_collider.reset(new COLLISION_HANDLER());
+#endif
+	}
+
+	void ClothManager::constrain_selfCollision()
+	{
+#ifdef ENABLE_SELF_COLLISION
+		m_collider->Run(m_dev_old_X.ptr(), m_dev_X.ptr(), m_dev_V.ptr(), m_X.size(), 
+			m_dev_T.ptr(), m_T.size(), (ValueType*)m_X.data(), 1.f / m_simulationParam.time_step);
+#endif
 	}
 #pragma endregion
 }

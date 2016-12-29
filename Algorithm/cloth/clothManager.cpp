@@ -75,6 +75,7 @@ namespace ldp
 		m_bodyLvSet.reset(new LevelSet3D);
 		m_graph2mesh.reset(new Graph2Mesh);
 		initSmplDatabase();
+		initCollisionHandler();
 	}
 
 	ClothManager::~ClothManager()
@@ -224,9 +225,7 @@ namespace ldp
 
 			constrain3();
 
-#ifdef ENABLE_SELF_COLLISION
-			collider.Run(dev_old_X, dev_X, dev_V, number, dev_T, t_number, X, 1/t);
-#endif
+			constrain_selfCollision();
 
 			constrain4();
 			m_dev_X.download((ValueType*)m_X.data());
@@ -585,134 +584,6 @@ namespace ldp
 		if (m_shouldNumericUpdate)
 			buildNumerical();
 		m_simulationParam.stitch_k = m_simulationParam.stitch_k_raw / m_avgArea;
-
-#ifdef ENABLE_EDGE_WISE_STITCH
-		typedef Eigen::SparseMatrix<ValueType> SpMat;
-		typedef Eigen::Matrix<ValueType, -1, -1> DMat;
-		typedef Eigen::Matrix<ValueType, -1, 1> DVec;
-		typedef Eigen::Map<DMat> DMatPtr;
-		const float sitchKsqrt = sqrt(m_simulationParam.stitch_k);
-
-		// stitch EV info------------------------------------------------
-		std::vector<Eigen::Triplet<float>> cooSys;
-		int nRows = 0;
-		for (const auto& s : m_stitches)
-		{
-			cooSys.push_back(Eigen::Triplet<float>(nRows, s.first.vids[0], 1 - s.first.w));
-			cooSys.push_back(Eigen::Triplet<float>(nRows, s.first.vids[1], s.first.w));
-			cooSys.push_back(Eigen::Triplet<float>(nRows, s.second.vids[0], -1 + s.second.w));
-			cooSys.push_back(Eigen::Triplet<float>(nRows, s.second.vids[1], -s.second.w));
-			nRows++;
-		}
-		SpMat A, At;
-		A.resize(nRows, m_X.size());
-		if (cooSys.size())
-			A.setFromTriplets(cooSys.begin(), cooSys.end());
-		At = A.transpose();
-
-		m_stitchEV_num.clear();
-		m_stitchEV.clear();
-		m_stitchEV_W.clear();
-		m_stitchEV_num.clear();
-		m_stitchEV_num.resize(At.cols() + 1, 0);
-		for (int c = 0; c < At.cols(); c++)
-		{
-			const int bg = At.outerIndexPtr()[c];
-			const int ed = At.outerIndexPtr()[c + 1];
-			m_stitchEV_num[c] = bg;
-			m_stitchEV_num[c + 1] = ed;
-			for (int pos = bg; pos<ed; pos++)
-			{
-				int r = At.innerIndexPtr()[pos];
-				ValueType v = At.valuePtr()[pos];
-				m_stitchEV.push_back(r);
-				m_stitchEV_W.push_back(v);
-			} // end for pos
-		} // end for c
-
-		// stitch E_lengths-----------------------------------------------
-		DMat X(m_X.size(), 3);
-		for (int r = 0; r < X.rows(); r++)
-		for (int k = 0; k < X.cols(); k++)
-			X(r, k) = m_X[r][k];
-		DMat Ax = A*X;
-		m_stitchE_length.resize(Ax.rows());
-		for (int r = 0; r < Ax.rows(); r++)
-			m_stitchE_length[r] = Ax.row(r).norm();
-
-		// stich VE info--------------------------------------------------
-		m_stitchVE.clear();
-		m_stitchVE_W.clear();
-		m_stitchVE_num.clear();
-		m_stitchVE_num.resize(A.cols() + 1, 0);
-		for (int c = 0; c < A.cols(); c++)
-		{
-			const int bg = A.outerIndexPtr()[c];
-			const int ed = A.outerIndexPtr()[c + 1];
-			m_stitchVE_num[c] = bg;
-			m_stitchVE_num[c + 1] = ed;
-			for (int pos = bg; pos<ed; pos++)
-			{
-				int r = A.innerIndexPtr()[pos];
-				ValueType v = A.valuePtr()[pos];
-				m_stitchVE.push_back(r);
-				m_stitchVE_W.push_back(v);
-			} // end for pos
-		} // end for c
-
-		// stich VV info--------------------------------------------------
-		SpMat AtA = A.transpose()*A;
-		m_stitchVV_num.clear();
-		m_stitchVV_num.resize(m_X.size() + 1, 0);
-		m_stitchVC.clear();
-		m_stitchVC.resize(m_X.size(), 0);
-		m_stitchVV.clear();
-		m_stitchVV.reserve(AtA.nonZeros());
-		m_stitchVW.clear();
-		m_stitchVW.reserve(AtA.nonZeros());
-		m_stitchVL.clear();
-		m_stitchVL.reserve(AtA.nonZeros());
-		int curOffDiagIdx = 0;
-		for(int c = 0; c < AtA.outerSize(); c++)
-		{
-			const int bg = AtA.outerIndexPtr()[c];
-			const int ed = AtA.outerIndexPtr()[c + 1];
-			m_stitchVV_num[c] = curOffDiagIdx;
-			for(int pos=bg; pos<ed; pos++)
-			{
-				int r = AtA.innerIndexPtr()[pos];
-				ValueType v = AtA.valuePtr()[pos];
-				ValueType l = (m_X[r] - m_X[c]).length();
-				if(r != c)
-				{
-					m_stitchVV.push_back(r);
-					m_stitchVW.push_back(v * m_simulationParam.stitch_k);
-					m_stitchVL.push_back(l);
-					curOffDiagIdx++;
-				}
-				else
-					m_stitchVC[c] = v * m_simulationParam.stitch_k;
-			} // end for pos
-		} // end for c
-		m_stitchVV_num.back() = curOffDiagIdx;
-
-		// copy to GPU
-		m_dev_stitch_VV.upload(m_stitchVV);
-		m_dev_stitch_VV_num.upload(m_stitchVV_num);
-		m_dev_stitch_VC.upload(m_stitchVC);
-		m_dev_stitch_VW.upload(m_stitchVW);
-		m_dev_stitch_VL.upload(m_stitchVL);
-
-		m_dev_stitchEV_num.upload(m_stitchEV_num);		
-		m_dev_stitchEV.upload(m_stitchEV);			
-		m_dev_stitchEV_W.upload(m_stitchEV_W);		
-		m_dev_stitchE_length.upload(m_stitchE_length);	
-		m_dev_stitchVE_num.upload(m_stitchVE_num);		
-		m_dev_stitchVE.upload(m_stitchVE);			
-		m_dev_stitchVE_W.upload(m_stitchVE_W);	
-		m_dev_stitchE_curVec.create(m_dev_stitchE_length.size()*3);
-		cudaMemset(m_dev_stitchE_curVec.ptr(), 0, m_dev_stitchE_curVec.sizeBytes());
-#else
 		
 		// build bending edges for boundary sewings
 		m_sewVofFMap.clear();
@@ -953,7 +824,7 @@ namespace ldp
 		m_dev_stitch_VC.upload(m_stitchVC);
 		m_dev_stitch_VW.upload(m_stitchVW);
 		m_dev_stitch_VL.upload(m_stitchVL);
-#endif
+
 		m_shouldStitchUpdate = false;
 	}
 
@@ -1067,6 +938,8 @@ namespace ldp
 		m_dev_T.upload((const int*)m_T.data(), m_T.size() * 3);
 		m_dev_all_VV.upload(m_allVV);
 		m_dev_all_vv_num.upload(m_allVV_num);
+
+		initCollisionHandler();
 
 		// parameter
 		m_simulationParam.spring_k = m_simulationParam.spring_k_raw / m_avgArea;

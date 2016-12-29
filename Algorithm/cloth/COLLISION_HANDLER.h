@@ -35,6 +35,7 @@
 #define	INT_Y(y)		((int)(((y)-start_y)*inv_h))
 #define	INT_Z(z)		((int)(((z)-start_z)*inv_h))
 
+//#define USE_CUDA
 
 #ifdef USE_CUDA
 
@@ -492,7 +493,7 @@ public:
 		///////////////////////////////////////////////////////////////////////////
 		//	Step 1: Initialization
 		///////////////////////////////////////////////////////////////////////////
-		float	h		= 0.006; //twice the max vertex velocity
+		float	h		= 0.06; //twice the max vertex velocity
 		float	inv_h	= 1.0/h;
 
 		float	min_x= MY_INFINITE, min_y= MY_INFINITE, min_z= MY_INFINITE;
