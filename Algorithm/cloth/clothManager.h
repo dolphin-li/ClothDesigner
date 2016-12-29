@@ -36,13 +36,11 @@ namespace ldp
 	protected:
 		struct DragInfoInternal
 		{
-			int vert_id;
+			int vert_id = -1;
 			ldp::Float3 dir;
 			ldp::Float3 target;
-			DragInfoInternal()
-			{
-				vert_id = -1;
-			}
+			int piece_id_start = 0;
+			int piece_id_end = 0;
 		};
 	public:
 		ClothManager();

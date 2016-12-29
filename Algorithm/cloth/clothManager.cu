@@ -421,10 +421,11 @@ __global__ void Constraint_1_Kernel(const float* X, const float* init_B,
 
 #pragma region --drag control
 #define RADIUS_SQUARED	0.000625
-	__global__ void Control_Kernel(float* X, float *more_fixed, float control_mag, const int number, const int select_v)
+	__global__ void Control_Kernel(float* X, float *more_fixed, float control_mag, const int number, 
+		const int select_v, const int start_id, const int end_id)
 	{
 		int i = blockDim.x * blockIdx.x + threadIdx.x;
-		if (i >= number)	return;
+		if (i >= end_id || i < start_id)	return;
 
 		more_fixed[i] = 0;
 		if (select_v != -1)
@@ -441,7 +442,8 @@ __global__ void Constraint_1_Kernel(const float* X, const float* init_B,
 		const int blocksPerGrid = divUp(m_X.size(), threadsPerBlock);
 		Control_Kernel << <blocksPerGrid, threadsPerBlock >> >(
 			m_dev_X.ptr(), m_dev_more_fixed.ptr(), m_simulationParam.control_mag, 
-			m_X.size(), m_curDragInfo.vert_id);
+			m_X.size(), m_curDragInfo.vert_id, m_curDragInfo.piece_id_start,
+			m_curDragInfo.piece_id_end);
 		cudaSafeCall(cudaGetLastError(), "resetMoreFixed");
 	}
 #pragma endregion

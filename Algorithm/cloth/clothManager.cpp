@@ -119,10 +119,14 @@ namespace ldp
 		m_curDragInfo.vert_id = -1;
 		m_curDragInfo.dir = 0;
 		m_curDragInfo.target = 0;
+		m_curDragInfo.piece_id_end = 0;
+		m_curDragInfo.piece_id_start = 0;
 		if (m_clothVertBegin.find(info.selected_cloth) != m_clothVertBegin.end())
 		{
 			m_curDragInfo.vert_id = info.selected_vert_id + m_clothVertBegin.at(info.selected_cloth);
 			m_curDragInfo.target = info.target;
+			m_curDragInfo.piece_id_start = m_clothVertBegin[info.selected_cloth];
+			m_curDragInfo.piece_id_end = m_curDragInfo.piece_id_start + (int)info.selected_cloth->vertex_list.size();
 		}
 		resetMoreFixed();
 	}
