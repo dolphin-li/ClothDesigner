@@ -117,8 +117,11 @@ void Transform2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 				changed = true;
 		} // end for iPiece
 		if (m_viewer->getMainUI() && changed)
+		{
+			m_viewer->getMainUI()->viewer3d()->updateGL();
 			m_viewer->getMainUI()->pushHistory(QString().sprintf("pattern select: %d",
 			pickInfo().renderId), ldp::HistoryStack::TypePatternSelect);
+		}
 	} // end if single selection
 	else if (m_viewer->isDragBoxMode())
 	{
@@ -140,8 +143,11 @@ void Transform2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 				changed = true;
 		} // end for iPiece
 		if (m_viewer->getMainUI() && changed)
+		{
+			m_viewer->getMainUI()->viewer3d()->updateGL();
 			m_viewer->getMainUI()->pushHistory(QString().sprintf("pattern select: %d...",
 			*ids.begin()), ldp::HistoryStack::TypePatternSelect);
+		}
 	} // end else group selection
 
 	m_viewer->endDragBox();

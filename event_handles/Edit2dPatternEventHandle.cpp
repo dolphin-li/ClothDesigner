@@ -1,6 +1,7 @@
 #include <QEvent>
 #include <GL\glew.h>
 #include "Viewer2d.h"
+#include "viewer3d.h"
 #include "cloth\clothManager.h"
 #include "cloth\clothPiece.h"
 #include "cloth\graph\Graph.h"
@@ -73,8 +74,11 @@ void Edit2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 					changed = true;
 			} // end for iPiece
 			if (m_viewer->getMainUI() && changed)
+			{
+				m_viewer->getMainUI()->viewer3d()->updateGL();
 				m_viewer->getMainUI()->pushHistory(QString().sprintf("pattern select: %d",
 				pickInfo().renderId), ldp::HistoryStack::TypePatternSelect);
+			}
 		} // end if single selection
 		else
 		{
@@ -96,8 +100,11 @@ void Edit2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 					changed = true;
 			} // end for iPiece
 			if (m_viewer->getMainUI() && changed)
+			{
+				m_viewer->getMainUI()->viewer3d()->updateGL();
 				m_viewer->getMainUI()->pushHistory(QString().sprintf("pattern select: %d...",
-				*ids.begin()), ldp::HistoryStack::TypePatternSelect);
+					*ids.begin()), ldp::HistoryStack::TypePatternSelect);
+			}
 		} // end else group selection
 	}
 	m_viewer->endDragBox();
@@ -149,6 +156,7 @@ void Edit2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 			if (m_viewer->getMainUI() && change)
 			{
 				manager->triangulate();
+				m_viewer->getMainUI()->viewer3d()->updateGL();
 				m_viewer->getMainUI()->pushHistory(QString().sprintf("pattern removed",
 				op), ldp::HistoryStack::TypeGeneral);
 			}
@@ -161,6 +169,7 @@ void Edit2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 			if (m_viewer->getMainUI() && change)
 			{
 				manager->triangulate();
+				m_viewer->getMainUI()->viewer3d()->updateGL();
 				m_viewer->getMainUI()->pushHistory(QString().sprintf("curves to loop",
 					op), ldp::HistoryStack::TypeGeneral);
 			}
@@ -171,6 +180,7 @@ void Edit2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 			if (m_viewer->getMainUI() && change)
 			{
 				manager->triangulate();
+				m_viewer->getMainUI()->viewer3d()->updateGL();
 				m_viewer->getMainUI()->pushHistory(QString().sprintf("remove loop",
 					op), ldp::HistoryStack::TypeGeneral);
 			}
@@ -183,6 +193,7 @@ void Edit2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 			if (m_viewer->getMainUI() && change)
 			{
 				manager->triangulate();
+				m_viewer->getMainUI()->viewer3d()->updateGL();
 				m_viewer->getMainUI()->pushHistory(QString().sprintf("merge curves",
 				op), ldp::HistoryStack::TypeGeneral);
 			}
@@ -192,6 +203,7 @@ void Edit2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 				if (m_viewer->getMainUI() && change)
 				{
 					manager->triangulate();
+					m_viewer->getMainUI()->viewer3d()->updateGL();
 					m_viewer->getMainUI()->pushHistory(QString().sprintf("merge point to curve",
 					op), ldp::HistoryStack::TypeGeneral);
 				}
@@ -202,6 +214,7 @@ void Edit2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 				if (m_viewer->getMainUI() && change)
 				{
 					manager->triangulate();
+					m_viewer->getMainUI()->viewer3d()->updateGL();
 					m_viewer->getMainUI()->pushHistory(QString().sprintf("merge key points",
 					op), ldp::HistoryStack::TypeGeneral);
 				}
@@ -217,6 +230,7 @@ void Edit2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 			if (m_viewer->getMainUI() && change)
 			{
 				manager->triangulate();
+				m_viewer->getMainUI()->viewer3d()->updateGL();
 				m_viewer->getMainUI()->pushHistory(QString().sprintf("split curve",
 				op), ldp::HistoryStack::TypeGeneral);
 			}
@@ -233,8 +247,11 @@ void Edit2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 			changed = true;
 	} // end for iPiece
 	if (m_viewer->getMainUI() && changed)
+	{
+		m_viewer->getMainUI()->viewer3d()->updateGL();
 		m_viewer->getMainUI()->pushHistory(QString().sprintf("pattern select: all(%d)",
 		op), ldp::HistoryStack::TypePatternSelect);
+	}
 }
 
 void Edit2dPatternEventHandle::keyReleaseEvent(QKeyEvent *ev)
