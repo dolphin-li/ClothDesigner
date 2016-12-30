@@ -256,14 +256,12 @@ namespace ldp
 		// 0. find all closed loops and non-closed loops, non-closed curves
 		std::vector<GraphLoop*> closedLoops, openLoops;
 		std::vector<AbstractGraphCurve*> openCurves;
-		bool hasBoundingLoop = false;
 		for (auto iter = loop_begin(); iter != loop_end(); ++iter)
 		{
 			if (iter->isClosed())
 				closedLoops.push_back(iter);
 			else
 				openLoops.push_back(iter);
-			hasBoundingLoop |= iter->isBoundingLoop();
 		}
 		for (auto iter = curve_begin(); iter != curve_end(); ++iter)
 		{
@@ -279,31 +277,32 @@ namespace ldp
 		}
 
 		// 1. check the bounding loop
-		if (!hasBoundingLoop)
+		// make the largest closed loop as boundingLoop
+		GraphLoop* largest = nullptr;
+		float largestArea = 0.f;
+		for (auto& loop : closedLoops)
 		{
-			// make the largest closed loop as boundingLoop
-			GraphLoop* largest = nullptr;
-			float largestArea = 0.f;
-			for (auto& loop : closedLoops)
+			float area = 0.f;
+			Float2 lastP = std::numeric_limits<float>::quiet_NaN();
+			for (auto iter = loop->samplePoint_begin(g_designParam.curveSampleStep); !iter.isEnd(); ++iter)
 			{
-				float area = 0.f;
-				Float2 lastP = std::numeric_limits<float>::quiet_NaN();
-				for (auto iter = loop->samplePoint_begin(g_designParam.curveSampleStep); !iter.isEnd(); ++iter)
-				{
-					if (!std::isnan(lastP[0]))
-						area += (*iter).cross(lastP) * 0.5f;
-					lastP = *iter;
-				}
-				area = abs(area);
-				if (area > largestArea)
-				{
-					largestArea = area;
-					largest = loop;
-				}
-			} // end for loop
-			if (largest)
-				largest->setBoundingLoop(true);
-		} // end if !hasBoundingLoop
+				if (!std::isnan(lastP[0]))
+					area += (*iter).cross(lastP) * 0.5f;
+				lastP = *iter;
+			}
+			area = abs(area);
+			if (area > largestArea)
+			{
+				largestArea = area;
+				largest = loop;
+			}
+		} // end for loop
+		if (largest)
+		{
+			if (getBoundingLoop())
+				getBoundingLoop()->setBoundingLoop(false);
+			largest->setBoundingLoop(true);
+		}
 
 		// 2. for all curves with isolated end points, check if the point is on a closed loop
 		std::vector<Float2> curveSamples;
@@ -1135,21 +1134,30 @@ namespace ldp
 					|| curve.first->getEndPoint() == other.first->getEndPoint())
 				{
 					if (curve.second.next)
-						return false; // we donot allow multi-connection
+					{
+						printf("cannot merge: the selected curves are not one-way connected\n");
+						return false;
+					}
 					curve.second.next = other.first;
 				}
 				if (curve.first->getStartPoint() == other.first->getStartPoint()
 					|| curve.first->getStartPoint() == other.first->getEndPoint())
 				{
 					if (curve.second.prev)
-						return false; // we donot allow multi-connection
+					{
+						printf("cannot merge: the selected curves are not one-way connected\n");
+						return false;
+					}
 					curve.second.prev = other.first;
 				}
 			} // end for other
 
 			// we donot allow non-connected curves
 			if (curve.second.prev == nullptr && curve.second.next == nullptr)
+			{
+				printf("cannot merge: the selected curves are not connected\n");
 				return false;
+			}
 		} // end for curve
 
 		// set an end point as the start point
@@ -1242,24 +1250,36 @@ namespace ldp
 
 				// all the curves must be in the same loops
 				if (curve.first->m_graphLinks.size() != other.first->m_graphLinks.size())
+				{
+					printf("cannot merge: the selected curves do not share same loops\n");
 					return false;
+				}
 				for (auto iter1 = curve.first->m_graphLinks.begin(), iter2 = other.first->m_graphLinks.begin();
 					iter1 != curve.first->m_graphLinks.end() && iter2 != other.first->m_graphLinks.end(); 
 					++iter1, ++iter2)
 				{
 					if (iter1->first != iter2->first)
+					{
+						printf("cannot merge: the selected curves do not share same loops\n");
 						return false;
+					}
 				}
 
 				// all the curves must be the same sewings
 				if (curve.first->m_sewings.size() != other.first->m_sewings.size())
+				{
+					printf("cannot merge: the selected curves do not share same sewings\n");
 					return false;
+				}
 				for (auto iter1 = curve.first->m_sewings.begin(), iter2 = other.first->m_sewings.begin();
 					iter1 != curve.first->m_sewings.end() && iter2 != other.first->m_sewings.end();
 					++iter1, ++iter2)
 				{
 					if (*iter1 != *iter2)
+					{
+						printf("cannot merge: the selected curves do not share same sewings\n");
 						return false;
+					}
 				}
 
 				// find link
@@ -1267,21 +1287,30 @@ namespace ldp
 					|| curve.first->getEndPoint() == other.first->getEndPoint())
 				{
 					if (curve.second.next)
-						return false; // we donot allow multi-connection
+					{
+						printf("cannot merge: the selected curves have other connections\n");
+						return false;
+					}
 					curve.second.next = other.first;
 				}
 				if (curve.first->getStartPoint() == other.first->getStartPoint()
 					|| curve.first->getStartPoint() == other.first->getEndPoint())
 				{
 					if (curve.second.prev)
-						return false; // we donot allow multi-connection
+					{
+						printf("cannot merge: the selected curves have other connections\n");
+						return false;
+					}
 					curve.second.prev = other.first;
 				}
 			} // end for other
 
 			// we donot allow non-connected curves
 			if (curve.second.prev == nullptr && curve.second.next == nullptr)
+			{
+				printf("cannot merge: the selected curves are not connected\n");
 				return false;
+			}
 
 			// set an end point as the start point
 			if (curve.second.prev == nullptr || curve.second.next == nullptr)
@@ -1290,7 +1319,10 @@ namespace ldp
 
 		// we do not allow closed polygon
 		if (startCurve == nullptr)
+		{
+			printf("cannot merge: the selected curves are closed\n");
 			return false;
+		}
 		while (curves[startCurve].prev)
 			startCurve = curves[startCurve].prev;
 
@@ -1361,7 +1393,11 @@ namespace ldp
 			points.insert(iter->second.get());
 
 		if (curves.size() != 1 || points.size() != 1)
+		{
+			if (curves.size() > 1 || points.size() > 1)
+				printf("cannot merge: you should exactly select 1 curve + 1 point\n");
 			return false;
+		}
 
 		return mergeCurvePoint(*curves.begin(), *points.begin());
 	}

@@ -499,15 +499,6 @@ namespace ldp
 		m_stitchVC.clear();
 		m_stitchVW.clear();
 		m_stitchVL.clear();
-#ifdef ENABLE_EDGE_WISE_STITCH
-		m_stitchEV_num.clear();
-		m_stitchEV.clear();
-		m_stitchEV_W.clear();
-		m_stitchE_length.clear();
-		m_stitchVE.clear();
-		m_stitchVE_num.clear();
-		m_stitchVE_W.clear();
-#endif
 		auto tmp = m_graphSewings;
 		for (auto& s : tmp)
 			removeGraphSewing(s.get());
@@ -1052,7 +1043,7 @@ namespace ldp
 		for (int index = m_allVV_num[i]; index<m_allVV_num[i + 1]; index++)
 		if (m_allVV[index] == j)	
 			return index;
-		printf("ERROR: failed to find the neighbor in all_VV.\n"); getchar();
+		throw std::exception("ERROR: failed to find the neighbor in all_VV.\n");
 		return -1;
 	}
 
@@ -1061,7 +1052,7 @@ namespace ldp
 		for (int index = m_stitchVV_num[i]; index<m_stitchVV_num[i + 1]; index++)
 		if (m_stitchVV[index] == j)
 			return index;
-		printf("ERROR: failed to find the neighbor in stich_VV.\n"); getchar();
+		throw std::exception("ERROR: failed to find the neighbor in stich_VV.\n");
 		return -1;
 	}
 
