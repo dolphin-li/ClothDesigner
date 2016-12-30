@@ -112,8 +112,6 @@ void Abstract3dEventHandle::pick(QPoint pos)
 				}
 				curIdx += mesh->face_list.size();
 			} // end for iMesh
-			if (m_viewer->getMainUI())
-				m_viewer->getMainUI()->viewer2d()->updateGL();
 		}
 
 		// 3. if picked, we compute the detailed info
@@ -193,6 +191,11 @@ void Abstract3dEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 		}
 		if (m_pickInfo.piece)
 			m_pickInfo.piece->graphPanel().setSelected(true);
+		if (m_viewer->getMainUI())
+		{
+			m_viewer->getMainUI()->updateUiByParam();
+			m_viewer->getMainUI()->viewer2d()->updateGL();
+		}
 	}
 }
 

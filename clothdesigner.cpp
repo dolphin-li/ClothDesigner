@@ -266,6 +266,7 @@ void ClothDesigner::updateUiByParam()
 {
 	try
 	{
+		//// simulation param
 		auto param = g_dataholder.m_clothManager->getSimulationParam();
 		ui.sbSparamAirDamp->setValue(param.air_damping);
 		ui.sbSparamBendStiff->setValue(param.bending_k);
@@ -283,10 +284,28 @@ void ClothDesigner::updateUiByParam()
 		ui.sbSparamGravityX->setValue(param.gravity[0]);
 		ui.sbSparamGravityY->setValue(param.gravity[1]);
 		ui.sbSparamGravityZ->setValue(param.gravity[2]);
-		///
+
+		///design params
 		auto dparam = g_dataholder.m_clothManager->getClothDesignParam();
 		ui.sbDparamTriangleSize->setValue(dparam.triangulateThre * 1000);
 
+		// if only one piece selected, we update the piece param
+		// this is due to the current UI do not display all piece params, but only the selected one
+		std::set<ldp::ClothPiece*> selectedPieces;
+		for (int i = 0; i < g_dataholder.m_clothManager->numClothPieces(); i++)
+		{
+			auto piece = g_dataholder.m_clothManager->clothPiece(i);
+			if (piece->graphPanel().isSelected())
+				selectedPieces.insert(piece);
+		}
+		if (selectedPieces.size() == 1)
+		{
+			auto piece = *selectedPieces.begin();
+			ui.dbPieceBendMult->setValue(piece->param().bending_k_mult);
+			ui.dbPieceOutgoDist->setValue(piece->param().piece_outgo_dist);
+		}
+
+		//// smpl body param
 		updateSmplUI();
 	} catch (std::exception e)
 	{

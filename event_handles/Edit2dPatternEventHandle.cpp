@@ -76,6 +76,7 @@ void Edit2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 			if (m_viewer->getMainUI() && changed)
 			{
 				m_viewer->getMainUI()->viewer3d()->updateGL();
+				m_viewer->getMainUI()->updateUiByParam();
 				m_viewer->getMainUI()->pushHistory(QString().sprintf("pattern select: %d",
 				pickInfo().renderId), ldp::HistoryStack::TypePatternSelect);
 			}
@@ -102,6 +103,7 @@ void Edit2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 			if (m_viewer->getMainUI() && changed)
 			{
 				m_viewer->getMainUI()->viewer3d()->updateGL();
+				m_viewer->getMainUI()->updateUiByParam();
 				m_viewer->getMainUI()->pushHistory(QString().sprintf("pattern select: %d...",
 					*ids.begin()), ldp::HistoryStack::TypePatternSelect);
 			}
@@ -133,6 +135,9 @@ void Edit2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 	if (!manager)
 		return;
 	ldp::AbstractGraphObject::SelectOp op = ldp::AbstractGraphObject::SelectEnd;
+	bool changed = false;
+	bool shouldTriangulate = false;
+	QString str;
 	switch (ev->key())
 	{
 	default:
@@ -152,37 +157,31 @@ void Edit2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 	case Qt::Key_Delete:
 		if (ev->modifiers() == Qt::NoModifier)
 		{
-			bool change = manager->removeSelectedShapes();
-			if (m_viewer->getMainUI() && change)
+			if (manager->removeSelectedShapes())
 			{
-				manager->triangulate();
-				m_viewer->getMainUI()->viewer3d()->updateGL();
-				m_viewer->getMainUI()->pushHistory(QString().sprintf("pattern removed",
-				op), ldp::HistoryStack::TypeGeneral);
+				changed = true;
+				shouldTriangulate = true;
+				str = "pattern removed";
 			}
 		}
 		break;
 	case Qt::Key_L:
 		if (ev->modifiers() == Qt::NoModifier)
 		{
-			bool change = manager->makeSelectedCurvesToLoop();
-			if (m_viewer->getMainUI() && change)
+			if (manager->makeSelectedCurvesToLoop())
 			{
-				manager->triangulate();
-				m_viewer->getMainUI()->viewer3d()->updateGL();
-				m_viewer->getMainUI()->pushHistory(QString().sprintf("curves to loop",
-					op), ldp::HistoryStack::TypeGeneral);
+				changed = true;
+				shouldTriangulate = true;
+				str = "curves to loop";
 			}
 		}
 		if (ev->modifiers() == Qt::SHIFT)
 		{
-			bool change = manager->removeLoopsOfSelectedCurves();
-			if (m_viewer->getMainUI() && change)
+			if (manager->removeLoopsOfSelectedCurves())
 			{
-				manager->triangulate();
-				m_viewer->getMainUI()->viewer3d()->updateGL();
-				m_viewer->getMainUI()->pushHistory(QString().sprintf("remove loop",
-					op), ldp::HistoryStack::TypeGeneral);
+				changed = true;
+				shouldTriangulate = true;
+				str = "remove loop";
 			}
 		}
 		break;
@@ -190,34 +189,24 @@ void Edit2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 		if (ev->modifiers() == Qt::NoModifier)
 		{
 			bool change = manager->mergeSelectedCurves();
-			if (m_viewer->getMainUI() && change)
-			{
-				manager->triangulate();
-				m_viewer->getMainUI()->viewer3d()->updateGL();
-				m_viewer->getMainUI()->pushHistory(QString().sprintf("merge curves",
-				op), ldp::HistoryStack::TypeGeneral);
-			}
+			if (change)
+				str = "merge curves";
 			if (!change)
 			{
 				change = manager->mergeTheSelectedKeyPointToCurve();
-				if (m_viewer->getMainUI() && change)
-				{
-					manager->triangulate();
-					m_viewer->getMainUI()->viewer3d()->updateGL();
-					m_viewer->getMainUI()->pushHistory(QString().sprintf("merge point to curve",
-					op), ldp::HistoryStack::TypeGeneral);
-				}
+				if (change)
+					str = "merge point to curve";
 			}
 			if (!change)
 			{
 				change = manager->mergeSelectedKeyPoints();
-				if (m_viewer->getMainUI() && change)
-				{
-					manager->triangulate();
-					m_viewer->getMainUI()->viewer3d()->updateGL();
-					m_viewer->getMainUI()->pushHistory(QString().sprintf("merge key points",
-					op), ldp::HistoryStack::TypeGeneral);
-				}
+				if (change)
+					str = "merge key points";
+			}
+			if (change)
+			{
+				changed = true;
+				shouldTriangulate = true;
 			}
 		}
 		break;
@@ -226,31 +215,34 @@ void Edit2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 		{
 			ldp::Float3 lp3(m_viewer->lastMousePos().x(), m_viewer->height() - 1 - m_viewer->lastMousePos().y(), 1);
 			lp3 = m_viewer->camera().getWorldCoords(lp3);
-			bool change = manager->splitSelectedCurve(ldp::Float2(lp3[0], lp3[1]));
-			if (m_viewer->getMainUI() && change)
+			if (manager->splitSelectedCurve(ldp::Float2(lp3[0], lp3[1])))
 			{
-				manager->triangulate();
-				m_viewer->getMainUI()->viewer3d()->updateGL();
-				m_viewer->getMainUI()->pushHistory(QString().sprintf("split curve",
-				op), ldp::HistoryStack::TypeGeneral);
+				changed = true;
+				shouldTriangulate = true;
+				str = "split curve";
 			}
 		}
 		break;
 	}
 
-	bool changed = false;
 	for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)
 	{
 		auto piece = manager->clothPiece(iPiece);
 		auto& panel = piece->graphPanel();
 		if (panel.select(0, op))
+		{
 			changed = true;
+			str = QString().sprintf("pattern select: all(%d)", op);
+		}
 	} // end for iPiece
+
 	if (m_viewer->getMainUI() && changed)
 	{
+		if (shouldTriangulate)
+			manager->triangulate();
 		m_viewer->getMainUI()->viewer3d()->updateGL();
-		m_viewer->getMainUI()->pushHistory(QString().sprintf("pattern select: all(%d)",
-		op), ldp::HistoryStack::TypePatternSelect);
+		m_viewer->getMainUI()->updateUiByParam();
+		m_viewer->getMainUI()->pushHistory(str, ldp::HistoryStack::TypeGeneral);
 	}
 }
 
