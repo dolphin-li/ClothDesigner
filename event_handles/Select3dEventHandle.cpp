@@ -77,7 +77,9 @@ void Select3dEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 	{
 		manager->dragEnd();
 	}
+
 	m_pickInfo.mesh = nullptr;
+	m_pickInfo.piece = nullptr;
 }
 
 void Select3dEventHandle::mouseDoubleClickEvent(QMouseEvent *ev)

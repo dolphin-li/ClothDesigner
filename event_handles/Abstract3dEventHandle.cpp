@@ -2,9 +2,9 @@
 #include <GL\glew.h>
 #include "Viewer3d.h"
 #include "cloth\clothManager.h"
+#include "Renderable\ObjMesh.h"
 #include "cloth\clothPiece.h"
 #include "cloth\graph\Graph.h"
-#include "Renderable\ObjMesh.h"
 
 #include "..\clothdesigner.h"
 #include "../Viewer2d.h"
@@ -58,6 +58,7 @@ void Abstract3dEventHandle::handleLeave()
 {
 	m_viewer->clearFocus();
 	m_pickInfo.mesh = nullptr;
+	m_pickInfo.piece = nullptr;
 }
 
 QString Abstract3dEventHandle::toolTips()const
@@ -100,11 +101,6 @@ void Abstract3dEventHandle::pick(QPoint pos)
 			for (int iMesh = 0; iMesh < manager->numClothPieces(); iMesh++)
 			{
 				auto piece = manager->clothPiece(iMesh);
-				piece->graphPanel().select(0, ldp::AbstractGraphObject::SelectNone);
-			}
-			for (int iMesh = 0; iMesh < manager->numClothPieces(); iMesh++)
-			{
-				auto piece = manager->clothPiece(iMesh);
 				auto mesh = &manager->clothPiece(iMesh)->mesh3d();
 				if (renderedId >= curIdx && renderedId < curIdx + mesh->face_list.size())
 				{
@@ -112,12 +108,6 @@ void Abstract3dEventHandle::pick(QPoint pos)
 					m_pickInfo.mesh = mesh;
 					m_pickInfo.faceId = renderedId - curIdx;
 					picked = true;
-					piece->graphPanel().setSelected(true);
-					if (m_viewer->getMainUI())
-					{
-						m_viewer->getMainUI()->ui.dbPieceBendMult->setValue(m_pickInfo.piece->param().bending_k_mult);
-						m_viewer->getMainUI()->ui.dbPieceOutgoDist->setValue(m_pickInfo.piece->param().piece_outgo_dist);
-					}
 					break;
 				}
 				curIdx += mesh->face_list.size();
@@ -191,7 +181,19 @@ void Abstract3dEventHandle::mousePressEvent(QMouseEvent *ev)
 
 void Abstract3dEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 {
-
+	auto manager = m_viewer->getManager();
+	if (manager == nullptr)
+		return;
+	if (m_mouse_press_pt == ev->pos())
+	{
+		for (int iMesh = 0; iMesh < manager->numClothPieces(); iMesh++)
+		{
+			auto piece = manager->clothPiece(iMesh);
+			piece->graphPanel().select(0, ldp::AbstractGraphObject::SelectNone);
+		}
+		if (m_pickInfo.piece)
+			m_pickInfo.piece->graphPanel().setSelected(true);
+	}
 }
 
 void Abstract3dEventHandle::mouseDoubleClickEvent(QMouseEvent *ev)
