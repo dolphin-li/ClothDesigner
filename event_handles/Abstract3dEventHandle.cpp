@@ -155,9 +155,7 @@ void Abstract3dEventHandle::pick(QPoint pos)
 			m_pickInfo.pickInnerCoords = area;
 			m_pickInfo.screenPos = vs[0] * area[0] + vs[1] * area[1] + vs[2] * area[2];
 			m_pickInfo.pickPos = v[0] * area[0] + v[1] * area[1] + v[2] * area[2];
-
-			auto box = m_pickInfo.mesh->boundingBox;
-			m_pickInfo.meshCenter = (box[0] + box[1]) * 0.5f;
+			m_pickInfo.meshCenter = m_pickInfo.mesh->getCenter();
 		}
 	} // end for id
 }

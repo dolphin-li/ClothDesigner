@@ -134,16 +134,42 @@ void Cylinder3dEventHandle::mouseMoveEvent(QMouseEvent *ev)
 			const ldp::Float3 c = m_pickInfo.meshCenter;
 			auto lastR = rotationFromCylinderAxis(info);
 
-			// compute the angle changed
-			ldp::Float3 c1 = c + m_cylinderAxisMouseClick;
+			//// compute the angle changed
+			ldp::Float3 axis = 0;
+			switch (sid)
+			{
+			default:
+				break;
+			case (int)Viewer3d::TrackBallIndex_X:
+				axis[0] = 1;
+				break;
+			case (int)Viewer3d::TrackBallIndex_Y:
+				axis[1] = 1;
+				break;
+			case (int)Viewer3d::TrackBallIndex_Z:
+				axis[2] = 1;
+				break;
+			}
+			auto partR = ldp::Mat3f().eye();
+			if (m_pickInfo.piece) // cloth mesh
+				partR = m_pickInfo.piece->transformInfo().transform().getRotationPart();
+			else
+				partR = m_viewer->getManager()->getBodyMeshTransform().transform().getRotationPart();
+			axis = partR * axis;
 			ldp::Float3 c_uvd = m_viewer->camera().getScreenCoords(c);
-			ldp::Float3 c1_uvd = m_viewer->camera().getScreenCoords(c1);
-			ldp::Float2 c_uv(c_uvd[0] / c_uvd[2], c_uvd[1] / c_uvd[2]);
-			c_uv[1] = m_viewer->camera().getViewPortBottom() - c_uv[1];
-			ldp::Float2 d1 = (ldp::Float2(ev->x(), ev->y()) - c_uv).normalize();
-			ldp::Float2 d2 = (ldp::Float2(lp.x(), lp.y()) - c_uv).normalize();
-			float ag = atan2(d1.cross(d2), d1.dot(d2));
-			if (c_uvd[2] < c1_uvd[2]) ag = -ag;
+			ldp::Float3 lp3(lp.x(), m_viewer->height() - 1 - lp.y(), c_uvd[2]);
+			ldp::Float3 p3(ev->x(), m_viewer->height() - 1 - ev->y(), c_uvd[2]);
+			lp3 = m_viewer->camera().getWorldCoords(lp3);
+			p3 = m_viewer->camera().getWorldCoords(p3);
+			ldp::Float3 dl = lp3 - c, d = p3 - c;
+			dl = (dl - dl.dot(axis)*axis).normalize();
+			d = (d - d.dot(axis)*axis).normalize();
+			auto Q = ldp::QuaternionF().fromRotationVecs(dl, d);
+			float ag = 0;
+			ldp::Float3 axis1;
+			Q.toAngleAxis(axis1, ag);
+			if ((axis1 - axis).length() < 1e-2)
+				ag = -ag;
 
 			// if z selected, we rotate the cylinder axis
 			if (sid == (int)Viewer3d::TrackBallIndex_Z)

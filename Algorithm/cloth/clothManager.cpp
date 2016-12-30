@@ -30,11 +30,13 @@ namespace ldp
 	inline float cot_constrained(const float* a, const float* b, const float* c)
 	{
 		float val = Cotangent(a, b, c);
+		//return val;
 		return std::min(5.f, std::max(-5.f, val));
 	}
 	inline float areaWeight_constrained(float area1, float area2, float avgArea)
 	{
 		float b = 1.f / avgArea;
+		//return b;
 		return std::min(b * 10.f, std::max(b * 0.1f, 1.f / (area1 + area2)));
 	}
 
