@@ -169,6 +169,7 @@ void Viewer2d::initializeGL()
 	glEnable(GL_DEPTH_TEST);
 	glDisable(GL_LIGHTING);
 	glEnable(GL_FRONT_AND_BACK);
+	glEnable(GL_LIGHT0);
 	m_showType = Renderable::SW_V | Renderable::SW_F | Renderable::SW_E | Renderable::SW_TEXTURE;
 	resetCamera();
 }
@@ -342,6 +343,7 @@ void Viewer2d::keyPressEvent(QKeyEvent*ev)
 			break;
 		case Qt::Key_T:
 			m_showType ^= Renderable::SW_TEXTURE;
+			m_showType ^= Renderable::SW_LIGHTING;
 			break;
 		case Qt::Key_V:
 			m_showType ^= Renderable::SW_V;
@@ -943,7 +945,6 @@ void Viewer2d::renderMeshes(bool idxMode)
 		glEnable(GL_LINE_SMOOTH);
 		glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 		glEnable(GL_MULTISAMPLE);
-		glDisable(GL_LIGHTING);
 		glColor4f(0.8, 0.8, 0.8, 0.8);
 	}
 	else
@@ -952,7 +953,6 @@ void Viewer2d::renderMeshes(bool idxMode)
 		glDisable(GL_LINE_SMOOTH);
 		glDisable(GL_MULTISAMPLE);
 		glHint(GL_LINE_SMOOTH_HINT, GL_NEAREST);
-		glDisable(GL_LIGHTING);
 		glColor4f(0, 0, 0, 1);
 	}
 
@@ -970,7 +970,7 @@ void Viewer2d::renderMeshes(bool idxMode)
 				glColor4f(SELECT_COLOR[0], SELECT_COLOR[1], SELECT_COLOR[2], 0.3);
 			else
 				glColor4f(DEFAULT_COLOR[0], DEFAULT_COLOR[1], DEFAULT_COLOR[2], 0.3);
-			int showType = ((m_showType|Renderable::SW_V)^Renderable::SW_V);
+			int showType = ((m_showType | Renderable::SW_V) ^ Renderable::SW_V);
 			mesh.render(showType);
 		}
 	} // end if not idxMode

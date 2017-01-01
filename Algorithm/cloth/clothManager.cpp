@@ -418,23 +418,34 @@ namespace ldp
 
 		// create the mesh
 		mesh.clear();
-		for (size_t i = 0; i < idxMap.size(); i++)
+		for (const auto& piece : m_clothPieces)
 		{
-			if (idxMap[i] == i)
+			const auto& m3d = piece->mesh3d();
+			const auto& m2d = piece->mesh2d();
+			int vs = m_clothVertBegin.at(&m3d);
+			for (size_t i = 0; i < m2d.vertex_list.size(); i++)
 			{
-				idxMap[i] = (int)mesh.vertex_list.size();
-				mesh.vertex_list.push_back(m_X[i]);
-			}
-			else
-				idxMap[i] = idxMap[idxMap[i]];
-		}
+				int vid = (int)i + vs;
+				if (idxMap[vid] == vid)
+				{
+					idxMap[vid] = (int)mesh.vertex_list.size();
+					mesh.vertex_list.push_back(m3d.vertex_list[i]);
+					mesh.vertex_texture_list.push_back(Float2(m2d.vertex_list[i][0], m2d.vertex_list[i][1]));
+				}
+				else
+					idxMap[vid] = idxMap[idxMap[vid]];
+			} // end for i
+		} // end for piece
 		for (const auto& t : m_T)
 		{
 			ObjMesh::obj_face f;
 			f.vertex_count = 3;
 			f.material_index = -1;
 			for (int k = 0; k < t.size(); k++)
+			{
 				f.vertex_index[k] = idxMap[t[k]];
+				f.texture_index[k] = f.vertex_index[k];
+			}
 			mesh.face_list.push_back(f);
 		}
 	}
