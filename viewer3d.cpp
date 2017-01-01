@@ -372,6 +372,9 @@ void Viewer3d::keyPressEvent(QKeyEvent*ev)
 	case Qt::Key_T:
 		m_showType ^= Renderable::SW_TEXTURE;
 		break;
+	case Qt::Key_V:
+		m_showType ^= Renderable::SW_V;
+		break;
 	case Qt::Key_S:
 		m_showType ^= Renderable::SW_SMOOTH;
 		m_showType ^= Renderable::SW_FLAT;

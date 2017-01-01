@@ -36,13 +36,15 @@ class Ui_ClothDesignerClass
 {
 public:
     QAction *actionLoad_project;
-    QAction *actionOpen_body_mesh;
+    QAction *actionImport_body_mesh;
     QAction *actionImport_cloth_mesh;
     QAction *actionSave_project;
     QAction *actionLoad_svg;
     QAction *actionPrev;
     QAction *actionNext;
     QAction *actionPlace_3d_by_2d;
+    QAction *actionExport_body_mesh;
+    QAction *actionExport_cloth_mesh;
     QWidget *centralWidget;
     QMenuBar *menuBar;
     QMenu *menuFile;
@@ -123,8 +125,8 @@ public:
         ClothDesignerClass->resize(890, 784);
         actionLoad_project = new QAction(ClothDesignerClass);
         actionLoad_project->setObjectName(QStringLiteral("actionLoad_project"));
-        actionOpen_body_mesh = new QAction(ClothDesignerClass);
-        actionOpen_body_mesh->setObjectName(QStringLiteral("actionOpen_body_mesh"));
+        actionImport_body_mesh = new QAction(ClothDesignerClass);
+        actionImport_body_mesh->setObjectName(QStringLiteral("actionImport_body_mesh"));
         actionImport_cloth_mesh = new QAction(ClothDesignerClass);
         actionImport_cloth_mesh->setObjectName(QStringLiteral("actionImport_cloth_mesh"));
         actionSave_project = new QAction(ClothDesignerClass);
@@ -137,6 +139,10 @@ public:
         actionNext->setObjectName(QStringLiteral("actionNext"));
         actionPlace_3d_by_2d = new QAction(ClothDesignerClass);
         actionPlace_3d_by_2d->setObjectName(QStringLiteral("actionPlace_3d_by_2d"));
+        actionExport_body_mesh = new QAction(ClothDesignerClass);
+        actionExport_body_mesh->setObjectName(QStringLiteral("actionExport_body_mesh"));
+        actionExport_cloth_mesh = new QAction(ClothDesignerClass);
+        actionExport_cloth_mesh->setObjectName(QStringLiteral("actionExport_cloth_mesh"));
         centralWidget = new QWidget(ClothDesignerClass);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
         ClothDesignerClass->setCentralWidget(centralWidget);
@@ -499,10 +505,11 @@ public:
         menuBar->addAction(menuEdit->menuAction());
         menuBar->addAction(menuHistory->menuAction());
         menuFile->addAction(actionLoad_project);
-        menuFile->addAction(actionOpen_body_mesh);
-        menuFile->addAction(actionImport_cloth_mesh);
         menuFile->addAction(actionSave_project);
         menuFile->addAction(actionLoad_svg);
+        menuFile->addSeparator();
+        menuFile->addAction(actionExport_body_mesh);
+        menuFile->addAction(actionExport_cloth_mesh);
         menuEdit->addAction(actionPlace_3d_by_2d);
         menuHistory->addAction(actionPrev);
         menuHistory->addAction(actionNext);
@@ -519,8 +526,8 @@ public:
     {
         ClothDesignerClass->setWindowTitle(QApplication::translate("ClothDesignerClass", "ClothDesigner", 0));
         actionLoad_project->setText(QApplication::translate("ClothDesignerClass", "open project", 0));
-        actionOpen_body_mesh->setText(QApplication::translate("ClothDesignerClass", "import body mesh", 0));
-        actionOpen_body_mesh->setShortcut(QApplication::translate("ClothDesignerClass", "Ctrl+O", 0));
+        actionLoad_project->setShortcut(QApplication::translate("ClothDesignerClass", "Ctrl+O", 0));
+        actionImport_body_mesh->setText(QApplication::translate("ClothDesignerClass", "import body mesh", 0));
         actionImport_cloth_mesh->setText(QApplication::translate("ClothDesignerClass", "import cloth mesh", 0));
         actionSave_project->setText(QApplication::translate("ClothDesignerClass", "save project", 0));
         actionSave_project->setShortcut(QApplication::translate("ClothDesignerClass", "Ctrl+S", 0));
@@ -530,6 +537,8 @@ public:
         actionNext->setText(QApplication::translate("ClothDesignerClass", "next", 0));
         actionNext->setShortcut(QApplication::translate("ClothDesignerClass", "Ctrl+Shift+Z", 0));
         actionPlace_3d_by_2d->setText(QApplication::translate("ClothDesignerClass", "place 3d by 2d", 0));
+        actionExport_body_mesh->setText(QApplication::translate("ClothDesignerClass", "export body mesh", 0));
+        actionExport_cloth_mesh->setText(QApplication::translate("ClothDesignerClass", "export cloth mesh", 0));
         menuFile->setTitle(QApplication::translate("ClothDesignerClass", "file", 0));
         menuEdit->setTitle(QApplication::translate("ClothDesignerClass", "edit", 0));
         menuHistory->setTitle(QApplication::translate("ClothDesignerClass", "history", 0));

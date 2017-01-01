@@ -28,10 +28,11 @@
      <string>file</string>
     </property>
     <addaction name="actionLoad_project"/>
-    <addaction name="actionOpen_body_mesh"/>
-    <addaction name="actionImport_cloth_mesh"/>
     <addaction name="actionSave_project"/>
     <addaction name="actionLoad_svg"/>
+    <addaction name="separator"/>
+    <addaction name="actionExport_body_mesh"/>
+    <addaction name="actionExport_cloth_mesh"/>
    </widget>
    <widget class="QMenu" name="menuEdit">
     <property name="title">
@@ -569,13 +570,13 @@
    <property name="text">
     <string>open project</string>
    </property>
-  </action>
-  <action name="actionOpen_body_mesh">
-   <property name="text">
-    <string>import body mesh</string>
-   </property>
    <property name="shortcut">
     <string>Ctrl+O</string>
+   </property>
+  </action>
+  <action name="actionImport_body_mesh">
+   <property name="text">
+    <string>import body mesh</string>
    </property>
   </action>
   <action name="actionImport_cloth_mesh">
@@ -615,6 +616,16 @@
   <action name="actionPlace_3d_by_2d">
    <property name="text">
     <string>place 3d by 2d</string>
+   </property>
+  </action>
+  <action name="actionExport_body_mesh">
+   <property name="text">
+    <string>export body mesh</string>
+   </property>
+  </action>
+  <action name="actionExport_cloth_mesh">
+   <property name="text">
+    <string>export cloth mesh</string>
    </property>
   </action>
  </widget>

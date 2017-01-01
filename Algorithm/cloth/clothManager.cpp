@@ -394,6 +394,50 @@ namespace ldp
 		m_shouldLevelSetUpdate = true;
 	}
 
+	void ClothManager::exportClothsMerged(ObjMesh& mesh)const
+	{
+		// find idx map that remove all stitched vertices
+		std::vector<int> idxMap(m_X.size(), -1);
+		for (size_t i = 0; i < idxMap.size(); i++)
+			idxMap[i] = i;
+		for (const auto& stp : m_stitches)
+		{
+			int a = stp.first.vids[0];
+			int b = stp.second.vids[0];
+			if (a > b)
+				std::swap(a, b);
+			idxMap[b] = a;
+		}
+		for (size_t i = 0; i < idxMap.size(); i++)
+		{
+			int m = i;
+			while (idxMap[m] != m)
+				m = idxMap[m];
+			idxMap[i] = m;
+		}
+
+		// create the mesh
+		mesh.clear();
+		for (size_t i = 0; i < idxMap.size(); i++)
+		{
+			if (idxMap[i] == i)
+			{
+				idxMap[i] = (int)mesh.vertex_list.size();
+				mesh.vertex_list.push_back(m_X[i]);
+			}
+			else
+				idxMap[i] = idxMap[idxMap[i]];
+		}
+		for (const auto& t : m_T)
+		{
+			ObjMesh::obj_face f;
+			f.vertex_count = 3;
+			f.material_index = -1;
+			for (int k = 0; k < t.size(); k++)
+				f.vertex_index[k] = idxMap[t[k]];
+			mesh.face_list.push_back(f);
+		}
+	}
 	//////////////////////////////////////////////////////////////////////////////////
 	void ClothManager::clearClothPieces() 
 	{

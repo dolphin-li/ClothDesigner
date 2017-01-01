@@ -173,7 +173,7 @@ void ClothDesigner::on_actionSave_project_triggered()
 {
 	try
 	{
-		QString name = QFileDialog::getSaveFileName(this, "Save Project", "", "*.xml");
+		QString name = QFileDialog::getSaveFileName(this, "Save Project", g_dataholder.m_lastProXmlDir.c_str(), "*.xml");
 		if (name.isEmpty())
 			return;
 		if (!name.toLower().endsWith(".xml"))
@@ -183,6 +183,54 @@ void ClothDesigner::on_actionSave_project_triggered()
 		g_dataholder.saveLastDirs();
 
 		g_dataholder.m_clothManager->toXml(name.toStdString());
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
+	}
+}
+
+void ClothDesigner::on_actionExport_cloth_mesh_triggered()
+{
+	try
+	{
+		QString name = QFileDialog::getSaveFileName(this, "Export body mesh", g_dataholder.m_lastProXmlDir.c_str(), "*.obj");
+		if (name.isEmpty())
+			return;
+		if (!name.toLower().endsWith(".obj"))
+			name.append(".obj");
+
+		g_dataholder.m_lastProXmlDir = name.toStdString();
+		g_dataholder.saveLastDirs();
+
+		ObjMesh mesh;
+		g_dataholder.m_clothManager->exportClothsMerged(mesh);
+		mesh.saveObj(name.toStdString().c_str());
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
+	}
+}
+
+void ClothDesigner::on_actionExport_body_mesh_triggered()
+{
+	try
+	{
+		QString name = QFileDialog::getSaveFileName(this, "Export body mesh", g_dataholder.m_lastProXmlDir.c_str(), "*.obj");
+		if (name.isEmpty())
+			return;
+		if (!name.toLower().endsWith(".obj"))
+			name.append(".obj");
+
+		g_dataholder.m_lastProXmlDir = name.toStdString();
+		g_dataholder.saveLastDirs();
+
+		g_dataholder.m_clothManager->bodyMesh()->saveObj(name.toStdString().c_str());
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;

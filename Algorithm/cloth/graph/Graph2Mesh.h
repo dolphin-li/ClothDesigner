@@ -39,6 +39,7 @@ namespace ldp
 		void finalizeTriangulation();
 		void generateMesh(ClothPiece& piece);
 		void postComputeSewing();
+		void removeIsolateVerts();
 	private:
 		struct SampleParam
 		{

@@ -107,6 +107,7 @@ Viewer2d::Viewer2d(QWidget *parent)
 	m_clothManager = nullptr;
 	m_mainUI = nullptr;
 	m_isSewingMode = false;
+	m_isAddCurveMode = false;
 
 	m_eventHandles.resize((size_t)Abstract2dEventHandle::ProcessorTypeEnd, nullptr);
 	for (size_t i = (size_t)Abstract2dEventHandle::ProcessorTypeGeneral;

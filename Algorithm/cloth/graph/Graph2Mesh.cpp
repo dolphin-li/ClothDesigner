@@ -111,6 +111,7 @@ namespace ldp
 			generateMesh(*piece.get());
 		} // end for piece
 		postComputeSewing();
+		removeIsolateVerts();
 	}
 
 	void Graph2Mesh::prepareTriangulation()
@@ -403,7 +404,6 @@ namespace ldp
 		addPolygon(line);
 	}
 
-
 	void Graph2Mesh::finalizeTriangulation()
 	{
 		if (m_points.size() < 3)
@@ -532,6 +532,62 @@ namespace ldp
 				m_stitches.push_back(stp);
 			}
 		} // end for pair
+	}
+
+	void Graph2Mesh::removeIsolateVerts()
+	{
+		int cntGlobal = 0;
+		std::vector<int> idxMapGlobal, vertUsed, idxMapLocal;
+		for (const auto& piece : *m_pieces)
+		{
+			auto& mesh = piece->mesh2d();
+			vertUsed.clear();
+			vertUsed.resize(mesh.vertex_list.size(), 0);
+			for (const auto& f : mesh.face_list)
+			for (int k = 0; k < f.vertex_count; k++)
+				vertUsed[f.vertex_index[k]] = 1;
+
+			auto tmp = mesh.vertex_list;
+			mesh.vertex_list.clear();
+			idxMapLocal.clear();
+			idxMapLocal.resize(tmp.size(), -1);
+			int cnt = 0;
+			for (size_t i = 0; i < vertUsed.size(); i++)
+			{
+				if (vertUsed[i])
+				{
+					idxMapGlobal.push_back(cntGlobal++);
+					idxMapLocal[i] = cnt++;
+					mesh.vertex_list.push_back(tmp[i]);
+				}
+				else
+					idxMapGlobal.push_back(-1);
+			}// end for i
+
+			for (auto& f : mesh.face_list)
+			for (int k = 0; k < f.vertex_count; k++)
+				f.vertex_index[k] = idxMapLocal[f.vertex_index[k]];
+
+			mesh.updateNormals();
+			mesh.updateBoundingBox();
+
+			piece->mesh3dInit().cloneFrom(&mesh);
+			piece->transformInfo().apply(piece->mesh3dInit());
+			piece->mesh3d().cloneFrom(&piece->mesh3dInit());
+		} // end for piece
+
+		auto tmp = m_stitches;
+		m_stitches.clear();
+		for (auto& st : tmp)
+		{
+			int f = idxMapGlobal[st.first.vids[0]];
+			int s = idxMapGlobal[st.second.vids[0]];
+			if (f < 0 || s < 0)
+				continue;
+			st.first.vids = f;
+			st.second.vids = s;
+			m_stitches.push_back(st);
+		}
 	}
 
 	void Graph2Mesh::reset_triangle_struct(triangulateio* io)const
