@@ -12,6 +12,7 @@ namespace ldp
 {
 	class ClothPiece;
 	class AbstractGraphCurve;
+	class GraphPoint;
 }
 enum UiSewAddingState
 {
@@ -31,6 +32,12 @@ struct UiSewData
 	std::vector<ldp::GraphsSewing::Unit> seconds;
 	ldp::GraphsSewing::Unit f, s;
 	UiSewAddingState state = UiSewAddingEnd;
+};
+struct UiCurveData
+{
+	std::vector<std::shared_ptr<ldp::GraphPoint>> points;
+	std::vector<size_t> renderedIds;
+	std::shared_ptr<ldp::GraphPoint> tmpPoint;
 };
 class Viewer2d : public QGLWidget
 {
@@ -57,22 +64,36 @@ public:
 	void setEventHandleType(Abstract2dEventHandle::ProcessorType type);
 	const Abstract2dEventHandle* getEventHandle(Abstract2dEventHandle::ProcessorType type)const;
 	Abstract2dEventHandle* getEventHandle(Abstract2dEventHandle::ProcessorType type);
+	int fboRenderedIndex(QPoint p)const;
+	void getModelBound(ldp::Float3& bmin, ldp::Float3& bmax)const;
+
+	// drag box mode
 	void beginDragBox(QPoint p);
 	void endDragBox();
 	bool isDragBoxMode()const { return m_isDragBox; }
+
+	// make sew mode
 	void beginSewingMode();
 	void endSewingMode();
 	bool isSewingMode()const { return m_isSewingMode; }
+	const UiSewData& getUiSewData()const { return m_uiSews; }
+	void setUiSewData(const UiSewData& data) { m_uiSews = data; }
 	UiSewChanges makeSewUnit(ldp::AbstractGraphCurve* curve, QPoint pos, bool tmp = false);
 	UiSewAddingState getSewAddingState()const { return m_uiSews.state; }
 	UiSewChanges setSewAddingState(UiSewAddingState s);
 	UiSewChanges setNextSewAddingState();
 	UiSewChanges deleteCurrentUISew();
-	const UiSewData& getUiSewData()const { return m_uiSews; }
-	void setUiSewData(const UiSewData& data) { m_uiSews = data; }
 
-	int fboRenderedIndex(QPoint p)const;
-	void getModelBound(ldp::Float3& bmin, ldp::Float3& bmax)const;
+	// add curve mode
+	void beginAddCurveMode();
+	void endAddCurveMode();
+	bool isAddCurveMode()const { return m_isAddCurveMode; }
+	const UiCurveData& getUiCurveData()const{ return m_uiCurves; }
+	void setUiCurveData(const UiCurveData& data) { m_uiCurves = data; }
+	bool beginNewCurve(QPoint pos);
+	bool addCurvePoint(QPoint pos, bool tmp);
+	bool endCurve();
+	bool giveupCurve();
 protected:
 	void mousePressEvent(QMouseEvent *);
 	void mouseReleaseEvent(QMouseEvent *);
@@ -93,6 +114,8 @@ protected:
 	void renderOneSewUnit(const ldp::GraphsSewing::Unit& sew, bool idxMode);
 
 	UiSewChanges addCurrentUISew();
+
+	void renderUiCurves();
 protected:
 	ldp::Camera m_camera;
 	QPoint m_lastPos;
@@ -100,14 +123,21 @@ protected:
 	Qt::MouseButtons m_buttons;
 	QGLFramebufferObject* m_fbo;
 	QImage m_fboImage;
-	bool m_isDragBox;
-	QPoint m_dragBoxBegin;
-	bool m_isSewingMode;
 	Abstract2dEventHandle* m_currentEventHandle;
 	std::vector<std::shared_ptr<Abstract2dEventHandle>> m_eventHandles;
 	ldp::ClothManager* m_clothManager;
 	ClothDesigner* m_mainUI;
 
+	// drag box mode
+	bool m_isDragBox;
+	QPoint m_dragBoxBegin;
+
+	// make sew mode
+	bool m_isSewingMode;
 	UiSewData m_uiSews;
+
+	// add curve mode
+	bool m_isAddCurveMode;
+	UiCurveData m_uiCurves;
 };
 

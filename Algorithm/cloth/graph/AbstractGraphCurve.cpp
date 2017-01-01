@@ -116,6 +116,26 @@ namespace ldp
 		return shape;
 	}
 
+	Float2 AbstractGraphCurve::getNearestPoint(Float2 p)
+	{
+		const float step = g_designParam.curveSampleStep / getLength();
+		const auto& vec = samplePointsOnShape(step);
+
+		float minDist = FLT_MAX;
+		float tSplit = 0;
+		for (size_t i = 1; i < vec.size(); i++)
+		{
+			float dist = pointSegDistance(p, vec[i - 1], vec[i]);
+			if (dist < minDist)
+			{
+				minDist = dist;
+				tSplit = (i - 1)*step + nearestPointOnSeg_getParam(p, vec[i - 1], vec[i]) * step;
+			}
+		} // end for i in vec
+
+		return getPointByParam(tSplit);
+	}
+
 	void AbstractGraphCurve::translateKeyPoint(int i, ldp::Float2 t)
 	{
 		m_keyPoints[i]->setPosition(m_keyPoints[i]->getPosition()+ t);

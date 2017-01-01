@@ -12,6 +12,7 @@
 #include "Edit2dPatternEventHandle.h"
 #include "Transform2dPatternEventHandle.h"
 #include "Sewing2dPatternEventHandle.h"
+#include "AddCurve2dEventHandle.h"
 
 Abstract2dEventHandle::Abstract2dEventHandle(Viewer2d* v)
 {
@@ -105,6 +106,8 @@ Abstract2dEventHandle* Abstract2dEventHandle::create(ProcessorType type, Viewer2
 		return new Transform2dPatternEventHandle(v);
 	case Abstract2dEventHandle::ProcessorTypeSewingPattern:
 		return new Sewing2dPatternEventHandle(v);
+	case Abstract2dEventHandle::ProcessorTypeAddCurve:
+		return new AddCurve2dEventHandle(v);
 	case Abstract2dEventHandle::ProcessorTypeEnd:
 	default:
 		return nullptr;

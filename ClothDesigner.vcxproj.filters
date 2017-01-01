@@ -658,6 +658,9 @@
     <ClCompile Include="event_handles\Cylinder3dEventHandle.cpp">
       <Filter>event_handle</Filter>
     </ClCompile>
+    <ClCompile Include="event_handles\AddCurve2dEventHandle.cpp">
+      <Filter>event_handle</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">
@@ -1044,6 +1047,9 @@
       <Filter>algorithm\matio</Filter>
     </ClInclude>
     <ClInclude Include="event_handles\Cylinder3dEventHandle.h">
+      <Filter>event_handle</Filter>
+    </ClInclude>
+    <ClInclude Include="event_handles\AddCurve2dEventHandle.h">
       <Filter>event_handle</Filter>
     </ClInclude>
   </ItemGroup>

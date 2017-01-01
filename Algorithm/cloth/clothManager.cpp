@@ -1818,6 +1818,42 @@ namespace ldp
 			m_shouldTriangulate = true;
 		return change;
 	}
+
+	bool ClothManager::addCurveOnAPanel(const std::vector<std::shared_ptr<ldp::GraphPoint>>& keyPts,
+		const std::vector<size_t>& renderIds)
+	{
+		if (keyPts.size() != renderIds.size())
+			return false;
+
+		// at most we accept cubic curves
+		if (renderIds.size() > AbstractGraphCurve::maxKeyPointsNum())
+			return false;
+
+		// make sure there is exactly one graph contains the points
+		Graph* graph = nullptr;
+		for (auto& id : renderIds)
+		{
+			for (auto& piece : m_clothPieces)
+			{
+				auto& g = piece->graphPanel();
+				if (g.contains(id))
+				{
+					if (graph == nullptr)
+						graph = &g;
+					else if (graph != &g)
+						return false;
+				} // end if g contains id
+			} // end for piece
+		} // end for id
+
+		if (graph == nullptr)
+			return false;
+
+		// add the points to the graph
+		auto curve = graph->addCurve(keyPts);
+
+		return curve != nullptr;
+	}
 	///////////////////////////////////////////////////////////////////////////////////////////
 	void ClothManager::fromXml(std::string filename)
 	{

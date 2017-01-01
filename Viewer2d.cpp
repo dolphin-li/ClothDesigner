@@ -17,9 +17,11 @@ const static float BODY_Z = -50;
 const static float BACK_Z = -10;
 const static float MESH_Z = 0;
 const static float EDGE_Z = 0.1;
+const static float EDGE_Z_ADDURVE = 0.11;
 const static float SEW_EDGE_Z = 1;
 const static float SEW_CONTACT_Z = 1.1;
 const static float KEYPT_Z = 2;
+const static float KEYPT_Z_ADDCURVE = 2.01;
 const static float DRAGBOX_Z = 50;
 const static float VERT_SEW_BAR_LEN = 0.01;//1cm
 
@@ -33,6 +35,7 @@ const static float SEW_SELECT_WIDTH = 6;
 const static float SELECT_COLOR[4] = { 1, 1, 0, 0.8 };
 const static float HIGHLIGHT_COLOR[4] = { 0, 1, 1, 0.8 };
 const static float DEFAULT_COLOR[4] = { 0, 0, 0, 1 };
+const static float ADDCURVE_COLOR[4] = { 0, 1, 0, 1 };
 
 inline int colorToSelectId(ldp::Float4 c)
 {
@@ -206,16 +209,17 @@ void Viewer2d::paintGL()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// show cloth simulation=============================
-	m_camera.apply();
-
 	try
 	{
+		m_camera.apply();
 		renderBackground();
-
 		m_camera.apply();
 		renderMeshes(false);
 		m_camera.apply();
 		renderClothsPanels(false);
+		m_camera.apply();
+		renderUiCurves();
+		m_camera.apply();
 		renderDragBox();
 	} catch (std::exception e)
 	{
@@ -594,9 +598,9 @@ void Viewer2d::renderClothsPanels_KeyPoint(const ldp::ClothPiece* piece, bool id
 	const auto& panel = piece->graphPanel();
 
 	if (idxMode)
-		glPointSize(KEYPT_SELECT_WIDTH);
+		glPointSize(KEYPT_SELECT_WIDTH + m_isAddCurveMode * 3);
 	else
-		glPointSize(KEYPT_RENDER_WIDTH);
+		glPointSize(KEYPT_RENDER_WIDTH + m_isAddCurveMode * 3);
 	glBegin(GL_POINTS);
 	for (auto point_iter = panel.point_begin(); point_iter != panel.point_end(); ++point_iter)
 	{
@@ -625,6 +629,7 @@ void Viewer2d::renderClothsPanels_KeyPoint(const ldp::ClothPiece* piece, bool id
 	glEnd();
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////
 void Viewer2d::beginSewingMode()
 {
 	m_isSewingMode = true;
@@ -920,6 +925,7 @@ void Viewer2d::renderOneSewUnit(const ldp::GraphsSewing::Unit& unit, bool idxMod
 	glVertex3f(ct[0] + dir[0] * VERT_SEW_BAR_LEN, ct[1] + dir[1] * VERT_SEW_BAR_LEN, SEW_EDGE_Z);
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
 void Viewer2d::renderMeshes(bool idxMode)
 {
 	if (!m_clothManager)
@@ -988,4 +994,127 @@ void Viewer2d::renderMeshes(bool idxMode)
 	} // end else idxMode
 
 	glPopAttrib();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+void Viewer2d::beginAddCurveMode()
+{
+	m_uiCurves.points.clear();
+	m_uiCurves.renderedIds.clear();
+	m_uiCurves.tmpPoint.reset((ldp::GraphPoint*)nullptr);
+	m_isAddCurveMode = true;
+}
+
+void Viewer2d::endAddCurveMode()
+{
+	m_isAddCurveMode = false;
+	m_uiCurves.points.clear();
+	m_uiCurves.renderedIds.clear();
+	m_uiCurves.tmpPoint.reset((ldp::GraphPoint*)nullptr);
+}
+
+bool Viewer2d::beginNewCurve(QPoint pos)
+{
+	m_uiCurves.points.clear();
+	m_uiCurves.renderedIds.clear();
+	m_uiCurves.tmpPoint.reset((ldp::GraphPoint*)nullptr);
+	return addCurvePoint(pos, false);
+}
+
+bool Viewer2d::addCurvePoint(QPoint pos, bool tmp)
+{
+	ldp::Float3 p3(pos.x(), height() - 1 - pos.y(), 1);
+	p3 = camera().getWorldCoords(p3);
+	ldp::Float2 p(p3[0], p3[1]);
+	int renderId = fboRenderedIndex(pos);
+	if (renderId <= 0)
+		return false; // cannot add curve without on an existed panel
+
+	// check if the given position is on a given object
+	auto obj = ldp::AbstractGraphObject::getObjByIdx(renderId);
+	if (obj)
+	{
+		if (obj->getType() == ldp::AbstractGraphObject::TypeGraphPoint)
+			p = ((ldp::GraphPoint*)obj)->getPosition();
+		else if (obj->isCurve())
+			p = ((ldp::AbstractGraphCurve*)obj)->getNearestPoint(p);
+	} // end if obj
+	
+	auto kpt = ldp::GraphPointPtr(new ldp::GraphPoint(p));
+
+	if (tmp)
+	{
+		m_uiCurves.tmpPoint = kpt;
+	}
+	else
+	{
+		m_uiCurves.points.push_back(kpt);
+		m_uiCurves.renderedIds.push_back(renderId);
+	}
+	return true;
+}
+
+bool Viewer2d::endCurve()
+{
+	// add to the cloth
+	if (!m_clothManager)
+		return false;
+	if (!m_clothManager->addCurveOnAPanel(m_uiCurves.points, m_uiCurves.renderedIds))
+		return false;
+
+	// clear
+	m_uiCurves.points.clear();
+	m_uiCurves.renderedIds.clear();
+	m_uiCurves.tmpPoint.reset((ldp::GraphPoint*)nullptr);
+	return true;
+}
+
+bool Viewer2d::giveupCurve()
+{
+	m_uiCurves.points.clear();
+	m_uiCurves.renderedIds.clear();
+	m_uiCurves.tmpPoint.reset((ldp::GraphPoint*)nullptr);
+	return true;
+}
+
+void Viewer2d::renderUiCurves()
+{
+	if (!m_isAddCurveMode)
+		return;
+	if (m_uiCurves.points.empty())
+		return;
+	const float step = m_clothManager->getClothDesignParam().curveSampleStep;
+
+	std::vector<ldp::GraphPoint*> keyPts;
+	for (auto& p : m_uiCurves.points)
+		keyPts.push_back(p.get());
+	if (m_uiCurves.tmpPoint && keyPts.size() < ldp::AbstractGraphCurve::maxKeyPointsNum())
+		keyPts.push_back(m_uiCurves.tmpPoint.get());
+
+	// render points
+	glPointSize(KEYPT_RENDER_WIDTH);
+	glBegin(GL_POINTS);
+	for (auto& p : keyPts)
+	{
+		glColor4fv(DEFAULT_COLOR);
+		const auto& x = p->getPosition();
+		glVertex3f(x[0], x[1], KEYPT_Z_ADDCURVE);
+	}
+	glEnd();
+
+	std::shared_ptr<ldp::AbstractGraphCurve> curve(ldp::AbstractGraphCurve::create(keyPts));
+	if (curve == nullptr)
+		return;
+
+	// render curve
+	glLineWidth(EDGE_RENDER_WIDTH);
+	glBegin(GL_LINES);
+	glColor4fv(ADDCURVE_COLOR);
+	const auto& pts = curve->samplePointsOnShape(step / curve->getLength());
+	for (size_t i = 1; i < pts.size(); i++)
+	{
+		glVertex3f(pts[i - 1][0], pts[i - 1][1], EDGE_Z);
+		glVertex3f(pts[i][0], pts[i][1], EDGE_Z);
+	}
+	glEnd();
 }

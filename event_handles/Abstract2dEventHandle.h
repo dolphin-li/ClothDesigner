@@ -48,6 +48,7 @@ public:
 		ProcessorTypeEditPattern,
 		ProcessorTypeTransformPattern,
 		ProcessorTypeSewingPattern,
+		ProcessorTypeAddCurve,
 		ProcessorTypeEnd, // the end, no processor for this
 	};
 public:

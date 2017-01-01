@@ -383,6 +383,14 @@ namespace ldp
 
 		return true;
 	}
+
+	bool Graph::contains(size_t id)const
+	{
+		if (getId() == id)
+			return true;
+		
+		return getPointById(id) || getCurveById(id) || getLoopById(id);
+	}
 	//////////////// topology operations: add units///////////////////////////////////////////
 	GraphPoint* Graph::addKeyPoint(ldp::Float2 p, bool isEndPoint)
 	{

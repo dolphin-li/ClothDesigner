@@ -139,6 +139,7 @@ namespace ldp
 		}
 		GraphLoop* getBoundingLoop();
 		const GraphLoop* getBoundingLoop()const;
+		bool contains(size_t id)const;
 
 		// topology operations: add units
 		GraphPoint* addKeyPoint(ldp::Float2 p, bool isEndPoint); // is end point means the front or back of the curve

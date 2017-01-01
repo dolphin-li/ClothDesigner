@@ -134,6 +134,8 @@ namespace ldp
 		void clearHighLights();
 		bool mirrorSelectedPanel();
 		bool copySelectedPanel();
+		bool addCurveOnAPanel(const std::vector<std::shared_ptr<ldp::GraphPoint>>& keyPts,
+			const std::vector<size_t>& renderIds);
 	protected:
 		static void initSmplDatabase();
 		void initCollisionHandler();
