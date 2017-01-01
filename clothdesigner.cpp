@@ -206,8 +206,16 @@ void ClothDesigner::on_actionExport_cloth_mesh_triggered()
 		g_dataholder.saveLastDirs();
 
 		ObjMesh mesh;
-		g_dataholder.m_clothManager->exportClothsMerged(mesh);
+		g_dataholder.m_clothManager->exportClothsMerged(mesh, true);
 		mesh.saveObj(name.toStdString().c_str());
+
+		//ObjMesh mesh2d;
+		//mesh2d.vertex_list.resize(mesh.vertex_list.size());
+		//mesh2d.face_list = mesh.face_list;
+		//for (size_t i = 0; i < mesh.vertex_list.size(); i++)
+		//	mesh2d.vertex_list[i] = Float3(mesh.vertex_texture_list[i][0], mesh.vertex_texture_list[i][1], 0);
+		//mesh2d.saveObj(QDir::cleanPath(QFileInfo(name).absolutePath()+QDir::separator()
+		//	+ QFileInfo(name).baseName() + "_2d.obj").toStdString().c_str());
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;

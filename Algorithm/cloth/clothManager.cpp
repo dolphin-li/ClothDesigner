@@ -394,27 +394,31 @@ namespace ldp
 		m_shouldLevelSetUpdate = true;
 	}
 
-	void ClothManager::exportClothsMerged(ObjMesh& mesh)const
+	void ClothManager::exportClothsMerged(ObjMesh& mesh, bool mergeStitchedVertex)const
 	{
 		// find idx map that remove all stitched vertices
 		std::vector<int> idxMap(m_X.size(), -1);
 		for (size_t i = 0; i < idxMap.size(); i++)
 			idxMap[i] = i;
-		for (const auto& stp : m_stitches)
+
+		if (mergeStitchedVertex)
 		{
-			int a = stp.first.vids[0];
-			int b = stp.second.vids[0];
-			if (a > b)
-				std::swap(a, b);
-			idxMap[b] = a;
-		}
-		for (size_t i = 0; i < idxMap.size(); i++)
-		{
-			int m = i;
-			while (idxMap[m] != m)
-				m = idxMap[m];
-			idxMap[i] = m;
-		}
+			for (const auto& stp : m_stitches)
+			{
+				int a = stp.first.vids[0];
+				int b = stp.second.vids[0];
+				if (a > b)
+					std::swap(a, b);
+				idxMap[b] = a;
+			}
+			for (size_t i = 0; i < idxMap.size(); i++)
+			{
+				int m = i;
+				while (idxMap[m] != m)
+					m = idxMap[m];
+				idxMap[i] = m;
+			}
+		} // end if mergeStitchedVertex
 
 		// create the mesh
 		mesh.clear();
@@ -430,10 +434,10 @@ namespace ldp
 				{
 					idxMap[vid] = (int)mesh.vertex_list.size();
 					mesh.vertex_list.push_back(m3d.vertex_list[i]);
-					mesh.vertex_texture_list.push_back(Float2(m2d.vertex_list[i][0], m2d.vertex_list[i][1]));
 				}
 				else
 					idxMap[vid] = idxMap[idxMap[vid]];
+				mesh.vertex_texture_list.push_back(Float2(m2d.vertex_list[i][0], -m2d.vertex_list[i][1]));
 			} // end for i
 		} // end for piece
 		for (const auto& t : m_T)
@@ -444,7 +448,7 @@ namespace ldp
 			for (int k = 0; k < t.size(); k++)
 			{
 				f.vertex_index[k] = idxMap[t[k]];
-				f.texture_index[k] = f.vertex_index[k];
+				f.texture_index[k] = t[k];
 			}
 			mesh.face_list.push_back(f);
 		}

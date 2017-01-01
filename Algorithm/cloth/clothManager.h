@@ -117,7 +117,7 @@ namespace ldp
 		void addClothPiece(std::shared_ptr<ClothPiece> piece);
 		void removeClothPiece(size_t graphPanelId);
 		void removeClothPiece(ClothPiece* piece);
-		void exportClothsMerged(ObjMesh& mesh)const;
+		void exportClothsMerged(ObjMesh& mesh, bool mergeStitchedVertex = false)const;
 
 		/// bounding box
 		void get2dBound(ldp::Float2& bmin, ldp::Float2& bmax)const;
