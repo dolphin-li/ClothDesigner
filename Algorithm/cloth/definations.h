@@ -63,11 +63,7 @@ namespace ldp
 		}
 	};
 
-	struct StitchPoint
-	{
-		Int2 vids;
-		float w;
-	};
+	typedef int StitchPoint;
 	typedef std::pair<StitchPoint, StitchPoint> StitchPointPair;
 
 	enum SimulationMode

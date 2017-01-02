@@ -525,10 +525,8 @@ namespace ldp
 				if (id0 == id1)
 					continue;
 				StitchPointPair stp;
-				stp.first.vids = id0;
-				stp.first.w = 0;
-				stp.second.vids = id1;
-				stp.second.w = 0;
+				stp.first = id0;
+				stp.second = id1;
 				m_stitches.push_back(stp);
 			}
 		} // end for pair
@@ -580,12 +578,12 @@ namespace ldp
 		m_stitches.clear();
 		for (auto& st : tmp)
 		{
-			int f = idxMapGlobal[st.first.vids[0]];
-			int s = idxMapGlobal[st.second.vids[0]];
+			int f = idxMapGlobal[st.first];
+			int s = idxMapGlobal[st.second];
 			if (f < 0 || s < 0)
 				continue;
-			st.first.vids = f;
-			st.second.vids = s;
+			st.first = f;
+			st.second = s;
 			m_stitches.push_back(st);
 		}
 	}

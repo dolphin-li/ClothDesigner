@@ -405,11 +405,12 @@ namespace ldp
 		{
 			for (const auto& stp : m_stitches)
 			{
-				int a = stp.first.vids[0];
-				int b = stp.second.vids[0];
-				if (a > b)
-					std::swap(a, b);
-				idxMap[b] = a;
+				int sm = std::min(stp.first, stp.second);
+				int lg = std::max(stp.first, stp.second);
+				while (idxMap[lg] != lg)
+					lg = idxMap[lg];
+				if (lg < sm) std::swap(sm, lg);
+				idxMap[lg] = sm;
 			}
 			for (size_t i = 0; i < idxMap.size(); i++)
 			{
@@ -450,7 +451,14 @@ namespace ldp
 				f.vertex_index[k] = idxMap[t[k]];
 				f.texture_index[k] = t[k];
 			}
-			mesh.face_list.push_back(f);
+			if (f.vertex_index[0] == f.vertex_index[1] || f.vertex_index[0] == f.vertex_index[2])
+			{
+				printf("warning, illegal face found, possibly due to an unproper sewing: %d %d %d -> %d %d %d\n", 
+					t[0], t[1], t[2], f.vertex_index[0], f.vertex_index[1],
+					f.vertex_index[2]);
+			}
+			else
+				mesh.face_list.push_back(f);
 		}
 	}
 	//////////////////////////////////////////////////////////////////////////////////
@@ -571,16 +579,9 @@ namespace ldp
 		if (m_shouldMergePieces)
 			mergePieces();
 
-#ifndef ENABLE_EDGE_WISE_STITCH
-		if (s1.vids[0] != s1.vids[1] || s2.vids[0] != s2.vids[1])
-			throw std::exception("edge-wise stiching not supported, pls set StitchPoint.vids[0]=vids[1]");
-#endif
-
 		// convert from mesh id to global id
-		s1.vids += m_clothVertBegin.at(&cloth1->mesh3d());
-		s2.vids += m_clothVertBegin.at(&cloth2->mesh3d());
-		s1.w = std::min(1.f, std::max(0.f, s1.w));
-		s2.w = std::min(1.f, std::max(0.f, s2.w));
+		s1 += m_clothVertBegin.at(&cloth1->mesh3d());
+		s2 += m_clothVertBegin.at(&cloth2->mesh3d());
 
 		m_stitches.push_back(StitchPointPair(s1, s2));
 
@@ -605,20 +606,18 @@ namespace ldp
 		const ObjMesh* fmesh = nullptr, *smesh = nullptr;
 		for (auto map : m_clothVertBegin)
 		{
-			if (stp.first.vids[0] >= map.second 
-				&& stp.first.vids[0] < map.second + map.first->vertex_list.size()
+			if (stp.first >= map.second && stp.first < map.second + map.first->vertex_list.size()
 				&& fmesh == nullptr)
 			{
 				fmesh = map.first;
-				stp.first.vids -= map.second;
+				stp.first -= map.second;
 			}
 
-			if (stp.second.vids[0] >= map.second
-				&& stp.second.vids[0] < map.second + map.first->vertex_list.size() 
+			if (stp.second >= map.second && stp.second < map.second + map.first->vertex_list.size() 
 				&& smesh == nullptr)
 			{
 				smesh = map.first;
-				stp.second.vids -= map.second;
+				stp.second -= map.second;
 			}
 		} // end for id
 
@@ -629,10 +628,8 @@ namespace ldp
 		}
 
 		std::pair<Float3, Float3> vp;
-		vp.first = fmesh->vertex_list[stp.first.vids[0]] * (1 - stp.first.w) 
-			+ fmesh->vertex_list[stp.first.vids[1]] * stp.first.w;
-		vp.second = smesh->vertex_list[stp.second.vids[0]] * (1 - stp.second.w) 
-			+ smesh->vertex_list[stp.second.vids[1]] * stp.second.w;
+		vp.first = fmesh->vertex_list[stp.first];
+		vp.second = smesh->vertex_list[stp.second];
 		return vp;
 	}
 
@@ -648,10 +645,10 @@ namespace ldp
 		std::map<Int2, std::pair<Int2, Int2>> edgeBendEdgeMap;
 		for (const auto& s1 : m_stitches)
 		{
-			Int2 sv1(s1.first.vids[0], s1.second.vids[0]);
+			Int2 sv1(s1.first, s1.second);
 			for (const auto& s2 : m_stitches)
 			{
-				Int2 sv2(s2.first.vids[0], s2.second.vids[0]);
+				Int2 sv2(s2.first, s2.second);
 				Int2 e1Idx(sv1[0], sv2[0]);
 				Int2 e2Idx(sv1[1], sv2[1]);
 				if (e1Idx[0] == e1Idx[1] || e2Idx[0] == e2Idx[1])
@@ -729,9 +726,7 @@ namespace ldp
 		std::vector<std::tuple<Int2, Int2, Int2>> edgesWithBend;
 		for (const auto& s : m_stitches)
 		{
-			if (s.first.vids[0] != s.first.vids[1] || s.second.vids[0] != s.second.vids[1])
-				throw std::exception("edge-wise stiching not supported, pls set StitchPoint.vids[0]=vids[1]");
-			Int2 e(s.first.vids[0], s.second.vids[0]);
+			Int2 e(s.first, s.second);
 			if (e[0] == e[1])
 				continue;
 
