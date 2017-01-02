@@ -1,0 +1,93 @@
+<ClothManager>
+    <BodyMesh ObjFile="data/wm2_15k.obj">
+        <TransformInfo FlipNormal="0" T="-2.619848 0.000000 -0.000000 0.000000 -0.000000 0.000000 2.619848 -0.041718 0.000000 2.619848 0.000000 -0.926505 0.000000 0.000000 0.000000 1.000000 " />
+    </BodyMesh>
+    <Piece>
+        <Param bend_k_mult="1" />
+        <TransformInfo FlipNormal="1" T="0.000000 0.000000 1.000000 1.033538 1.000000 0.000000 0.000000 -0.024824 0.000000 1.000000 0.000000 -1.187206 0.000000 0.000000 0.000000 1.000000 " />
+        <graph id="64">
+            <key-points>
+                <point id="68" x="1.214606" y="1.253100" />
+                <point id="69" x="1.247508" y="1.258927" />
+                <point id="77" x="1.012745" y="1.213369" />
+                <point id="71" x="1.250997" y="1.209643" />
+                <point id="72" x="1.267668" y="1.163221" />
+                <point id="75" x="1.031992" y="1.115485" />
+            </key-points>
+            <curves>
+                <line id="70">
+                    <point id="68" />
+                    <point id="69" />
+                </line>
+                <line id="78">
+                    <point id="75" />
+                    <point id="77" />
+                </line>
+                <quadratic id="74">
+                    <point id="69" />
+                    <point id="71" />
+                    <point id="72" />
+                </quadratic>
+                <line id="76">
+                    <point id="72" />
+                    <point id="75" />
+                </line>
+                <line id="80">
+                    <point id="77" />
+                    <point id="68" />
+                </line>
+            </curves>
+            <loops>
+                <loop id="73" bounding-loop="1">
+                    <line id="70" />
+                    <quadratic id="74" />
+                    <line id="76" />
+                    <line id="78" />
+                    <line id="80" />
+                </loop>
+            </loops>
+        </graph>
+    </Piece>
+    <Piece>
+        <Param bend_k_mult="1" />
+        <TransformInfo FlipNormal="1" T="0.000000 0.000000 1.000000 1.155598 1.000000 0.000000 0.000000 0.051797 0.000000 1.000000 0.000000 -1.187456 0.000000 0.000000 0.000000 1.000000 " />
+        <graph id="81">
+            <key-points>
+                <point id="82" x="1.254307" y="1.211192" />
+                <point id="83" x="1.023546" y="1.163721" />
+            </key-points>
+            <curves>
+                <line id="84">
+                    <point id="82" />
+                    <point id="83" />
+                </line>
+            </curves>
+            <loops>
+                <loop id="85" bounding-loop="0">
+                    <line id="84" />
+                </loop>
+            </loops>
+        </graph>
+    </Piece>
+    <Piece>
+        <Param bend_k_mult="1" />
+        <TransformInfo FlipNormal="1" T="0.000000 0.000000 1.000000 1.155598 1.000000 0.000000 0.000000 0.047515 0.000000 1.000000 0.000000 -1.163206 0.000000 0.000000 0.000000 1.000000 " />
+        <graph id="86">
+            <key-points>
+                <point id="87" x="1.027372" y="1.140295" />
+                <point id="88" x="1.259045" y="1.186117" />
+            </key-points>
+            <curves>
+                <line id="89">
+                    <point id="87" />
+                    <point id="88" />
+                </line>
+            </curves>
+            <loops>
+                <loop id="90" bounding-loop="0">
+                    <line id="89" />
+                </loop>
+            </loops>
+        </graph>
+    </Piece>
+</ClothManager>

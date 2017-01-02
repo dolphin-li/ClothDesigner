@@ -180,12 +180,69 @@ void Viewer3d::initializeGL()
 	m_shaderManager.create("shaders");
 }
 
+void Viewer3d::createShadowMap()
+{
+	QGLFunctions func;
+	func.glBindFramebuffer(GL_FRAMEBUFFER, m_depthFbo);
+	glViewport(0, 0, width(), height());
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glEnable(GL_DEPTH_TEST);
+
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(-2, 2, -2, 2, 0, 20);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	gluLookAt(1, 1, 1, 0, 0, 0, 0, 1, 0);
+	//Use fixed program
+	func.glUseProgram(0);
+
+	glPushMatrix();
+	glLoadIdentity();
+	glMultMatrixf(m_camera.getModelViewMatrix().ptr());
+	for (int i = 0; i < m_clothManager->numClothPieces(); i++)
+	{
+		const auto& piece = m_clothManager->clothPiece(i);
+		piece->mesh3d().render(Renderable::SW_F | Renderable::SW_SMOOTH);
+	}
+	glPopMatrix();
+
+	//Also we need to set up the projection matrix for shadow texture	
+	// This is matrix transform every coordinate x,y,z
+	// Moving from unit cube [-1,1] to [0,1]  
+	float bias[16] = { 0.5, 0.0, 0.0, 0.0,
+		0.0, 0.5, 0.0, 0.0,
+		0.0, 0.0, 0.5, 0.0,
+		0.5, 0.5, 0.5, 1.0 };
+
+	// Grab modelview and transformation matrices
+	float	modelView[16];
+	float	projection[16];
+	float	biased_MVP[16];
+	glGetFloatv(GL_MODELVIEW_MATRIX, modelView);
+	glGetFloatv(GL_PROJECTION_MATRIX, projection);
+
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	glLoadMatrixf(bias);
+	// concatating all matrice into one.
+	glMultMatrixf(projection);
+	glMultMatrixf(modelView);
+
+	glGetFloatv(GL_MODELVIEW_MATRIX, biased_MVP);
+
+	func.glUseProgram(m_shadowProgram);
+	GLuint m = func.glGetUniformLocation(m_shadowProgram, "biased_MVP"); // get the location of the biased_MVP matrix
+	func.glUniformMatrix4fv(m, 1, GL_FALSE, biased_MVP);
+}
+
 void Viewer3d::resizeGL(int w, int h)
 {
 	m_camera.setViewPort(0, w, 0, h);
 	m_camera.setPerspective(m_camera.getFov(), float(w) / float(h), 
 		m_camera.getFrustumNear(), m_camera.getFrustumFar());
 
+	// re-init fbo
 	if (m_fbo)
 		delete m_fbo;
 	QGLFramebufferObjectFormat fmt;
@@ -216,7 +273,8 @@ void Viewer3d::paintGL()
 	if (m_clothManager)
 	{
 		m_shaderManager.bind(CShaderManager::phong);
-		m_clothManager->bodyMesh()->render(m_showType);
+		m_clothManager->bodyMesh()->render(Renderable::SW_F | Renderable::SW_SMOOTH 
+			| Renderable::SW_LIGHTING | Renderable::SW_TEXTURE);
 		for (int i = 0; i < m_clothManager->numClothPieces(); i++)
 		{
 			const auto& piece = m_clothManager->clothPiece(i);

@@ -942,11 +942,15 @@ void SmplManager::toObjMesh(ObjMesh& mesh)const
 	mesh.vertex_list = m_curVerts;
 	mesh.face_list.resize(m_faces.size());
 
+	mesh.material_list.push_back(ObjMesh::default_material);
+	mesh.material_list[0].diff = ldp::Float3(0.7, 0.8, 0.9);
+
 	// copy faces
 	for (size_t i = 0; i < mesh.face_list.size(); i++)
 	{
 		ObjMesh::obj_face& f = mesh.face_list[i];
 		f.vertex_count = 3;
+		f.material_index = 0;
 		for (int k = 0; k < 3; k++)
 			f.vertex_index[k] = m_faces[i][k];
 	}

@@ -1,0 +1,108 @@
+<ClothManager>
+    <Piece>
+        <graph id="243">
+            <key-points>
+                <point id="4" x="0.0" y="0.0" />
+                <point id="5" x="0.5" y="0.0" />
+                <point id="6" x="0.5" y="0.5" />
+                <point id="7" x="0.0" y="0.5" />
+                <point id="8" x="0.17" y="0.17" />
+                <point id="9" x="0.33" y="0.17" />
+                <point id="10" x="0.33" y="0.33" />
+                <point id="11" x="0.17" y="0.33" />
+            </key-points>
+            <curves>
+                <line id="100">
+                    <point id="4" />
+                    <point id="5" />
+                </line>
+                <line id="101">
+                    <point id="5" />
+                    <point id="6" />
+                </line>
+                <line id="102">
+                    <point id="6" />
+                    <point id="7" />
+                </line>
+                <line id="103">
+                    <point id="7" />
+                    <point id="4" />
+                </line>
+                <line id="104">
+                    <point id="8" />
+                    <point id="9" />
+                </line>
+                <line id="105">
+                    <point id="9" />
+                    <point id="10" />
+                </line>
+                <line id="106">
+                    <point id="10" />
+                    <point id="11" />
+                </line>
+                <line id="107">
+                    <point id="11" />
+                    <point id="8" />
+                </line>
+                <line id="200">
+                    <point id="5" />
+                    <point id="4" />
+                </line>
+                <line id="201">
+                    <point id="4" />
+                    <point id="8" />
+                </line>
+                <line id="202">
+                    <point id="5" />
+                    <point id="8" />
+                </line>
+                <line id="300">
+                    <point id="7" />
+                    <point id="11" />
+                </line>
+                <line id="301">
+                    <point id="6" />
+                    <point id="10" />
+                </line>
+                <line id="303">
+                    <point id="5" />
+                    <point id="9" />
+                </line>
+                <line id="305">
+                    <point id="4" />
+                    <point id="11" />
+                </line>
+            </curves>
+            <loops>
+                <loop id="1000" bounding-loop="0">
+                    <line id="100" />
+                    <line id="101" />
+                    <line id="102" />
+                    <line id="103" />
+                </loop>
+                <loop id="1001" bounding-loop="0">
+                    <line id="107" />
+                    <line id="106" />
+                    <line id="105" />
+                    <line id="104" />
+                </loop>
+                <loop id="1002" bounding-loop="0">
+                    <line id="200" />
+                    <line id="201" />
+                    <line id="202" />
+                </loop>
+                <loop id="1003" bounding-loop="0">
+                    <line id="300" />
+                    <line id="102" />
+                    <line id="301" />
+                    <line id="106" />
+                </loop>
+                <loop id="1004" bounding-loop="0">
+                    <line id="303" />
+                    <line id="202" />
+                    <line id="104" />
+                </loop>
+            </loops>
+        </graph>
+    </Piece>
+</ClothManager>

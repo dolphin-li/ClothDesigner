@@ -73,6 +73,7 @@ protected:
 	void renderMeshForSelection();
 	void renderStitches();
 	void renderGroupPlane();
+
 protected:
 	CShaderManager m_shaderManager;
 	GLuint m_phong_program;
@@ -95,5 +96,11 @@ protected:
 
 	ldp::ClothManager* m_clothManager;
 	ClothDesigner* m_mainUI;
+
+protected:
+	GLuint m_depthTexture = 0;
+	GLuint m_shadowProgram = 0;
+	GLuint m_depthFbo = 0;
+	void createShadowMap();
 };
 

@@ -1,0 +1,1754 @@
+<ClothManager>
+    <SmplBody Gender="female">
+        <TransformInfo FlipNormal="0" T="-1.200000 0.000000 -0.000000 0.000000 -0.000000 0.000000 1.200000 0.000000 0.000000 1.200000 0.000000 0.365427 0.000000 0.000000 0.000000 1.000000 " />
+        <joints>
+            <joint id="0" rotation="0.000000 0.000000 0.000000" />
+            <joint id="1" rotation="0.000000 0.000000 0.000000" />
+            <joint id="2" rotation="0.000000 0.000000 0.000000" />
+            <joint id="3" rotation="0.000000 0.000000 0.000000" />
+            <joint id="4" rotation="0.000000 0.000000 0.000000" />
+            <joint id="5" rotation="0.000000 0.000000 0.000000" />
+            <joint id="6" rotation="0.000000 0.000000 0.000000" />
+            <joint id="7" rotation="0.000000 0.000000 0.000000" />
+            <joint id="8" rotation="0.000000 0.000000 0.000000" />
+            <joint id="9" rotation="0.000000 0.000000 0.000000" />
+            <joint id="10" rotation="0.000000 0.000000 0.000000" />
+            <joint id="11" rotation="0.000000 0.000000 0.000000" />
+            <joint id="12" rotation="0.000000 0.000000 0.000000" />
+            <joint id="13" rotation="0.000000 0.000000 0.000000" />
+            <joint id="14" rotation="0.000000 0.000000 0.000000" />
+            <joint id="15" rotation="0.000000 0.000000 0.000000" />
+            <joint id="16" rotation="0.000000 0.000000 0.000000" />
+            <joint id="17" rotation="0.000000 0.000000 0.000000" />
+            <joint id="18" rotation="0.000000 0.000000 0.000000" />
+            <joint id="19" rotation="0.000000 0.000000 0.000000" />
+            <joint id="20" rotation="0.000000 0.000000 0.000000" />
+            <joint id="21" rotation="0.000000 0.000000 0.000000" />
+            <joint id="22" rotation="0.000000 0.000000 0.000000" />
+            <joint id="23" rotation="0.000000 0.000000 0.000000" />
+        </joints>
+        <shapes>
+            <shape id="0" pca="0" />
+            <shape id="1" pca="0" />
+            <shape id="2" pca="0" />
+            <shape id="3" pca="0" />
+            <shape id="4" pca="0" />
+            <shape id="5" pca="0" />
+            <shape id="6" pca="0" />
+            <shape id="7" pca="0" />
+            <shape id="8" pca="0" />
+            <shape id="9" pca="0" />
+        </shapes>
+    </SmplBody>
+    <Piece>
+        <Param bend_k_mult="1" />
+        <TransformInfo FlipNormal="1" T="0.998923 -0.000025 0.046379 0.019253 -0.046379 0.001190 0.998922 -0.249947 -0.000080 -0.999998 0.001188 0.680904 0.000000 0.000000 0.000000 1.000000 " />
+        <graph id="3">
+            <key-points>
+                <point id="4" x="0.436252" y="0.233265" />
+                <point id="12" x="0.444814" y="0.168385" />
+                <point id="5" x="0.126633" y="0.669962" />
+                <point id="6" x="0.406950" y="0.100316" />
+                <point id="7" x="0.437729" y="0.189640" />
+                <point id="8" x="0.449329" y="0.156774" />
+                <point id="9" x="0.472697" y="0.291118" />
+                <point id="10" x="0.460647" y="0.568632" />
+                <point id="11" x="0.446162" y="0.251302" />
+                <point id="13" x="0.437132" y="0.209726" />
+                <point id="14" x="0.467683" y="0.318532" />
+                <point id="15" x="0.475922" y="0.282703" />
+                <point id="16" x="0.457069" y="0.265991" />
+                <point id="17" x="0.171932" y="0.086582" />
+                <point id="18" x="0.455809" y="0.142554" />
+                <point id="19" x="0.141059" y="0.115462" />
+                <point id="20" x="0.289066" y="0.084897" />
+                <point id="21" x="0.466511" y="0.121033" />
+                <point id="22" x="0.346914" y="0.092270" />
+                <point id="23" x="0.230033" y="0.086582" />
+                <point id="24" x="0.457802" y="0.669962" />
+                <point id="25" x="0.126486" y="0.085438" />
+                <point id="26" x="0.170203" y="0.116576" />
+                <point id="27" x="0.141431" y="0.085814" />
+            </key-points>
+            <curves>
+                <line id="28">
+                    <point id="12" />
+                    <point id="8" />
+                </line>
+                <line id="36">
+                    <point id="8" />
+                    <point id="18" />
+                </line>
+                <quadratic id="29">
+                    <point id="13" />
+                    <point id="7" />
+                    <point id="12" />
+                </quadratic>
+                <line id="30">
+                    <point id="15" />
+                    <point id="16" />
+                </line>
+                <line id="31">
+                    <point id="18" />
+                    <point id="21" />
+                </line>
+                <cubic id="32">
+                    <point id="22" />
+                    <point id="20" />
+                    <point id="23" />
+                    <point id="17" />
+                </cubic>
+                <quadratic id="33">
+                    <point id="21" />
+                    <point id="6" />
+                    <point id="22" />
+                </quadratic>
+                <line id="34">
+                    <point id="16" />
+                    <point id="11" />
+                </line>
+                <line id="35">
+                    <point id="27" />
+                    <point id="25" />
+                </line>
+                <quadratic id="37">
+                    <point id="11" />
+                    <point id="4" />
+                    <point id="13" />
+                </quadratic>
+                <line id="38">
+                    <point id="25" />
+                    <point id="5" />
+                </line>
+                <line id="39">
+                    <point id="5" />
+                    <point id="24" />
+                </line>
+                <line id="40">
+                    <point id="24" />
+                    <point id="10" />
+                </line>
+                <line id="41">
+                    <point id="10" />
+                    <point id="14" />
+                </line>
+                <line id="42">
+                    <point id="14" />
+                    <point id="9" />
+                </line>
+                <line id="43">
+                    <point id="9" />
+                    <point id="15" />
+                </line>
+                <line id="44">
+                    <point id="26" />
+                    <point id="17" />
+                </line>
+                <line id="45">
+                    <point id="19" />
+                    <point id="27" />
+                </line>
+                <line id="46">
+                    <point id="17" />
+                    <point id="27" />
+                </line>
+            </curves>
+            <loops>
+                <loop id="48" bounding-loop="0">
+                    <line id="45" />
+                </loop>
+                <loop id="49" bounding-loop="0">
+                    <line id="44" />
+                </loop>
+                <loop id="50" bounding-loop="1">
+                    <line id="30" />
+                    <line id="34" />
+                    <quadratic id="37" />
+                    <quadratic id="29" />
+                    <line id="28" />
+                    <line id="36" />
+                    <line id="31" />
+                    <quadratic id="33" />
+                    <cubic id="32" />
+                    <line id="46" />
+                    <line id="35" />
+                    <line id="38" />
+                    <line id="39" />
+                    <line id="40" />
+                    <line id="41" />
+                    <line id="42" />
+                    <line id="43" />
+                </loop>
+            </loops>
+        </graph>
+    </Piece>
+    <Piece>
+        <Param bend_k_mult="1" />
+        <TransformInfo FlipNormal="1" T="0.997607 0.069123 -0.001718 -0.993818 0.067485 -0.967967 0.241840 0.498430 0.015054 -0.241377 -0.970315 0.929679 0.000000 0.000000 0.000000 1.000000 " />
+        <graph id="47">
+            <key-points>
+                <point id="51" x="1.115685" y="0.602350" />
+                <point id="59" x="1.337432" y="0.765750" />
+                <point id="52" x="1.351330" y="0.695236" />
+                <point id="53" x="1.116535" y="0.564117" />
+                <point id="54" x="1.344938" y="0.724468" />
+                <point id="55" x="1.120531" y="0.583897" />
+                <point id="56" x="1.378157" y="0.597278" />
+                <point id="57" x="1.356754" y="0.671926" />
+                <point id="58" x="1.080970" y="0.638853" />
+                <point id="60" x="1.062348" y="0.645643" />
+                <point id="61" x="1.041645" y="0.645722" />
+                <point id="62" x="1.021978" y="0.646301" />
+                <point id="63" x="1.023649" y="0.776892" />
+                <point id="64" x="1.170249" y="0.774664" />
+                <point id="65" x="1.170161" y="0.626920" />
+                <point id="66" x="1.110624" y="0.613996" />
+                <point id="67" x="1.099813" y="0.631123" />
+            </key-points>
+            <curves>
+                <line id="68">
+                    <point id="62" />
+                    <point id="63" />
+                </line>
+                <quadratic id="76">
+                    <point id="53" />
+                    <point id="55" />
+                    <point id="51" />
+                </quadratic>
+                <line id="69">
+                    <point id="54" />
+                    <point id="52" />
+                </line>
+                <line id="70">
+                    <point id="63" />
+                    <point id="64" />
+                </line>
+                <line id="71">
+                    <point id="59" />
+                    <point id="54" />
+                </line>
+                <line id="72">
+                    <point id="52" />
+                    <point id="57" />
+                </line>
+                <line id="73">
+                    <point id="57" />
+                    <point id="56" />
+                </line>
+                <cubic id="74">
+                    <point id="58" />
+                    <point id="60" />
+                    <point id="61" />
+                    <point id="62" />
+                </cubic>
+                <line id="75">
+                    <point id="51" />
+                    <point id="66" />
+                </line>
+                <line id="77">
+                    <point id="56" />
+                    <point id="53" />
+                </line>
+                <line id="78">
+                    <point id="64" />
+                    <point id="59" />
+                </line>
+                <line id="79">
+                    <point id="66" />
+                    <point id="65" />
+                </line>
+                <quadratic id="80">
+                    <point id="66" />
+                    <point id="67" />
+                    <point id="58" />
+                </quadratic>
+            </curves>
+            <loops>
+                <loop id="82" bounding-loop="1">
+                    <line id="71" />
+                    <line id="69" />
+                    <line id="72" />
+                    <line id="73" />
+                    <line id="77" />
+                    <quadratic id="76" />
+                    <line id="75" />
+                    <quadratic id="80" />
+                    <cubic id="74" />
+                    <line id="68" />
+                    <line id="70" />
+                    <line id="78" />
+                </loop>
+                <loop id="83" bounding-loop="0">
+                    <line id="79" />
+                </loop>
+            </loops>
+        </graph>
+    </Piece>
+    <Piece>
+        <Param bend_k_mult="1" />
+        <TransformInfo FlipNormal="1" T="0.938097 -0.345862 -0.018839 -0.140655 -0.342948 -0.935073 0.089588 0.140311 -0.048601 -0.077581 -0.995801 0.882459 0.000000 0.000000 0.000000 1.000000 " />
+        <graph id="81">
+            <key-points>
+                <point id="84" x="0.471620" y="0.734872" />
+                <point id="92" x="0.521632" y="0.577399" />
+                <point id="85" x="0.484044" y="0.651989" />
+                <point id="86" x="0.486683" y="0.602278" />
+                <point id="87" x="0.491902" y="0.786626" />
+                <point id="88" x="0.486231" y="0.627206" />
+                <point id="89" x="0.486683" y="0.577399" />
+                <point id="90" x="0.461761" y="0.775543" />
+                <point id="91" x="0.503803" y="0.747096" />
+                <point id="93" x="0.479557" y="0.693597" />
+                <point id="94" x="0.514145" y="0.701401" />
+                <point id="95" x="0.518671" y="0.659436" />
+                <point id="96" x="0.521383" y="0.632046" />
+                <point id="97" x="0.521632" y="0.604932" />
+            </key-points>
+            <curves>
+                <line id="98">
+                    <point id="90" />
+                    <point id="87" />
+                </line>
+                <line id="99">
+                    <point id="92" />
+                    <point id="89" />
+                </line>
+                <cubic id="100">
+                    <point id="95" />
+                    <point id="96" />
+                    <point id="97" />
+                    <point id="92" />
+                </cubic>
+                <cubic id="101">
+                    <point id="89" />
+                    <point id="86" />
+                    <point id="88" />
+                    <point id="85" />
+                </cubic>
+                <cubic id="102">
+                    <point id="85" />
+                    <point id="93" />
+                    <point id="84" />
+                    <point id="90" />
+                </cubic>
+                <cubic id="103">
+                    <point id="87" />
+                    <point id="91" />
+                    <point id="94" />
+                    <point id="95" />
+                </cubic>
+            </curves>
+            <loops>
+                <loop id="105" bounding-loop="1">
+                    <line id="99" />
+                    <cubic id="101" />
+                    <cubic id="102" />
+                    <line id="98" />
+                    <cubic id="103" />
+                    <cubic id="100" />
+                </loop>
+            </loops>
+        </graph>
+    </Piece>
+    <Piece>
+        <Param bend_k_mult="1" />
+        <TransformInfo FlipNormal="1" T="-0.979475 0.185075 -0.079856 0.587249 -0.186514 -0.982393 0.010883 0.911501 -0.076435 0.025553 0.996748 0.850235 0.000000 0.000000 0.000000 1.000000 " />
+        <graph id="104">
+            <key-points>
+                <point id="106" x="0.517498" y="0.287571" />
+                <point id="114" x="0.528434" y="0.277162" />
+                <point id="107" x="0.529236" y="0.261853" />
+                <point id="108" x="0.524740" y="0.281970" />
+                <point id="109" x="0.483282" y="0.064651" />
+                <point id="110" x="0.508467" y="0.120232" />
+                <point id="111" x="0.520635" y="0.229370" />
+                <point id="112" x="0.508635" y="0.174822" />
+                <point id="113" x="0.526294" y="0.251976" />
+                <point id="115" x="0.491788" y="0.206481" />
+                <point id="116" x="0.532732" y="0.267414" />
+                <point id="117" x="0.489409" y="0.164456" />
+                <point id="118" x="0.508467" y="0.064651" />
+                <point id="119" x="0.499752" y="0.249402" />
+                <point id="120" x="0.483282" y="0.097982" />
+                <point id="121" x="0.484513" y="0.131486" />
+            </key-points>
+            <curves>
+                <cubic id="122">
+                    <point id="117" />
+                    <point id="115" />
+                    <point id="119" />
+                    <point id="106" />
+                </cubic>
+                <line id="123">
+                    <point id="108" />
+                    <point id="114" />
+                </line>
+                <line id="124">
+                    <point id="118" />
+                    <point id="109" />
+                </line>
+                <cubic id="125">
+                    <point id="114" />
+                    <point id="116" />
+                    <point id="107" />
+                    <point id="113" />
+                </cubic>
+                <line id="126">
+                    <point id="106" />
+                    <point id="108" />
+                </line>
+                <cubic id="127">
+                    <point id="109" />
+                    <point id="120" />
+                    <point id="121" />
+                    <point id="117" />
+                </cubic>
+                <line id="128">
+                    <point id="113" />
+                    <point id="111" />
+                </line>
+                <cubic id="129">
+                    <point id="111" />
+                    <point id="112" />
+                    <point id="110" />
+                    <point id="118" />
+                </cubic>
+            </curves>
+            <loops>
+                <loop id="131" bounding-loop="1">
+                    <line id="126" />
+                    <line id="123" />
+                    <cubic id="125" />
+                    <line id="128" />
+                    <cubic id="129" />
+                    <line id="124" />
+                    <cubic id="127" />
+                    <cubic id="122" />
+                </loop>
+            </loops>
+        </graph>
+    </Piece>
+    <Piece>
+        <Param bend_k_mult="100" />
+        <TransformInfo FlipNormal="1" T="-0.990745 0.057895 -0.122767 1.734903 0.035997 0.984157 0.173612 -0.371457 0.130873 0.167586 -0.977133 0.496446 0.000000 0.000000 0.000000 1.000000 " cylinder_axis="0.999199 -0.040024 0.000000" cylinder_radius="-0.088168" />
+        <graph id="130">
+            <key-points>
+                <point id="132" x="1.383671" y="0.257707" />
+                <point id="140" x="0.939120" y="0.247402" />
+                <point id="133" x="1.386895" y="0.288773" />
+                <point id="134" x="0.924753" y="0.118658" />
+                <point id="135" x="0.920720" y="0.280691" />
+                <point id="136" x="1.389505" y="0.323352" />
+                <point id="137" x="0.943430" y="0.329938" />
+                <point id="138" x="1.371897" y="0.227947" />
+                <point id="139" x="1.079960" y="0.098776" />
+                <point id="141" x="1.368130" y="0.391099" />
+                <point id="142" x="1.305268" y="0.542156" />
+                <point id="143" x="0.922915" y="0.330491" />
+                <point id="144" x="1.204114" y="0.503454" />
+                <point id="145" x="1.381790" y="0.359226" />
+                <point id="146" x="1.002078" y="0.107174" />
+                <point id="147" x="0.942403" y="0.297246" />
+                <point id="148" x="1.321179" y="0.486883" />
+                <point id="149" x="0.924125" y="0.393362" />
+                <point id="150" x="0.923697" y="0.166626" />
+                <point id="151" x="1.156615" y="0.083445" />
+                <point id="152" x="1.210561" y="0.073195" />
+                <point id="153" x="1.339333" y="0.147335" />
+                <point id="154" x="0.918889" y="0.239163" />
+                <point id="155" x="0.919898" y="0.223935" />
+                <point id="156" x="1.360477" y="0.198878" />
+                <point id="157" x="1.313029" y="0.514567" />
+                <point id="158" x="0.919292" y="0.248306" />
+                <point id="159" x="0.924606" y="0.368846" />
+                <point id="160" x="1.121079" y="0.482050" />
+                <point id="161" x="0.941465" y="0.279302" />
+                <point id="162" x="0.918068" y="0.441618" />
+                <point id="163" x="1.322086" y="0.093313" />
+                <point id="164" x="1.018753" y="0.225969" />
+                <point id="165" x="0.921179" y="0.417292" />
+                <point id="166" x="1.272664" y="0.527174" />
+                <point id="167" x="1.264817" y="0.060410" />
+                <point id="168" x="1.314973" y="0.038057" />
+                <point id="169" x="0.921489" y="0.298139" />
+                <point id="170" x="1.332975" y="0.460764" />
+            </key-points>
+            <curves>
+                <line id="171">
+                    <point id="141" />
+                    <point id="170" />
+                </line>
+                <cubic id="179">
+                    <point id="151" />
+                    <point id="152" />
+                    <point id="167" />
+                    <point id="168" />
+                </cubic>
+                <line id="172">
+                    <point id="137" />
+                    <point id="143" />
+                </line>
+                <cubic id="173">
+                    <point id="133" />
+                    <point id="136" />
+                    <point id="145" />
+                    <point id="141" />
+                </cubic>
+                <cubic id="174">
+                    <point id="134" />
+                    <point id="146" />
+                    <point id="139" />
+                    <point id="151" />
+                </cubic>
+                <line id="175">
+                    <point id="166" />
+                    <point id="144" />
+                </line>
+                <line id="176">
+                    <point id="161" />
+                    <point id="135" />
+                </line>
+                <cubic id="177">
+                    <point id="168" />
+                    <point id="163" />
+                    <point id="153" />
+                    <point id="156" />
+                </cubic>
+                <line id="178">
+                    <point id="147" />
+                    <point id="169" />
+                </line>
+                <cubic id="180">
+                    <point id="162" />
+                    <point id="165" />
+                    <point id="149" />
+                    <point id="159" />
+                </cubic>
+                <line id="181">
+                    <point id="158" />
+                    <point id="154" />
+                </line>
+                <cubic id="182">
+                    <point id="170" />
+                    <point id="148" />
+                    <point id="157" />
+                    <point id="142" />
+                </cubic>
+                <cubic id="183">
+                    <point id="156" />
+                    <point id="138" />
+                    <point id="132" />
+                    <point id="133" />
+                </cubic>
+                <line id="184">
+                    <point id="140" />
+                    <point id="158" />
+                </line>
+                <line id="185">
+                    <point id="159" />
+                    <point id="143" />
+                </line>
+                <line id="186">
+                    <point id="142" />
+                    <point id="166" />
+                </line>
+                <line id="187">
+                    <point id="144" />
+                    <point id="160" />
+                </line>
+                <line id="188">
+                    <point id="160" />
+                    <point id="162" />
+                </line>
+                <line id="189">
+                    <point id="150" />
+                    <point id="134" />
+                </line>
+                <line id="190">
+                    <point id="164" />
+                    <point id="155" />
+                </line>
+                <line id="191">
+                    <point id="143" />
+                    <point id="169" />
+                </line>
+                <line id="192">
+                    <point id="169" />
+                    <point id="135" />
+                </line>
+                <line id="193">
+                    <point id="154" />
+                    <point id="155" />
+                </line>
+                <line id="194">
+                    <point id="155" />
+                    <point id="150" />
+                </line>
+                <line id="195">
+                    <point id="135" />
+                    <point id="158" />
+                </line>
+            </curves>
+            <loops>
+                <loop id="197" bounding-loop="1">
+                    <cubic id="174" />
+                    <cubic id="179" />
+                    <cubic id="177" />
+                    <cubic id="183" />
+                    <cubic id="173" />
+                    <line id="171" />
+                    <cubic id="182" />
+                    <line id="186" />
+                    <line id="175" />
+                    <line id="187" />
+                    <line id="188" />
+                    <cubic id="180" />
+                    <line id="185" />
+                    <line id="191" />
+                    <line id="192" />
+                    <line id="195" />
+                    <line id="181" />
+                    <line id="193" />
+                    <line id="194" />
+                    <line id="189" />
+                </loop>
+                <loop id="198" bounding-loop="0">
+                    <line id="172" />
+                </loop>
+                <loop id="199" bounding-loop="0">
+                    <line id="190" />
+                </loop>
+                <loop id="200" bounding-loop="0">
+                    <line id="176" />
+                </loop>
+                <loop id="201" bounding-loop="0">
+                    <line id="178" />
+                </loop>
+                <loop id="202" bounding-loop="0">
+                    <line id="184" />
+                </loop>
+            </loops>
+        </graph>
+    </Piece>
+    <Piece>
+        <Param bend_k_mult="1" />
+        <TransformInfo FlipNormal="1" T="-0.999162 0.014755 0.038170 0.949330 -0.038145 0.001931 -0.999270 0.246733 -0.014818 -0.999889 -0.001366 0.840881 0.000000 0.000000 0.000000 1.000000 " />
+        <graph id="196">
+            <key-points>
+                <point id="203" x="0.582002" y="0.187150" />
+                <point id="211" x="0.863533" y="0.533248" />
+                <point id="204" x="0.586619" y="0.207085" />
+                <point id="205" x="0.594890" y="0.280226" />
+                <point id="206" x="0.671545" y="0.132878" />
+                <point id="207" x="0.868738" y="0.312540" />
+                <point id="208" x="0.814568" y="0.064328" />
+                <point id="209" x="0.594087" y="0.263787" />
+                <point id="210" x="0.778762" y="0.755760" />
+                <point id="212" x="0.632901" y="0.155689" />
+                <point id="213" x="0.863533" y="0.754902" />
+                <point id="214" x="0.590649" y="0.227243" />
+                <point id="215" x="0.617485" y="0.740072" />
+                <point id="216" x="0.736489" y="0.753172" />
+                <point id="217" x="0.821181" y="0.754902" />
+                <point id="218" x="0.832845" y="0.082355" />
+                <point id="219" x="0.557229" y="0.363236" />
+                <point id="220" x="0.592645" y="0.247607" />
+                <point id="221" x="0.558311" y="0.638032" />
+                <point id="222" x="0.559777" y="0.387904" />
+                <point id="223" x="0.857874" y="0.091039" />
+                <point id="224" x="0.557725" y="0.739480" />
+                <point id="225" x="0.592821" y="0.296337" />
+                <point id="226" x="0.585520" y="0.320057" />
+                <point id="227" x="0.590783" y="0.309288" />
+                <point id="228" x="0.577663" y="0.331873" />
+                <point id="229" x="0.571857" y="0.338030" />
+                <point id="230" x="0.552799" y="0.351811" />
+                <point id="231" x="0.558582" y="0.375708" />
+                <point id="232" x="0.676878" y="0.748913" />
+            </key-points>
+            <curves>
+                <cubic id="233">
+                    <point id="220" />
+                    <point id="209" />
+                    <point id="205" />
+                    <point id="225" />
+                </cubic>
+                <line id="241">
+                    <point id="229" />
+                    <point id="230" />
+                </line>
+                <cubic id="234">
+                    <point id="203" />
+                    <point id="204" />
+                    <point id="214" />
+                    <point id="220" />
+                </cubic>
+                <quadratic id="235">
+                    <point id="225" />
+                    <point id="227" />
+                    <point id="226" />
+                </quadratic>
+                <line id="236">
+                    <point id="212" />
+                    <point id="203" />
+                </line>
+                <line id="237">
+                    <point id="228" />
+                    <point id="229" />
+                </line>
+                <line id="238">
+                    <point id="206" />
+                    <point id="212" />
+                </line>
+                <line id="239">
+                    <point id="208" />
+                    <point id="206" />
+                </line>
+                <line id="240">
+                    <point id="226" />
+                    <point id="228" />
+                </line>
+                <cubic id="242">
+                    <point id="230" />
+                    <point id="219" />
+                    <point id="231" />
+                    <point id="222" />
+                </cubic>
+                <line id="243">
+                    <point id="222" />
+                    <point id="221" />
+                </line>
+                <line id="244">
+                    <point id="221" />
+                    <point id="224" />
+                </line>
+                <cubic id="245">
+                    <point id="224" />
+                    <point id="215" />
+                    <point id="232" />
+                    <point id="216" />
+                </cubic>
+                <cubic id="246">
+                    <point id="216" />
+                    <point id="210" />
+                    <point id="217" />
+                    <point id="213" />
+                </cubic>
+                <cubic id="247">
+                    <point id="213" />
+                    <point id="211" />
+                    <point id="207" />
+                    <point id="223" />
+                </cubic>
+                <quadratic id="248">
+                    <point id="223" />
+                    <point id="218" />
+                    <point id="208" />
+                </quadratic>
+            </curves>
+            <loops>
+                <loop id="250" bounding-loop="1">
+                    <line id="239" />
+                    <line id="238" />
+                    <line id="236" />
+                    <cubic id="234" />
+                    <cubic id="233" />
+                    <quadratic id="235" />
+                    <line id="240" />
+                    <line id="237" />
+                    <line id="241" />
+                    <cubic id="242" />
+                    <line id="243" />
+                    <line id="244" />
+                    <cubic id="245" />
+                    <cubic id="246" />
+                    <cubic id="247" />
+                    <quadratic id="248" />
+                </loop>
+            </loops>
+        </graph>
+    </Piece>
+    <Piece>
+        <Param bend_k_mult="1" />
+        <TransformInfo FlipNormal="1" T="-0.999987 0.000018 0.005068 0.084058 -0.005068 0.002451 -0.999984 0.224324 -0.000030 -0.999997 -0.002451 0.826663 0.000000 0.000000 0.000000 1.000000 " />
+        <graph id="249">
+            <key-points>
+                <point id="251" x="0.057672" y="0.749566" />
+                <point id="252" x="0.057672" y="0.085380" />
+                <point id="253" x="0.107546" y="0.749566" />
+                <point id="254" x="0.083005" y="0.092859" />
+                <point id="255" x="0.107546" y="0.085380" />
+            </key-points>
+            <curves>
+                <line id="256">
+                    <point id="252" />
+                    <point id="251" />
+                </line>
+                <line id="257">
+                    <point id="251" />
+                    <point id="253" />
+                </line>
+                <quadratic id="258">
+                    <point id="255" />
+                    <point id="254" />
+                    <point id="252" />
+                </quadratic>
+                <line id="259">
+                    <point id="253" />
+                    <point id="255" />
+                </line>
+            </curves>
+            <loops>
+                <loop id="261" bounding-loop="1">
+                    <line id="256" />
+                    <line id="257" />
+                    <line id="259" />
+                    <quadratic id="258" />
+                </loop>
+            </loops>
+        </graph>
+    </Piece>
+    <Piece>
+        <Param bend_k_mult="1" />
+        <TransformInfo FlipNormal="1" T="-0.998924 -0.001264 0.046380 -0.017732 0.046381 -0.001129 0.998924 -0.276087 -0.001210 0.999999 0.001187 -0.895082 0.000000 0.000000 0.000000 1.000000 " />
+        <graph id="260">
+            <key-points>
+                <point id="262" x="0.442058" y="1.396570" />
+                <point id="270" x="0.435647" y="1.362272" />
+                <point id="263" x="0.437626" y="1.379993" />
+                <point id="264" x="0.475922" y="1.291047" />
+                <point id="265" x="0.441788" y="1.323533" />
+                <point id="266" x="0.437894" y="1.345260" />
+                <point id="267" x="0.466511" y="1.452718" />
+                <point id="268" x="0.406963" y="1.473432" />
+                <point id="269" x="0.447870" y="1.416139" />
+                <point id="271" x="0.458313" y="1.304358" />
+                <point id="272" x="0.457802" y="0.903789" />
+                <point id="273" x="0.470979" y="1.279834" />
+                <point id="274" x="0.457301" y="1.434500" />
+                <point id="275" x="0.346914" y="1.481481" />
+                <point id="276" x="0.141431" y="1.487936" />
+                <point id="277" x="0.289066" y="1.488853" />
+                <point id="278" x="0.171932" y="1.487169" />
+                <point id="279" x="0.230033" y="1.487169" />
+                <point id="280" x="0.126486" y="1.488312" />
+                <point id="281" x="0.126633" y="0.903789" />
+                <point id="282" x="0.460647" y="1.005119" />
+                <point id="283" x="0.467683" y="1.255219" />
+                <point id="284" x="0.170203" y="1.457175" />
+                <point id="285" x="0.469303" y="1.267366" />
+                <point id="286" x="0.141059" y="1.458289" />
+            </key-points>
+            <curves>
+                <cubic id="287">
+                    <point id="262" />
+                    <point id="269" />
+                    <point id="274" />
+                    <point id="267" />
+                </cubic>
+                <cubic id="295">
+                    <point id="266" />
+                    <point id="270" />
+                    <point id="263" />
+                    <point id="262" />
+                </cubic>
+                <line id="288">
+                    <point id="281" />
+                    <point id="272" />
+                </line>
+                <line id="289">
+                    <point id="280" />
+                    <point id="281" />
+                </line>
+                <line id="290">
+                    <point id="282" />
+                    <point id="283" />
+                </line>
+                <line id="291">
+                    <point id="272" />
+                    <point id="282" />
+                </line>
+                <cubic id="292">
+                    <point id="275" />
+                    <point id="277" />
+                    <point id="279" />
+                    <point id="278" />
+                </cubic>
+                <cubic id="293">
+                    <point id="264" />
+                    <point id="271" />
+                    <point id="265" />
+                    <point id="266" />
+                </cubic>
+                <quadratic id="294">
+                    <point id="267" />
+                    <point id="268" />
+                    <point id="275" />
+                </quadratic>
+                <cubic id="296">
+                    <point id="283" />
+                    <point id="285" />
+                    <point id="273" />
+                    <point id="264" />
+                </cubic>
+                <line id="297">
+                    <point id="284" />
+                    <point id="278" />
+                </line>
+                <line id="298">
+                    <point id="286" />
+                    <point id="276" />
+                </line>
+                <line id="299">
+                    <point id="278" />
+                    <point id="276" />
+                </line>
+                <line id="300">
+                    <point id="276" />
+                    <point id="280" />
+                </line>
+            </curves>
+            <loops>
+                <loop id="302" bounding-loop="0">
+                    <line id="297" />
+                </loop>
+                <loop id="303" bounding-loop="0">
+                    <line id="298" />
+                </loop>
+                <loop id="304" bounding-loop="1">
+                    <cubic id="293" />
+                    <cubic id="295" />
+                    <cubic id="287" />
+                    <quadratic id="294" />
+                    <cubic id="292" />
+                    <line id="299" />
+                    <line id="300" />
+                    <line id="289" />
+                    <line id="288" />
+                    <line id="291" />
+                    <line id="290" />
+                    <cubic id="296" />
+                </loop>
+            </loops>
+        </graph>
+    </Piece>
+    <Piece>
+        <Param bend_k_mult="1" />
+        <TransformInfo FlipNormal="1" T="-0.997373 -0.063192 0.035397 1.004268 -0.061805 0.997326 0.039008 -0.896270 -0.037768 0.036718 -0.998612 0.798058 0.000000 0.000000 0.000000 1.000000 " />
+        <graph id="301">
+            <key-points>
+                <point id="305" x="1.114805" y="0.968557" />
+                <point id="313" x="1.120871" y="0.988170" />
+                <point id="306" x="1.080970" y="0.934897" />
+                <point id="307" x="1.105862" y="0.952636" />
+                <point id="308" x="1.378157" y="0.976473" />
+                <point id="309" x="1.360571" y="0.921440" />
+                <point id="310" x="1.095440" y="0.941055" />
+                <point id="311" x="1.345918" y="0.865149" />
+                <point id="312" x="1.021978" y="0.927450" />
+                <point id="314" x="1.337432" y="0.808001" />
+                <point id="315" x="1.116535" y="1.009634" />
+                <point id="316" x="1.062330" y="0.928102" />
+                <point id="317" x="1.041659" y="0.928029" />
+                <point id="318" x="1.023649" y="0.796859" />
+                <point id="319" x="1.170249" y="0.799087" />
+                <point id="320" x="1.170161" y="0.946831" />
+                <point id="321" x="1.110701" y="0.959659" />
+            </key-points>
+            <curves>
+                <quadratic id="322">
+                    <point id="307" />
+                    <point id="310" />
+                    <point id="306" />
+                </quadratic>
+                <cubic id="330">
+                    <point id="314" />
+                    <point id="311" />
+                    <point id="309" />
+                    <point id="308" />
+                </cubic>
+                <cubic id="323">
+                    <point id="306" />
+                    <point id="316" />
+                    <point id="317" />
+                    <point id="312" />
+                </cubic>
+                <line id="324">
+                    <point id="319" />
+                    <point id="314" />
+                </line>
+                <line id="325">
+                    <point id="318" />
+                    <point id="319" />
+                </line>
+                <line id="326">
+                    <point id="308" />
+                    <point id="315" />
+                </line>
+                <line id="327">
+                    <point id="305" />
+                    <point id="321" />
+                </line>
+                <quadratic id="328">
+                    <point id="315" />
+                    <point id="313" />
+                    <point id="305" />
+                </quadratic>
+                <line id="329">
+                    <point id="312" />
+                    <point id="318" />
+                </line>
+                <line id="331">
+                    <point id="321" />
+                    <point id="320" />
+                </line>
+                <line id="332">
+                    <point id="321" />
+                    <point id="307" />
+                </line>
+            </curves>
+            <loops>
+                <loop id="334" bounding-loop="1">
+                    <cubic id="330" />
+                    <line id="326" />
+                    <quadratic id="328" />
+                    <line id="327" />
+                    <line id="332" />
+                    <quadratic id="322" />
+                    <cubic id="323" />
+                    <line id="329" />
+                    <line id="325" />
+                    <line id="324" />
+                </loop>
+                <loop id="335" bounding-loop="0">
+                    <line id="331" />
+                </loop>
+            </loops>
+        </graph>
+    </Piece>
+    <Piece>
+        <Param bend_k_mult="1" />
+        <TransformInfo FlipNormal="1" T="0.938097 -0.345862 -0.018839 -0.237562 -0.342948 -0.935073 0.089588 0.336420 -0.048601 -0.077581 -0.995801 0.898730 0.000000 0.000000 0.000000 1.000000 " />
+        <graph id="333">
+            <key-points>
+                <point id="336" x="0.461761" y="0.798208" />
+                <point id="344" x="0.517322" y="0.902411" />
+                <point id="337" x="0.521020" y="0.933539" />
+                <point id="338" x="0.473401" y="0.850778" />
+                <point id="339" x="0.521632" y="0.996352" />
+                <point id="340" x="0.486683" y="0.996352" />
+                <point id="341" x="0.486683" y="0.946809" />
+                <point id="342" x="0.491902" y="0.787125" />
+                <point id="343" x="0.503246" y="0.824806" />
+                <point id="345" x="0.482818" y="0.900345" />
+                <point id="346" x="0.512298" y="0.863381" />
+                <point id="347" x="0.521632" y="0.965006" />
+            </key-points>
+            <curves>
+                <line id="348">
+                    <point id="339" />
+                    <point id="340" />
+                </line>
+                <cubic id="349">
+                    <point id="344" />
+                    <point id="337" />
+                    <point id="347" />
+                    <point id="339" />
+                </cubic>
+                <line id="350">
+                    <point id="336" />
+                    <point id="342" />
+                </line>
+                <cubic id="351">
+                    <point id="340" />
+                    <point id="341" />
+                    <point id="345" />
+                    <point id="338" />
+                </cubic>
+                <line id="352">
+                    <point id="338" />
+                    <point id="336" />
+                </line>
+                <cubic id="353">
+                    <point id="342" />
+                    <point id="343" />
+                    <point id="346" />
+                    <point id="344" />
+                </cubic>
+            </curves>
+            <loops>
+                <loop id="355" bounding-loop="1">
+                    <line id="348" />
+                    <cubic id="351" />
+                    <line id="352" />
+                    <line id="350" />
+                    <cubic id="353" />
+                    <cubic id="349" />
+                </loop>
+            </loops>
+        </graph>
+    </Piece>
+    <Piece>
+        <Param bend_k_mult="1" />
+        <TransformInfo FlipNormal="1" T="-0.979475 0.185075 -0.079856 0.114450 -0.186514 -0.982393 0.010883 2.111522 -0.076435 0.025553 0.996748 0.819021 0.000000 0.000000 0.000000 1.000000 " />
+        <graph id="354">
+            <key-points>
+                <point id="356" x="0.499935" y="1.334324" />
+                <point id="364" x="0.508213" y="1.416398" />
+                <point id="357" x="0.523165" y="1.290002" />
+                <point id="358" x="0.530894" y="1.311715" />
+                <point id="359" x="0.530311" y="1.302189" />
+                <point id="360" x="0.515504" y="1.370827" />
+                <point id="361" x="0.528749" y="1.295535" />
+                <point id="362" x="0.508467" y="1.509100" />
+                <point id="363" x="0.483282" y="1.509100" />
+                <point id="365" x="0.483282" y="1.476117" />
+                <point id="366" x="0.517498" y="1.286180" />
+                <point id="367" x="0.526495" y="1.320902" />
+                <point id="368" x="0.484511" y="1.442278" />
+                <point id="369" x="0.524066" y="1.330131" />
+                <point id="370" x="0.508467" y="1.462950" />
+                <point id="371" x="0.489409" y="1.409295" />
+                <point id="372" x="0.490746" y="1.385687" />
+                <point id="373" x="0.493993" y="1.357854" />
+                <point id="374" x="0.506195" y="1.310491" />
+            </key-points>
+            <curves>
+                <cubic id="375">
+                    <point id="366" />
+                    <point id="357" />
+                    <point id="361" />
+                    <point id="359" />
+                </cubic>
+                <cubic id="376">
+                    <point id="363" />
+                    <point id="365" />
+                    <point id="368" />
+                    <point id="371" />
+                </cubic>
+                <cubic id="377">
+                    <point id="371" />
+                    <point id="372" />
+                    <point id="373" />
+                    <point id="356" />
+                </cubic>
+                <line id="378">
+                    <point id="369" />
+                    <point id="360" />
+                </line>
+                <cubic id="379">
+                    <point id="360" />
+                    <point id="364" />
+                    <point id="370" />
+                    <point id="362" />
+                </cubic>
+                <cubic id="380">
+                    <point id="359" />
+                    <point id="358" />
+                    <point id="367" />
+                    <point id="369" />
+                </cubic>
+                <quadratic id="381">
+                    <point id="356" />
+                    <point id="374" />
+                    <point id="366" />
+                </quadratic>
+                <line id="382">
+                    <point id="362" />
+                    <point id="363" />
+                </line>
+            </curves>
+            <loops>
+                <loop id="384" bounding-loop="1">
+                    <cubic id="375" />
+                    <cubic id="380" />
+                    <line id="378" />
+                    <cubic id="379" />
+                    <line id="382" />
+                    <cubic id="376" />
+                    <cubic id="377" />
+                    <quadratic id="381" />
+                </loop>
+            </loops>
+        </graph>
+    </Piece>
+    <Piece>
+        <Param bend_k_mult="1" />
+        <TransformInfo FlipNormal="1" T="0.997353 0.072392 0.006704 -1.806212 0.070982 -0.989553 0.125486 1.119394 0.015718 -0.124677 -0.992073 0.860582 0.000000 0.000000 0.000000 1.000000 " cylinder_axis="0.999997 -0.002443 0.000000" cylinder_radius="-0.086239" />
+        <graph id="383">
+            <key-points>
+                <point id="385" x="1.086218" y="1.099265" />
+                <point id="393" x="1.377205" y="1.203826" />
+                <point id="386" x="1.156615" y="1.490306" />
+                <point id="387" x="0.919898" y="1.349817" />
+                <point id="388" x="0.918068" y="1.132133" />
+                <point id="389" x="1.334734" y="1.445329" />
+                <point id="390" x="1.283659" y="1.041857" />
+                <point id="391" x="1.321306" y="1.497343" />
+                <point id="392" x="1.331744" y="1.110260" />
+                <point id="394" x="0.943430" y="1.243813" />
+                <point id="395" x="0.922915" y="1.243259" />
+                <point id="396" x="1.002079" y="1.466576" />
+                <point id="397" x="0.923697" y="1.407125" />
+                <point id="398" x="1.368130" y="1.182652" />
+                <point id="399" x="1.322860" y="1.088065" />
+                <point id="400" x="0.918889" y="1.334588" />
+                <point id="401" x="1.264818" y="1.513339" />
+                <point id="402" x="0.942403" y="1.276505" />
+                <point id="403" x="0.924753" y="1.455093" />
+                <point id="404" x="1.305268" y="1.031595" />
+                <point id="405" x="0.924128" y="1.180555" />
+                <point id="406" x="1.267123" y="1.048835" />
+                <point id="407" x="1.212734" y="1.067688" />
+                <point id="408" x="1.079960" y="1.474975" />
+                <point id="409" x="0.921157" y="1.156291" />
+                <point id="410" x="0.920720" y="1.293061" />
+                <point id="411" x="0.921489" y="1.275612" />
+                <point id="412" x="1.018753" y="1.347782" />
+                <point id="413" x="0.919292" y="1.325445" />
+                <point id="414" x="1.314973" y="1.535694" />
+                <point id="415" x="0.924606" y="1.204905" />
+                <point id="416" x="1.140636" y="1.087156" />
+                <point id="417" x="1.386689" y="1.257300" />
+                <point id="418" x="0.939120" y="1.326349" />
+                <point id="419" x="1.210561" y="1.500556" />
+                <point id="420" x="1.328167" y="1.468228" />
+                <point id="421" x="1.360477" y="1.374874" />
+                <point id="422" x="1.375919" y="1.335564" />
+                <point id="423" x="1.389189" y="1.299778" />
+                <point id="424" x="1.382467" y="1.227746" />
+                <point id="425" x="0.941465" y="1.294449" />
+            </key-points>
+            <curves>
+                <cubic id="426">
+                    <point id="403" />
+                    <point id="396" />
+                    <point id="408" />
+                    <point id="386" />
+                </cubic>
+                <line id="434">
+                    <point id="389" />
+                    <point id="421" />
+                </line>
+                <line id="427">
+                    <point id="391" />
+                    <point id="420" />
+                </line>
+                <line id="428">
+                    <point id="392" />
+                    <point id="399" />
+                </line>
+                <cubic id="429">
+                    <point id="421" />
+                    <point id="422" />
+                    <point id="423" />
+                    <point id="417" />
+                </cubic>
+                <quadratic id="430">
+                    <point id="424" />
+                    <point id="393" />
+                    <point id="398" />
+                </quadratic>
+                <line id="431">
+                    <point id="420" />
+                    <point id="389" />
+                </line>
+                <line id="432">
+                    <point id="414" />
+                    <point id="391" />
+                </line>
+                <line id="433">
+                    <point id="398" />
+                    <point id="392" />
+                </line>
+                <cubic id="435">
+                    <point id="386" />
+                    <point id="419" />
+                    <point id="401" />
+                    <point id="414" />
+                </cubic>
+                <line id="436">
+                    <point id="417" />
+                    <point id="424" />
+                </line>
+                <line id="437">
+                    <point id="399" />
+                    <point id="404" />
+                </line>
+                <line id="438">
+                    <point id="404" />
+                    <point id="390" />
+                </line>
+                <line id="439">
+                    <point id="390" />
+                    <point id="406" />
+                </line>
+                <line id="440">
+                    <point id="406" />
+                    <point id="407" />
+                </line>
+                <line id="441">
+                    <point id="407" />
+                    <point id="416" />
+                </line>
+                <line id="442">
+                    <point id="416" />
+                    <point id="385" />
+                </line>
+                <line id="443">
+                    <point id="385" />
+                    <point id="388" />
+                </line>
+                <cubic id="444">
+                    <point id="388" />
+                    <point id="409" />
+                    <point id="405" />
+                    <point id="415" />
+                </cubic>
+                <line id="445">
+                    <point id="397" />
+                    <point id="403" />
+                </line>
+                <line id="446">
+                    <point id="412" />
+                    <point id="387" />
+                </line>
+                <line id="447">
+                    <point id="425" />
+                    <point id="410" />
+                </line>
+                <line id="448">
+                    <point id="402" />
+                    <point id="411" />
+                </line>
+                <line id="449">
+                    <point id="418" />
+                    <point id="413" />
+                </line>
+                <line id="450">
+                    <point id="400" />
+                    <point id="387" />
+                </line>
+                <line id="451">
+                    <point id="413" />
+                    <point id="400" />
+                </line>
+                <line id="452">
+                    <point id="415" />
+                    <point id="395" />
+                </line>
+                <line id="453">
+                    <point id="394" />
+                    <point id="395" />
+                </line>
+                <line id="454">
+                    <point id="387" />
+                    <point id="397" />
+                </line>
+                <line id="455">
+                    <point id="410" />
+                    <point id="413" />
+                </line>
+                <line id="456">
+                    <point id="411" />
+                    <point id="410" />
+                </line>
+                <line id="457">
+                    <point id="395" />
+                    <point id="411" />
+                </line>
+            </curves>
+            <loops>
+                <loop id="459" bounding-loop="0">
+                    <line id="449" />
+                </loop>
+                <loop id="460" bounding-loop="0">
+                    <line id="447" />
+                </loop>
+                <loop id="461" bounding-loop="0">
+                    <line id="448" />
+                </loop>
+                <loop id="462" bounding-loop="0">
+                    <line id="446" />
+                </loop>
+                <loop id="463" bounding-loop="1">
+                    <cubic id="426" />
+                    <cubic id="435" />
+                    <line id="432" />
+                    <line id="427" />
+                    <line id="431" />
+                    <line id="434" />
+                    <cubic id="429" />
+                    <line id="436" />
+                    <quadratic id="430" />
+                    <line id="433" />
+                    <line id="428" />
+                    <line id="437" />
+                    <line id="438" />
+                    <line id="439" />
+                    <line id="440" />
+                    <line id="441" />
+                    <line id="442" />
+                    <line id="443" />
+                    <cubic id="444" />
+                    <line id="452" />
+                    <line id="457" />
+                    <line id="456" />
+                    <line id="455" />
+                    <line id="451" />
+                    <line id="450" />
+                    <line id="454" />
+                    <line id="445" />
+                </loop>
+                <loop id="464" bounding-loop="0">
+                    <line id="453" />
+                </loop>
+            </loops>
+        </graph>
+    </Piece>
+    <Piece>
+        <Param bend_k_mult="1" />
+        <TransformInfo FlipNormal="1" T="0.998833 0.017416 0.045063 -0.975415 0.045072 -0.000145 -0.998984 0.188761 -0.017392 0.999849 -0.000930 -0.730826 0.000000 0.000000 0.000000 1.000000 " />
+        <graph id="458">
+            <key-points>
+                <point id="465" x="0.814568" y="1.509423" />
+                <point id="473" x="0.722855" y="1.466469" />
+                <point id="466" x="0.588135" y="1.360120" />
+                <point id="467" x="0.863533" y="1.040145" />
+                <point id="468" x="0.863533" y="0.818849" />
+                <point id="469" x="0.668906" y="1.439407" />
+                <point id="470" x="0.558606" y="1.197801" />
+                <point id="471" x="0.778762" y="0.817991" />
+                <point id="472" x="0.868715" y="1.261682" />
+                <point id="474" x="0.736489" y="0.820579" />
+                <point id="475" x="0.832845" y="1.491396" />
+                <point id="476" x="0.617485" y="0.833678" />
+                <point id="477" x="0.594354" y="1.277580" />
+                <point id="478" x="0.589068" y="1.261874" />
+                <point id="479" x="0.583236" y="1.246771" />
+                <point id="480" x="0.593330" y="1.332826" />
+                <point id="481" x="0.593877" y="1.305502" />
+                <point id="482" x="0.676878" y="0.824838" />
+                <point id="483" x="0.582002" y="1.386601" />
+                <point id="484" x="0.594181" y="1.290112" />
+                <point id="485" x="0.559777" y="1.185847" />
+                <point id="486" x="0.571857" y="1.235721" />
+                <point id="487" x="0.552799" y="1.221940" />
+                <point id="488" x="0.857874" y="1.482712" />
+                <point id="489" x="0.558311" y="0.935719" />
+                <point id="490" x="0.821181" y="0.818849" />
+                <point id="491" x="0.557074" y="1.210916" />
+                <point id="492" x="0.557725" y="0.834271" />
+            </key-points>
+            <curves>
+                <cubic id="493">
+                    <point id="468" />
+                    <point id="467" />
+                    <point id="472" />
+                    <point id="488" />
+                </cubic>
+                <line id="501">
+                    <point id="485" />
+                    <point id="489" />
+                </line>
+                <line id="494">
+                    <point id="469" />
+                    <point id="483" />
+                </line>
+                <cubic id="495">
+                    <point id="483" />
+                    <point id="466" />
+                    <point id="480" />
+                    <point id="481" />
+                </cubic>
+                <line id="496">
+                    <point id="489" />
+                    <point id="492" />
+                </line>
+                <line id="497">
+                    <point id="465" />
+                    <point id="473" />
+                </line>
+                <cubic id="498">
+                    <point id="487" />
+                    <point id="491" />
+                    <point id="470" />
+                    <point id="485" />
+                </cubic>
+                <line id="499">
+                    <point id="473" />
+                    <point id="469" />
+                </line>
+                <quadratic id="500">
+                    <point id="478" />
+                    <point id="479" />
+                    <point id="486" />
+                </quadratic>
+                <line id="502">
+                    <point id="486" />
+                    <point id="487" />
+                </line>
+                <cubic id="503">
+                    <point id="481" />
+                    <point id="484" />
+                    <point id="477" />
+                    <point id="478" />
+                </cubic>
+                <cubic id="504">
+                    <point id="492" />
+                    <point id="476" />
+                    <point id="482" />
+                    <point id="474" />
+                </cubic>
+                <cubic id="505">
+                    <point id="474" />
+                    <point id="471" />
+                    <point id="490" />
+                    <point id="468" />
+                </cubic>
+                <quadratic id="506">
+                    <point id="488" />
+                    <point id="475" />
+                    <point id="465" />
+                </quadratic>
+            </curves>
+            <loops>
+                <loop id="508" bounding-loop="1">
+                    <line id="497" />
+                    <line id="499" />
+                    <line id="494" />
+                    <cubic id="495" />
+                    <cubic id="503" />
+                    <quadratic id="500" />
+                    <line id="502" />
+                    <cubic id="498" />
+                    <line id="501" />
+                    <line id="496" />
+                    <cubic id="504" />
+                    <cubic id="505" />
+                    <cubic id="493" />
+                    <quadratic id="506" />
+                </loop>
+            </loops>
+        </graph>
+    </Piece>
+    <sewing id="507">
+        <Firsts>
+            <unit shape_id="247" reverse="1" />
+        </Firsts>
+        <Seconds>
+            <unit shape_id="256" reverse="0" />
+        </Seconds>
+    </sewing>
+    <sewing id="509">
+        <Firsts>
+            <unit shape_id="244" reverse="1" />
+            <unit shape_id="243" reverse="1" />
+            <unit shape_id="242" reverse="1" />
+        </Firsts>
+        <Seconds>
+            <unit shape_id="40" reverse="0" />
+            <unit shape_id="41" reverse="0" />
+            <unit shape_id="42" reverse="0" />
+            <unit shape_id="43" reverse="0" />
+        </Seconds>
+    </sewing>
+    <sewing id="510">
+        <Firsts>
+            <unit shape_id="179" reverse="1" />
+            <unit shape_id="174" reverse="1" />
+        </Firsts>
+        <Seconds>
+            <unit shape_id="186" reverse="0" />
+            <unit shape_id="175" reverse="0" />
+            <unit shape_id="187" reverse="0" />
+            <unit shape_id="188" reverse="0" />
+        </Seconds>
+    </sewing>
+    <sewing id="511">
+        <Firsts>
+            <unit shape_id="236" reverse="1" />
+            <unit shape_id="238" reverse="1" />
+            <unit shape_id="239" reverse="1" />
+        </Firsts>
+        <Seconds>
+            <unit shape_id="77" reverse="0" />
+        </Seconds>
+    </sewing>
+    <sewing id="512">
+        <Firsts>
+            <unit shape_id="78" reverse="1" />
+            <unit shape_id="70" reverse="1" />
+        </Firsts>
+        <Seconds>
+            <unit shape_id="33" reverse="0" />
+            <unit shape_id="32" reverse="0" />
+            <unit shape_id="46" reverse="0" />
+            <unit shape_id="35" reverse="0" />
+        </Seconds>
+    </sewing>
+    <sewing id="513">
+        <Firsts>
+            <unit shape_id="496" reverse="1" />
+            <unit shape_id="501" reverse="1" />
+            <unit shape_id="498" reverse="1" />
+        </Firsts>
+        <Seconds>
+            <unit shape_id="291" reverse="0" />
+            <unit shape_id="290" reverse="0" />
+            <unit shape_id="296" reverse="0" />
+        </Seconds>
+    </sewing>
+    <sewing id="514">
+        <Firsts>
+            <unit shape_id="435" reverse="1" />
+            <unit shape_id="426" reverse="1" />
+        </Firsts>
+        <Seconds>
+            <unit shape_id="438" reverse="0" />
+            <unit shape_id="439" reverse="0" />
+            <unit shape_id="440" reverse="0" />
+            <unit shape_id="441" reverse="0" />
+            <unit shape_id="442" reverse="0" />
+            <unit shape_id="443" reverse="0" />
+        </Seconds>
+    </sewing>
+    <sewing id="515">
+        <Firsts>
+            <unit shape_id="494" reverse="1" />
+            <unit shape_id="499" reverse="1" />
+            <unit shape_id="497" reverse="1" />
+        </Firsts>
+        <Seconds>
+            <unit shape_id="326" reverse="0" />
+        </Seconds>
+    </sewing>
+    <sewing id="516">
+        <Firsts>
+            <unit shape_id="300" reverse="1" />
+            <unit shape_id="299" reverse="1" />
+            <unit shape_id="292" reverse="1" />
+            <unit shape_id="294" reverse="1" />
+        </Firsts>
+        <Seconds>
+            <unit shape_id="325" reverse="0" />
+            <unit shape_id="324" reverse="0" />
+        </Seconds>
+    </sewing>
+    <sewing id="517">
+        <Firsts>
+            <unit shape_id="259" reverse="0" />
+        </Firsts>
+        <Seconds>
+            <unit shape_id="493" reverse="0" />
+        </Seconds>
+    </sewing>
+    <sewing id="518">
+        <Firsts>
+            <unit shape_id="38" reverse="0" />
+        </Firsts>
+        <Seconds>
+            <unit shape_id="289" reverse="0" />
+        </Seconds>
+    </sewing>
+    <sewing id="519">
+        <Firsts>
+            <unit shape_id="68" reverse="0" />
+        </Firsts>
+        <Seconds>
+            <unit shape_id="329" reverse="0" />
+        </Seconds>
+    </sewing>
+    <sewing id="520">
+        <Firsts>
+            <unit shape_id="71" reverse="0" />
+            <unit shape_id="69" reverse="0" />
+            <unit shape_id="72" reverse="0" />
+            <unit shape_id="73" reverse="0" />
+        </Firsts>
+        <Seconds>
+            <unit shape_id="183" reverse="0" />
+            <unit shape_id="173" reverse="0" />
+        </Seconds>
+    </sewing>
+    <sewing id="521">
+        <Firsts>
+            <unit shape_id="234" reverse="0" />
+            <unit shape_id="233" reverse="0" />
+            <unit shape_id="235" reverse="0" />
+            <unit shape_id="240" reverse="0" />
+            <unit shape_id="237" reverse="0" />
+            <unit shape_id="241" reverse="0" />
+        </Firsts>
+        <Seconds>
+            <unit shape_id="171" reverse="0" />
+            <unit shape_id="182" reverse="0" />
+        </Seconds>
+    </sewing>
+    <sewing id="522">
+        <Firsts>
+            <unit shape_id="177" reverse="0" />
+        </Firsts>
+        <Seconds>
+            <unit shape_id="30" reverse="0" />
+            <unit shape_id="34" reverse="0" />
+            <unit shape_id="37" reverse="0" />
+            <unit shape_id="29" reverse="0" />
+            <unit shape_id="28" reverse="0" />
+            <unit shape_id="36" reverse="0" />
+            <unit shape_id="31" reverse="0" />
+        </Seconds>
+    </sewing>
+    <sewing id="523">
+        <Firsts>
+            <unit shape_id="429" reverse="0" />
+            <unit shape_id="436" reverse="0" />
+            <unit shape_id="430" reverse="0" />
+        </Firsts>
+        <Seconds>
+            <unit shape_id="330" reverse="0" />
+        </Seconds>
+    </sewing>
+    <sewing id="524">
+        <Firsts>
+            <unit shape_id="433" reverse="0" />
+            <unit shape_id="428" reverse="0" />
+            <unit shape_id="437" reverse="0" />
+        </Firsts>
+        <Seconds>
+            <unit shape_id="495" reverse="0" />
+            <unit shape_id="503" reverse="0" />
+            <unit shape_id="500" reverse="0" />
+            <unit shape_id="502" reverse="0" />
+        </Seconds>
+    </sewing>
+    <sewing id="525">
+        <Firsts>
+            <unit shape_id="432" reverse="0" />
+            <unit shape_id="427" reverse="0" />
+            <unit shape_id="431" reverse="0" />
+            <unit shape_id="434" reverse="0" />
+        </Firsts>
+        <Seconds>
+            <unit shape_id="293" reverse="0" />
+            <unit shape_id="295" reverse="0" />
+            <unit shape_id="287" reverse="0" />
+        </Seconds>
+    </sewing>
+    <sewing id="526">
+        <Firsts>
+            <unit shape_id="44" reverse="0" />
+        </Firsts>
+        <Seconds>
+            <unit shape_id="45" reverse="0" />
+        </Seconds>
+    </sewing>
+    <sewing id="527">
+        <Firsts>
+            <unit shape_id="298" reverse="0" />
+        </Firsts>
+        <Seconds>
+            <unit shape_id="297" reverse="0" />
+        </Seconds>
+    </sewing>
+</ClothManager>
