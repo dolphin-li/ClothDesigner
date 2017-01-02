@@ -80,7 +80,7 @@ char* aGLSLStrings[] = {
 //-----------------------------------------------------------------------------      
  
 // GL ERROR CHECK
-   int CheckGLError(const string& file, int line)
+   static int CheckGLError(const string& file, int line)
    {
 	   GLenum glErr;
 	   int    retCode = 0;
@@ -88,7 +88,7 @@ char* aGLSLStrings[] = {
 	   glErr = glGetError();
 	   while (glErr != GL_NO_ERROR) 
        {
-	     const GLubyte* sError = gluErrorString(glErr);
+	     const GLubyte* sError = glewGetErrorString(glErr);
 
 		 if (sError)
 			cout << "GL Error #" << glErr << "(" << gluErrorString(glErr) << ") " << " in File " << file.c_str() << " at line: " << line << endl;

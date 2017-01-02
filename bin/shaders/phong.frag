@@ -9,8 +9,6 @@
 varying vec3 normal;
 varying vec3 vpos;
 
-uniform float shininess;
-
 void main()
 {
 	vec3 n = normalize(normal);

@@ -1,4 +1,28 @@
 #include "ShaderManager.h"
+
+// GL ERROR CHECK
+static int CheckGLError(const string& file, int line)
+{
+	GLenum glErr;
+	int    retCode = 0;
+
+	glErr = glGetError();
+	while (glErr != GL_NO_ERROR)
+	{
+		const GLubyte* sError = glewGetErrorString(glErr);
+
+		if (sError)
+			cout << "GL Error #" << glErr << "(" << gluErrorString(glErr) << ") " << " in File " << file.c_str() << " at line: " << line << endl;
+		else
+			cout << "GL Error #" << glErr << " (no message available)" << " in File " << file.c_str() << " at line: " << line << endl;
+
+		retCode = 1;
+		glErr = glGetError();
+	}
+	return retCode;
+}
+#define CHECK_GL_ERROR() CheckGLError(__FILE__, __LINE__)
+
 CShaderManager::CShaderManager()
 {
 	for(int i=0; i<nShaders; i++)
@@ -38,7 +62,7 @@ void CShaderManager::create(const char* folder_of_shaders)
 {
 	release();
 
-	printf("%s\n", gluErrorString(glGetError()));
+	CHECK_GL_ERROR();
 
 	const static std::string names[nShaders] ={
 		"none", "phong", "shadow"
@@ -59,13 +83,19 @@ void CShaderManager::create(const char* folder_of_shaders)
 			m_fshader[i] = NULL;
 			continue;
 		}
+		CHECK_GL_ERROR();
 		m_fshader[i]->compile();
+		CHECK_GL_ERROR();
 		m_vshader[i]->compile();
+		CHECK_GL_ERROR();
 		
 		m_shader[i] = new cwc::glShader();
 		m_shader[i]->addShader(m_fshader[i]);
+		CHECK_GL_ERROR();
 		m_shader[i]->addShader(m_vshader[i]);
+		CHECK_GL_ERROR();
 		m_shader[i]->link();
+		CHECK_GL_ERROR();
 		printf("[shader log %d]: %s\n", i, m_shader[i]->getLinkerLog());
 	}// i	
 }
@@ -114,6 +144,8 @@ void CShaderManager::bind_shadow()
 	float light_dif[] = { 1, 1, 1, 1 };
 	glLightfv(GL_LIGHT0, GL_AMBIENT, light_amb);
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, light_dif);
+	glDisable(GL_LIGHTING);
+	glEnable(GL_DEPTH_TEST);
 }
 
 cwc::glShader* CShaderManager::getCurShader()
