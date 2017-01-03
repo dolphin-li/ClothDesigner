@@ -13,7 +13,7 @@
 #include "cloth\SmplManager.h"
 
 ClothDesigner::ClothDesigner(QWidget *parent)
-	: QMainWindow(parent)
+: QMainWindow(parent), m_projectSaved(false)
 {
 	ui.setupUi(this);
 	setAcceptDrops(true);
@@ -143,6 +143,7 @@ void ClothDesigner::on_actionLoad_svg_triggered()
 		if (name.isEmpty())
 			return;
 		loadSvg(name);
+		m_projectSaved = false;
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
@@ -160,6 +161,7 @@ void ClothDesigner::on_actionLoad_project_triggered()
 		if (name.isEmpty())
 			return;
 		loadProjectXml(name);
+		m_projectSaved = true;
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
@@ -169,24 +171,54 @@ void ClothDesigner::on_actionLoad_project_triggered()
 	}
 }
 
+void ClothDesigner::saveProject(const std::string& fileName)
+{
+	g_dataholder.saveLastDirs();
+	g_dataholder.m_clothManager->toXml(fileName);
+	std::cout << "Save project file:" << fileName << std::endl;
+}
+
+void ClothDesigner::saveProjectAs()
+{
+	QString name = QFileDialog::getSaveFileName(this, "Save Project", g_dataholder.m_lastProXmlDir.c_str(), "*.xml");
+	if (name.isEmpty())
+		return;
+	if (!name.toLower().endsWith(".xml"))
+		name.append(".xml");
+	g_dataholder.m_lastProXmlDir = name.toStdString();
+	saveProject(name.toStdString());
+}
+
 void ClothDesigner::on_actionSave_project_triggered()
 {
 	try
 	{
-		QString name = QFileDialog::getSaveFileName(this, "Save Project", g_dataholder.m_lastProXmlDir.c_str(), "*.xml");
-		if (name.isEmpty())
-			return;
-		if (!name.toLower().endsWith(".xml"))
-			name.append(".xml");
-
-		g_dataholder.m_lastProXmlDir = name.toStdString();
-		g_dataholder.saveLastDirs();
-
-		g_dataholder.m_clothManager->toXml(name.toStdString());
+		if (!m_projectSaved)
+			saveProjectAs();
+		else
+			saveProject(g_dataholder.m_lastProXmlDir);
+		m_projectSaved = true;
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
 	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
+	}
+}
+
+void  ClothDesigner::on_actionSave_as_triggered()
+{
+	try
+	{
+		saveProjectAs();
+		m_projectSaved = true;
+	}
+	catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+	catch (...)
 	{
 		std::cout << "unknown error" << std::endl;
 	}
