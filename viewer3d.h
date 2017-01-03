@@ -98,9 +98,10 @@ protected:
 	ClothDesigner* m_mainUI;
 
 protected:
-	GLuint m_depthTexture = 0;
-	GLuint m_shadowProgram = 0;
-	GLuint m_depthFbo = 0;
-	void createShadowMap();
+	GLuint m_shadowDepthTexture = 0;
+	GLuint m_shadowDepthFbo = 0;
+	ldp::Float3 m_lightPosition;
+	void initializeShadowMap();
+	void renderShadowMap();
 };
 

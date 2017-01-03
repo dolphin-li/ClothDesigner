@@ -79,7 +79,7 @@ static int CheckGLError(const string& file, int line)
 	glErr = glGetError();
 	while (glErr != GL_NO_ERROR)
 	{
-		const GLubyte* sError = gluErrorString(glErr);
+		const GLubyte* sError = glewGetErrorString(glErr);
 
 		if (sError)
 			cout << "GL Error #" << glErr << "(" << gluErrorString(glErr) << ") " << " in File " << file.c_str() << " at line: " << line << endl;
@@ -107,6 +107,7 @@ Viewer3d::Viewer3d(QWidget *parent)
 	m_fbo = nullptr;
 	m_clothManager = nullptr;
 	m_mainUI = nullptr;
+	m_lightPosition = ldp::Float3(-2, 1, 4);
 
 	m_eventHandles.resize((size_t)Abstract3dEventHandle::ProcessorTypeEnd, nullptr);
 	for (size_t i = (size_t)Abstract3dEventHandle::ProcessorTypeGeneral;
@@ -162,6 +163,7 @@ void Viewer3d::initializeGL()
 	glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
 	glEnable(GL_POLYGON_OFFSET_FILL);
 	glPolygonOffset(1, 1);
+	glLightfv(GL_LIGHT0, GL_POSITION, m_lightPosition.ptr());
 
 	m_showType = Renderable::SW_F | Renderable::SW_SMOOTH | Renderable::SW_TEXTURE
 		| Renderable::SW_LIGHTING;
@@ -175,16 +177,44 @@ void Viewer3d::initializeGL()
 	if (!m_fbo->isValid())
 		printf("error: invalid depth fbo!\n");
 
+	CHECK_GL_ERROR();
+
 	// shader
 	glewInit();
 	m_shaderManager.create("shaders");
+	initializeShadowMap();
 }
 
-void Viewer3d::createShadowMap()
+void Viewer3d::initializeShadowMap()
 {
-	QGLFunctions func;
-	func.glBindFramebuffer(GL_FRAMEBUFFER, m_depthFbo);
-	glViewport(0, 0, width(), height());
+	QOpenGLFunctions func(QOpenGLContext::currentContext());
+
+	//Init depth texture and FBO
+	func.glGenFramebuffers(1, &m_shadowDepthFbo);
+	func.glBindFramebuffer(GL_FRAMEBUFFER, m_shadowDepthFbo);
+
+	// Depth texture. Slower than a depth buffer, but you can sample it later in your shader
+	glGenTextures(1, &m_shadowDepthTexture);
+	glBindTexture(GL_TEXTURE_2D, m_shadowDepthTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 1024, 1024, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, m_shadowDepthTexture, 0);
+	glDrawBuffer(GL_NONE);
+	if (func.glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) 
+		printf("Init_Shadow_Map failed.\n");
+	glBindTexture(GL_TEXTURE_2D, 0);
+	func.glBindBuffer(GL_FRAMEBUFFER, 0);
+	CHECK_GL_ERROR();
+}
+
+void Viewer3d::renderShadowMap()
+{
+	QGLFunctions func(QGLContext::currentContext());
+	func.glBindFramebuffer(GL_FRAMEBUFFER, m_shadowDepthFbo);
+	glViewport(0, 0, 1024, 1024);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 
@@ -193,7 +223,7 @@ void Viewer3d::createShadowMap()
 	glOrtho(-2, 2, -2, 2, 0, 20);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	gluLookAt(1, 1, 1, 0, 0, 0, 0, 1, 0);
+	gluLookAt(m_lightPosition[0], m_lightPosition[1], m_lightPosition[2], 0, 0, 0, 0, 1, 0);
 	//Use fixed program
 	func.glUseProgram(0);
 
@@ -231,9 +261,12 @@ void Viewer3d::createShadowMap()
 
 	glGetFloatv(GL_MODELVIEW_MATRIX, biased_MVP);
 
-	func.glUseProgram(m_shadowProgram);
-	GLuint m = func.glGetUniformLocation(m_shadowProgram, "biased_MVP"); // get the location of the biased_MVP matrix
-	func.glUniformMatrix4fv(m, 1, GL_FALSE, biased_MVP);
+	m_shaderManager.bind(CShaderManager::shadow);
+	m_shaderManager.getCurShader()->setUniformMatrix4fv("biased_MVP", 1, GL_FALSE, biased_MVP);
+	m_shaderManager.unbind();
+	CHECK_GL_ERROR();
+
+	func.glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void Viewer3d::resizeGL(int w, int h)
@@ -258,21 +291,25 @@ void Viewer3d::timerEvent(QTimerEvent* ev)
 
 void Viewer3d::paintGL()
 {
+	QGLFunctions func(QGLContext::currentContext());
+
 	// we first render for selection
 	renderSelectionOnFbo();
+
+	renderShadowMap();
 
 	// then we do formal rendering=========================
 	glClearColor(0.3f, 0.3f, 0.3f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	ldp::Float3 light = 0.6 * m_camera.getScalar().length();
-	glLightfv(GL_LIGHT0, GL_DIFFUSE, light.ptr());
+	m_camera.apply();
 
 	// show cloth simulation=============================
-	m_camera.apply();
 	if (m_clothManager)
 	{
-		m_shaderManager.bind(CShaderManager::phong);
+		m_shaderManager.bind(CShaderManager::shadow);
+		m_shaderManager.getCurShader()->setUniform1i("shadow_texture", 0);
+		func.glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, m_shadowDepthTexture);
 		m_clothManager->bodyMesh()->render(Renderable::SW_F | Renderable::SW_SMOOTH 
 			| Renderable::SW_LIGHTING | Renderable::SW_TEXTURE);
 		for (int i = 0; i < m_clothManager->numClothPieces(); i++)

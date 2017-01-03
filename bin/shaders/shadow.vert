@@ -4,13 +4,20 @@
 
 varying vec4 fragment_position;
 
+varying vec3 normal;
+varying vec3 vpos;
+
 void main()
 { 
+	//In the world space
+	fragment_position = gl_Vertex; 	
 
-	fragment_position = gl_Vertex; 	//In the world space
-//	fragment_normal   = vec3(gl_ModelViewMatrix * vertex_normal);   //In the eye space
-
-
-
-	gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;   // In the clip space
+	// vertex normal
+	normal = normalize(gl_NormalMatrix * gl_Normal);
+	
+	// vertex position
+	vpos = vec3(gl_ModelViewMatrix * gl_Vertex);
+	
+	// vertex position
+	gl_Position = ftransform();
 }
