@@ -45,6 +45,7 @@ public:
     QAction *actionPlace_3d_by_2d;
     QAction *actionExport_body_mesh;
     QAction *actionExport_cloth_mesh;
+    QAction *actionSave_as;
     QWidget *centralWidget;
     QMenuBar *menuBar;
     QMenu *menuFile;
@@ -143,12 +144,14 @@ public:
         actionExport_body_mesh->setObjectName(QStringLiteral("actionExport_body_mesh"));
         actionExport_cloth_mesh = new QAction(ClothDesignerClass);
         actionExport_cloth_mesh->setObjectName(QStringLiteral("actionExport_cloth_mesh"));
+        actionSave_as = new QAction(ClothDesignerClass);
+        actionSave_as->setObjectName(QStringLiteral("actionSave_as"));
         centralWidget = new QWidget(ClothDesignerClass);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
         ClothDesignerClass->setCentralWidget(centralWidget);
         menuBar = new QMenuBar(ClothDesignerClass);
         menuBar->setObjectName(QStringLiteral("menuBar"));
-        menuBar->setGeometry(QRect(0, 0, 890, 21));
+        menuBar->setGeometry(QRect(0, 0, 890, 23));
         menuFile = new QMenu(menuBar);
         menuFile->setObjectName(QStringLiteral("menuFile"));
         menuEdit = new QMenu(menuBar);
@@ -506,6 +509,7 @@ public:
         menuBar->addAction(menuHistory->menuAction());
         menuFile->addAction(actionLoad_project);
         menuFile->addAction(actionSave_project);
+        menuFile->addAction(actionSave_as);
         menuFile->addAction(actionLoad_svg);
         menuFile->addSeparator();
         menuFile->addAction(actionExport_body_mesh);
@@ -539,6 +543,8 @@ public:
         actionPlace_3d_by_2d->setText(QApplication::translate("ClothDesignerClass", "place 3d by 2d", 0));
         actionExport_body_mesh->setText(QApplication::translate("ClothDesignerClass", "export body mesh", 0));
         actionExport_cloth_mesh->setText(QApplication::translate("ClothDesignerClass", "export cloth mesh", 0));
+        actionSave_as->setText(QApplication::translate("ClothDesignerClass", "save project as", 0));
+        actionSave_as->setShortcut(QApplication::translate("ClothDesignerClass", "Ctrl+Alt+S", 0));
         menuFile->setTitle(QApplication::translate("ClothDesignerClass", "file", 0));
         menuEdit->setTitle(QApplication::translate("ClothDesignerClass", "edit", 0));
         menuHistory->setTitle(QApplication::translate("ClothDesignerClass", "history", 0));

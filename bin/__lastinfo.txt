@@ -1,3 +1,3 @@
-svg_dir: //dongping-pc1/sewingPatterns/burdastyle_data/_pattern_selected/Blouses_w/Sailor Blouse (Plus Size) 09 2015/p1-3.svg
-proj_dir: //dongping-pc1/sewingPatterns/burdastyle_data/_pattern_selected/Tanks_w/Tank 08 2011/36.xml
+svg_dir: //dongping-pc1/sewingPatterns/burdastyle_data/_pattern_selected/Blouses_w/Button Up Blouse 02 2010(1)/44.svg
+proj_dir: //dongping-pc1/sewingPatterns/burdastyle_data/_pattern_selected/Blouses_w/Button Up Blouse 02 2010(1)/42.xml
 smpl_shape_dir: 

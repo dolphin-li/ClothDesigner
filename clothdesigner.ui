@@ -20,7 +20,7 @@
      <x>0</x>
      <y>0</y>
      <width>890</width>
-     <height>21</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -29,6 +29,7 @@
     </property>
     <addaction name="actionLoad_project"/>
     <addaction name="actionSave_project"/>
+    <addaction name="actionSave_as"/>
     <addaction name="actionLoad_svg"/>
     <addaction name="separator"/>
     <addaction name="actionExport_body_mesh"/>
@@ -626,6 +627,14 @@
   <action name="actionExport_cloth_mesh">
    <property name="text">
     <string>export cloth mesh</string>
+   </property>
+  </action>
+  <action name="actionSave_as">
+   <property name="text">
+    <string>save project as</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+S</string>
    </property>
   </action>
  </widget>
