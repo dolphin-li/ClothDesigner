@@ -32,7 +32,7 @@ void main()
 		else visibility = visibility +1.0;
 	}
 	visibility=visibility/49.0;
-	float shadowColor=dot(L, N)*visibility;//*0.8+0.1;
+	float shadowColor=dot(L, N)*visibility + 0.2;//*0.8+0.1;
 
 	///////////////////////////////////////phong///////////////////////////////////////////////
 	vec3 n = normalize(normal);
@@ -53,7 +53,16 @@ void main()
 	float NdotL = dot(n, lightDir);
 	
 	if (NdotL > 0.0)
+	{
 		diffuse = kd * NdotL;
+	}
+	else
+	{
+		diffuse = -kd * NdotL;
+		diffuse.x *= 0.7;
+		diffuse.y *= 0.9;
+		diffuse.z *= 1.1;
+	}
 	
 	// specular term
 	vec3 rVector = normalize(2.0 * n * dot(n, lightDir) - lightDir);

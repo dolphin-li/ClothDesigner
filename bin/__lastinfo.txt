@@ -1,3 +1,2 @@
 svg_dir: //dongping-pc1/sewingPatterns/burdastyle_data/_pattern_selected/Blouses_w/Boho Blouse 04 2016/44.svg
 proj_dir: //dongping-pc1/sewingPatterns/burdastyle_data/_pattern_selected/Blouses_w/Boho Blouse 04 2016/44.xml
-smpl_shape_dir: 

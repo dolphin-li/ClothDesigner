@@ -13,11 +13,14 @@
 
 #pragma region --mat_utils
 
+const static float HIGHLIGHT_DIF_Z = 0.001;
+const static float SELECT_DIF_Z = 0.002;
 const static float BODY_Z = -50;
 const static float BACK_Z = -10;
 const static float MESH_Z = 0;
 const static float EDGE_Z = 0.1;
 const static float EDGE_Z_ADDURVE = 0.11;
+const static float LOOP_Z = 0.9;
 const static float SEW_EDGE_Z = 1;
 const static float SEW_CONTACT_Z = 1.1;
 const static float KEYPT_Z = 2;
@@ -31,6 +34,8 @@ const static float KEYPT_RENDER_WIDTH = 5;
 const static float KEYPT_SELECT_WIDTH = 6;
 const static float SEW_RENDER_WIDTH = 4;
 const static float SEW_SELECT_WIDTH = 6;
+const static float LOOP_RENDER_WIDTH = 3;
+const static float LOOP_SELECT_WIDTH = 6;
 
 const static float SELECT_COLOR[4] = { 1, 1, 0, 0.8 };
 const static float HIGHLIGHT_COLOR[4] = { 0, 1, 1, 0.8 };
@@ -108,6 +113,7 @@ Viewer2d::Viewer2d(QWidget *parent)
 	m_mainUI = nullptr;
 	m_isSewingMode = false;
 	m_isAddCurveMode = false;
+	m_isEditLoopMode = false;
 
 	m_eventHandles.resize((size_t)Abstract2dEventHandle::ProcessorTypeEnd, nullptr);
 	for (size_t i = (size_t)Abstract2dEventHandle::ProcessorTypeGeneral;
@@ -553,6 +559,7 @@ void Viewer2d::renderClothsPanels(bool idxMode)
 		const auto piece = m_clothManager->clothPiece(iPiece);
 		renderClothsPanels_Edge(piece, idxMode);
 		renderClothsPanels_KeyPoint(piece, idxMode);
+		renderClothsPanels_Loop(piece, idxMode);
 	} // end for iPiece
 
 	renderClothsSewing(idxMode);
@@ -566,7 +573,8 @@ void Viewer2d::renderClothsPanels_Edge(const ldp::ClothPiece* piece, bool idxMod
 	const auto& panel = piece->graphPanel();
 
 	if (idxMode)
-		glLineWidth(EDGE_SELECT_WIDTH + isSewingMode() * SEW_SELECT_WIDTH);
+		glLineWidth(EDGE_SELECT_WIDTH + isSewingMode() * SEW_SELECT_WIDTH * 2
+		+ isEditLoopMode() * LOOP_SELECT_WIDTH * 2);
 	else
 		glLineWidth(EDGE_RENDER_WIDTH);
 	glBegin(GL_LINES);
@@ -629,6 +637,48 @@ void Viewer2d::renderClothsPanels_KeyPoint(const ldp::ClothPiece* piece, bool id
 		const auto& x = p.getPosition();
 		glVertex3f(x[0], x[1], KEYPT_Z);
 	}
+	glEnd();
+}
+
+void Viewer2d::renderClothsPanels_Loop(const ldp::ClothPiece* piece, bool idxMode)
+{
+	if (!isEditLoopMode())
+		return;
+	const float step = m_clothManager->getClothDesignParam().curveSampleStep;
+	const auto& panel = piece->graphPanel();
+
+	if (idxMode)
+		glLineWidth(LOOP_SELECT_WIDTH);
+	else
+		glLineWidth(LOOP_RENDER_WIDTH);
+	glBegin(GL_LINES);
+	for (auto loop_iter = panel.loop_begin(); loop_iter != panel.loop_end(); ++loop_iter)
+	{
+		float difz = loop_iter->isSelected() * SELECT_DIF_Z + loop_iter->isHighlighted() * HIGHLIGHT_DIF_Z;
+		if (!idxMode)
+		{
+			if (loop_iter->isHighlighted() || panel.isHighlighted())
+				glColor4fv(HIGHLIGHT_COLOR);
+			else if (loop_iter->isSelected() || panel.isSelected())
+				glColor4fv(SELECT_COLOR);
+			else
+				glColor4fv(color_table(loop_iter->getId()).ptr());
+		}
+		else
+			glColor4fv(selectIdToColor(loop_iter->getId()).ptr());
+
+		Float2 lastp = std::numeric_limits<float>::quiet_NaN();
+		for (auto sample_iter = loop_iter->samplePoint_begin(step); !sample_iter.isEnd(); ++sample_iter)
+		{
+			Float2 p = *sample_iter;
+			if (!std::isnan(lastp[0]))
+			{
+				glVertex3f(lastp[0], lastp[1], LOOP_Z + difz);
+				glVertex3f(p[0], p[1], LOOP_Z + difz);
+			}
+			lastp = p;
+		} // end for iter
+	} // end for loop_iter
 	glEnd();
 }
 
@@ -1118,4 +1168,15 @@ void Viewer2d::renderUiCurves()
 		glVertex3f(pts[i][0], pts[i][1], EDGE_Z);
 	}
 	glEnd();
+}
+
+/////////////////////////////////////////////////////////////////////////////////
+void Viewer2d::beginEditLoopMode()
+{
+	m_isEditLoopMode = true;
+}
+
+void Viewer2d::endEditLoopMode()
+{
+	m_isEditLoopMode = false;
 }

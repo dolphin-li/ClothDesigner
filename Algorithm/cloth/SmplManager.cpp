@@ -943,7 +943,7 @@ void SmplManager::toObjMesh(ObjMesh& mesh)const
 	mesh.face_list.resize(m_faces.size());
 
 	mesh.material_list.push_back(ObjMesh::default_material);
-	mesh.material_list[0].diff = ldp::Float3(0.7, 0.8, 0.9);
+	mesh.material_list[0].diff = ldp::Float3(1, 0.9, 0.8);
 
 	// copy faces
 	for (size_t i = 0; i < mesh.face_list.size(); i++)

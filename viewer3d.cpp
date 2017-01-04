@@ -224,12 +224,12 @@ void Viewer3d::renderShadowMap()
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	gluLookAt(m_lightPosition[0], m_lightPosition[1], m_lightPosition[2], 0, 0, 0, 0, 1, 0);
-	//Use fixed program
-	func.glUseProgram(0);
 
 	glPushMatrix();
 	glLoadIdentity();
 	glMultMatrixf(m_camera.getModelViewMatrix().ptr());
+	m_clothManager->bodyMesh()->render(Renderable::SW_F | Renderable::SW_SMOOTH
+		| Renderable::SW_LIGHTING | Renderable::SW_TEXTURE);
 	for (int i = 0; i < m_clothManager->numClothPieces(); i++)
 	{
 		const auto& piece = m_clothManager->clothPiece(i);
