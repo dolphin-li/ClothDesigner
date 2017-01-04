@@ -661,6 +661,9 @@
     <ClCompile Include="event_handles\AddCurve2dEventHandle.cpp">
       <Filter>event_handle</Filter>
     </ClCompile>
+    <ClCompile Include="event_handles\Loop2dEventHandle.cpp">
+      <Filter>event_handle</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">
@@ -1050,6 +1053,9 @@
       <Filter>event_handle</Filter>
     </ClInclude>
     <ClInclude Include="event_handles\AddCurve2dEventHandle.h">
+      <Filter>event_handle</Filter>
+    </ClInclude>
+    <ClInclude Include="event_handles\Loop2dEventHandle.h">
       <Filter>event_handle</Filter>
     </ClInclude>
   </ItemGroup>

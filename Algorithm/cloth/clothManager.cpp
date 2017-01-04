@@ -1633,7 +1633,7 @@ namespace ldp
 			// 2. remove loops
 			auto& panel = piece->graphPanel();
 			std::vector<GraphLoop*> tmpLoops;
-			for (auto iter = panel.loop_begin(); iter != panel.loop_begin(); ++iter)
+			for (auto iter = panel.loop_begin(); iter != panel.loop_end(); ++iter)
 			{
 				if (iter->isSelected())
 					tmpLoops.push_back(iter);
@@ -1666,6 +1666,28 @@ namespace ldp
 		} // end for piece
 
 		m_shouldTriangulate = true;
+		return removed;
+	}
+
+	bool ClothManager::removeSelectedLoops()
+	{
+		bool removed = false;
+
+		for (auto& piece : m_clothPieces)
+		{
+			// 2. remove loops
+			auto& panel = piece->graphPanel();
+			std::vector<GraphLoop*> tmpLoops;
+			for (auto iter = panel.loop_begin(); iter != panel.loop_end(); ++iter)
+			{
+				if (iter->isSelected())
+					tmpLoops.push_back(iter);
+			}
+			for (auto loop : tmpLoops)
+				removed |= panel.removeLoop(loop);
+		} // end for piece
+
+		m_shouldTriangulate = removed;
 		return removed;
 	}
 	

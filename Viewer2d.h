@@ -94,6 +94,11 @@ public:
 	bool addCurvePoint(QPoint pos, bool tmp);
 	bool endCurve();
 	bool giveupCurve();
+
+	// edit loop mode
+	void beginEditLoopMode();
+	void endEditLoopMode();
+	bool isEditLoopMode()const { return m_isEditLoopMode; }
 protected:
 	void mousePressEvent(QMouseEvent *);
 	void mouseReleaseEvent(QMouseEvent *);
@@ -108,6 +113,7 @@ protected:
 	void renderClothsPanels(bool idxMode);
 	void renderClothsPanels_Edge(const ldp::ClothPiece* piece, bool idxMode);
 	void renderClothsPanels_KeyPoint(const ldp::ClothPiece* piece, bool idxMode);
+	void renderClothsPanels_Loop(const ldp::ClothPiece* piece, bool idxMode);
 	void renderClothsSewing(bool idxMode);
 	void renderMeshes(bool idxMode);
 	void renderOneSew(const ldp::GraphsSewing* sew, bool idxMode);
@@ -139,5 +145,8 @@ protected:
 	// add curve mode
 	bool m_isAddCurveMode;
 	UiCurveData m_uiCurves;
+
+	// edit loop mode
+	bool m_isEditLoopMode;
 };
 

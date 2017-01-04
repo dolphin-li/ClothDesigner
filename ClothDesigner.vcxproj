@@ -320,6 +320,7 @@
     <ClCompile Include="event_handles\AddCurve2dEventHandle.cpp" />
     <ClCompile Include="event_handles\Cylinder3dEventHandle.cpp" />
     <ClCompile Include="event_handles\Edit2dPatternEventHandle.cpp" />
+    <ClCompile Include="event_handles\Loop2dEventHandle.cpp" />
     <ClCompile Include="event_handles\Rotate3dEventHandle.cpp" />
     <ClCompile Include="event_handles\Select3dEventHandle.cpp" />
     <ClCompile Include="event_handles\Sewing2dPatternEventHandle.cpp" />
@@ -531,6 +532,7 @@
     <ClInclude Include="event_handles\AddCurve2dEventHandle.h" />
     <ClInclude Include="event_handles\Cylinder3dEventHandle.h" />
     <ClInclude Include="event_handles\Edit2dPatternEventHandle.h" />
+    <ClInclude Include="event_handles\Loop2dEventHandle.h" />
     <ClInclude Include="event_handles\Rotate3dEventHandle.h" />
     <ClInclude Include="event_handles\Select3dEventHandle.h" />
     <ClInclude Include="event_handles\Sewing2dPatternEventHandle.h" />

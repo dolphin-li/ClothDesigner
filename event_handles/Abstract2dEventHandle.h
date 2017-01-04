@@ -49,6 +49,7 @@ public:
 		ProcessorTypeTransformPattern,
 		ProcessorTypeSewingPattern,
 		ProcessorTypeAddCurve,
+		ProcessorTypeLoop,
 		ProcessorTypeEnd, // the end, no processor for this
 	};
 public:
