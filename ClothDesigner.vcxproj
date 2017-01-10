@@ -324,6 +324,7 @@
     <ClCompile Include="event_handles\Rotate3dEventHandle.cpp" />
     <ClCompile Include="event_handles\Select3dEventHandle.cpp" />
     <ClCompile Include="event_handles\Sewing2dPatternEventHandle.cpp" />
+    <ClCompile Include="event_handles\Smpl3dEventHandle.cpp" />
     <ClCompile Include="event_handles\Transform2dPatternEventHandle.cpp" />
     <ClCompile Include="event_handles\Translate3dEventHandle.cpp" />
     <ClCompile Include="GeneratedFiles\Debug\moc_clothdesigner.cpp">
@@ -536,6 +537,7 @@
     <ClInclude Include="event_handles\Rotate3dEventHandle.h" />
     <ClInclude Include="event_handles\Select3dEventHandle.h" />
     <ClInclude Include="event_handles\Sewing2dPatternEventHandle.h" />
+    <ClInclude Include="event_handles\Smpl3dEventHandle.h" />
     <ClInclude Include="event_handles\Transform2dPatternEventHandle.h" />
     <ClInclude Include="event_handles\Translate3dEventHandle.h" />
     <ClInclude Include="GeneratedFiles\ui_clothdesigner.h" />

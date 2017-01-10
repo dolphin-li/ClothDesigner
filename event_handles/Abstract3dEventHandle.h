@@ -18,19 +18,14 @@ class Abstract3dEventHandle
 public:
 	struct PickInfo
 	{
+		int renderId = -1;
 		ldp::Float3 screenPos;
-		ObjMesh* mesh;
-		ldp::ClothPiece* piece;
-		int faceId;
+		ObjMesh* mesh = nullptr;
+		ldp::ClothPiece* piece = nullptr;
+		int faceId = -1;
 		ldp::Float3 pickInnerCoords;
 		ldp::Float3 pickPos;
 		ldp::Float3 meshCenter;
-		PickInfo()
-		{
-			mesh = nullptr;
-			piece = nullptr;
-			faceId = -1;
-		}
 	};
 	enum ProcessorType{
 		ProcessorTypeGeneral = 0,
@@ -38,6 +33,7 @@ public:
 		ProcessorTypeTranslate,
 		ProcessorTypeRotate,
 		ProcessorTypeCylinder,
+		ProcessorTypeSmpl,
 		ProcessorTypeEnd, // the end, no processor for this
 	};
 public:

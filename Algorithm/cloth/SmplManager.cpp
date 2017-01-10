@@ -530,6 +530,7 @@ void SmplManager::render(int showType, int frameIndex)
 
 	if (showType & SW_SKELETON)
 	{
+		glEnable(GL_COLOR_MATERIAL);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glEnable(GL_LIGHTING);
 		glDisable(GL_TEXTURE_2D);
@@ -711,10 +712,10 @@ void SmplManager::renderForSelection(int showType, int idStart)
 		// 1. draw nodes as cubes
 		for (size_t i = 0; i < m_curJ.rows(); i++)
 		{
-			ldp::Float3 p = ldp::Float3(m_curJ(i, 0), m_curJ(i, 1), m_curJ(i, 2)) + m_curJtrans[i];
+			glColor4fv(selectIdToColor(i + m_selectIdStart).ptr());
+			ldp::Float3 p = getCurNodeCenter(i);
 			ldp::Mat4f M = ldp::Mat4f().eye();
 			M.setRotationPart(m_curJrots[i]);
-			glColor4fv(selectIdToColor(i + m_selectIdStart).ptr());
 			glPushMatrix();
 			glTranslatef(p[0], p[1], p[2]);
 			glMultMatrixf(M.ptr());

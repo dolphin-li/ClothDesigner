@@ -55,6 +55,7 @@ public:
 	void savePoseCoeffs(std::string filename)const;
 	void loadPoseCoeffs(std::string filename);
 public:
+	int getSelectedNodeId()const { return m_selectedNode; }
 	ldp::Float3 getCurNodeCenter(int idx)const;
 	ldp::Float3 getCurNodeCenterNotPosed(int idx)const;
 	const ldp::Mat3f& getNodeGlobalRotation(int idx)const { return m_curJrots.at(idx); }

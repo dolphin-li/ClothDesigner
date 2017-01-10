@@ -17,6 +17,7 @@ public:
 		TrackBallIndex_X = 0x3fffffff,
 		TrackBallIndex_Y,
 		TrackBallIndex_Z,
+		SmplJointIndex = 0x41000002
 	};
 	enum TrackBallMode{
 		TrackBall_None,
@@ -58,6 +59,9 @@ public:
 
 	int fboRenderedIndex(QPoint p)const;
 	void getModelBound(ldp::Float3& bmin, ldp::Float3& bmax)const;
+
+	void setSmplMode(bool s) { m_isSmplMode = s; }
+	bool isSmplMode()const { return m_isSmplMode; }
 protected:
 	void mousePressEvent(QMouseEvent *);
 	void mouseReleaseEvent(QMouseEvent *);
@@ -91,6 +95,7 @@ protected:
 	float m_trackBallScale;
 	int m_activeTrackBallAxis;
 	int m_hoverTrackBallAxis;
+	bool m_isSmplMode;
 	Abstract3dEventHandle* m_currentEventHandle;
 	std::vector<std::shared_ptr<Abstract3dEventHandle>> m_eventHandles;
 

@@ -14,6 +14,7 @@
 #include "Select3dEventHandle.h"
 #include "Rotate3dEventHandle.h"
 #include "Cylinder3dEventHandle.h"
+#include "Smpl3dEventHandle.h"
 Abstract3dEventHandle::Abstract3dEventHandle(Viewer3d* v)
 {
 	m_viewer = v;
@@ -79,18 +80,18 @@ void Abstract3dEventHandle::pick(QPoint pos)
 		return;
 	manager->clearHighLights();
 
-	int renderedId = m_viewer->fboRenderedIndex(pos);
-	if (renderedId >= m_viewer->FaceIndex && renderedId < m_viewer->TrackBallIndex_X)
+	m_pickInfo.renderId = m_viewer->fboRenderedIndex(pos);
+	if (m_pickInfo.renderId >= m_viewer->FaceIndex && m_pickInfo.renderId < m_viewer->TrackBallIndex_X)
 	{
 		// 1. pick the body mesh
 		bool picked = false;
 		int curIdx = m_viewer->FaceIndex;
 		auto mesh0 = manager->bodyMesh();
-		if (renderedId >= curIdx && renderedId < curIdx + mesh0->face_list.size())
+		if (m_pickInfo.renderId >= curIdx && m_pickInfo.renderId < curIdx + mesh0->face_list.size())
 		{
 			m_pickInfo.piece = nullptr;
 			m_pickInfo.mesh = mesh0;
-			m_pickInfo.faceId = renderedId - curIdx;
+			m_pickInfo.faceId = m_pickInfo.renderId - curIdx;
 			picked = true;
 		}
 		curIdx += mesh0->face_list.size();
@@ -102,11 +103,11 @@ void Abstract3dEventHandle::pick(QPoint pos)
 			{
 				auto piece = manager->clothPiece(iMesh);
 				auto mesh = &manager->clothPiece(iMesh)->mesh3d();
-				if (renderedId >= curIdx && renderedId < curIdx + mesh->face_list.size())
+				if (m_pickInfo.renderId >= curIdx && m_pickInfo.renderId < curIdx + mesh->face_list.size())
 				{
 					m_pickInfo.piece = piece;
 					m_pickInfo.mesh = mesh;
-					m_pickInfo.faceId = renderedId - curIdx;
+					m_pickInfo.faceId = m_pickInfo.renderId - curIdx;
 					picked = true;
 					break;
 				}
@@ -162,6 +163,8 @@ Abstract3dEventHandle* Abstract3dEventHandle::create(ProcessorType type, Viewer3
 		return new Rotate3dEventHandle(v);
 	case Abstract3dEventHandle::ProcessorTypeCylinder:
 		return new Cylinder3dEventHandle(v);
+	case Abstract3dEventHandle::ProcessorTypeSmpl:
+		return new Smpl3dEventHandle(v);
 	case Abstract3dEventHandle::ProcessorTypeEnd:
 	default:
 		return nullptr;

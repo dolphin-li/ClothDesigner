@@ -297,10 +297,8 @@ namespace ldp
 		{
 			// Based on Stan Melax's article in Game Programming Gems
 			// Copy, since cannot modify local
-			Vec v0 = from;
-			Vec v1 = to;
-			v0.normalize();
-			v1.normalize();
+			Vec v0 = from.normalize();
+			Vec v1 = to.normalize();
 
 			const DataType d = v0.dot(v1);
 			if (d >= DataType(1.0)) // If dot == 1, vectors are the same
@@ -317,7 +315,8 @@ namespace ldp
 					axis = axis.cross(v0);
 				}
 				// same as fromAngleAxis(core::PI, axis).normalize();
-				return Quaternion(axis, 0).normalize();
+				*this = Quaternion(axis, 0).normalize();
+				return *this;
 			}
 
 			const DataType s = sqrt((DataType(1) + d) * DataType(2)); // optimize inv_sqrt
