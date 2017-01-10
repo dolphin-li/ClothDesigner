@@ -147,6 +147,9 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Algorithm\BFGS\BFGSFit.cpp" />
+    <ClCompile Include="Algorithm\BFGS\program.cpp" />
+    <ClCompile Include="Algorithm\BFGS\solver.cpp" />
     <ClCompile Include="Algorithm\camera\Camera.cpp" />
     <ClCompile Include="Algorithm\cloth\clothManager.cpp" />
     <ClCompile Include="Algorithm\cloth\clothPiece.cpp" />
@@ -164,6 +167,7 @@
     <ClCompile Include="Algorithm\cloth\graph\GraphsSewing.cpp" />
     <ClCompile Include="Algorithm\cloth\HistoryStack.cpp" />
     <ClCompile Include="Algorithm\cloth\LevelSet3D.cpp" />
+    <ClCompile Include="Algorithm\cloth\RigidEstimation.cpp" />
     <ClCompile Include="Algorithm\cloth\SmplManager.cpp" />
     <ClCompile Include="Algorithm\cloth\TransformInfo.cpp" />
     <ClCompile Include="Algorithm\conv\ConvolutionPyramid.cpp" />
@@ -416,6 +420,9 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Algorithm\BFGS\BFGSFit.h" />
+    <ClInclude Include="Algorithm\BFGS\program.h" />
+    <ClInclude Include="Algorithm\BFGS\solver.h" />
     <ClInclude Include="Algorithm\camera\Camera.h" />
     <ClInclude Include="Algorithm\camera\fmath.h" />
     <ClInclude Include="Algorithm\cloth\clothManager.h" />
@@ -441,6 +448,7 @@
     <ClInclude Include="Algorithm\cloth\kernel_containers.h" />
     <ClInclude Include="Algorithm\cloth\LevelSet3D.h" />
     <ClInclude Include="Algorithm\cloth\LEVEL_SET_COLLISION.h" />
+    <ClInclude Include="Algorithm\cloth\RigidEstimation.h" />
     <ClInclude Include="Algorithm\cloth\SmplManager.h" />
     <ClInclude Include="Algorithm\cloth\TransformInfo.h" />
     <ClInclude Include="Algorithm\conv\ConvolutionPyramid.h" />

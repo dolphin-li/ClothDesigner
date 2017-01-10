@@ -41,6 +41,34 @@ namespace ldp
 		return std::min(b * 10.f, std::max(b * 0.1f, 1.f / (area1 + area2)));
 	}
 
+	inline SmplManager::Mat3 convert(ldp::Mat3d A)
+	{
+		SmplManager::Mat3 B;
+		for (int i = 0; i < 3; i++)
+		for (int j = 0; j < 3; j++)
+			B(i, j) = A(i, j);
+		return B;
+	}
+
+	inline ldp::Mat3d convert(SmplManager::Mat3 A)
+	{
+		ldp::Mat3d B;
+		for (int i = 0; i < 3; i++)
+		for (int j = 0; j < 3; j++)
+			B(i, j) = A(i, j);
+		return B;
+	}
+
+	inline SmplManager::Vec3 convert(ldp::Double3 v)
+	{
+		return SmplManager::Vec3(v[0], v[1], v[2]);
+	}
+
+	inline ldp::Double3 convert(SmplManager::Vec3 v)
+	{
+		return ldp::Double3(v[0], v[1], v[2]);
+	}
+
 	void ClothManager::initSmplDatabase()
 	{
 		if (m_smplMale.get() == nullptr)
@@ -944,8 +972,8 @@ namespace ldp
 				int iParent = m_smplBody->getNodeParent(iJoint);
 				if (iParent < 0)
 					continue;
-				Vec3 jb = m_smplBody->getCurNodeCenter(iParent);
-				Vec3 je = m_smplBody->getCurNodeCenter(iJoint);
+				Vec3 jb = convert(m_smplBody->getCurNodeCenter(iParent));
+				Vec3 je = convert(m_smplBody->getCurNodeCenter(iJoint));
 				ValueType val = ldp::pointSegDistance(v, jb, je);
 				auto iter = distMap.find(iParent);
 				if (iter == distMap.end())
@@ -1017,9 +1045,8 @@ namespace ldp
 			{
 				int iJoint = m_vertex_smplJointBind->innerIndexPtr()[j];
 				ValueType w = m_vertex_smplJointBind->valuePtr()[j];
-				Vec3 c = m_smplBody->getCurNodeCenterNotPosed(iJoint);
-				vsum += w * (m_smplBody->getNodeGlobalRotation(iJoint) * (v - c) 
-					+ c + m_smplBody->getNodeGlobalTranslation(iJoint));
+				vsum += w * Float3(convert(m_smplBody->getCurNodeRots(iJoint)) * v + 
+					convert(m_smplBody->getCurNodeTrans(iJoint)));
 				wsum += w;
 			} // end for j
 			vsum /= wsum;

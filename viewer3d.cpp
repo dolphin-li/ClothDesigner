@@ -309,6 +309,10 @@ void Viewer3d::paintGL()
 	// show cloth simulation=============================
 	if (m_clothManager)
 	{
+		if (isSmplMode() && m_clothManager->bodySmplManager())
+			glEnable(GL_COLOR_MATERIAL);
+		else
+			glDisable(GL_COLOR_MATERIAL);
 		m_shaderManager.bind(CShaderManager::shadow);
 		m_shaderManager.getCurShader()->setUniform1i("shadow_texture", 0);
 		func.glActiveTexture(GL_TEXTURE0);

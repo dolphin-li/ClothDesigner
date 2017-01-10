@@ -988,6 +988,8 @@ void ClothDesigner::on_pbLoadSmplCoeffs_clicked()
 			g_dataholder.m_lastSmplShapeCoeffDir.c_str(), "*.txt");
 		if (name.isEmpty())
 			return;
+		g_dataholder.m_lastSmplShapeCoeffDir = name.toStdString();
+		g_dataholder.saveLastDirs();
 		if (name.toLower().endsWith(".shape.txt"))
 			smpl->loadShapeCoeffs(name.toStdString());
 		else if (name.toLower().endsWith(".pose.txt"))
@@ -1039,7 +1041,6 @@ void ClothDesigner::on_pbResetSmplCoeffs_clicked()
 		std::cout << "unknown error" << std::endl;
 	}
 }
-
 
 void ClothDesigner::on_pbBindClothesToSmpl_clicked()
 {
