@@ -73,6 +73,8 @@ void Smpl3dEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 	if (manager && manager->bodySmplManager())
 	{
 		manager->bodySmplManager()->selectAction(selectIdToColor(pickInfo().renderId), Renderable::MOUSE_L_RELEASE, 0);
+		manager->setClothColorAsBoneWeights();
+		m_viewer->updateGL();
 	} // end if manager
 
 	m_pickInfo.mesh = nullptr;

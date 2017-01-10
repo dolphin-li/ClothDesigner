@@ -954,7 +954,10 @@ namespace ldp
 
 		const int nVerts = (int)m_X.size();
 		const int nJoints = m_smplBody->numPoses();
-		const static int K = 1;
+		const static int K = 4;
+
+		auto bR = m_bodyTransform->transform().getRotationPart();
+		auto bT = m_bodyTransform->transform().getTranslationPart();
 
 		// for each vertex, find the k-nearest-neighbor joints and calculate weights
 		std::vector<Eigen::Triplet<ValueType>> cooSys;
@@ -972,9 +975,9 @@ namespace ldp
 				int iParent = m_smplBody->getNodeParent(iJoint);
 				if (iParent < 0)
 					continue;
-				Vec3 jb = convert(m_smplBody->getCurNodeCenter(iParent));
-				Vec3 je = convert(m_smplBody->getCurNodeCenter(iJoint));
-				ValueType val = ldp::pointSegDistance(v, jb, je);
+				Vec3 jb = bR * convert(m_smplBody->getCurNodeCenter(iParent)) + bT;
+				Vec3 je = bR * convert(m_smplBody->getCurNodeCenter(iJoint)) + bT;
+				ValueType val = (v -  (jb + je) / 2).length();
 				auto iter = distMap.find(iParent);
 				if (iter == distMap.end())
 					distMap[iParent] = val;
@@ -1016,14 +1019,14 @@ namespace ldp
 			{
 				int iJoint = m_vertex_smplJointBind->innerIndexPtr()[j];
 				ValueType dist = m_vertex_smplJointBind->valuePtr()[j];
-				ValueType w = exp(-sqr(dist/avgMinDist));
+				ValueType w = exp(-pow(abs(dist / avgMinDist), 2));
 				wsum += w;
 			} // end for j
 			for (int j = jb; j < je; j++)
 			{
 				int iJoint = m_vertex_smplJointBind->innerIndexPtr()[j];
 				ValueType dist = m_vertex_smplJointBind->valuePtr()[j];
-				ValueType w = exp(-sqr(dist / avgMinDist));
+				ValueType w = exp(-pow(abs(dist / avgMinDist), 2));
 				m_vertex_smplJointBind->valuePtr()[j] = w / wsum;
 			} // end for j
 		} // end for iVert
@@ -1033,30 +1036,64 @@ namespace ldp
 	{
 		if (m_smplBody == nullptr || m_vertex_smplJointBind == nullptr)
 			return;
+		auto bR = m_bodyTransform->transform().getRotationPart();
+		auto bT = m_bodyTransform->transform().getTranslationPart();
 		m_smplBody->calcGlobalTrans();
 		for (int iVert = 0; iVert < m_vertex_smplJointBind->outerSize(); iVert++)
 		{
 			int jb = m_vertex_smplJointBind->outerIndexPtr()[iVert];
 			int je = m_vertex_smplJointBind->outerIndexPtr()[iVert + 1];
 			ValueType wsum = ValueType(0);
-			Vec3 vsum = Vec3(0);
+			Double3 Tsum = Vec3(0);
+			Mat3d Rsum = Mat3d().zeros();
 			const Vec3 v = m_vertex_smpl_defaultPosition[iVert];
 			for (int j = jb; j < je; j++)
 			{
 				int iJoint = m_vertex_smplJointBind->innerIndexPtr()[j];
 				ValueType w = m_vertex_smplJointBind->valuePtr()[j];
-				vsum += w * Float3(convert(m_smplBody->getCurNodeRots(iJoint)) * v + 
-					convert(m_smplBody->getCurNodeTrans(iJoint)));
+				Rsum += convert(m_smplBody->getCurNodeRots(iJoint)) * w;
+				Tsum += convert(m_smplBody->getCurNodeTrans(iJoint)) * w;
 				wsum += w;
 			} // end for j
-			vsum /= wsum;
-			m_X[iVert] = vsum;
+			m_X[iVert] = bR * ( Rsum * bR.inv() * (v-bT) + Tsum ) / wsum + bT;
 		} // end for iVert
 		splitClothPiecesFromComputedMereged();
 		m_dev_X.upload((const ValueType*)m_X.data(), m_X.size() * 3);
 		m_dev_old_X.upload((const ValueType*)m_X.data(), m_X.size() * 3);
 		m_dev_next_X.upload((const ValueType*)m_X.data(), m_X.size() * 3);
 		m_dev_prev_X.upload((const ValueType*)m_X.data(), m_X.size() * 3);
+	}
+
+	bool ClothManager::setClothColorAsBoneWeights()
+	{
+		if (m_smplBody == nullptr || m_vertex_smplJointBind == nullptr)
+			return false;
+		int jSelect = m_smplBody->selectedJointId();
+		for (size_t iCloth = 0; iCloth < m_clothPieces.size(); iCloth++)
+		{
+			auto& mesh = m_clothPieces[iCloth]->mesh3d();
+			int vb = m_clothVertBegin.at(&mesh);
+			mesh.vertex_color_list.clear();
+			mesh.vertex_color_list.resize(mesh.vertex_list.size(), Float3(0));
+			for (int iVert = 0; iVert < (int)mesh.vertex_color_list.size(); iVert++)
+			{
+				int vid = vb + iVert;
+				int jb = m_vertex_smplJointBind->outerIndexPtr()[vid];
+				int je = m_vertex_smplJointBind->outerIndexPtr()[vid + 1];
+				for (int j = jb; j < je; j++)
+				{
+					int iJoint = m_vertex_smplJointBind->innerIndexPtr()[j];
+					ValueType w = m_vertex_smplJointBind->valuePtr()[j];
+					if (iJoint == jSelect)
+					{
+						mesh.vertex_color_list[iVert] = w;
+						break;
+					} // end if iJoint
+				} // end for j
+			} // end for iVert
+			mesh.requireRenderUpdate();
+		} // end for iCloth
+		return true;
 	}
 	//////////////////////////////////////////////////////////////////////////////////
 	void ClothManager::updateDependency()

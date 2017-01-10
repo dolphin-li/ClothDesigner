@@ -50,6 +50,7 @@ public:
 	virtual void clear();
 
 	bool isInitialized()const { return m_inited; }
+	int selectedJointId()const { return m_selectedNode; }
 
 	void loadFromMat(const char* filename);
 	void toObjMesh(ObjMesh& mesh)const;

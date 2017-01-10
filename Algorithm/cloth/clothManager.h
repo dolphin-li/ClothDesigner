@@ -148,6 +148,7 @@ namespace ldp
 		bool copySelectedPanel();
 		bool addCurveOnAPanel(const std::vector<std::shared_ptr<ldp::GraphPoint>>& keyPts,
 			const std::vector<size_t>& renderIds);
+		bool setClothColorAsBoneWeights();
 	protected:
 		static void initSmplDatabase();
 		void initCollisionHandler();

@@ -306,18 +306,25 @@ void Viewer3d::paintGL()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	m_camera.apply();
 
+	int showType = m_showType;
+
 	// show cloth simulation=============================
 	if (m_clothManager)
 	{
 		if (isSmplMode() && m_clothManager->bodySmplManager())
+		{
 			glEnable(GL_COLOR_MATERIAL);
+			showType |= Renderable::SW_COLOR;
+		}
 		else
+		{
+			m_shaderManager.bind(CShaderManager::shadow);
+			m_shaderManager.getCurShader()->setUniform1i("shadow_texture", 0);
+			func.glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, m_shadowDepthTexture);
 			glDisable(GL_COLOR_MATERIAL);
-		m_shaderManager.bind(CShaderManager::shadow);
-		m_shaderManager.getCurShader()->setUniform1i("shadow_texture", 0);
-		func.glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, m_shadowDepthTexture);
-		m_clothManager->bodyMesh()->render(m_showType);
+		}
+		m_clothManager->bodyMesh()->render(showType);
 		for (int i = 0; i < m_clothManager->numClothPieces(); i++)
 		{
 			const auto& piece = m_clothManager->clothPiece(i);
@@ -330,15 +337,16 @@ void Viewer3d::paintGL()
 				else
 					piece->mesh3d().material_list[0].diff = ldp::Float3(1, 1, 1);
 			}
-			piece->mesh3d().render(m_showType);
+			piece->mesh3d().render(showType);
 		}
-		m_shaderManager.unbind();
+		if (!isSmplMode() || !m_clothManager->bodySmplManager())
+			m_shaderManager.unbind();
 		if (isSmplMode() && m_clothManager->bodySmplManager())
 		{
 			auto T = m_clothManager->getBodyMeshTransform().transform();
 			glPushMatrix();
 			glMultMatrixf(T.ptr());
-			int stype = m_showType & Renderable::SW_SKELETON;
+			int stype = showType & Renderable::SW_SKELETON;
 			m_clothManager->bodySmplManager()->render(stype);
 			glPopMatrix();
 		} // end if smpl mode
