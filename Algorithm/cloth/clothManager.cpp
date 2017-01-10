@@ -926,7 +926,7 @@ namespace ldp
 
 		const int nVerts = (int)m_X.size();
 		const int nJoints = m_smplBody->numPoses();
-		const static int K = 4;
+		const static int K = 1;
 
 		// for each vertex, find the k-nearest-neighbor joints and calculate weights
 		std::vector<Eigen::Triplet<ValueType>> cooSys;
