@@ -98,6 +98,7 @@ public:
 	void setCurShapeCoef(int idx, real val) { m_curShapes(idx, 0) = val; }
 	real getCurPoseCoef(int idx, int axis)const { return m_curPoses(idx, axis); }
 	void setCurPoseCoef(int idx, int axis, real val) { m_curPoses(idx, axis) = val; }
+	const SpMat& weights()const { return m_weights; }
 protected:
 	void calcPoseVector207(const DMat& poses_24x3, DMat& poses_207);
 	void selectAction_mouseMove(int selectedId);

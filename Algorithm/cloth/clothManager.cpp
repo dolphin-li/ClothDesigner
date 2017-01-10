@@ -944,6 +944,8 @@ namespace ldp
 		m_shouldLevelSetUpdate = false;
 	}
 
+#define USE_BODY_MESH_WEIGHTS_AS_CLOTH_WEIGHTS
+
 	void ClothManager::bindClothesToSmplJoints()
 	{
 		m_vertex_smplJointBind.reset((SpMat*)nullptr);
@@ -959,6 +961,37 @@ namespace ldp
 		auto bR = m_bodyTransform->transform().getRotationPart();
 		auto bT = m_bodyTransform->transform().getTranslationPart();
 
+		// debug, using the weights of nearest vertex
+#ifdef USE_BODY_MESH_WEIGHTS_AS_CLOTH_WEIGHTS
+		typedef kdtree::PointTree<ValueType, 3> KdTree;
+		std::vector<KdTree::Point> kdpoints;
+		for (size_t i = 0; i < m_bodyMesh->vertex_list.size(); i++)
+			kdpoints.push_back(KdTree::Point(m_bodyMesh->vertex_list[i], i));
+		KdTree tree;
+		tree.build(kdpoints);
+
+		std::vector<Eigen::Triplet<ValueType>> cooSys;
+
+		for (int iVert = 0; iVert < nVerts; iVert++)
+		{
+			KdTree::Point v(m_X[iVert]);
+			ValueType dist = 0;
+			auto nv = tree.nearestPoint(v, dist);
+
+			int jb = m_smplBody->weights().outerIndexPtr()[nv.idx];
+			int je = m_smplBody->weights().outerIndexPtr()[nv.idx + 1];
+			for(int j=jb; j < je; j++)
+			{
+				int jointIdx = m_smplBody->weights().innerIndexPtr()[j];
+				ValueType w = m_smplBody->weights().valuePtr()[j];
+				cooSys.push_back(Eigen::Triplet<ValueType>(jointIdx, iVert, w));
+			} // end for j
+		} // end for iVert
+
+		m_vertex_smplJointBind->resize(nJoints, nVerts);
+		if (cooSys.size())
+			m_vertex_smplJointBind->setFromTriplets(cooSys.begin(), cooSys.end());
+#else
 		// for each vertex, find the k-nearest-neighbor joints and calculate weights
 		std::vector<Eigen::Triplet<ValueType>> cooSys;
 		std::map<int, ValueType> distMap;
@@ -967,7 +1000,7 @@ namespace ldp
 		for (int iVert = 0; iVert < nVerts; iVert++)
 		{
 			Vec3 v(m_X[iVert]);
-			
+		
 			// compute the distance to each joint **bone**.
 			distMap.clear();
 			for (int iJoint = 0; iJoint < m_smplBody->numPoses(); iJoint++)
@@ -1020,16 +1053,16 @@ namespace ldp
 				int iJoint = m_vertex_smplJointBind->innerIndexPtr()[j];
 				ValueType dist = m_vertex_smplJointBind->valuePtr()[j];
 				ValueType w = exp(-pow(abs(dist / avgMinDist), 4));
+				m_vertex_smplJointBind->valuePtr()[j] = w;
 				wsum += w;
 			} // end for j
 			for (int j = jb; j < je; j++)
 			{
 				int iJoint = m_vertex_smplJointBind->innerIndexPtr()[j];
-				ValueType dist = m_vertex_smplJointBind->valuePtr()[j];
-				ValueType w = exp(-pow(abs(dist / avgMinDist), 4));
-				m_vertex_smplJointBind->valuePtr()[j] = w / wsum;
+				m_vertex_smplJointBind->valuePtr()[j] /=  wsum;
 			} // end for j
 		} // end for iVert
+#endif
 	}
 
 	void ClothManager::updateClothBySmplJoints()
