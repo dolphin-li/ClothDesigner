@@ -977,7 +977,7 @@ namespace ldp
 					continue;
 				Vec3 jb = bR * convert(m_smplBody->getCurNodeCenter(iParent)) + bT;
 				Vec3 je = bR * convert(m_smplBody->getCurNodeCenter(iJoint)) + bT;
-				ValueType val = (v -  (jb + je) / 2).length();
+				ValueType val = ldp::pointSegDistance(v, jb, je);
 				auto iter = distMap.find(iParent);
 				if (iter == distMap.end())
 					distMap[iParent] = val;
@@ -1019,14 +1019,14 @@ namespace ldp
 			{
 				int iJoint = m_vertex_smplJointBind->innerIndexPtr()[j];
 				ValueType dist = m_vertex_smplJointBind->valuePtr()[j];
-				ValueType w = exp(-pow(abs(dist / avgMinDist), 2));
+				ValueType w = exp(-pow(abs(dist / avgMinDist), 4));
 				wsum += w;
 			} // end for j
 			for (int j = jb; j < je; j++)
 			{
 				int iJoint = m_vertex_smplJointBind->innerIndexPtr()[j];
 				ValueType dist = m_vertex_smplJointBind->valuePtr()[j];
-				ValueType w = exp(-pow(abs(dist / avgMinDist), 2));
+				ValueType w = exp(-pow(abs(dist / avgMinDist), 4));
 				m_vertex_smplJointBind->valuePtr()[j] = w / wsum;
 			} // end for j
 		} // end for iVert
