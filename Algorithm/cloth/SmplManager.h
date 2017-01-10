@@ -56,17 +56,23 @@ public:
 	void loadPoseCoeffs(std::string filename);
 public:
 	ldp::Float3 getCurNodeCenter(int idx)const;
+	const ldp::Mat3f& getNodeGlobalRotation(int idx)const { return m_curJrots.at(idx); }
+	const ldp::Float3& getNodeGlobalTranslation(int idx)const { return m_curJtrans.at(idx); }
+	int getNodeParent(int idx)const { return m_kintree_table.at(idx); }
 	float getCurShapeCoef(int idx) const { return m_curShapes(idx, 0); }
 	float getCurPoseCoef(int idx, int axis) const { return m_curPoses(idx, axis); }
 
+	// update the binded mesh based on current joints
 	void updateCurMesh();
+
+	// update node global translation/rotation based their local rotations
+	void calcGlobalTrans();
 
 	// call updateCurMesh() after set
 	void setCurShapeCoef(int idx, float val) { m_curShapes(idx, 0) = val; }
 	void setCurPoseCoef(int idx, int axis, float val) { m_curPoses(idx, axis) = val; }
 protected:
 	void calcPoseVector207(const DMat& poses_24x3, DMat& poses_207);
-	void calcGlobalTrans();
 	void selectAction_mouseMove(int selectedId);
 	void selectAction_mousePress(int selectedId);
 	void selectAction_mouseRelease(int selectedId);

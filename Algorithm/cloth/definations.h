@@ -79,20 +79,26 @@ namespace ldp
 	bool pointInPolygon(int n, const Float2* pts, Float2 p, 
 		int* nearestEdgeId=nullptr, float* minDist = nullptr);
 
-	inline float nearestPointOnSeg_getParam(Float2 p, Float2 a, Float2 b)
+	template<typename T, int N>
+	inline T nearestPointOnSeg_getParam(ldp::ldp_basic_vec<T, N> p, 
+		ldp::ldp_basic_vec<T, N> a, ldp::ldp_basic_vec<T, N> b)
 	{
-		float t = (p - a).dot(b-a) / (b-a).sqrLength();
-		return std::min(1.f, std::max(0.f, t));
+		T t = (p - a).dot(b-a) / (b-a).sqrLength();
+		return std::min(T(1), std::max(T(0), t));
 	}
 
 	// find the nearest point on ab to p
-	inline ldp::Float2 nearestPointOnSeg(Float2 p, Float2 a, Float2 b)
+	template<typename T, int N>
+	inline ldp::ldp_basic_vec<T, N> nearestPointOnSeg(ldp::ldp_basic_vec<T, N> p,
+		ldp::ldp_basic_vec<T, N> a, ldp::ldp_basic_vec<T, N> b)
 	{
 		return a + nearestPointOnSeg_getParam(p, a, b) * (b-a);
 	}
 
 	// calculate the distance of p to ab
-	inline float pointSegDistance(Float2 p, Float2 a, Float2 b)
+	template<typename T, int N>
+	inline T pointSegDistance(ldp::ldp_basic_vec<T, N> p, 
+		ldp::ldp_basic_vec<T, N> a, ldp::ldp_basic_vec<T, N> b)
 	{
 		return (nearestPointOnSeg(p, a, b) - p).length();
 	}

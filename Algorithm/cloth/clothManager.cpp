@@ -14,6 +14,7 @@
 #include "svgpp\SvgManager.h"
 #include "svgpp\SvgPolyPath.h"
 #include "ldputil.h"
+#include "kdtree\PointTree.h"
 #include <cuda_runtime_api.h>
 #include <fstream>
 #ifdef ENABLE_EDGE_WISE_STITCH
@@ -467,6 +468,8 @@ namespace ldp
 		m_bmesh.reset((BMesh*)nullptr);
 		m_bmeshVerts.clear();
 		m_clothVertBegin.clear();
+		m_vertex_smplJointBind.reset((SpMat*)nullptr);
+		m_vertex_smpl_defaultPosition.clear();
 		m_X.clear();
 		m_T.clear();
 		m_avgArea = 0;
@@ -888,6 +891,7 @@ namespace ldp
 		m_shouldLevelSetUpdate = true;
 		m_smplBody->toObjMesh(*m_bodyMeshInit);
 		setBodyMeshTransform(*m_bodyTransform);
+		updateClothBySmplJoints();
 	}
 
 	void ClothManager::calcLevelSet()
@@ -905,6 +909,108 @@ namespace ldp
 		m_bodyLvSet->fromMesh(*m_bodyMesh);
 		m_dev_phi.upload(m_bodyLvSet->value(), m_bodyLvSet->sizeXYZ());
 		m_shouldLevelSetUpdate = false;
+	}
+
+	void ClothManager::bindClothesToSmplJoints()
+	{
+		m_vertex_smplJointBind.reset((SpMat*)nullptr);
+		if (m_smplBody == nullptr)
+			return;
+		m_vertex_smplJointBind.reset(new SpMat);
+		m_vertex_smpl_defaultPosition = m_X;
+
+		const int nVerts = (int)m_X.size();
+		const int nJoints = m_smplBody->numPoses();
+		const static int K = 4;
+
+		// for each vertex, find the k-nearest-neighbor joints and calculate weights
+		std::vector<Eigen::Triplet<ValueType>> cooSys;
+		std::vector<std::pair<ValueType, int>> distMap;
+		ValueType avgMinDist = ValueType(0);
+		for (int iVert = 0; iVert < nJoints; iVert++)
+		{
+			Vec3 v(m_X[iVert]);
+			
+			// compute the distance to each joint **bone**.
+			distMap.clear();
+			for (int iJoint = 0; iJoint < m_smplBody->numPoses(); iJoint++)
+			{
+				int iParent = m_smplBody->getNodeParent(iJoint);
+				if (iParent < 0)
+					continue;
+				Vec3 jb = m_smplBody->getCurNodeCenter(iParent);
+				Vec3 je = m_smplBody->getCurNodeCenter(iJoint);
+				ValueType val = ldp::pointSegDistance(v, jb, je);
+				distMap.push_back(std::make_pair(val, iParent));
+			} // end for iJoint
+
+			// sort to make nearest first
+			std::sort(distMap.begin(), distMap.end());
+
+			// gather
+			const int nnNum = std::min(K, int(distMap.size()));
+			ValueType wsum = ValueType(0);
+			for (int k = 0; k < nnNum; k++)
+			{
+				ValueType dist = distMap[k].first;
+				int jointIdx = distMap[k].second;
+				cooSys.push_back(Eigen::Triplet<ValueType>(jointIdx, iVert, dist));
+				if (k == 0)
+					avgMinDist += dist;
+			} // end for k
+		} // end for iVert
+
+		avgMinDist /= m_X.size();
+		m_vertex_smplJointBind->resize(nJoints, nVerts);
+		if (cooSys.size())
+			m_vertex_smplJointBind->setFromTriplets(cooSys.begin(), cooSys.end());
+
+		// convert distance to weights
+		for (int iVert = 0; iVert < m_vertex_smplJointBind->outerSize(); iVert++)
+		{
+			int jb = m_vertex_smplJointBind->outerIndexPtr()[iVert];
+			int je = m_vertex_smplJointBind->outerIndexPtr()[iVert + 1];
+			ValueType wsum = ValueType(0);
+			for (int j = jb; j < je; j++)
+			{
+				int iJoint = m_vertex_smplJointBind->innerIndexPtr()[j];
+				ValueType dist = m_vertex_smplJointBind->valuePtr()[j];
+				ValueType w = exp(-sqr(dist)/sqr(avgMinDist));
+				wsum += w;
+			} // end for j
+			for (int j = jb; j < je; j++)
+			{
+				int iJoint = m_vertex_smplJointBind->innerIndexPtr()[j];
+				ValueType dist = m_vertex_smplJointBind->valuePtr()[j];
+				ValueType w = exp(-sqr(dist) / sqr(avgMinDist));
+				m_vertex_smplJointBind->valuePtr()[j] = w / wsum;
+			} // end for j
+		} // end for iVert
+	}
+
+	void ClothManager::updateClothBySmplJoints()
+	{
+		if (m_smplBody == nullptr || m_vertex_smplJointBind == nullptr)
+			return;
+		for (int iVert = 0; iVert < m_vertex_smplJointBind->outerSize(); iVert++)
+		{
+			int jb = m_vertex_smplJointBind->outerIndexPtr()[iVert];
+			int je = m_vertex_smplJointBind->outerIndexPtr()[iVert + 1];
+			ValueType wsum = ValueType(0);
+			Vec3 vsum = Vec3(0);
+			const Vec3 v = m_vertex_smpl_defaultPosition[iVert];
+			for (int j = jb; j < je; j++)
+			{
+				int iJoint = m_vertex_smplJointBind->innerIndexPtr()[j];
+				ValueType w = m_vertex_smplJointBind->valuePtr()[j];
+				Vec3 c = m_smplBody->getCurNodeCenter(iJoint);
+				vsum += w * (m_smplBody->getNodeGlobalRotation(iJoint) * (v - c) 
+					+ c + m_smplBody->getNodeGlobalTranslation(iJoint));
+				wsum += w;
+			} // end for j
+			vsum /= wsum;
+			m_X[iVert] = vsum;
+		} // end for iVert
 	}
 	//////////////////////////////////////////////////////////////////////////////////
 	void ClothManager::updateDependency()
