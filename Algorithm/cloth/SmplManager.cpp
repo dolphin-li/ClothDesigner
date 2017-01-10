@@ -934,6 +934,11 @@ ldp::Float3 SmplManager::getCurNodeCenter(int i)const
 	return ldp::Float3(m_curJ(i, 0), m_curJ(i, 1), m_curJ(i, 2)) + m_curJtrans[i];
 }
 
+ldp::Float3 SmplManager::getCurNodeCenterNotPosed(int i)const
+{
+	return ldp::Float3(m_curJ(i, 0), m_curJ(i, 1), m_curJ(i, 2));
+}
+
 void SmplManager::toObjMesh(ObjMesh& mesh)const
 {
 	CHECK_THROW_EXCPT(m_inited);

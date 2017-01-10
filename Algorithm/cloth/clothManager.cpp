@@ -1017,7 +1017,7 @@ namespace ldp
 			{
 				int iJoint = m_vertex_smplJointBind->innerIndexPtr()[j];
 				ValueType w = m_vertex_smplJointBind->valuePtr()[j];
-				Vec3 c = m_smplBody->getCurNodeCenter(iJoint);
+				Vec3 c = m_smplBody->getCurNodeCenterNotPosed(iJoint);
 				vsum += w * (m_smplBody->getNodeGlobalRotation(iJoint) * (v - c) 
 					+ c + m_smplBody->getNodeGlobalTranslation(iJoint));
 				wsum += w;

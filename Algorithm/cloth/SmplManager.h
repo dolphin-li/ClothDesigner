@@ -56,6 +56,7 @@ public:
 	void loadPoseCoeffs(std::string filename);
 public:
 	ldp::Float3 getCurNodeCenter(int idx)const;
+	ldp::Float3 getCurNodeCenterNotPosed(int idx)const;
 	const ldp::Mat3f& getNodeGlobalRotation(int idx)const { return m_curJrots.at(idx); }
 	const ldp::Float3& getNodeGlobalTranslation(int idx)const { return m_curJtrans.at(idx); }
 	int getNodeParent(int idx)const { return m_kintree_table.at(idx); }
