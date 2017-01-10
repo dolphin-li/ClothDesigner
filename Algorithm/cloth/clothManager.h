@@ -184,6 +184,7 @@ namespace ldp
 		void buildTopology();
 		void buildNumerical();
 		void buildStitch();
+		void splitClothPiecesFromComputedMereged();
 		int findNeighbor(int i, int j)const;
 		int findStitchNeighbor(int i, int j)const;
 		Int3 getLocalFaceVertsId(Int3 globalVertId)const;

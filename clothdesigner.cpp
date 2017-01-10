@@ -1037,3 +1037,23 @@ void ClothDesigner::on_pbResetSmplCoeffs_clicked()
 		std::cout << "unknown error" << std::endl;
 	}
 }
+
+
+void ClothDesigner::on_pbBindClothesToSmpl_clicked()
+{
+	try
+	{
+		auto smpl = g_dataholder.m_clothManager->bodySmplManager();
+		if (smpl == nullptr)
+			return;
+		g_dataholder.m_clothManager->bindClothesToSmplJoints();
+		g_dataholder.m_clothManager->updateClothBySmplJoints();
+		m_widget3d->updateGL();
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
+	}
+}

@@ -106,10 +106,11 @@ public:
     QWidget *tab;
     QGridLayout *gridLayout_7;
     QPushButton *pbSaveSmplCoeffs;
+    QSpacerItem *verticalSpacer_3;
     QPushButton *pbLoadSmplCoeffs;
     QPushButton *pbResetSmplCoeffs;
     QGroupBox *gpSmplBodyCoeffs;
-    QSpacerItem *verticalSpacer_3;
+    QPushButton *pbBindClothesToSmpl;
     QDockWidget *dockWidgetLower;
     QWidget *dockWidgetContentsLower;
     QGridLayout *gridLayout_4;
@@ -151,7 +152,7 @@ public:
         ClothDesignerClass->setCentralWidget(centralWidget);
         menuBar = new QMenuBar(ClothDesignerClass);
         menuBar->setObjectName(QStringLiteral("menuBar"));
-        menuBar->setGeometry(QRect(0, 0, 890, 23));
+        menuBar->setGeometry(QRect(0, 0, 890, 21));
         menuFile = new QMenu(menuBar);
         menuFile->setObjectName(QStringLiteral("menuFile"));
         menuEdit = new QMenu(menuBar);
@@ -439,6 +440,10 @@ public:
 
         gridLayout_7->addWidget(pbSaveSmplCoeffs, 2, 0, 1, 1);
 
+        verticalSpacer_3 = new QSpacerItem(20, 40, QSizePolicy::Minimum, QSizePolicy::Expanding);
+
+        gridLayout_7->addItem(verticalSpacer_3, 4, 0, 1, 2);
+
         pbLoadSmplCoeffs = new QPushButton(tab);
         pbLoadSmplCoeffs->setObjectName(QStringLiteral("pbLoadSmplCoeffs"));
 
@@ -454,9 +459,10 @@ public:
 
         gridLayout_7->addWidget(gpSmplBodyCoeffs, 0, 0, 1, 2);
 
-        verticalSpacer_3 = new QSpacerItem(20, 40, QSizePolicy::Minimum, QSizePolicy::Expanding);
+        pbBindClothesToSmpl = new QPushButton(tab);
+        pbBindClothesToSmpl->setObjectName(QStringLiteral("pbBindClothesToSmpl"));
 
-        gridLayout_7->addItem(verticalSpacer_3, 3, 0, 1, 2);
+        gridLayout_7->addWidget(pbBindClothesToSmpl, 3, 0, 1, 1);
 
         tabWidget->addTab(tab, QString());
 
@@ -520,7 +526,7 @@ public:
 
         retranslateUi(ClothDesignerClass);
 
-        tabWidget->setCurrentIndex(0);
+        tabWidget->setCurrentIndex(2);
 
 
         QMetaObject::connectSlotsByName(ClothDesignerClass);
@@ -573,6 +579,7 @@ public:
         pbLoadSmplCoeffs->setText(QApplication::translate("ClothDesignerClass", "load smpl coeffs", 0));
         pbResetSmplCoeffs->setText(QApplication::translate("ClothDesignerClass", "reset smpl coeffs", 0));
         gpSmplBodyCoeffs->setTitle(QApplication::translate("ClothDesignerClass", "smpl body coeffs", 0));
+        pbBindClothesToSmpl->setText(QApplication::translate("ClothDesignerClass", "bind clothes to smpl", 0));
         tabWidget->setTabText(tabWidget->indexOf(tab), QApplication::translate("ClothDesignerClass", "Body", 0));
         pbFlipPolygon->setText(QApplication::translate("ClothDesignerClass", "flip polygon", 0));
         pbResetSimulation->setText(QApplication::translate("ClothDesignerClass", "reset simulaton", 0));

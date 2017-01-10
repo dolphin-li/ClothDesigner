@@ -239,6 +239,14 @@ namespace ldp
 			m_dev_X.download((ValueType*)m_X.data());
 		} // end for oiter
 
+		splitClothPiecesFromComputedMereged();
+
+		gtime_t t_end = ldp::gtime_now();
+		m_fps = 1 / ldp::gtime_seconds(t_begin, t_end);
+	}
+
+	void ClothManager::splitClothPiecesFromComputedMereged()
+	{
 		// finally we update normals and bounding boxes
 		for (size_t iCloth = 0; iCloth < m_clothPieces.size(); iCloth++)
 		{
@@ -249,9 +257,6 @@ namespace ldp
 			mesh.updateBoundingBox();
 			updateSewingNormals(mesh);
 		} // end for iCloth
-
-		gtime_t t_end = ldp::gtime_now();
-		m_fps = 1 / ldp::gtime_seconds(t_begin, t_end);
 	}
 
 	void ClothManager::updateSewingNormals(ObjMesh& mesh)
@@ -925,9 +930,10 @@ namespace ldp
 
 		// for each vertex, find the k-nearest-neighbor joints and calculate weights
 		std::vector<Eigen::Triplet<ValueType>> cooSys;
-		std::vector<std::pair<ValueType, int>> distMap;
+		std::map<int, ValueType> distMap;
+		std::vector<std::pair<ValueType, int>> distMapVec;
 		ValueType avgMinDist = ValueType(0);
-		for (int iVert = 0; iVert < nJoints; iVert++)
+		for (int iVert = 0; iVert < nVerts; iVert++)
 		{
 			Vec3 v(m_X[iVert]);
 			
@@ -941,26 +947,33 @@ namespace ldp
 				Vec3 jb = m_smplBody->getCurNodeCenter(iParent);
 				Vec3 je = m_smplBody->getCurNodeCenter(iJoint);
 				ValueType val = ldp::pointSegDistance(v, jb, je);
-				distMap.push_back(std::make_pair(val, iParent));
+				auto iter = distMap.find(iParent);
+				if (iter == distMap.end())
+					distMap[iParent] = val;
+				else if (val < iter->second)
+					iter->second = val;
 			} // end for iJoint
 
 			// sort to make nearest first
-			std::sort(distMap.begin(), distMap.end());
+			distMapVec.clear();
+			for (auto iter : distMap)
+				distMapVec.push_back(std::make_pair(iter.second, iter.first));
+			std::sort(distMapVec.begin(), distMapVec.end());
 
 			// gather
-			const int nnNum = std::min(K, int(distMap.size()));
+			const int nnNum = std::min(K, int(distMapVec.size()));
 			ValueType wsum = ValueType(0);
 			for (int k = 0; k < nnNum; k++)
 			{
-				ValueType dist = distMap[k].first;
-				int jointIdx = distMap[k].second;
+				ValueType dist = distMapVec[k].first;
+				int jointIdx = distMapVec[k].second;
 				cooSys.push_back(Eigen::Triplet<ValueType>(jointIdx, iVert, dist));
 				if (k == 0)
 					avgMinDist += dist;
 			} // end for k
 		} // end for iVert
 
-		avgMinDist /= m_X.size();
+		avgMinDist /= nVerts;
 		m_vertex_smplJointBind->resize(nJoints, nVerts);
 		if (cooSys.size())
 			m_vertex_smplJointBind->setFromTriplets(cooSys.begin(), cooSys.end());
@@ -975,14 +988,14 @@ namespace ldp
 			{
 				int iJoint = m_vertex_smplJointBind->innerIndexPtr()[j];
 				ValueType dist = m_vertex_smplJointBind->valuePtr()[j];
-				ValueType w = exp(-sqr(dist)/sqr(avgMinDist));
+				ValueType w = exp(-sqr(dist/avgMinDist));
 				wsum += w;
 			} // end for j
 			for (int j = jb; j < je; j++)
 			{
 				int iJoint = m_vertex_smplJointBind->innerIndexPtr()[j];
 				ValueType dist = m_vertex_smplJointBind->valuePtr()[j];
-				ValueType w = exp(-sqr(dist) / sqr(avgMinDist));
+				ValueType w = exp(-sqr(dist / avgMinDist));
 				m_vertex_smplJointBind->valuePtr()[j] = w / wsum;
 			} // end for j
 		} // end for iVert
@@ -992,6 +1005,7 @@ namespace ldp
 	{
 		if (m_smplBody == nullptr || m_vertex_smplJointBind == nullptr)
 			return;
+		m_smplBody->calcGlobalTrans();
 		for (int iVert = 0; iVert < m_vertex_smplJointBind->outerSize(); iVert++)
 		{
 			int jb = m_vertex_smplJointBind->outerIndexPtr()[iVert];
@@ -1011,6 +1025,11 @@ namespace ldp
 			vsum /= wsum;
 			m_X[iVert] = vsum;
 		} // end for iVert
+		splitClothPiecesFromComputedMereged();
+		m_dev_X.upload((const ValueType*)m_X.data(), m_X.size() * 3);
+		m_dev_old_X.upload((const ValueType*)m_X.data(), m_X.size() * 3);
+		m_dev_next_X.upload((const ValueType*)m_X.data(), m_X.size() * 3);
+		m_dev_prev_X.upload((const ValueType*)m_X.data(), m_X.size() * 3);
 	}
 	//////////////////////////////////////////////////////////////////////////////////
 	void ClothManager::updateDependency()
