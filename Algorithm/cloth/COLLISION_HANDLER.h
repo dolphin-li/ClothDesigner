@@ -614,7 +614,7 @@ public:
 
 		}
 
-		if(l==64)	{printf("ERROR: collision still not converge.\n");getchar();}
+		if(l==64)	{printf("ERROR: collision still not converge.\n");}
 		printf("l %d\t", l);
 
 		//printf("time b: %f\n", timer.Get_Time());
