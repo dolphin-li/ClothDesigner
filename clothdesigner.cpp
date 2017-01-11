@@ -207,6 +207,31 @@ void ClothDesigner::on_actionSave_project_triggered()
 	}
 }
 
+void ClothDesigner::on_actionExport_training_data_triggered()
+{
+	//load project xml
+	try
+	{
+		QString name = QFileDialog::getOpenFileName(this, "Load Project", g_dataholder.m_lastProXmlDir.c_str(), "*.xml");
+		if (name.isEmpty())
+			return;
+		loadProjectXml(name);
+		m_projectSaved = true;
+	}
+	catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+	catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
+	}
+
+
+
+
+}
+
 void  ClothDesigner::on_actionSave_as_triggered()
 {
 	try

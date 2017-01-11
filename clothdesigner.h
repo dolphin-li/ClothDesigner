@@ -38,6 +38,7 @@ public:
 	public slots:
 	void on_actionLoad_project_triggered();
 	void on_actionSave_project_triggered();
+	void on_actionExport_training_data_triggered();
 	void on_actionSave_as_triggered();
 	void on_actionLoad_svg_triggered();
 	void on_actionExport_body_mesh_triggered();

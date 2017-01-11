@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'clothdesigner.ui'
 **
-** Created by: Qt User Interface Compiler version 5.3.1
+** Created by: Qt User Interface Compiler version 5.4.0
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
 ********************************************************************************/
@@ -46,6 +46,7 @@ public:
     QAction *actionExport_body_mesh;
     QAction *actionExport_cloth_mesh;
     QAction *actionSave_as;
+    QAction *actionExport_training_data;
     QWidget *centralWidget;
     QMenuBar *menuBar;
     QMenu *menuFile;
@@ -147,12 +148,14 @@ public:
         actionExport_cloth_mesh->setObjectName(QStringLiteral("actionExport_cloth_mesh"));
         actionSave_as = new QAction(ClothDesignerClass);
         actionSave_as->setObjectName(QStringLiteral("actionSave_as"));
+        actionExport_training_data = new QAction(ClothDesignerClass);
+        actionExport_training_data->setObjectName(QStringLiteral("actionExport_training_data"));
         centralWidget = new QWidget(ClothDesignerClass);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
         ClothDesignerClass->setCentralWidget(centralWidget);
         menuBar = new QMenuBar(ClothDesignerClass);
         menuBar->setObjectName(QStringLiteral("menuBar"));
-        menuBar->setGeometry(QRect(0, 0, 890, 21));
+        menuBar->setGeometry(QRect(0, 0, 890, 23));
         menuFile = new QMenu(menuBar);
         menuFile->setObjectName(QStringLiteral("menuFile"));
         menuEdit = new QMenu(menuBar);
@@ -520,6 +523,7 @@ public:
         menuFile->addSeparator();
         menuFile->addAction(actionExport_body_mesh);
         menuFile->addAction(actionExport_cloth_mesh);
+        menuFile->addAction(actionExport_training_data);
         menuEdit->addAction(actionPlace_3d_by_2d);
         menuHistory->addAction(actionPrev);
         menuHistory->addAction(actionNext);
@@ -551,6 +555,7 @@ public:
         actionExport_cloth_mesh->setText(QApplication::translate("ClothDesignerClass", "export cloth mesh", 0));
         actionSave_as->setText(QApplication::translate("ClothDesignerClass", "save project as", 0));
         actionSave_as->setShortcut(QApplication::translate("ClothDesignerClass", "Ctrl+Alt+S", 0));
+        actionExport_training_data->setText(QApplication::translate("ClothDesignerClass", "export training data", 0));
         menuFile->setTitle(QApplication::translate("ClothDesignerClass", "file", 0));
         menuEdit->setTitle(QApplication::translate("ClothDesignerClass", "edit", 0));
         menuHistory->setTitle(QApplication::translate("ClothDesignerClass", "history", 0));
