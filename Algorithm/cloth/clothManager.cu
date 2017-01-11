@@ -5,7 +5,7 @@
 #include "helper_math.h"
 
 
-//#define ENABLE_SELF_COLLISION
+#define ENABLE_SELF_COLLISION
 
 #ifdef ENABLE_SELF_COLLISION
 #include "MY_MATH.h"
@@ -459,8 +459,9 @@ __global__ void Constraint_1_Kernel(const float* X, const float* init_B,
 	void ClothManager::constrain_selfCollision()
 	{
 #ifdef ENABLE_SELF_COLLISION
-		m_collider->Run(m_dev_old_X.ptr(), m_dev_X.ptr(), m_dev_V.ptr(), m_X.size(), 
-			m_dev_T.ptr(), m_T.size(), (ValueType*)m_X.data(), 1.f / m_simulationParam.time_step);
+		if (m_simulationParam.enable_self_collistion)
+			m_collider->Run(m_dev_old_X.ptr(), m_dev_X.ptr(), m_dev_V.ptr(), m_X.size(), 
+				m_dev_T.ptr(), m_T.size(), (ValueType*)m_X.data(), 1.f / m_simulationParam.time_step);
 #endif
 	}
 #pragma endregion

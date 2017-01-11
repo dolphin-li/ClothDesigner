@@ -451,7 +451,7 @@ public:
 		if(dev_t_key)			cudaFree(dev_t_key);
 		if(dev_t_idx)			cudaFree(dev_t_idx);
 		
-		max_bucket_size	= 4194304;
+		max_bucket_size	= 41943040; //ldp: +0
 
 		cudaMalloc((void**)&dev_I,				sizeof(float)*number*3);
 		cudaMalloc((void**)&dev_R,				sizeof(float)*number*3);
@@ -493,7 +493,7 @@ public:
 		///////////////////////////////////////////////////////////////////////////
 		//	Step 1: Initialization
 		///////////////////////////////////////////////////////////////////////////
-		float	h		= 0.06; //twice the max vertex velocity
+		float	h		= 0.006; //twice the max vertex velocity
 		float	inv_h	= 1.0/h;
 
 		float	min_x= MY_INFINITE, min_y= MY_INFINITE, min_z= MY_INFINITE;
@@ -615,7 +615,7 @@ public:
 		}
 
 		if(l==64)	{printf("ERROR: collision still not converge.\n");}
-		printf("l %d\t", l);
+		//printf("l %d\t", l);
 
 		//printf("time b: %f\n", timer.Get_Time());
 	}

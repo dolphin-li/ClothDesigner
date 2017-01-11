@@ -65,7 +65,7 @@
    <property name="minimumSize">
     <size>
      <width>300</width>
-     <height>482</height>
+     <height>505</height>
     </size>
    </property>
    <property name="maximumSize">
@@ -85,7 +85,7 @@
      <item row="0" column="0">
       <widget class="QTabWidget" name="tabWidget">
        <property name="currentIndex">
-        <number>2</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="tabSimulation">
         <attribute name="title">
@@ -98,15 +98,15 @@
             <string>Simulation Param</string>
            </property>
            <layout class="QGridLayout" name="gridLayout">
-            <item row="3" column="2" colspan="2">
-             <widget class="QSpinBox" name="sbSparamLapDampIter"/>
-            </item>
             <item row="8" column="2" colspan="2">
              <widget class="QDoubleSpinBox" name="sbSparamSpringStiff">
               <property name="maximum">
                <double>999999999.000000000000000</double>
               </property>
              </widget>
+            </item>
+            <item row="3" column="2" colspan="2">
+             <widget class="QSpinBox" name="sbSparamLapDampIter"/>
             </item>
             <item row="10" column="2" colspan="2">
              <widget class="QDoubleSpinBox" name="sbSparamStitchStiff">
@@ -160,6 +160,13 @@
               </property>
              </widget>
             </item>
+            <item row="14" column="0">
+             <widget class="QLabel" name="label_11">
+              <property name="text">
+               <string>gravity</string>
+              </property>
+             </widget>
+            </item>
             <item row="12" column="2" colspan="2">
              <widget class="QDoubleSpinBox" name="sbSparamStitchSpeed">
               <property name="decimals">
@@ -170,33 +177,6 @@
               </property>
              </widget>
             </item>
-            <item row="14" column="0">
-             <widget class="QLabel" name="label_11">
-              <property name="text">
-               <string>gravity</string>
-              </property>
-             </widget>
-            </item>
-            <item row="14" column="1">
-             <widget class="QDoubleSpinBox" name="sbSparamGravityX">
-              <property name="decimals">
-               <number>1</number>
-              </property>
-              <property name="minimum">
-               <double>-100.000000000000000</double>
-              </property>
-             </widget>
-            </item>
-            <item row="14" column="2">
-             <widget class="QDoubleSpinBox" name="sbSparamGravityY">
-              <property name="decimals">
-               <number>1</number>
-              </property>
-              <property name="minimum">
-               <double>-100.000000000000000</double>
-              </property>
-             </widget>
-            </item>
             <item row="14" column="3">
              <widget class="QDoubleSpinBox" name="sbSparamGravityZ">
               <property name="decimals">
@@ -204,57 +184,6 @@
               </property>
               <property name="minimum">
                <double>-100.000000000000000</double>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="2" colspan="2">
-             <widget class="QSpinBox" name="sbSparamOuterIter"/>
-            </item>
-            <item row="4" column="2" colspan="2">
-             <widget class="QDoubleSpinBox" name="sbSparamAirDamp">
-              <property name="decimals">
-               <number>5</number>
-              </property>
-              <property name="maximum">
-               <double>1.000000000000000</double>
-              </property>
-             </widget>
-            </item>
-            <item row="6" column="2" colspan="2">
-             <widget class="QDoubleSpinBox" name="sbSparamRho">
-              <property name="decimals">
-               <number>5</number>
-              </property>
-              <property name="maximum">
-               <double>1.000000000000000</double>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="2" colspan="2">
-             <widget class="QSpinBox" name="sbSparamInnerIter">
-              <property name="maximum">
-               <number>9999</number>
-              </property>
-             </widget>
-            </item>
-            <item row="12" column="0" colspan="2">
-             <widget class="QLabel" name="label_13">
-              <property name="text">
-               <string>stitch speed</string>
-              </property>
-             </widget>
-            </item>
-            <item row="11" column="0" colspan="2">
-             <widget class="QLabel" name="label_15">
-              <property name="text">
-               <string>stitch bend</string>
-              </property>
-             </widget>
-            </item>
-            <item row="10" column="0" colspan="2">
-             <widget class="QLabel" name="label_12">
-              <property name="text">
-               <string>stitch stiff</string>
               </property>
              </widget>
             </item>
@@ -272,13 +201,6 @@
               </property>
              </widget>
             </item>
-            <item row="2" column="0" colspan="2">
-             <widget class="QLabel" name="label_3">
-              <property name="text">
-               <string>time step inv</string>
-              </property>
-             </widget>
-            </item>
             <item row="4" column="0" colspan="2">
              <widget class="QLabel" name="label_5">
               <property name="text">
@@ -293,10 +215,10 @@
               </property>
              </widget>
             </item>
-            <item row="6" column="0" colspan="2">
-             <widget class="QLabel" name="label_7">
+            <item row="9" column="0" colspan="2">
+             <widget class="QLabel" name="label_10">
               <property name="text">
-               <string>rho</string>
+               <string>bend stiff</string>
               </property>
              </widget>
             </item>
@@ -307,6 +229,78 @@
               </property>
              </widget>
             </item>
+            <item row="10" column="0" colspan="2">
+             <widget class="QLabel" name="label_12">
+              <property name="text">
+               <string>stitch stiff</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="2" colspan="2">
+             <widget class="QSpinBox" name="sbSparamInnerIter">
+              <property name="maximum">
+               <number>9999</number>
+              </property>
+             </widget>
+            </item>
+            <item row="14" column="2">
+             <widget class="QDoubleSpinBox" name="sbSparamGravityY">
+              <property name="decimals">
+               <number>1</number>
+              </property>
+              <property name="minimum">
+               <double>-100.000000000000000</double>
+              </property>
+             </widget>
+            </item>
+            <item row="6" column="2" colspan="2">
+             <widget class="QDoubleSpinBox" name="sbSparamRho">
+              <property name="decimals">
+               <number>5</number>
+              </property>
+              <property name="maximum">
+               <double>1.000000000000000</double>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0" colspan="2">
+             <widget class="QLabel" name="label_3">
+              <property name="text">
+               <string>time step inv</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="2" colspan="2">
+             <widget class="QDoubleSpinBox" name="sbSparamAirDamp">
+              <property name="decimals">
+               <number>5</number>
+              </property>
+              <property name="maximum">
+               <double>1.000000000000000</double>
+              </property>
+             </widget>
+            </item>
+            <item row="12" column="0" colspan="2">
+             <widget class="QLabel" name="label_13">
+              <property name="text">
+               <string>stitch speed</string>
+              </property>
+             </widget>
+            </item>
+            <item row="11" column="0" colspan="2">
+             <widget class="QLabel" name="label_15">
+              <property name="text">
+               <string>stitch bend</string>
+              </property>
+             </widget>
+            </item>
+            <item row="6" column="0" colspan="2">
+             <widget class="QLabel" name="label_7">
+              <property name="text">
+               <string>rho</string>
+              </property>
+             </widget>
+            </item>
             <item row="8" column="0" colspan="2">
              <widget class="QLabel" name="label_9">
               <property name="text">
@@ -314,10 +308,23 @@
               </property>
              </widget>
             </item>
-            <item row="9" column="0" colspan="2">
-             <widget class="QLabel" name="label_10">
+            <item row="14" column="1">
+             <widget class="QDoubleSpinBox" name="sbSparamGravityX">
+              <property name="decimals">
+               <number>1</number>
+              </property>
+              <property name="minimum">
+               <double>-100.000000000000000</double>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="2" colspan="2">
+             <widget class="QSpinBox" name="sbSparamOuterIter"/>
+            </item>
+            <item row="15" column="0" colspan="2">
+             <widget class="QCheckBox" name="cbSelfCollision">
               <property name="text">
-               <string>bend stiff</string>
+               <string>self collision</string>
               </property>
              </widget>
             </item>

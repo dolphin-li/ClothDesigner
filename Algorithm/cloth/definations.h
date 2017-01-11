@@ -30,6 +30,7 @@ namespace ldp
 		int inner_iter = 0;						// number of iterations
 		float control_mag = 0.f;				// for dragging, the stiffness of dragged point
 		float time_step = 0.f;					// simulation time step
+		bool enable_self_collistion = false;
 		ldp::Float3 gravity;
 		SimulationParam();
 		void setDefaultParam();
