@@ -397,6 +397,7 @@ void ClothDesigner::updateUiByParam()
 		ui.sbSparamGravityX->setValue(param.gravity[0]);
 		ui.sbSparamGravityY->setValue(param.gravity[1]);
 		ui.sbSparamGravityZ->setValue(param.gravity[2]);
+		ui.cbSelfCollision->setChecked(param.enable_self_collistion);
 
 		///design params
 		auto dparam = g_dataholder.m_clothManager->getClothDesignParam();
@@ -427,6 +428,13 @@ void ClothDesigner::updateUiByParam()
 	{
 		std::cout << "unknown error" << std::endl;
 	}
+}
+
+void ClothDesigner::on_cbSelfCollision_clicked()
+{
+	auto param = g_dataholder.m_clothManager->getSimulationParam();
+	param.enable_self_collistion = ui.cbSelfCollision->isChecked();
+	g_dataholder.m_clothManager->setSimulationParam(param);
 }
 
 void ClothDesigner::on_pbResetSimulation_clicked()
