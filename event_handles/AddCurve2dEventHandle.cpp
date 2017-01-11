@@ -41,7 +41,7 @@ void AddCurve2dEventHandle::handleLeave()
 void AddCurve2dEventHandle::mousePressEvent(QMouseEvent *ev)
 {
 	Abstract2dEventHandle::mousePressEvent(ev);
-
+	
 	if (ev->buttons() == Qt::LeftButton)
 	{
 		pick(ev->pos());
