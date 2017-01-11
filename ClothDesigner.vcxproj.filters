@@ -92,6 +92,9 @@
     <Filter Include="algorithm\matio">
       <UniqueIdentifier>{586f37b6-d739-4343-b64c-f86c4558c584}</UniqueIdentifier>
     </Filter>
+    <Filter Include="algorithm\BFGS">
+      <UniqueIdentifier>{0833743b-011d-4c84-8d25-347a94a372db}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -664,6 +667,21 @@
     <ClCompile Include="event_handles\Loop2dEventHandle.cpp">
       <Filter>event_handle</Filter>
     </ClCompile>
+    <ClCompile Include="event_handles\Smpl3dEventHandle.cpp">
+      <Filter>event_handle</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\cloth\RigidEstimation.cpp">
+      <Filter>algorithm\cloth</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\BFGS\BFGSFit.cpp">
+      <Filter>algorithm\BFGS</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\BFGS\program.cpp">
+      <Filter>algorithm\BFGS</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\BFGS\solver.cpp">
+      <Filter>algorithm\BFGS</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">
@@ -1057,6 +1075,21 @@
     </ClInclude>
     <ClInclude Include="event_handles\Loop2dEventHandle.h">
       <Filter>event_handle</Filter>
+    </ClInclude>
+    <ClInclude Include="event_handles\Smpl3dEventHandle.h">
+      <Filter>event_handle</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\RigidEstimation.h">
+      <Filter>algorithm\cloth</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\BFGS\BFGSFit.h">
+      <Filter>algorithm\BFGS</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\BFGS\program.h">
+      <Filter>algorithm\BFGS</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\BFGS\solver.h">
+      <Filter>algorithm\BFGS</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

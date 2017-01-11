@@ -8,7 +8,10 @@
 #include <set>
 #include "definations.h"
 #include "graph\AbstractGraphObject.h"
-
+#ifndef __CUDACC__
+#include <eigen\Dense>
+#include <eigen\Sparse>
+#endif
 namespace svg
 {
 	class SvgManager;
@@ -31,8 +34,13 @@ namespace ldp
 	{
 	public:
 		typedef float ValueType;
-		typedef ldp::ldp_basic_vec3<float> Vec3;
-		typedef ldp::ldp_basic_vec2<float> Vec2;
+		typedef ldp::ldp_basic_vec3<ValueType> Vec3;
+		typedef ldp::ldp_basic_vec2<ValueType> Vec2;
+#ifndef __CUDACC__
+		typedef Eigen::SparseMatrix<ValueType> SpMat;
+#else
+		class SpMat;
+#endif
 	protected:
 		struct DragInfoInternal
 		{
@@ -107,6 +115,8 @@ namespace ldp
 		SmplManager* bodySmplManager() { return m_smplBody; }
 		const SmplManager* bodySmplManager()const { return m_smplBody; }
 		void updateSmplBody();
+		void bindClothesToSmplJoints();
+		void updateClothBySmplJoints();
 
 		/// cloth pieces
 		int numClothPieces()const { return (int)m_clothPieces.size(); }
@@ -138,6 +148,7 @@ namespace ldp
 		bool copySelectedPanel();
 		bool addCurveOnAPanel(const std::vector<std::shared_ptr<ldp::GraphPoint>>& keyPts,
 			const std::vector<size_t>& renderIds);
+		bool setClothColorAsBoneWeights();
 	protected:
 		static void initSmplDatabase();
 		void initCollisionHandler();
@@ -174,6 +185,7 @@ namespace ldp
 		void buildTopology();
 		void buildNumerical();
 		void buildStitch();
+		void splitClothPiecesFromComputedMereged();
 		int findNeighbor(int i, int j)const;
 		int findStitchNeighbor(int i, int j)const;
 		Int3 getLocalFaceVertsId(Int3 globalVertId)const;
@@ -184,6 +196,8 @@ namespace ldp
 		std::vector<BMVert*> m_bmeshVerts;				// topology mesh
 		std::map<const ObjMesh*, int> m_clothVertBegin;	// index begin of each cloth piece
 		std::map<std::pair<const ObjMesh*, int>, std::set<Int3>> m_sewVofFMap;// two boundary faces that stitched, for normal calculation
+		std::shared_ptr<SpMat> m_vertex_smplJointBind;	// bind each cloth vertex to some smpl joints 
+		std::vector<Vec3> m_vertex_smpl_defaultPosition;
 		std::vector<Vec3> m_X;							// vertex position list
 		std::vector<Vec3> m_V;							// vertex velocity list
 		std::vector<ValueType> m_V_bending_k_mult;			// bending param of each vertex

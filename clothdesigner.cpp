@@ -984,17 +984,21 @@ void ClothDesigner::on_pbLoadSmplCoeffs_clicked()
 		auto smpl = g_dataholder.m_clothManager->bodySmplManager();
 		if (smpl == nullptr)
 			return;
-		QString name = QFileDialog::getOpenFileName(this, "open shape coef",
-			g_dataholder.m_lastSmplShapeCoeffDir.c_str(), "*.shape.txt");
+		QString name = QFileDialog::getOpenFileName(this, "open shape/pose coef",
+			g_dataholder.m_lastSmplShapeCoeffDir.c_str(), "*.txt");
 		if (name.isEmpty())
 			return;
-		smpl->loadShapeCoeffs(name.toStdString());
+		g_dataholder.m_lastSmplShapeCoeffDir = name.toStdString();
+		g_dataholder.saveLastDirs();
+		if (name.toLower().endsWith(".shape.txt"))
+			smpl->loadShapeCoeffs(name.toStdString());
+		else if (name.toLower().endsWith(".pose.txt"))
+			smpl->loadPoseCoeffs(name.toStdString());
 		if (m_smplShapeSliders.size() != smpl->numShapes())
 			throw std::exception("smpl ui update: size not matched!");
 
 		updateSmplUI();
 
-		g_dataholder.m_clothManager->simulationInit();
 		g_dataholder.m_clothManager->updateSmplBody();
 		m_widget3d->updateGL();
 	} catch (std::exception e)
@@ -1025,9 +1029,28 @@ void ClothDesigner::on_pbResetSmplCoeffs_clicked()
 		}
 		m_sliderEnableSmplUpdate = true;
 
-		smpl->setPoseShapeVals(nullptr, &shapes);
-		g_dataholder.m_clothManager->simulationInit();
+		std::vector<float> poses(smpl->numPoses()*smpl->numVarEachPose(), 0.f);
+		smpl->setPoseShapeVals(&poses, &shapes);
 		g_dataholder.m_clothManager->updateSmplBody();
+		m_widget3d->updateGL();
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
+	}
+}
+
+void ClothDesigner::on_pbBindClothesToSmpl_clicked()
+{
+	try
+	{
+		auto smpl = g_dataholder.m_clothManager->bodySmplManager();
+		if (smpl == nullptr)
+			return;
+		g_dataholder.m_clothManager->bindClothesToSmplJoints();
+		g_dataholder.m_clothManager->updateClothBySmplJoints();
 		m_widget3d->updateGL();
 	} catch (std::exception e)
 	{

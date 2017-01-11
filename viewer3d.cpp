@@ -4,6 +4,8 @@
 #include "ldpMat\Quaternion.h"
 #include "cloth\clothPiece.h"
 #include "cloth\graph\Graph.h"
+#include "cloth\SmplManager.h"
+#include "cloth\TransformInfo.h"
 #include "Renderable\ObjMesh.h"
 #pragma region --mat_utils
 
@@ -102,6 +104,7 @@ Viewer3d::Viewer3d(QWidget *parent)
 	setMouseTracking(true);
 	m_buttons = Qt::MouseButton::NoButton;
 	m_isDragBox = false;
+	m_isSmplMode = false;
 	m_trackBallMode = TrackBall_None;
 	m_currentEventHandle = nullptr;
 	m_fbo = nullptr;
@@ -166,7 +169,7 @@ void Viewer3d::initializeGL()
 	glLightfv(GL_LIGHT0, GL_POSITION, m_lightPosition.ptr());
 
 	m_showType = Renderable::SW_F | Renderable::SW_SMOOTH | Renderable::SW_TEXTURE
-		| Renderable::SW_LIGHTING;
+		| Renderable::SW_LIGHTING | Renderable::SW_SKELETON;
 
 	resetCamera();
 
@@ -303,15 +306,25 @@ void Viewer3d::paintGL()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	m_camera.apply();
 
+	int showType = m_showType;
+
 	// show cloth simulation=============================
 	if (m_clothManager)
 	{
-		m_shaderManager.bind(CShaderManager::shadow);
-		m_shaderManager.getCurShader()->setUniform1i("shadow_texture", 0);
-		func.glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, m_shadowDepthTexture);
-		m_clothManager->bodyMesh()->render(Renderable::SW_F | Renderable::SW_SMOOTH 
-			| Renderable::SW_LIGHTING | Renderable::SW_TEXTURE);
+		if (isSmplMode() && m_clothManager->bodySmplManager())
+		{
+			glEnable(GL_COLOR_MATERIAL);
+			showType |= Renderable::SW_COLOR;
+		}
+		else
+		{
+			m_shaderManager.bind(CShaderManager::shadow);
+			m_shaderManager.getCurShader()->setUniform1i("shadow_texture", 0);
+			func.glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, m_shadowDepthTexture);
+			glDisable(GL_COLOR_MATERIAL);
+		}
+		m_clothManager->bodyMesh()->render(showType);
 		for (int i = 0; i < m_clothManager->numClothPieces(); i++)
 		{
 			const auto& piece = m_clothManager->clothPiece(i);
@@ -324,9 +337,19 @@ void Viewer3d::paintGL()
 				else
 					piece->mesh3d().material_list[0].diff = ldp::Float3(1, 1, 1);
 			}
-			piece->mesh3d().render(m_showType);
+			piece->mesh3d().render(showType);
 		}
-		m_shaderManager.unbind();
+		if (!isSmplMode() || !m_clothManager->bodySmplManager())
+			m_shaderManager.unbind();
+		if (isSmplMode() && m_clothManager->bodySmplManager())
+		{
+			auto T = m_clothManager->getBodyMeshTransform().transform();
+			glPushMatrix();
+			glMultMatrixf(T.ptr());
+			int stype = showType & Renderable::SW_SKELETON;
+			m_clothManager->bodySmplManager()->render(stype);
+			glPopMatrix();
+		} // end if smpl mode
 		renderStitches();
 	}
 	renderTrackBall(false);
@@ -400,7 +423,17 @@ void Viewer3d::renderSelectionOnFbo()
 
 	m_camera.apply();
 
-	renderMeshForSelection();
+	if (isSmplMode() && m_clothManager->bodySmplManager())
+	{
+		auto T = m_clothManager->getBodyMeshTransform().transform();
+		glPushMatrix();
+		glMultMatrixf(T.ptr());
+		int stype = m_showType & Renderable::SW_SKELETON;
+		m_clothManager->bodySmplManager()->renderForSelection(stype, SmplJointIndex);
+		glPopMatrix();
+	} // end if smpl mode
+	else
+		renderMeshForSelection();
 	renderTrackBall(true);
 
 	m_fboImage = m_fbo->toImage();

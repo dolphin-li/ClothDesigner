@@ -94,6 +94,7 @@ protected:
 	void on_pbSaveSmplCoeffs_clicked();
 	void on_pbLoadSmplCoeffs_clicked();
 	void on_pbResetSmplCoeffs_clicked();
+	void on_pbBindClothesToSmpl_clicked();
 	void onSmplShapeSlidersValueChanged(int v);
 	void saveProject(const std::string& fileName);
 	void saveProjectAs();
