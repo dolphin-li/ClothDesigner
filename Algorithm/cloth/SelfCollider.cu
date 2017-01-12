@@ -3,7 +3,7 @@
 #include "cuda_utils.h"
 #include "thrust_wrapper.h"
 #include <thrust\device_ptr.h>
-#include <thrust\extrema.h>
+#include <thrust\device_vector.h>
 
 //#define ENABLE_TIMER
 
@@ -21,6 +21,33 @@ namespace ldp
 	};
 
 #pragma region --kernels
+
+	texture<float, cudaTextureType1D, cudaReadModeElementType> g_oldX_tex, g_newX_tex;
+	texture<int, cudaTextureType1D, cudaReadModeElementType> g_cstatus_tex, g_bucket_range_tex, g_vid_tex;
+
+	__device__ __forceinline__ float3 get_oldX(int i)
+	{
+		return make_float3(tex1Dfetch(g_oldX_tex, i*3),
+			tex1Dfetch(g_oldX_tex, i*3+1), tex1Dfetch(g_oldX_tex, i*3+2));
+	}
+	__device__ __forceinline__ float3 get_newX(int i)
+	{
+		return make_float3(tex1Dfetch(g_newX_tex, i * 3),
+			tex1Dfetch(g_newX_tex, i * 3 + 1), tex1Dfetch(g_newX_tex, i * 3 + 2));
+	}
+	__device__ __forceinline__ int get_cstatus(int i)
+	{
+		return tex1Dfetch(g_cstatus_tex, i);
+	}
+	__device__ __forceinline__ int get_vid(int i)
+	{
+		return tex1Dfetch(g_vid_tex, i);
+	}
+	__device__ __forceinline__ int2 get_bucket_range(int i)
+	{
+		return make_int2(tex1Dfetch(g_bucket_range_tex, 2 * i), tex1Dfetch(g_bucket_range_tex, 2 * i + 1));
+	}
+
 	__device__ __forceinline__ int v2id_x(float3 v, float3 start, float inv_h)
 	{
 		return int((v.x - start.x)*inv_h);
@@ -178,10 +205,11 @@ namespace ldp
 		} // end for i, j, k
 	}
 
-	__global__ void Triangle_Test_Kernel(const float3* old_X, const float3* new_X, const int number, 
+	__global__ void Triangle_Test_Kernel(const int number, 
 		const int3* T, const int t_number, float3* I, float3* R, float* W, int* c_status, 
-		const int* bucket_ranges, const int*vertex_id, const int l, const float gap,
-		const float3 start, const float inv_h, const int3 size, const int* t_key, const int* t_idx)
+		const int l, const float gap,
+		const float3 start, const float inv_h, const int3 size, const int* t_key, const int* t_idx,
+		int* not_converged)
 	{
 		int t = blockDim.x * blockIdx.x + threadIdx.x;
 		if (t >= t_number)	return;
@@ -191,44 +219,36 @@ namespace ldp
 			t = t_idx[t];
 
 		const int3 vabc = T[t];
-		const int va_status = c_status[v2id(old_X[vabc.x], start, inv_h, size)];
-		const int vb_status = c_status[v2id(old_X[vabc.y], start, inv_h, size)];
-		const int vc_status = c_status[v2id(old_X[vabc.z], start, inv_h, size)];
-		const float3 oa = old_X[vabc.x], ob = old_X[vabc.y], oc = old_X[vabc.z];
-		const float3 na = new_X[vabc.x], nb = new_X[vabc.y], nc = new_X[vabc.z];
-		int min_i = cudaMin(min(v2id_x(oa, start, inv_h), v2id_x(na, start, inv_h)), min(v2id_x(ob, start, inv_h), v2id_x(nb, start, inv_h)), min(v2id_x(oc, start, inv_h), v2id_x(nc, start, inv_h))) - 1;
-		int min_j = cudaMin(min(v2id_y(oa, start, inv_h), v2id_y(na, start, inv_h)), min(v2id_y(ob, start, inv_h), v2id_y(nb, start, inv_h)), min(v2id_y(oc, start, inv_h), v2id_y(nc, start, inv_h))) - 1;
-		int min_k = cudaMin(min(v2id_z(oa, start, inv_h), v2id_z(na, start, inv_h)), min(v2id_z(ob, start, inv_h), v2id_z(nb, start, inv_h)), min(v2id_z(oc, start, inv_h), v2id_z(nc, start, inv_h))) - 1;
-		int max_i = cudaMax(max(v2id_x(oa, start, inv_h), v2id_x(na, start, inv_h)), max(v2id_x(ob, start, inv_h), v2id_x(nb, start, inv_h)), max(v2id_x(oc, start, inv_h), v2id_x(nc, start, inv_h))) + 1;
-		int max_j = cudaMax(max(v2id_y(oa, start, inv_h), v2id_y(na, start, inv_h)), max(v2id_y(ob, start, inv_h), v2id_y(nb, start, inv_h)), max(v2id_y(oc, start, inv_h), v2id_y(nc, start, inv_h))) + 1;
-		int max_k = cudaMax(max(v2id_z(oa, start, inv_h), v2id_z(na, start, inv_h)), max(v2id_z(ob, start, inv_h), v2id_z(nb, start, inv_h)), max(v2id_z(oc, start, inv_h), v2id_z(nc, start, inv_h))) + 1;
-		min_i = max(min(min_i, size.x - 1), 0);
-		min_j = max(min(min_j, size.y - 1), 0);
-		min_k = max(min(min_k, size.z - 1), 0);
-		max_i = max(min(max_i, size.x - 1), 0);
-		max_j = max(min(max_j, size.y - 1), 0);
-		max_k = max(min(max_k, size.z - 1), 0);
+		const float3 oa = get_oldX(vabc.x), ob = get_oldX(vabc.y), oc = get_oldX(vabc.z);
+		const float3 na = get_newX(vabc.x), nb = get_newX(vabc.y), nc = get_newX(vabc.z);
+		const int va_status = get_cstatus(v2id(oa, start, inv_h, size));
+		const int vb_status = get_cstatus(v2id(ob, start, inv_h, size));
+		const int vc_status = get_cstatus(v2id(oc, start, inv_h, size));
+		const int min_i = max(0, min(size.x - 1, cudaMin(min(v2id_x(oa, start, inv_h), v2id_x(na, start, inv_h)), min(v2id_x(ob, start, inv_h), v2id_x(nb, start, inv_h)), min(v2id_x(oc, start, inv_h), v2id_x(nc, start, inv_h))) - 1));
+		const int min_j = max(0, min(size.y - 1, cudaMin(min(v2id_y(oa, start, inv_h), v2id_y(na, start, inv_h)), min(v2id_y(ob, start, inv_h), v2id_y(nb, start, inv_h)), min(v2id_y(oc, start, inv_h), v2id_y(nc, start, inv_h))) - 1));
+		const int min_k = max(0, min(size.z - 1, cudaMin(min(v2id_z(oa, start, inv_h), v2id_z(na, start, inv_h)), min(v2id_z(ob, start, inv_h), v2id_z(nb, start, inv_h)), min(v2id_z(oc, start, inv_h), v2id_z(nc, start, inv_h))) - 1));
+		const int max_i = max(0, min(size.x - 1, cudaMax(max(v2id_x(oa, start, inv_h), v2id_x(na, start, inv_h)), max(v2id_x(ob, start, inv_h), v2id_x(nb, start, inv_h)), max(v2id_x(oc, start, inv_h), v2id_x(nc, start, inv_h))) + 1));
+		const int max_j = max(0, min(size.y - 1, cudaMax(max(v2id_y(oa, start, inv_h), v2id_y(na, start, inv_h)), max(v2id_y(ob, start, inv_h), v2id_y(nb, start, inv_h)), max(v2id_y(oc, start, inv_h), v2id_y(nc, start, inv_h))) + 1));
+		const int max_k = max(0, min(size.z - 1, cudaMax(max(v2id_z(oa, start, inv_h), v2id_z(na, start, inv_h)), max(v2id_z(ob, start, inv_h), v2id_z(nb, start, inv_h)), max(v2id_z(oc, start, inv_h), v2id_z(nc, start, inv_h))) + 1));
 
 		for (int i = min_i; i <= max_i; i++)
 		for (int j = min_j; j <= max_j; j++)
 		for (int k = min_k; k <= max_k; k++)
 		{
 			const int vid = xyz2id(i, j, k, size);
-			if (c_status[vid] < l && va_status < l && vb_status < l && vc_status < l)
+			if (get_cstatus(vid) < l && va_status < l && vb_status < l && vc_status < l)
 				continue;
-			const int range_b = bucket_ranges[vid * 2 + 0];
-			const int range_e = bucket_ranges[vid * 2 + 1];
-			for (int ptr = range_b; ptr<range_e; ptr++)
+			for (int ptr = get_bucket_range(vid).x; ptr<get_bucket_range(vid).y; ptr++)
 			{
-				const int vi = vertex_id[ptr];
+				const int vi = get_vid(ptr);
 				if (vi == vabc.x || vi == vabc.y || vi == vabc.z
 					|| vabc.x == vabc.y || vabc.y == vabc.z || vabc.z == vabc.x)
 					continue;
 
-				const float3 x0 = new_X[vi];
-				const float3 x1 = new_X[vabc.x];
-				const float3 x2 = new_X[vabc.y];
-				const float3 x3 = new_X[vabc.z];
+				const float3 x0 = get_newX(vi);
+				const float3 x1 = get_newX(vabc.x);
+				const float3 x2 = get_newX(vabc.y);
+				const float3 x3 = get_newX(vabc.z);
 				if (   x0.x + gap * 2 < cudaMin(x1.x, x2.x, x3.x)
 					|| x0.y + gap * 2 < cudaMin(x1.y, x2.y, x3.y)
 					|| x0.z + gap * 2 < cudaMin(x1.z, x2.z, x3.z)
@@ -257,7 +277,7 @@ namespace ldp
 
 				//Take normal into consideration
 				d = sqrt(d);
-				float3 old_N = old_X[vi] - ba * oa - bb * ob - bc * oc;
+				float3 old_N = get_oldX(vi) - ba * oa - bb * ob - bc * oc;
 				if (dot(old_N, N) < 0)
 					d = -d;
 
@@ -300,6 +320,7 @@ namespace ldp
 					atomicAdd(&I[vabc.z].y, -k*N.y * bc);
 					atomicAdd(&I[vabc.z].z, -k*N.z * bc);
 					c_status[vid] = l + 1;
+					not_converged[0] = 1;
 				}
 			} // end for ptr
 		} // end for i, j, k
@@ -391,6 +412,22 @@ namespace ldp
 		const int blocksPerGrid = (number + threadsPerBlock - 1) / threadsPerBlock;
 		const int t_blocksPerGrid = (t_number + t_threadsPerBlock - 1) / t_threadsPerBlock;
 		allocate(number, t_number, bucket_size);
+
+		// bind some frequent-queried arraies to textures, to speed up.
+		size_t offset = 0;
+		cudaChannelFormatDesc desc_float = cudaCreateChannelDesc<float>();
+		cudaChannelFormatDesc desc_int = cudaCreateChannelDesc<int>();
+		cudaSafeCall(cudaBindTexture(&offset, &g_oldX_tex, dev_old_X, &desc_float,
+			number * sizeof(float3)));
+		cudaSafeCall(cudaBindTexture(&offset, &g_newX_tex, dev_new_X, &desc_float,
+			number * sizeof(float3)));
+		cudaSafeCall(cudaBindTexture(&offset, &g_cstatus_tex, m_dev_c_status, &desc_int,
+			bucket_size / 2 * sizeof(int)));
+		cudaSafeCall(cudaBindTexture(&offset, &g_vid_tex, m_dev_vertex_id, &desc_int,
+			number * sizeof(int)));
+		cudaSafeCall(cudaBindTexture(&offset, &g_bucket_range_tex, m_dev_bucket_ranges, &desc_int,
+			bucket_size * sizeof(int)));
+
 		///////////////////////////////////////////////////////////////////////////
 		//	Step 2: Vertex Grid Construction (for VT tests)
 		///////////////////////////////////////////////////////////////////////////
@@ -406,6 +443,7 @@ namespace ldp
 			m_dev_vertex_bucket, m_dev_bucket_ranges, number);
 		cudaMemset(m_dev_c_status, 0, sizeof(int)*bucket_size / 2);
 
+		static thrust::device_vector<int> not_converged(1);
 		int l = 0;
 		for (l = 0; l<64; l++)
 		{
@@ -413,14 +451,19 @@ namespace ldp
 			cudaMemset(m_dev_R, 0, sizeof(float3)*number);
 			cudaMemset(m_dev_W, 0, sizeof(float)*number);
 
+			// reset converge flag
+			not_converged[0] = 0;
+
 			Triangle_Test_Kernel << <t_blocksPerGrid, t_threadsPerBlock >> >(
-				dev_old_X, dev_new_X, number, dev_T, t_number,
-				m_dev_I, m_dev_R, m_dev_W,
-				m_dev_c_status, m_dev_bucket_ranges, m_dev_vertex_id, l, gap,
-				start, inv_h, size, 0, 0);
-			int res = thrust_wrapper::max_element(m_dev_c_status, bucket_size / 2);
-			if (res != l + 1)	
+				number, dev_T, t_number, m_dev_I, m_dev_R, m_dev_W, m_dev_c_status, l, gap,
+				start, inv_h, size, 0, 0, not_converged.data().get());
+
+			// check converge flag, this is faster than max_element check
+			if (!not_converged[0])
 				break;
+			//int res = thrust_wrapper::max_element(m_dev_c_status, bucket_size / 2);
+			//if (res != l + 1)	
+			//	break;
 
 			Triangle_Test_2_Kernel << <blocksPerGrid, threadsPerBlock >> >(
 				dev_new_X, dev_V, m_dev_I, m_dev_R, m_dev_W, number, l, inv_t);
