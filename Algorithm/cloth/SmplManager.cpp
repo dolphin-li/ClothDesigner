@@ -1131,7 +1131,7 @@ void SmplManager::loadCoeffsFromXml(TiXmlElement* ele, bool loadShape, bool load
 				throw std::exception("xmlError: attribute \"value\" for \"shape\" not found");
 			std::stringstream stm(sEle->Attribute("value"));
 			for (int r = 0; r < m_curShapes.rows(); r++)
-			for (int c = 0; c < m_curShapes.rows(); c++)
+			for (int c = 0; c < m_curShapes.cols(); c++)
 				stm >> m_curShapes(r, c);
 		} // end if shape
 		else if (sEle->Value() == std::string("pose") && loadPose)
@@ -1140,7 +1140,7 @@ void SmplManager::loadCoeffsFromXml(TiXmlElement* ele, bool loadShape, bool load
 				throw std::exception("xmlError: attribute \"value\" for \"pose\" not found");
 			std::stringstream stm(sEle->Attribute("value"));
 			for (int r = 0; r < m_curPoses.rows(); r++)
-			for (int c = 0; c < m_curPoses.rows(); c++)
+			for (int c = 0; c < m_curPoses.cols(); c++)
 				stm >> m_curPoses(r, c);
 		} // end if pose
 	} // end for sEle

@@ -38,11 +38,11 @@ public:
 	public slots:
 	void on_actionLoad_project_triggered();
 	void on_actionSave_project_triggered();
-	void on_actionExport_training_data_triggered();
 	void on_actionSave_as_triggered();
 	void on_actionLoad_svg_triggered();
 	void on_actionExport_body_mesh_triggered();
 	void on_actionExport_cloth_mesh_triggered();
+	void on_actionExport_training_data_triggered();
 	void on_actionPlace_3d_by_2d_triggered();
 	void on_actionPrev_triggered();
 	void on_actionNext_triggered();
@@ -92,16 +92,24 @@ protected:
 	bool m_sliderEnableSmplUpdate = true;
 	void setupSmplUI();
 	void updateSmplUI();
+	void saveProject(const std::string& fileName);
+	void saveProjectAs();
+	bool bindClothesToSmpl();
+	void simulateCloth(int iterNum);
+	void updateBodyState();
 	public slots:
 	void on_pbSaveSmplCoeffs_clicked();
 	void on_pbLoadSmplCoeffs_clicked();
 	void on_pbResetSmplCoeffs_clicked();
 	void on_pbBindClothesToSmpl_clicked();
+	void on_pbLoadSmplFromXml_clicked();
 	void onSmplShapeSlidersValueChanged(int v);
-	void saveProject(const std::string& fileName);
-	void saveProjectAs();
 private:
 	bool m_projectSaved;
+	std::vector<int> m_shapeIndexes;
+	TiXmlElement* m_shapeElement;
+	TiXmlElement* m_poseElement;
+
 };
 
 #endif // CLOTHDESIGNER_H

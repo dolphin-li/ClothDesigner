@@ -86,7 +86,7 @@
      <item row="0" column="0">
       <widget class="QTabWidget" name="tabWidget">
        <property name="currentIndex">
-        <number>0</number>
+        <number>2</number>
        </property>
        <widget class="QWidget" name="tabSimulation">
         <attribute name="title">
@@ -492,6 +492,13 @@
           <widget class="QPushButton" name="pbBindClothesToSmpl">
            <property name="text">
             <string>bind clothes to smpl</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QPushButton" name="pbLoadSmplFromXml">
+           <property name="text">
+            <string>load smpl from xml</string>
            </property>
           </widget>
          </item>

@@ -2,6 +2,7 @@
 #include <QGridLayout>
 #include "global_data_holder.h"
 #include <exception>
+#include <fstream>
 #include "viewer2d.h"
 #include "viewer3d.h"
 #include "cloth\HistoryStack.h"
@@ -207,6 +208,35 @@ void ClothDesigner::on_actionSave_project_triggered()
 	}
 }
 
+int randomFromFile(std::string fileName)
+{
+	std::ifstream in(fileName);
+	if (!in.is_open())
+		throw std::exception(("IOError" + fileName + "]: File doesn't exist!\n").c_str());
+	int num;
+	in >> num;
+	in.close();
+	return rand() % num;
+}
+
+void ClothDesigner::updateBodyState()
+{
+
+}
+
+void ClothDesigner::simulateCloth(int iterNum)
+{
+	std::shared_ptr<ldp::ClothManager> clothManager = g_dataholder.m_clothManager;
+	clothManager->setSimulationMode(ldp::SimulationOn);
+	for (int i = 0; i < iterNum; i++)
+	{
+		clothManager->simulationUpdate();
+		m_widget3d->updateGL();
+	}
+	clothManager->setSimulationMode(ldp::SimulationPause);
+	std::cout << "simulation pause" << std::endl;
+}
+
 void ClothDesigner::on_actionExport_training_data_triggered()
 {
 	//load project xml
@@ -217,6 +247,65 @@ void ClothDesigner::on_actionExport_training_data_triggered()
 			return;
 		loadProjectXml(name);
 		m_projectSaved = true;
+
+		//simulation
+		simulateCloth(50);
+		
+		if (!bindClothesToSmpl())
+			return;
+	
+		//generate some body (body= shape+ pose) data based on combinations of shapes and poses
+		int bodyNum=10;
+		QString poseRoot = "./data/Mocap/poses/";
+		QString shapeXml = "./data/spring/sprint_femal.smpl.xml";
+		
+		TiXmlDocument shape_doc;
+		if (!shape_doc.LoadFile(shapeXml.toStdString().c_str()))
+			throw std::exception(("IOError" + shapeXml.toStdString() + "]: " + shape_doc.ErrorDesc()).c_str());
+		
+		//this code should be extracted to pre-computation area while refactoring
+		int shapeNum = 0;
+		for (auto elm = shape_doc.FirstChildElement()->FirstChildElement(); elm; elm = elm->NextSiblingElement())
+			shapeNum++;
+
+		std::cout << "Shape num:" << shapeNum << std::endl;
+
+		std::vector<int> shapeIndexes(bodyNum);
+		for (int i = 0; i < bodyNum; i++)
+			shapeIndexes[i] = rand()%shapeNum;
+		std::sort(shapeIndexes.begin(), shapeIndexes.end());
+
+		//given a shape data, generate some body data in various poses
+		QDir poseDir(poseRoot);
+		poseDir.setNameFilters(QStringList("*.xml"));
+		QStringList pose_files = poseDir.entryList();
+		
+		SmplManager* smpl = g_dataholder.m_clothManager->bodySmplManager();
+		int shape_ind = 0;
+		auto shape_elm = shape_doc.FirstChildElement()->FirstChildElement();
+		for (int i = 0; i < (int)shapeIndexes.size(); i++)
+		{
+			for (; shape_ind < shapeIndexes[i]; shape_ind++, shape_elm = shape_elm->NextSiblingElement());
+			smpl->loadCoeffsFromXml(shape_elm, true, false);
+			QString poseFile = pose_files[rand() % (int)pose_files.size()];
+			QString txtFile=QString(poseFile).replace(".xml", "_info.txt");
+			int frame_ind = randomFromFile((poseRoot+txtFile).toStdString());
+			TiXmlDocument pose_doc;
+			if (!pose_doc.LoadFile((poseRoot+poseFile).toStdString().c_str()))
+				throw std::exception(("IOError" + (poseRoot + poseFile).toStdString() + "]: " + pose_doc.ErrorDesc()).c_str());
+			auto pose_elm = pose_doc.FirstChildElement()->FirstChildElement();
+			for (int j = 0; j < frame_ind; j++, pose_elm = pose_elm->NextSiblingElement());
+			smpl->loadCoeffsFromXml(pose_elm, false, true);
+
+			updateSmplUI();
+			g_dataholder.m_clothManager->updateSmplBody();
+			m_widget3d->updateGL();
+			std::cout << "Body " << i << std::endl;
+			Sleep(1000);
+			simulateCloth(20);
+			Sleep(2000);
+		}
+	
 	}
 	catch (std::exception e)
 	{
@@ -226,10 +315,6 @@ void ClothDesigner::on_actionExport_training_data_triggered()
 	{
 		std::cout << "unknown error" << std::endl;
 	}
-
-
-
-
 }
 
 void  ClothDesigner::on_actionSave_as_triggered()
@@ -1075,20 +1160,58 @@ void ClothDesigner::on_pbResetSmplCoeffs_clicked()
 	}
 }
 
+bool ClothDesigner::bindClothesToSmpl()
+{
+	try
+	{
+		auto smpl = g_dataholder.m_clothManager->bodySmplManager();
+		if (smpl == nullptr)
+			return false;
+		g_dataholder.m_clothManager->bindClothesToSmplJoints();
+		g_dataholder.m_clothManager->updateClothBySmplJoints();
+		m_widget3d->updateGL();
+	}
+	catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+		return false;
+	}
+	catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
+		return false;
+	}
+	return true;
+}
+
 void ClothDesigner::on_pbBindClothesToSmpl_clicked()
+{
+	bindClothesToSmpl();
+}
+
+void ClothDesigner::on_pbLoadSmplFromXml_clicked()
 {
 	try
 	{
 		auto smpl = g_dataholder.m_clothManager->bodySmplManager();
 		if (smpl == nullptr)
 			return;
-		g_dataholder.m_clothManager->bindClothesToSmplJoints();
-		g_dataholder.m_clothManager->updateClothBySmplJoints();
-		m_widget3d->updateGL();
-	} catch (std::exception e)
+
+		QString name = QFileDialog::getOpenFileName(this, "Load Shape or Pose", g_dataholder.m_lastSmplShapeCoeffDir.c_str(), "*.xml");
+		if (name.isEmpty())
+			return;
+
+		TiXmlDocument doc;
+		if (!doc.LoadFile(name.toStdString().c_str()))
+			throw std::exception(("IOError" + name.toStdString() + "]: " + doc.ErrorDesc()).c_str());
+
+		smpl->loadCoeffsFromXml(doc.FirstChildElement()->FirstChildElement(),false,true);
+	}
+	catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
-	} catch (...)
+	}
+	catch (...)
 	{
 		std::cout << "unknown error" << std::endl;
 	}

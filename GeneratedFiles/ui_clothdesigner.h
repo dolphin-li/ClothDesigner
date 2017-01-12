@@ -114,6 +114,7 @@ public:
     QPushButton *pbResetSmplCoeffs;
     QGroupBox *gpSmplBodyCoeffs;
     QPushButton *pbBindClothesToSmpl;
+    QPushButton *pbLoadSmplFromXml;
     QDockWidget *dockWidgetLower;
     QWidget *dockWidgetContentsLower;
     QGridLayout *gridLayout_4;
@@ -474,6 +475,11 @@ public:
 
         gridLayout_7->addWidget(pbBindClothesToSmpl, 3, 0, 1, 1);
 
+        pbLoadSmplFromXml = new QPushButton(tab);
+        pbLoadSmplFromXml->setObjectName(QStringLiteral("pbLoadSmplFromXml"));
+
+        gridLayout_7->addWidget(pbLoadSmplFromXml, 3, 1, 1, 1);
+
         tabWidget->addTab(tab, QString());
 
         gridLayout_2->addWidget(tabWidget, 0, 0, 1, 1);
@@ -537,7 +543,7 @@ public:
 
         retranslateUi(ClothDesignerClass);
 
-        tabWidget->setCurrentIndex(0);
+        tabWidget->setCurrentIndex(2);
 
 
         QMetaObject::connectSlotsByName(ClothDesignerClass);
@@ -593,6 +599,7 @@ public:
         pbResetSmplCoeffs->setText(QApplication::translate("ClothDesignerClass", "reset smpl coeffs", 0));
         gpSmplBodyCoeffs->setTitle(QApplication::translate("ClothDesignerClass", "smpl body coeffs", 0));
         pbBindClothesToSmpl->setText(QApplication::translate("ClothDesignerClass", "bind clothes to smpl", 0));
+        pbLoadSmplFromXml->setText(QApplication::translate("ClothDesignerClass", "load smpl from xml", 0));
         tabWidget->setTabText(tabWidget->indexOf(tab), QApplication::translate("ClothDesignerClass", "Body", 0));
         pbFlipPolygon->setText(QApplication::translate("ClothDesignerClass", "flip polygon", 0));
         pbResetSimulation->setText(QApplication::translate("ClothDesignerClass", "reset simulaton", 0));
