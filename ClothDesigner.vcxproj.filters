@@ -1091,6 +1091,12 @@
     <ClInclude Include="Algorithm\BFGS\solver.h">
       <Filter>algorithm\BFGS</Filter>
     </ClInclude>
+    <ClInclude Include="Algorithm\cloth\thrust_wrapper.h">
+      <Filter>algorithm\cloth</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\SelfCollider.h">
+      <Filter>algorithm\cloth</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="qdarkstyle\rc\up_arrow_disabled.png">
@@ -1221,6 +1227,12 @@
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="Algorithm\cloth\clothManager.cu">
+      <Filter>algorithm\cloth</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Algorithm\cloth\thrust_wrapper.cu">
+      <Filter>algorithm\cloth</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Algorithm\cloth\SelfCollider.cu">
       <Filter>algorithm\cloth</Filter>
     </CudaCompile>
   </ItemGroup>
