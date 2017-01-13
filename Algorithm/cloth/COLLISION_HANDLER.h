@@ -43,6 +43,7 @@
 #include <thrust/device_ptr.h>
 #include <thrust/sort.h>
 #include <thrust/extrema.h>
+#include "TIMER.h"
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -480,7 +481,9 @@ public:
 
 	void Run(float* dev_old_X, float* dev_new_X, float* dev_V, int number, int* dev_T, int t_number, float* X, float inv_t)	//X is in CPU
 	{
-		//TIMER timer;
+		TIMER timer;
+		cudaThreadSynchronize();
+		timer.Start();
 		int threadsPerBlock = 256;
 		int blocksPerGrid = (number + threadsPerBlock - 1) / threadsPerBlock;
 		int t_threadsPerBlock = 256;
@@ -614,6 +617,9 @@ public:
 
 		}
 
+		cudaThreadSynchronize();
+		float t = timer.Get_Time();
+		printf("L%d %f\n", l, t/l);
 		if(l==64)	{printf("ERROR: collision still not converge.\n");}
 		//printf("l %d\t", l);
 

@@ -4,13 +4,9 @@
 #include "LEVEL_SET_COLLISION.h"
 #include "helper_math.h"
 
-
-#define ENABLE_SELF_COLLISION
-
-#ifdef ENABLE_SELF_COLLISION
-#include "MY_MATH.h"
-#include "COLLISION_HANDLER.h"
-#endif
+//#include "MY_MATH.h"
+//#include "COLLISION_HANDLER.h"
+#include "SelfCollider.h"
 
 namespace ldp
 {
@@ -449,20 +445,23 @@ __global__ void Constraint_1_Kernel(const float* X, const float* init_B,
 #pragma endregion
 
 #pragma region --collision handler
+	//std::shared_ptr<COLLISION_HANDLER> g_chl;
 	void ClothManager::initCollisionHandler()
 	{
-#ifdef ENABLE_SELF_COLLISION
-		m_collider.reset(new COLLISION_HANDLER());
-#endif
+		//g_chl.reset(new COLLISION_HANDLER());
+		m_collider.reset(new SelfCollider());
 	}
 
 	void ClothManager::constrain_selfCollision()
 	{
-#ifdef ENABLE_SELF_COLLISION
 		if (m_simulationParam.enable_self_collistion)
-			m_collider->Run(m_dev_old_X.ptr(), m_dev_X.ptr(), m_dev_V.ptr(), m_X.size(), 
-				m_dev_T.ptr(), m_T.size(), (ValueType*)m_X.data(), 1.f / m_simulationParam.time_step);
-#endif
+		{
+			m_collider->run((const float3*)m_dev_old_X.ptr(), (float3*)m_dev_X.ptr(), (float3*)m_dev_V.ptr(), m_X.size(), 
+				(const int3*)m_dev_T.ptr(), m_T.size(), (const float3*)m_X.data(), 1.f / m_simulationParam.time_step);
+
+			//g_chl->Run(m_dev_old_X.ptr(), m_dev_X.ptr(), m_dev_V.ptr(), m_X.size(),
+			//	m_dev_T.ptr(), m_T.size(), (float*)m_X.data(), 1.f / m_simulationParam.time_step);
+		}
 	}
 #pragma endregion
 }

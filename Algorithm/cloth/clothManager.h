@@ -18,9 +18,9 @@ namespace svg
 	class SvgPolyPath;
 }
 class SmplManager;
-class COLLISION_HANDLER;
 namespace ldp
 {
+	class SelfCollider;
 	class GraphsSewing;
 	class GraphPoint;
 	class Graph2Mesh;
@@ -258,6 +258,6 @@ namespace ldp
 		DeviceArray<ValueType> m_dev_stitch_VL;
 
 		//// self collision handler--------------------------------------------------------
-		std::shared_ptr<COLLISION_HANDLER> m_collider;
+		std::shared_ptr<SelfCollider> m_collider;
 	};
 }
