@@ -541,6 +541,7 @@
     <ClInclude Include="Algorithm\tinyxml\tinystr.h" />
     <ClInclude Include="Algorithm\tinyxml\tinyxml.h" />
     <ClInclude Include="Algorithm\triangle\triangle.h" />
+    <ClInclude Include="BatchSimulateManager.h" />
     <ClInclude Include="event_handles\Abstract2dEventHandle.h" />
     <ClInclude Include="event_handles\Abstract3dEventHandle.h" />
     <ClInclude Include="event_handles\AddCurve2dEventHandle.h" />

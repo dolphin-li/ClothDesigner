@@ -74,6 +74,13 @@ namespace ldp
 		SimulationPause,
 	};
 
+	enum BatchSimulateMode
+	{
+		BatchSimNotInit,
+		BatchSimOn,
+		BatchSimPause,
+		BatchSimFinished,
+	};
 	// pts: a closed polygon of n points, the last connects to the first.
 	// decide whether p is inside pts, thresholded by g_designParam.pointInsidePolyThre
 	// if nearestEdgeId != nullptr, return the nearest edge index from it.

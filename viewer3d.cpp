@@ -110,6 +110,7 @@ Viewer3d::Viewer3d(QWidget *parent)
 	m_fbo = nullptr;
 	m_clothManager = nullptr;
 	m_mainUI = nullptr;
+	m_batchSimManager = nullptr;
 	m_lightPosition = ldp::Float3(-2, 1, 4);
 
 	m_eventHandles.resize((size_t)Abstract3dEventHandle::ProcessorTypeEnd, nullptr);

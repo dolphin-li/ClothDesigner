@@ -1097,6 +1097,9 @@
     <ClInclude Include="Algorithm\cloth\SelfCollider.h">
       <Filter>algorithm\cloth</Filter>
     </ClInclude>
+    <ClInclude Include="BatchSimulateManager.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="qdarkstyle\rc\up_arrow_disabled.png">

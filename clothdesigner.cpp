@@ -38,11 +38,125 @@ ClothDesigner::ClothDesigner(QWidget *parent)
 	updateUiByParam();
 	m_simulateTimer = startTimer(1);
 	m_fpsTimer = startTimer(200);
+	m_widget3d->setBatchSimManager(&m_batchSimManager);
 }
 
 ClothDesigner::~ClothDesigner()
 {
 
+}
+
+int randomFromFile(std::string fileName)
+{
+	std::ifstream in(fileName);
+	if (!in.is_open())
+		throw std::exception(("IOError" + fileName + "]: File doesn't exist!\n").c_str());
+	int num;
+	in >> num;
+	in.close();
+	return rand() % num;
+}
+
+void addBodyToXml(TiXmlElement* rootElm, const std::string & posePath, const std::string& clothPath)
+{
+	if (!rootElm)
+	{
+		std::cout << "Don't exist this element!" << std::endl;
+		return;
+	}
+	auto smpl = g_dataholder.m_clothManager->bodySmplManager();
+	TiXmlElement* bodyElement = new TiXmlElement("Body");
+	TiXmlElement* clothPathElm = new TiXmlElement("ClothPath");
+	TiXmlElement* posePathElm = new TiXmlElement("PosePath");
+	clothPathElm->LinkEndChild(new TiXmlText(clothPath.c_str()));
+	posePathElm->LinkEndChild(new TiXmlText(posePath.c_str()));
+
+	bodyElement->LinkEndChild(clothPathElm);
+	bodyElement->LinkEndChild(posePathElm);
+	smpl->saveCoeffsToXml(bodyElement, true, true);
+
+	rootElm->LinkEndChild(bodyElement);
+}
+
+void ClothDesigner::preComputeForBatchSimulation()
+{
+	//generate some body (body= shape+ pose) data based on combinations of shapes and poses
+	bindClothesToSmpl();
+	TiXmlDocument& shape_doc = m_batchSimManager.m_shapeDoc;
+	if (!shape_doc.LoadFile(m_batchSimManager.m_shapeXml.toStdString().c_str()))
+		throw std::exception(("IOError" + m_batchSimManager.m_shapeXml.toStdString() + "]: " + shape_doc.ErrorDesc()).c_str());
+
+	//this code should be extracted to pre-computation area while refactoring
+	int shapeNum = 0;
+	for (auto elm = shape_doc.FirstChildElement()->FirstChildElement(); elm; elm = elm->NextSiblingElement())
+		shapeNum++;
+	std::cout << "Shape num:" << shapeNum << std::endl;
+
+	m_batchSimManager.m_shapeElm = m_batchSimManager.m_shapeDoc.FirstChildElement()->FirstChildElement();
+	std::vector<int>&shapeIndexes = m_batchSimManager.m_shapeIndexes;
+	int bodyNum = m_batchSimManager.m_maxBodyNum;
+	shapeIndexes.resize(bodyNum);
+	for (int i = 0; i < bodyNum; i++)
+		shapeIndexes[i] = rand() % shapeNum;
+	std::sort(shapeIndexes.begin(), shapeIndexes.end());
+	
+	m_batchSimManager.recordPoseFiles();
+	//this document will export body coefficient and cloth mesh info in a xml file
+	TiXmlDocument& document=m_batchSimManager.m_outputDoc;
+	document.Clear();
+	TiXmlElement* rootElement = new TiXmlElement("BodyInfoDocument");
+	rootElement->SetAttribute("source_folder",m_batchSimManager.m_saveRootPath.toStdString().c_str());
+	document.LinkEndChild(rootElement);
+}
+
+void ClothDesigner::recordDataForBatchSimulation()
+{
+	QString clothPath = m_batchSimManager.m_saveRootPath + QString::number(m_batchSimManager.m_shapeInd) + ".obj";
+	std::cout << "cloth path:" << clothPath.toStdString() << std::endl;
+	exportClothMesh(clothPath.toStdString());
+
+	auto rootElem = m_batchSimManager.m_outputDoc.FirstChildElement();
+	addBodyToXml(rootElem, m_batchSimManager.m_posePath.toStdString(), clothPath.toStdString());
+	m_batchSimManager.m_shapeInd++;
+	g_dataholder.m_clothManager->setSimulationMode(ldp::SimulationPause);
+}
+
+void ClothDesigner::updateBodyForBatchSimulation()
+{
+	SmplManager* smpl = g_dataholder.m_clothManager->bodySmplManager();
+	int& shape_iter = m_batchSimManager.m_shapeIter;
+	std::vector<int>&shapeIndexes = m_batchSimManager.m_shapeIndexes;
+
+	auto& shape_elm = m_batchSimManager.m_shapeElm;
+	for (; shape_iter < shapeIndexes[m_batchSimManager.m_shapeInd]; shape_iter++, shape_elm = shape_elm->NextSiblingElement());
+	smpl->loadCoeffsFromXml(shape_elm, true, false);
+
+	//load pose coefficient
+	const QString& poseRoot = m_batchSimManager.m_poseRoot;
+	QString poseFile = m_batchSimManager.m_poseFiles[rand() % (int)m_batchSimManager.m_poseFiles.size()];
+	QString txtFile = QString(poseFile).replace(".xml", "_info.txt");
+	int frame_ind = randomFromFile((poseRoot + txtFile).toStdString());
+
+	TiXmlDocument pose_doc;
+	if (!pose_doc.LoadFile((poseRoot + poseFile).toStdString().c_str()))
+		throw std::exception(("IOError" + (poseRoot + poseFile).toStdString() + "]: " + pose_doc.ErrorDesc()).c_str());
+	auto pose_elm = pose_doc.FirstChildElement()->FirstChildElement();
+	for (int j = 0; j < frame_ind; j++, pose_elm = pose_elm->NextSiblingElement());
+	smpl->loadCoeffsFromXml(pose_elm, false, true);
+	updateSmplUI();
+	g_dataholder.m_clothManager->updateSmplBody();
+	m_widget3d->updateGL();
+	m_batchSimManager.m_posePath = poseFile;
+	g_dataholder.m_clothManager->setSimulationMode(ldp::SimulationOn);
+}
+
+void ClothDesigner::finishBatchSimulation()
+{
+	m_batchSimManager.m_outputDoc.SaveFile((m_batchSimManager.m_saveRootPath + "Bodyinfo.xml").toStdString().c_str());
+	m_batchSimManager.m_batchSimMode = ldp::BatchSimNotInit;
+	m_batchSimManager.m_phase = BatchSimulateManager::BatchSimPhase::NO_INIT;
+	killTimer(m_batchSimulateTimer);
+	std::cout << "Batch simulation finished!" << std::endl;
 }
 
 void ClothDesigner::timerEvent(QTimerEvent* ev)
@@ -67,6 +181,61 @@ void ClothDesigner::timerEvent(QTimerEvent* ev)
 
 	if (ev->timerId() == m_fpsTimer)
 		setWindowTitle(QString().sprintf("fps: %f", g_dataholder.m_clothManager->getFps()));
+
+	if (ev->timerId() == m_batchSimulateTimer)
+	{
+		try
+		{
+			if (m_batchSimManager.m_batchSimMode == ldp::BatchSimOn)
+			{
+				BatchSimulateManager::BatchSimPhase& phase = m_batchSimManager.m_phase;
+				if (phase == BatchSimulateManager::BatchSimPhase::NO_INIT)
+				{
+					preComputeForBatchSimulation();
+					updateBodyForBatchSimulation();
+					phase = BatchSimulateManager::BatchSimPhase::OUTPUT;
+				}
+				else if (phase == BatchSimulateManager::BatchSimPhase::LOAD_BODY)
+				{
+					std::cout << "load body " << m_batchSimManager.m_shapeInd << std::endl;
+					updateBodyForBatchSimulation();
+					phase = BatchSimulateManager::BatchSimPhase::OUTPUT;
+				}
+				else if (phase == BatchSimulateManager::BatchSimPhase::OUTPUT)
+				{
+					std::cout << "record body " << m_batchSimManager.m_shapeInd << std::endl;
+					recordDataForBatchSimulation();
+					phase = BatchSimulateManager::BatchSimPhase::LOAD_BODY;
+					if (m_batchSimManager.m_shapeInd == m_batchSimManager.m_maxBodyNum)
+					{
+						finishBatchSimulation();
+						/*m_batchSimManager.m_outputDoc.SaveFile((m_batchSimManager.m_saveRootPath + "Bodyinfo.xml").toStdString().c_str());
+						m_batchSimManager.m_batchSimMode = ldp::BatchSimNotInit;
+						killTimer(m_batchSimulateTimer);
+						phase = BatchSimulateManager::BatchSimPhase::NO_INIT;
+						std::cout << "Batch simulation finished!" << std::endl;*/
+					}
+				}
+			}
+			else if (m_batchSimManager.m_batchSimMode == ldp::BatchSimFinished)
+			{
+				finishBatchSimulation();
+				/*m_batchSimManager.m_outputDoc.SaveFile((m_batchSimManager.m_saveRootPath + "Bodyinfo.xml").toStdString().c_str());
+				m_batchSimManager.m_batchSimMode = ldp::BatchSimNotInit;
+				m_batchSimManager.m_phase = BatchSimulateManager::BatchSimPhase::NO_INIT;
+				killTimer(m_batchSimulateTimer);*/
+			}
+		}
+		catch (std::exception e)
+		{
+			std::cout << e.what() << std::endl;
+		}
+		catch (...)
+		{
+			std::cout << "timerEvent: unknown error" << std::endl;
+		}
+	}
+
 }
 
 void ClothDesigner::closeEvent(QCloseEvent* ev)
@@ -208,17 +377,6 @@ void ClothDesigner::on_actionSave_project_triggered()
 	}
 }
 
-int randomFromFile(std::string fileName)
-{
-	std::ifstream in(fileName);
-	if (!in.is_open())
-		throw std::exception(("IOError" + fileName + "]: File doesn't exist!\n").c_str());
-	int num;
-	in >> num;
-	in.close();
-	return rand() % num;
-}
-
 void ClothDesigner::simulateCloth(int iterNum)
 {
 	std::shared_ptr<ldp::ClothManager> clothManager = g_dataholder.m_clothManager;
@@ -256,27 +414,6 @@ QString generateRecurFolders(const QString& patternPath)
 	return rootPath;
 }
 
-void addBodyToXml(TiXmlElement* rootElm , const std::string & posePath, const std::string& clothPath)
-{
-	if (!rootElm)
-	{
-		std::cout << "Don't exist this element!" << std::endl;
-		return;
-	}
-	auto smpl = g_dataholder.m_clothManager->bodySmplManager();
-	TiXmlElement* bodyElement = new TiXmlElement("Body");
-	TiXmlElement* clothPathElm = new TiXmlElement("ClothPath");
-	TiXmlElement* posePathElm = new TiXmlElement("PosePath");
-	clothPathElm->LinkEndChild(new TiXmlText(clothPath.c_str()));
-	posePathElm->LinkEndChild(new TiXmlText(posePath.c_str()));
-
-	bodyElement->LinkEndChild(clothPathElm);
-	bodyElement->LinkEndChild(posePathElm);
-	smpl->saveCoeffsToXml(bodyElement,true,true);
-
-	rootElm->LinkEndChild(bodyElement);
-}
-
 void ClothDesigner::on_actionExport_training_data_triggered()
 {
 	//load project xml
@@ -289,6 +426,11 @@ void ClothDesigner::on_actionExport_training_data_triggered()
 		m_projectSaved = true;
 
 		QString saveRootPath=generateRecurFolders(name);
+		m_batchSimManager.m_saveRootPath = saveRootPath;
+		m_batchSimManager.m_batchSimMode = ldp::BatchSimOn;
+		g_dataholder.m_clothManager->setSimulationMode(ldp::SimulationOn);
+		m_batchSimulateTimer = startTimer(5000);
+		return;
 		for (int j = 0; j < 5; j++)
 			m_widget3d->simulateWheeling(-1);
 		//simulation

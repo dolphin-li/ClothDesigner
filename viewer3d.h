@@ -7,6 +7,7 @@
 #include "cloth\clothManager.h"
 #include <Shader\ShaderManager.h>
 class ClothDesigner;
+class BatchSimulateManager;
 class Viewer3d : public QGLWidget
 {
 	Q_OBJECT
@@ -57,7 +58,8 @@ public:
 	int getActiveTrackBallAxis()const{ return m_activeTrackBallAxis; }
 	void setHoverTrackBallAxis(int i){ m_hoverTrackBallAxis = i; }
 	int getHoverTrackBallAxis()const{ return m_hoverTrackBallAxis; }
-
+	void setBatchSimManager(BatchSimulateManager* bs){ m_batchSimManager = bs; };
+	BatchSimulateManager* getBatchSimManager(){ return m_batchSimManager; }
 	int fboRenderedIndex(QPoint p)const;
 	void getModelBound(ldp::Float3& bmin, ldp::Float3& bmax)const;
 
@@ -81,6 +83,7 @@ protected:
 
 protected:
 	CShaderManager m_shaderManager;
+	BatchSimulateManager* m_batchSimManager;
 	GLuint m_phong_program;
 	ldp::Camera m_camera;
 	QPoint m_lastPos;

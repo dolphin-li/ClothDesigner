@@ -4,6 +4,7 @@
 
 #include "Select3dEventHandle.h"
 #include "cloth\clothManager.h"
+#include "BatchSimulateManager.h"
 #include "Renderable\ObjMesh.h"
 
 Select3dEventHandle::Select3dEventHandle(Viewer3d* v) : Abstract3dEventHandle(v)
@@ -128,14 +129,39 @@ void Select3dEventHandle::keyPressEvent(QKeyEvent *ev)
 	default:
 		break;
 	case Qt::Key_Space:
-		if (m_viewer->getManager())
+		if (m_viewer->getBatchSimManager())
 		{
-			if (m_viewer->getManager()->getSimulationMode() == ldp::SimulationNotInit)
-				m_viewer->getManager()->simulationInit();
-			if (m_viewer->getManager()->getSimulationMode() == ldp::SimulationOn)
-				m_viewer->getManager()->setSimulationMode(ldp::SimulationPause);
-			else if (m_viewer->getManager()->getSimulationMode() == ldp::SimulationPause)
-				m_viewer->getManager()->setSimulationMode(ldp::SimulationOn);
+			BatchSimulateManager* batchSimManager = m_viewer->getBatchSimManager();
+			if (batchSimManager->m_batchSimMode == ldp::BatchSimNotInit)
+			{
+				if (m_viewer->getManager())
+				{
+					if (m_viewer->getManager()->getSimulationMode() == ldp::SimulationNotInit)
+						m_viewer->getManager()->simulationInit();
+					if (m_viewer->getManager()->getSimulationMode() == ldp::SimulationOn)
+						m_viewer->getManager()->setSimulationMode(ldp::SimulationPause);
+					else if (m_viewer->getManager()->getSimulationMode() == ldp::SimulationPause)
+						m_viewer->getManager()->setSimulationMode(ldp::SimulationOn);
+				}
+			}
+			else if (batchSimManager->m_batchSimMode == ldp::BatchSimOn)
+			{
+				batchSimManager->m_batchSimMode = ldp::BatchSimPause;
+				std::cout << "batch sim pause" << std::endl;
+			}
+			else if (batchSimManager->m_batchSimMode == ldp::BatchSimPause)
+			{
+				batchSimManager->m_batchSimMode = ldp::BatchSimOn;
+				std::cout << "batch sim on" << std::endl;
+			}
+		}
+		break;
+	case Qt::Key_Escape:
+		BatchSimulateManager* batchSimManager = m_viewer->getBatchSimManager();
+		if (batchSimManager)
+		{
+			if (batchSimManager->m_batchSimMode == ldp::BatchSimPause || batchSimManager->m_batchSimMode == ldp::BatchSimOn)
+				batchSimManager->m_batchSimMode = ldp::BatchSimFinished;
 		}
 		break;
 	}

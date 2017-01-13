@@ -11,6 +11,7 @@
 #include "event_handles\Abstract3dEventHandle.h"
 #include "event_handles\Abstract2dEventHandle.h"
 #include "cloth\HistoryStack.h"
+#include "BatchSimulateManager.h"
 class Viewer3d;
 class Viewer2d;
 class ClothDesigner : public QMainWindow
@@ -77,6 +78,8 @@ public:
 	Viewer3d* m_widget3d;
 	int m_simulateTimer;
 	int m_fpsTimer;
+	int m_batchSimulateTimer;
+
 	//////////////////////////////////////////////////////////////////////////
 protected:
 	QSplitter* m_splitter;
@@ -98,6 +101,10 @@ protected:
 	bool bindClothesToSmpl();
 	void simulateCloth(int iterNum);
 	void updateBodyState();
+	void finishBatchSimulation();
+	void preComputeForBatchSimulation();
+	void updateBodyForBatchSimulation();
+	void recordDataForBatchSimulation();
 	public slots:
 	void on_pbSaveSmplCoeffs_clicked();
 	void on_pbLoadSmplCoeffs_clicked();
@@ -107,7 +114,7 @@ protected:
 	void onSmplShapeSlidersValueChanged(int v);
 private:
 	bool m_projectSaved;
-
+	BatchSimulateManager m_batchSimManager;
 };
 
 #endif // CLOTHDESIGNER_H
