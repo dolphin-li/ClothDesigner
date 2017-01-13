@@ -51,6 +51,7 @@ public:
 	void endDragBox();
 	void beginTrackBall(TrackBallMode mode, ldp::Float3 p, ldp::Mat3f R, float scale);
 	void endTrackBall();
+	void simulateWheeling(int dir);
 	TrackBallMode getTrackBallMode()const{ return m_trackBallMode; }
 	void setActiveTrackBallAxis(int i){ m_activeTrackBallAxis = i; }
 	int getActiveTrackBallAxis()const{ return m_activeTrackBallAxis; }

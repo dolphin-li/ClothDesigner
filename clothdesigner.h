@@ -94,6 +94,7 @@ protected:
 	void updateSmplUI();
 	void saveProject(const std::string& fileName);
 	void saveProjectAs();
+	void exportClothMesh(const std::string& name);
 	bool bindClothesToSmpl();
 	void simulateCloth(int iterNum);
 	void updateBodyState();
@@ -106,9 +107,6 @@ protected:
 	void onSmplShapeSlidersValueChanged(int v);
 private:
 	bool m_projectSaved;
-	std::vector<int> m_shapeIndexes;
-	TiXmlElement* m_shapeElement;
-	TiXmlElement* m_poseElement;
 
 };
 

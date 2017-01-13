@@ -219,11 +219,6 @@ int randomFromFile(std::string fileName)
 	return rand() % num;
 }
 
-void ClothDesigner::updateBodyState()
-{
-
-}
-
 void ClothDesigner::simulateCloth(int iterNum)
 {
 	std::shared_ptr<ldp::ClothManager> clothManager = g_dataholder.m_clothManager;
@@ -237,6 +232,51 @@ void ClothDesigner::simulateCloth(int iterNum)
 	std::cout << "simulation pause" << std::endl;
 }
 
+QString generateRecurFolders(const QString& patternPath)
+{
+	QStringList folders= patternPath.split('/');
+	QString dataRootFolder = "Body_Cloth";
+	QString rootPath = "./data/";
+	QDir dir(rootPath +dataRootFolder+"/");
+	if (!dir.exists())
+		dir.mkdir(".");
+	rootPath = rootPath + dataRootFolder+ "/";
+
+	int count=folders.size();
+	int dot_ind = folders[count - 1].indexOf(".");
+	folders[count - 1] = folders[count - 1].left(dot_ind);
+	for (int i = 0; i < 3; i++)
+	{
+		QString folderName = folders[count - (4 - (i + 1))];
+		dir.setPath(rootPath + folderName + '/');
+		if (!dir.exists())
+			dir.mkdir(".");
+		rootPath = rootPath + folderName + '/';
+	}
+	return rootPath;
+}
+
+void addBodyToXml(TiXmlElement* rootElm , const std::string & posePath, const std::string& clothPath)
+{
+	if (!rootElm)
+	{
+		std::cout << "Don't exist this element!" << std::endl;
+		return;
+	}
+	auto smpl = g_dataholder.m_clothManager->bodySmplManager();
+	TiXmlElement* bodyElement = new TiXmlElement("Body");
+	TiXmlElement* clothPathElm = new TiXmlElement("ClothPath");
+	TiXmlElement* posePathElm = new TiXmlElement("PosePath");
+	clothPathElm->LinkEndChild(new TiXmlText(clothPath.c_str()));
+	posePathElm->LinkEndChild(new TiXmlText(posePath.c_str()));
+
+	bodyElement->LinkEndChild(clothPathElm);
+	bodyElement->LinkEndChild(posePathElm);
+	smpl->saveCoeffsToXml(bodyElement,true,true);
+
+	rootElm->LinkEndChild(bodyElement);
+}
+
 void ClothDesigner::on_actionExport_training_data_triggered()
 {
 	//load project xml
@@ -248,6 +288,9 @@ void ClothDesigner::on_actionExport_training_data_triggered()
 		loadProjectXml(name);
 		m_projectSaved = true;
 
+		QString saveRootPath=generateRecurFolders(name);
+		for (int j = 0; j < 5; j++)
+			m_widget3d->simulateWheeling(-1);
 		//simulation
 		simulateCloth(50);
 		
@@ -280,6 +323,12 @@ void ClothDesigner::on_actionExport_training_data_triggered()
 		poseDir.setNameFilters(QStringList("*.xml"));
 		QStringList pose_files = poseDir.entryList();
 		
+		//this document will export body coefficient and cloth mesh info in a xml file
+		TiXmlDocument document;
+		TiXmlElement* rootElement=new TiXmlElement("BodyInfoDocument");
+		rootElement->SetAttribute("source_folder", saveRootPath.toStdString().c_str());
+		document.LinkEndChild(rootElement);
+
 		SmplManager* smpl = g_dataholder.m_clothManager->bodySmplManager();
 		int shape_ind = 0;
 		auto shape_elm = shape_doc.FirstChildElement()->FirstChildElement();
@@ -287,6 +336,8 @@ void ClothDesigner::on_actionExport_training_data_triggered()
 		{
 			for (; shape_ind < shapeIndexes[i]; shape_ind++, shape_elm = shape_elm->NextSiblingElement());
 			smpl->loadCoeffsFromXml(shape_elm, true, false);
+
+			//load pose coefficient
 			QString poseFile = pose_files[rand() % (int)pose_files.size()];
 			QString txtFile=QString(poseFile).replace(".xml", "_info.txt");
 			int frame_ind = randomFromFile((poseRoot+txtFile).toStdString());
@@ -296,16 +347,20 @@ void ClothDesigner::on_actionExport_training_data_triggered()
 			auto pose_elm = pose_doc.FirstChildElement()->FirstChildElement();
 			for (int j = 0; j < frame_ind; j++, pose_elm = pose_elm->NextSiblingElement());
 			smpl->loadCoeffsFromXml(pose_elm, false, true);
-
 			updateSmplUI();
 			g_dataholder.m_clothManager->updateSmplBody();
 			m_widget3d->updateGL();
+
 			std::cout << "Body " << i << std::endl;
 			Sleep(1000);
 			simulateCloth(20);
+			QString clothPath = saveRootPath + QString::number(i) + ".obj";
+			exportClothMesh(clothPath.toStdString());
+
+			addBodyToXml(rootElement, poseFile.toStdString(), clothPath.toStdString());
 			Sleep(2000);
 		}
-	
+		document.SaveFile((saveRootPath+"Bodyinfo.xml").toStdString().c_str());
 	}
 	catch (std::exception e)
 	{
@@ -334,6 +389,13 @@ void  ClothDesigner::on_actionSave_as_triggered()
 	}
 }
 
+void ClothDesigner::exportClothMesh(const std::string& name)
+{
+	ObjMesh mesh;
+	g_dataholder.m_clothManager->exportClothsMerged(mesh, true);
+	mesh.saveObj(name.c_str());
+}
+
 void ClothDesigner::on_actionExport_cloth_mesh_triggered()
 {
 	try
@@ -347,9 +409,7 @@ void ClothDesigner::on_actionExport_cloth_mesh_triggered()
 		g_dataholder.m_lastProXmlDir = name.toStdString();
 		g_dataholder.saveLastDirs();
 
-		ObjMesh mesh;
-		g_dataholder.m_clothManager->exportClothsMerged(mesh, true);
-		mesh.saveObj(name.toStdString().c_str());
+		exportClothMesh(name.toStdString());
 
 		//ObjMesh mesh2d;
 		//mesh2d.vertex_list.resize(mesh.vertex_list.size());
