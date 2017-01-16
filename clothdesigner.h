@@ -43,7 +43,7 @@ public:
 	void on_actionLoad_svg_triggered();
 	void on_actionExport_body_mesh_triggered();
 	void on_actionExport_cloth_mesh_triggered();
-	void on_actionExport_training_data_triggered();
+	void on_actionBatch_export_boyds_triggered();
 	void on_actionPlace_3d_by_2d_triggered();
 	void on_actionPrev_triggered();
 	void on_actionNext_triggered();
