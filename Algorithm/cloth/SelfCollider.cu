@@ -24,6 +24,7 @@ namespace ldp
 
 	texture<float, cudaTextureType1D, cudaReadModeElementType> g_oldX_tex, g_newX_tex;
 	texture<int, cudaTextureType1D, cudaReadModeElementType> g_cstatus_tex, g_bucket_range_tex, g_vid_tex;
+	texture<int, cudaTextureType1D, cudaReadModeElementType> g_stitchVV_csrRowInfo_tex, g_stitchVV_csrIndex_tex;
 
 	__device__ __forceinline__ float3 get_oldX(int i)
 	{
@@ -46,6 +47,14 @@ namespace ldp
 	__device__ __forceinline__ int2 get_bucket_range(int i)
 	{
 		return make_int2(tex1Dfetch(g_bucket_range_tex, 2 * i), tex1Dfetch(g_bucket_range_tex, 2 * i + 1));
+	}
+	__device__ __forceinline__ int2 get_stitch_csrRowRange(int i)
+	{
+		return make_int2(tex1Dfetch(g_stitchVV_csrRowInfo_tex, i), tex1Dfetch(g_stitchVV_csrRowInfo_tex, i + 1));
+	}
+	__device__ __forceinline__ int get_stitch_csrIndex(int i)
+	{
+		return tex1Dfetch(g_stitchVV_csrIndex_tex, i);
 	}
 
 	__device__ __forceinline__ int v2id_x(float3 v, float3 start, float inv_h)
@@ -235,14 +244,28 @@ namespace ldp
 		for (int j = min_j; j <= max_j; j++)
 		for (int k = min_k; k <= max_k; k++)
 		{
-			const int vid = xyz2id(i, j, k, size);
-			if (get_cstatus(vid) < l && va_status < l && vb_status < l && vc_status < l)
+			const int v_buckedtId = xyz2id(i, j, k, size);
+			if (get_cstatus(v_buckedtId) < l && va_status < l && vb_status < l && vc_status < l)
 				continue;
-			for (int ptr = get_bucket_range(vid).x; ptr<get_bucket_range(vid).y; ptr++)
+			for (int ptr = get_bucket_range(v_buckedtId).x; ptr<get_bucket_range(v_buckedtId).y; ptr++)
 			{
 				const int vi = get_vid(ptr);
 				if (vi == vabc.x || vi == vabc.y || vi == vabc.z
 					|| vabc.x == vabc.y || vabc.y == vabc.z || vabc.z == vabc.x)
+					continue;
+
+				const int2 stitchedVertRange = get_stitch_csrRowRange(vi);
+				bool shouldContinue = false;
+				for (int r = stitchedVertRange.x; r < stitchedVertRange.y; r++)
+				{
+					const int svi = get_stitch_csrIndex(r);
+					if (svi == vabc.x || svi == vabc.y || svi == vabc.z)
+					{
+						shouldContinue = true;
+						break;
+					}
+				}
+				if (shouldContinue)
 					continue;
 
 				const float3 x0 = get_newX(vi);
@@ -319,23 +342,42 @@ namespace ldp
 					atomicAdd(&I[vabc.z].x, -k*N.x * bc);
 					atomicAdd(&I[vabc.z].y, -k*N.y * bc);
 					atomicAdd(&I[vabc.z].z, -k*N.z * bc);
-					c_status[vid] = l + 1;
+					c_status[v_buckedtId] = l + 1;
 					not_converged[0] = 1;
 				}
 			} // end for ptr
 		} // end for i, j, k
 	}
 
-	__global__ void Triangle_Test_2_Kernel(float3* new_X, float3* V, const float3* I, 
-		const float3* R, const float* W, const int number, const int l, const float inv_t)
+	__global__ void Triangle_Test_2_Kernel(float3* new_X, float3* V, const float3* Is, 
+		const float3* Rs, const float* Ws, const int number, const int l, const float inv_t)
 	{
 		const int i = blockDim.x * blockIdx.x + threadIdx.x;
 		if (i >= number)	return;
 
-		const float wi = W[i];
+		const float wi = Ws[i];
 		if (l == 0 && wi != 0)
-			V[i] += R[i] * inv_t / wi;
-		new_X[i] += I[i] * 0.4;
+			V[i] += Rs[i] * inv_t / wi;
+		new_X[i] += Is[i] * 0.4;
+	}
+
+	__global__ void mergeStitchKernel(float3* oldX, float3* newX, float3* V, int number)
+	{
+		const int vi = blockDim.x * blockIdx.x + threadIdx.x;
+		if (vi >= number)	return;
+
+		const int2 stitchedVertRange = get_stitch_csrRowRange(vi);
+		const float3 ox = oldX[vi], nx = newX[vi], v = V[vi];
+		for (int r = stitchedVertRange.x; r < stitchedVertRange.y; r++)
+		{
+			const int svi = get_stitch_csrIndex(r);
+			if (svi > vi)
+			{
+				oldX[svi] = ox;
+				newX[svi] = nx;
+				V[svi] = v;
+			}
+		}
 	}
 #pragma endregion
 
@@ -374,8 +416,9 @@ namespace ldp
 		thrust_wrapper::cached_free((char*)m_dev_t_idx);
 	}
 
-	void SelfCollider::run(const float3* dev_old_X, float3* dev_new_X, float3* dev_V, int number,
-		const int3* dev_T, int t_number, const float3* host_X, float inv_t)
+	void SelfCollider::run(float3* dev_old_X, float3* dev_new_X, float3* dev_V, int number,
+		const int3* dev_T, int t_number, const float3* host_X, float inv_t,
+		const int* dev_stitchVV_csrRowInfo, const int* dev_stitchVV_csrIndex, int nnzStitch)
 	{
 #ifdef ENABLE_TIMER
 		TIMER timer;
@@ -384,7 +427,7 @@ namespace ldp
 #endif
 
 		float	gap = 0.003; //0.0015
-		float	h = 0.006; //twice the max vertex velocity
+		float	h = gap * 2; //twice the max vertex velocity
 		float	inv_h = 1.0 / h;
 
 		///////////////////////////////////////////////////////////////////////////
@@ -427,6 +470,10 @@ namespace ldp
 			number * sizeof(int)));
 		cudaSafeCall(cudaBindTexture(&offset, &g_bucket_range_tex, m_dev_bucket_ranges, &desc_int,
 			bucket_size * sizeof(int)));
+		cudaSafeCall(cudaBindTexture(&offset, &g_stitchVV_csrRowInfo_tex, dev_stitchVV_csrRowInfo, &desc_int,
+			(number + 1) * sizeof(int)));
+		cudaSafeCall(cudaBindTexture(&offset, &g_stitchVV_csrIndex_tex, dev_stitchVV_csrIndex, &desc_int,
+			nnzStitch * sizeof(int)));
 
 		///////////////////////////////////////////////////////////////////////////
 		//	Step 2: Vertex Grid Construction (for VT tests)
@@ -464,7 +511,6 @@ namespace ldp
 			//int res = thrust_wrapper::max_element(m_dev_c_status, bucket_size / 2);
 			//if (res != l + 1)	
 			//	break;
-
 			Triangle_Test_2_Kernel << <blocksPerGrid, threadsPerBlock >> >(
 				dev_new_X, dev_V, m_dev_I, m_dev_R, m_dev_W, number, l, inv_t);
 		}

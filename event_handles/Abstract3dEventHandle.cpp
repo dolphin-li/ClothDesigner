@@ -132,7 +132,8 @@ void Abstract3dEventHandle::pick(QPoint pos)
 				ldp::Float2 e1(vs[k][0] - s[0], vs[k][1] - s[1]);
 				int k1 = (k + 1) % 3;
 				ldp::Float2 e2(vs[k1][0] - s[0], vs[k1][1] - s[1]);
-				area[k] = e1.cross(e2);
+				int k2 = (k + 2) % 3;
+				area[k2] = e1.cross(e2);
 				totalArea += area[k];
 			}
 			if (fabs(totalArea) < std::numeric_limits<float>::epsilon())

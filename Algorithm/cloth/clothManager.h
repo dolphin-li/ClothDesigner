@@ -200,7 +200,7 @@ namespace ldp
 		std::vector<Vec3> m_vertex_smpl_defaultPosition;
 		std::vector<Vec3> m_X;							// vertex position list
 		std::vector<Vec3> m_V;							// vertex velocity list
-		std::vector<ValueType> m_V_bending_k_mult;			// bending param of each vertex
+		std::vector<ValueType> m_V_bending_k_mult;		// bending param of each vertex
 		std::vector<ValueType> m_V_outgo_dist;			// we want some vertices to go outside some distance
 		std::vector<Int3> m_T;							// triangle list
 		std::vector<Int2> m_allE;						// edges + bending edges, sorted, for [0,1,2]+[0,1,3], bend_e=[2,3]
@@ -212,11 +212,13 @@ namespace ldp
 		std::vector<ValueType> m_fixed;					// fix constraints of vertices
 		std::vector<Int4> m_edgeWithBendEdge;			// original edges + beding edges, before sorted and unique.
 		std::vector<StitchPointPair> m_stitches;		// the elements that must be stitched together, for sewing
-		std::vector<int> m_stitchVV;
+		std::vector<int> m_stitchVV;					// stitch related, including the one-ring triangle info
 		std::vector<int> m_stitchVV_num;				// csr header of the sparse matrix vv
 		std::vector<ValueType> m_stitchVW;
 		std::vector<ValueType> m_stitchVC;
 		std::vector<ValueType> m_stitchVL;
+		std::vector<int> m_stitchPair;					// pure stitch info, not including the one-ring triangle info.
+		std::vector<int> m_stitchPair_num;
 
 		ValueType m_curStitchRatio;						// the stitchEdge * ratio is the current stitched length
 		// GPU related-------------------------------------------------------------------
@@ -256,6 +258,8 @@ namespace ldp
 		DeviceArray<ValueType> m_dev_stitch_VW;
 		DeviceArray<ValueType> m_dev_stitch_VC;
 		DeviceArray<ValueType> m_dev_stitch_VL;
+		DeviceArray<int> m_dev_stitchPair;
+		DeviceArray<int> m_dev_stitchPair_num;
 
 		//// self collision handler--------------------------------------------------------
 		std::shared_ptr<SelfCollider> m_collider;
