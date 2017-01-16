@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'clothdesigner.ui'
 **
-** Created by: Qt User Interface Compiler version 5.3.1
+** Created by: Qt User Interface Compiler version 5.4.0
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
 ********************************************************************************/
@@ -543,7 +543,7 @@ public:
 
         retranslateUi(ClothDesignerClass);
 
-        tabWidget->setCurrentIndex(2);
+        tabWidget->setCurrentIndex(0);
 
 
         QMetaObject::connectSlotsByName(ClothDesignerClass);
