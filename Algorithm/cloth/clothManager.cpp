@@ -602,6 +602,8 @@ namespace ldp
 		m_stitchVC.clear();
 		m_stitchVW.clear();
 		m_stitchVL.clear();
+		m_stitchPair.clear();
+		m_stitchPair_num.clear();
 		auto tmp = m_graphSewings;
 		for (auto& s : tmp)
 			removeGraphSewing(s.get());
@@ -907,12 +909,39 @@ namespace ldp
 			m_stitchVW[findStitchNeighbor(v[5], v[3])] += k[3] * k[1] * w;
 			m_stitchVW[findStitchNeighbor(v[5], v[4])] += k[3] * k[2] * w;
 		} // end for all edges
+
+		// construct pure stitch pair info for self-collision handle
+		std::vector<Eigen::Triplet<ValueType>> tmpCoo;
+		std::vector<Int2> pureSpair;
+		for (const auto& s : m_stitches)
+		{
+			Int2 e(s.first, s.second);
+			if (e[0] == e[1])
+				continue;
+			tmpCoo.push_back(Eigen::Triplet<ValueType>(e[0], e[1], 0));
+			tmpCoo.push_back(Eigen::Triplet<ValueType>(e[1], e[0], 0));
+		}
+		SpMat sPairMat;
+		sPairMat.resize(m_X.size(), m_X.size());
+		if (tmpCoo.size())
+			sPairMat.setFromTriplets(tmpCoo.begin(), tmpCoo.end());
+		m_stitchPair_num.clear();
+		m_stitchPair_num.resize(m_X.size() + 1);
+		for (int i = 0; i < (int)m_stitchPair_num.size() + 1; i++)
+			m_stitchPair_num[i] = sPairMat.outerIndexPtr()[i];
+		m_stitchPair.clear();
+		m_stitchPair.resize(sPairMat.nonZeros());
+		for (int i = 0; i < (int)m_stitchPair.size(); i++)
+			m_stitchPair[i] = sPairMat.innerIndexPtr()[i];
+
 		// copy to GPU
 		m_dev_stitch_VV.upload(m_stitchVV);
 		m_dev_stitch_VV_num.upload(m_stitchVV_num);
 		m_dev_stitch_VC.upload(m_stitchVC);
 		m_dev_stitch_VW.upload(m_stitchVW);
 		m_dev_stitch_VL.upload(m_stitchVL);
+		m_dev_stitchPair.upload(m_stitchPair);
+		m_dev_stitchPair_num.upload(m_stitchPair_num);
 
 		m_shouldStitchUpdate = false;
 	}
@@ -1400,6 +1429,8 @@ namespace ldp
 		debug_save_gpu_array(m_dev_all_VL, "tmp/all_VL.txt");
 		debug_save_gpu_array(m_dev_new_VC, "tmp/new_VC.txt");
 		debug_save_gpu_array(m_dev_all_vv_num, "tmp/all_vv_num.txt");
+		debug_save_gpu_array(m_dev_stitch_VV_num, "tmp/dev_vv_num.txt");
+		debug_save_gpu_array(m_dev_stitch_VV, "tmp/dev_vv.txt");
 		//debug_save_gpu_array(m_dev_phi, "tmp/phi.txt");
 		g_debug_save_bar.End();
 #endif

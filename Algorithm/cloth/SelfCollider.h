@@ -11,8 +11,10 @@ namespace ldp
 		SelfCollider();
 		~SelfCollider();
 
-		void run(const float3* dev_old_X, float3* dev_new_X, float3* dev_V, int number, 
-			const int3* dev_T, int t_number, const float3* host_X, float inv_t);
+		void run(float3* dev_old_X, float3* dev_new_X, float3* dev_V, int number, 
+			const int3* dev_T, int t_number, const float3* host_X, float inv_t,
+			const int* dev_stitchVV_csrRowInfo, const int* dev_stitchVV_csrIndex, 
+			int nnzStitch);
 	protected:
 		void allocate(int number, int t_number, int bucket_size);
 		void deallocate();
