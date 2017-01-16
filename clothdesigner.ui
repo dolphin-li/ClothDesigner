@@ -20,7 +20,7 @@
      <x>0</x>
      <y>0</y>
      <width>890</width>
-     <height>21</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -34,6 +34,7 @@
     <addaction name="separator"/>
     <addaction name="actionExport_body_mesh"/>
     <addaction name="actionExport_cloth_mesh"/>
+    <addaction name="actionExport_training_data"/>
    </widget>
    <widget class="QMenu" name="menuEdit">
     <property name="title">
@@ -85,7 +86,7 @@
      <item row="0" column="0">
       <widget class="QTabWidget" name="tabWidget">
        <property name="currentIndex">
-        <number>0</number>
+        <number>2</number>
        </property>
        <widget class="QWidget" name="tabSimulation">
         <attribute name="title">
@@ -494,6 +495,13 @@
            </property>
           </widget>
          </item>
+         <item row="3" column="1">
+          <widget class="QPushButton" name="pbLoadSmplFromXml">
+           <property name="text">
+            <string>load smpl from xml</string>
+           </property>
+          </widget>
+         </item>
         </layout>
        </widget>
       </widget>
@@ -649,6 +657,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Alt+S</string>
+   </property>
+  </action>
+  <action name="actionExport_training_data">
+   <property name="text">
+    <string>export training data</string>
    </property>
   </action>
  </widget>

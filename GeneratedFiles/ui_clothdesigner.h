@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'clothdesigner.ui'
 **
-** Created by: Qt User Interface Compiler version 5.3.1
+** Created by: Qt User Interface Compiler version 5.4.0
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
 ********************************************************************************/
@@ -47,6 +47,7 @@ public:
     QAction *actionExport_body_mesh;
     QAction *actionExport_cloth_mesh;
     QAction *actionSave_as;
+    QAction *actionExport_training_data;
     QWidget *centralWidget;
     QMenuBar *menuBar;
     QMenu *menuFile;
@@ -113,6 +114,7 @@ public:
     QPushButton *pbResetSmplCoeffs;
     QGroupBox *gpSmplBodyCoeffs;
     QPushButton *pbBindClothesToSmpl;
+    QPushButton *pbLoadSmplFromXml;
     QDockWidget *dockWidgetLower;
     QWidget *dockWidgetContentsLower;
     QGridLayout *gridLayout_4;
@@ -149,12 +151,14 @@ public:
         actionExport_cloth_mesh->setObjectName(QStringLiteral("actionExport_cloth_mesh"));
         actionSave_as = new QAction(ClothDesignerClass);
         actionSave_as->setObjectName(QStringLiteral("actionSave_as"));
+        actionExport_training_data = new QAction(ClothDesignerClass);
+        actionExport_training_data->setObjectName(QStringLiteral("actionExport_training_data"));
         centralWidget = new QWidget(ClothDesignerClass);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
         ClothDesignerClass->setCentralWidget(centralWidget);
         menuBar = new QMenuBar(ClothDesignerClass);
         menuBar->setObjectName(QStringLiteral("menuBar"));
-        menuBar->setGeometry(QRect(0, 0, 890, 21));
+        menuBar->setGeometry(QRect(0, 0, 890, 23));
         menuFile = new QMenu(menuBar);
         menuFile->setObjectName(QStringLiteral("menuFile"));
         menuEdit = new QMenu(menuBar);
@@ -471,6 +475,11 @@ public:
 
         gridLayout_7->addWidget(pbBindClothesToSmpl, 3, 0, 1, 1);
 
+        pbLoadSmplFromXml = new QPushButton(tab);
+        pbLoadSmplFromXml->setObjectName(QStringLiteral("pbLoadSmplFromXml"));
+
+        gridLayout_7->addWidget(pbLoadSmplFromXml, 3, 1, 1, 1);
+
         tabWidget->addTab(tab, QString());
 
         gridLayout_2->addWidget(tabWidget, 0, 0, 1, 1);
@@ -527,13 +536,14 @@ public:
         menuFile->addSeparator();
         menuFile->addAction(actionExport_body_mesh);
         menuFile->addAction(actionExport_cloth_mesh);
+        menuFile->addAction(actionExport_training_data);
         menuEdit->addAction(actionPlace_3d_by_2d);
         menuHistory->addAction(actionPrev);
         menuHistory->addAction(actionNext);
 
         retranslateUi(ClothDesignerClass);
 
-        tabWidget->setCurrentIndex(0);
+        tabWidget->setCurrentIndex(2);
 
 
         QMetaObject::connectSlotsByName(ClothDesignerClass);
@@ -558,6 +568,7 @@ public:
         actionExport_cloth_mesh->setText(QApplication::translate("ClothDesignerClass", "export cloth mesh", 0));
         actionSave_as->setText(QApplication::translate("ClothDesignerClass", "save project as", 0));
         actionSave_as->setShortcut(QApplication::translate("ClothDesignerClass", "Ctrl+Alt+S", 0));
+        actionExport_training_data->setText(QApplication::translate("ClothDesignerClass", "export training data", 0));
         menuFile->setTitle(QApplication::translate("ClothDesignerClass", "file", 0));
         menuEdit->setTitle(QApplication::translate("ClothDesignerClass", "edit", 0));
         menuHistory->setTitle(QApplication::translate("ClothDesignerClass", "history", 0));
@@ -588,6 +599,7 @@ public:
         pbResetSmplCoeffs->setText(QApplication::translate("ClothDesignerClass", "reset smpl coeffs", 0));
         gpSmplBodyCoeffs->setTitle(QApplication::translate("ClothDesignerClass", "smpl body coeffs", 0));
         pbBindClothesToSmpl->setText(QApplication::translate("ClothDesignerClass", "bind clothes to smpl", 0));
+        pbLoadSmplFromXml->setText(QApplication::translate("ClothDesignerClass", "load smpl from xml", 0));
         tabWidget->setTabText(tabWidget->indexOf(tab), QApplication::translate("ClothDesignerClass", "Body", 0));
         pbFlipPolygon->setText(QApplication::translate("ClothDesignerClass", "flip polygon", 0));
         pbResetSimulation->setText(QApplication::translate("ClothDesignerClass", "reset simulaton", 0));

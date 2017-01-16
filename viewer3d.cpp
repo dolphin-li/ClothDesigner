@@ -110,6 +110,7 @@ Viewer3d::Viewer3d(QWidget *parent)
 	m_fbo = nullptr;
 	m_clothManager = nullptr;
 	m_mainUI = nullptr;
+	m_batchSimManager = nullptr;
 	m_lightPosition = ldp::Float3(-2, 1, 4);
 
 	m_eventHandles.resize((size_t)Abstract3dEventHandle::ProcessorTypeEnd, nullptr);
@@ -543,6 +544,15 @@ void Viewer3d::mouseDoubleClickEvent(QMouseEvent *ev)
 	updateGL();
 }
 
+void Viewer3d::simulateWheeling(int delta)
+{	
+	float s = 1.2;
+	if (delta < 0)
+		s = 1.f / s;
+	ldp::Float3 c = m_camera.getLocation();
+	ldp::Float3 c0 = m_camera.arcballGetCenter();
+	m_camera.setLocation((c - c0)*s + c0);
+}
 void Viewer3d::wheelEvent(QWheelEvent*ev)
 {
 	m_currentEventHandle->wheelEvent(ev);

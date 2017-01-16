@@ -11,6 +11,7 @@
 #include "event_handles\Abstract3dEventHandle.h"
 #include "event_handles\Abstract2dEventHandle.h"
 #include "cloth\HistoryStack.h"
+#include "BatchSimulateManager.h"
 class Viewer3d;
 class Viewer2d;
 class ClothDesigner : public QMainWindow
@@ -42,6 +43,7 @@ public:
 	void on_actionLoad_svg_triggered();
 	void on_actionExport_body_mesh_triggered();
 	void on_actionExport_cloth_mesh_triggered();
+	void on_actionExport_training_data_triggered();
 	void on_actionPlace_3d_by_2d_triggered();
 	void on_actionPrev_triggered();
 	void on_actionNext_triggered();
@@ -76,6 +78,8 @@ public:
 	Viewer3d* m_widget3d;
 	int m_simulateTimer;
 	int m_fpsTimer;
+	int m_batchSimulateTimer;
+
 	//////////////////////////////////////////////////////////////////////////
 protected:
 	QSplitter* m_splitter;
@@ -91,16 +95,26 @@ protected:
 	bool m_sliderEnableSmplUpdate = true;
 	void setupSmplUI();
 	void updateSmplUI();
+	void saveProject(const std::string& fileName);
+	void saveProjectAs();
+	void exportClothMesh(const std::string& name);
+	bool bindClothesToSmpl();
+	void simulateCloth(int iterNum);
+	void updateBodyState();
+	void finishBatchSimulation();
+	void preComputeForBatchSimulation();
+	void updateBodyForBatchSimulation();
+	void recordDataForBatchSimulation();
 	public slots:
 	void on_pbSaveSmplCoeffs_clicked();
 	void on_pbLoadSmplCoeffs_clicked();
 	void on_pbResetSmplCoeffs_clicked();
 	void on_pbBindClothesToSmpl_clicked();
+	void on_pbLoadSmplFromXml_clicked();
 	void onSmplShapeSlidersValueChanged(int v);
-	void saveProject(const std::string& fileName);
-	void saveProjectAs();
 private:
 	bool m_projectSaved;
+	BatchSimulateManager m_batchSimManager;
 };
 
 #endif // CLOTHDESIGNER_H
