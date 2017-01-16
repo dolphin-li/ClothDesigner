@@ -34,7 +34,7 @@
     <addaction name="separator"/>
     <addaction name="actionExport_body_mesh"/>
     <addaction name="actionExport_cloth_mesh"/>
-    <addaction name="actionExport_training_data"/>
+    <addaction name="actionBatch_export_boyds"/>
    </widget>
    <widget class="QMenu" name="menuEdit">
     <property name="title">
@@ -659,9 +659,9 @@
     <string>Ctrl+Alt+S</string>
    </property>
   </action>
-  <action name="actionExport_training_data">
+  <action name="actionBatch_export_boyds">
    <property name="text">
-    <string>export training data</string>
+    <string>batch export boyds</string>
    </property>
   </action>
  </widget>
