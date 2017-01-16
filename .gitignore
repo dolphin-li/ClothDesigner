@@ -19,6 +19,10 @@ build/
 [Bb]in/tmp
 [Bb]in/platforms
 [Bb]in/__lastinfo.txt
+[Bb]in/data/debug*.txt
+[Bb]in/data/debug*.xml
+[Bb]in/data/Body_Cloth
+
 
 # Enable "build/" folder in the NuGet Packages folder since NuGet packages use it for MSBuild targets
 !packages/*/build/

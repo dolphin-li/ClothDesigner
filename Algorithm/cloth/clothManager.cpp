@@ -927,7 +927,7 @@ namespace ldp
 			sPairMat.setFromTriplets(tmpCoo.begin(), tmpCoo.end());
 		m_stitchPair_num.clear();
 		m_stitchPair_num.resize(m_X.size() + 1);
-		for (int i = 0; i < (int)m_stitchPair_num.size() + 1; i++)
+		for (int i = 0; i < (int)m_stitchPair_num.size(); i++)
 			m_stitchPair_num[i] = sPairMat.outerIndexPtr()[i];
 		m_stitchPair.clear();
 		m_stitchPair.resize(sPairMat.nonZeros());
