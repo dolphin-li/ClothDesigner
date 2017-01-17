@@ -116,6 +116,7 @@ namespace ldp
 		const SmplManager* bodySmplManager()const { return m_smplBody; }
 		void updateSmplBody();
 		void bindClothesToSmplJoints();
+		void clearBindClothesToSmplJoints();
 		void updateClothBySmplJoints();
 
 		/// cloth pieces

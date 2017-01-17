@@ -38,6 +38,7 @@ ClothDesigner::ClothDesigner(QWidget *parent)
 	updateUiByParam();
 	m_simulateTimer = startTimer(1);
 	m_fpsTimer = startTimer(200);
+	m_batchSimulateTimer = startTimer(5000);
 	m_widget3d->setBatchSimManager(&m_batchSimManager);
 }
 
@@ -81,7 +82,7 @@ void addBodyToXml(TiXmlElement* rootElm, const std::string & posePath, const std
 void ClothDesigner::preComputeForBatchSimulation()
 {
 	//generate some body (body= shape+ pose) data based on combinations of shapes and poses
-	bindClothesToSmpl();
+	//bindClothesToSmpl();
 	TiXmlDocument& shape_doc = m_batchSimManager.m_shapeDoc;
 	if (!shape_doc.LoadFile(m_batchSimManager.m_shapeXml.toStdString().c_str()))
 		throw std::exception(("IOError" + m_batchSimManager.m_shapeXml.toStdString() + "]: " + shape_doc.ErrorDesc()).c_str());
@@ -121,6 +122,43 @@ void ClothDesigner::recordDataForBatchSimulation()
 	g_dataholder.m_clothManager->setSimulationMode(ldp::SimulationPause);
 }
 
+void ClothDesigner::updateShapeForBatchSimulation()
+{
+	SmplManager* smpl = g_dataholder.m_clothManager->bodySmplManager();
+	int& shape_iter = m_batchSimManager.m_shapeIter;
+	std::vector<int>&shapeIndexes = m_batchSimManager.m_shapeIndexes;
+
+	auto& shape_elm = m_batchSimManager.m_shapeElm;
+	for (; shape_iter < shapeIndexes[m_batchSimManager.m_shapeInd]; shape_iter++, shape_elm = shape_elm->NextSiblingElement());
+	smpl->loadCoeffsFromXml(shape_elm, true, false);
+
+	updateSmplUI();
+	g_dataholder.m_clothManager->updateSmplBody();
+	m_widget3d->updateGL();
+}
+
+void ClothDesigner::updatePoseForBatchSimulation()
+{
+	const QString& poseRoot = m_batchSimManager.m_poseRoot;
+	QString poseFile = m_batchSimManager.m_poseFiles[rand() % (int)m_batchSimManager.m_poseFiles.size()];
+	QString txtFile = QString(poseFile).replace(".xml", "_info.txt");
+	int frame_ind = randomFromFile((poseRoot + txtFile).toStdString());
+
+	TiXmlDocument pose_doc;
+	if (!pose_doc.LoadFile((poseRoot + poseFile).toStdString().c_str()))
+		throw std::exception(("IOError" + (poseRoot + poseFile).toStdString() + "]: " + pose_doc.ErrorDesc()).c_str());
+	auto pose_elm = pose_doc.FirstChildElement()->FirstChildElement();
+	for (int j = 0; j < frame_ind; j++, pose_elm = pose_elm->NextSiblingElement());
+
+	SmplManager* smpl = g_dataholder.m_clothManager->bodySmplManager();
+	smpl->loadCoeffsFromXml(pose_elm, false, true);
+	updateSmplUI();
+	g_dataholder.m_clothManager->updateSmplBody();
+	m_widget3d->updateGL();
+	m_batchSimManager.m_posePath = poseFile;
+	//g_dataholder.m_clothManager->setSimulationMode(ldp::SimulationOn);
+}
+
 void ClothDesigner::updateBodyForBatchSimulation()
 {
 	SmplManager* smpl = g_dataholder.m_clothManager->bodySmplManager();
@@ -149,13 +187,16 @@ void ClothDesigner::updateBodyForBatchSimulation()
 	m_batchSimManager.m_posePath = poseFile;
 	g_dataholder.m_clothManager->setSimulationMode(ldp::SimulationOn);
 }
+void ClothDesigner::batchSimulationInit()
+{
+
+}
 
 void ClothDesigner::finishBatchSimulation()
 {
 	m_batchSimManager.m_outputDoc.SaveFile((m_batchSimManager.m_saveRootPath + "Bodyinfo.xml").toStdString().c_str());
 	m_batchSimManager.m_batchSimMode = ldp::BatchSimNotInit;
-	m_batchSimManager.m_phase = BatchSimulateManager::BatchSimPhase::NO_INIT;
-	killTimer(m_batchSimulateTimer);
+	m_batchSimManager.m_phase = BatchSimulateManager::BatchSimPhase::INIT;
 	std::cout << "Batch simulation finished!" << std::endl;
 }
 
@@ -189,29 +230,44 @@ void ClothDesigner::timerEvent(QTimerEvent* ev)
 			if (m_batchSimManager.m_batchSimMode == ldp::BatchSimOn)
 			{
 				BatchSimulateManager::BatchSimPhase& phase = m_batchSimManager.m_phase;
-				if (phase == BatchSimulateManager::BatchSimPhase::NO_INIT)
+				if (phase == BatchSimulateManager::BatchSimPhase::INIT)
 				{
-					preComputeForBatchSimulation();
-					updateBodyForBatchSimulation();
-					phase = BatchSimulateManager::BatchSimPhase::OUTPUT;
+					std::cout << "no init" << std::endl;
+					updateShapeForBatchSimulation();
+					g_dataholder.m_clothManager->setSimulationMode(ldp::SimulationOn);
+					phase = BatchSimulateManager::BatchSimPhase::SIM1;
 				}
-				else if (phase == BatchSimulateManager::BatchSimPhase::LOAD_BODY)
+				else if (phase == BatchSimulateManager::BatchSimPhase::SIM1)
 				{
-					std::cout << "load body " << m_batchSimManager.m_shapeInd << std::endl;
-					updateBodyForBatchSimulation();
-					phase = BatchSimulateManager::BatchSimPhase::OUTPUT;
+					std::cout << "load pose" << std::endl;
+					g_dataholder.m_clothManager->setSimulationMode(ldp::SimulationPause);
+					bindClothesToSmpl();
+					updatePoseForBatchSimulation();
+					g_dataholder.m_clothManager->setSimulationMode(ldp::SimulationOn);
+					phase = BatchSimulateManager::BatchSimPhase::SIM2;
 				}
-				else if (phase == BatchSimulateManager::BatchSimPhase::OUTPUT)
+				else if (phase == BatchSimulateManager::BatchSimPhase::SIM2)
 				{
-					std::cout << "record body " << m_batchSimManager.m_shapeInd << std::endl;
+					std::cout << "go endgame" << std::endl;
+					g_dataholder.m_clothManager->setSimulationMode(ldp::SimulationPause);
 					recordDataForBatchSimulation();
-					phase = BatchSimulateManager::BatchSimPhase::LOAD_BODY;
+					g_dataholder.m_clothManager->clearBindClothesToSmplJoints();
+					g_dataholder.m_clothManager->simulationInit();
+					resetSmpl();
+					phase = BatchSimulateManager::BatchSimPhase::INIT;
 					if (m_batchSimManager.m_shapeInd == m_batchSimManager.m_maxBodyNum)
 						finishBatchSimulation();
 				}
 			}
 			else if (m_batchSimManager.m_batchSimMode == ldp::BatchSimFinished)
+			{
+				g_dataholder.m_clothManager->setSimulationMode(ldp::SimulationPause);
+				recordDataForBatchSimulation();
+				g_dataholder.m_clothManager->clearBindClothesToSmplJoints();
+				g_dataholder.m_clothManager->simulationInit();
+				resetSmpl();
 				finishBatchSimulation();
+			}
 		}
 		catch (std::exception e)
 		{
@@ -414,9 +470,9 @@ void ClothDesigner::on_actionBatch_export_boyds_triggered()
 
 		QString saveRootPath=generateRecurFolders(name);
 		m_batchSimManager.m_saveRootPath = saveRootPath;
+		preComputeForBatchSimulation();
 		m_batchSimManager.m_batchSimMode = ldp::BatchSimOn;
-		g_dataholder.m_clothManager->setSimulationMode(ldp::SimulationOn);
-		m_batchSimulateTimer = startTimer(5000);
+		m_batchSimManager.m_phase = BatchSimulateManager::BatchSimPhase::INIT;
 	}
 	catch (std::exception e)
 	{
@@ -1244,29 +1300,34 @@ void ClothDesigner::on_pbLoadSmplCoeffs_clicked()
 	} 
 }
 
+void ClothDesigner::resetSmpl()
+{
+	auto smpl = g_dataholder.m_clothManager->bodySmplManager();
+	if (smpl == nullptr)
+		return;
+	if (m_smplShapeSliders.size() != smpl->numShapes())
+		throw std::exception("smpl ui update: size not matched!");
+
+	std::vector<float> shapes(smpl->numShapes(), 0.f);
+	m_sliderEnableSmplUpdate = false;
+	for (size_t i = 0; i < m_smplShapeSliders.size(); i++)
+	{
+		m_smplShapeSliders[i]->setValue(0);
+		m_smplShapeSliders[i]->setToolTip("0");
+	}
+	m_sliderEnableSmplUpdate = true;
+
+	std::vector<float> poses(smpl->numPoses()*smpl->numVarEachPose(), 0.f);
+	smpl->setPoseShapeVals(&poses, &shapes);
+	g_dataholder.m_clothManager->updateSmplBody();
+	m_widget3d->updateGL();
+}
+
 void ClothDesigner::on_pbResetSmplCoeffs_clicked()
 {
 	try
 	{
-		auto smpl = g_dataholder.m_clothManager->bodySmplManager();
-		if (smpl == nullptr)
-			return;
-		if (m_smplShapeSliders.size() != smpl->numShapes())
-			throw std::exception("smpl ui update: size not matched!");
-
-		std::vector<float> shapes(smpl->numShapes(), 0.f);
-		m_sliderEnableSmplUpdate = false;
-		for (size_t i = 0; i < m_smplShapeSliders.size(); i++)
-		{
-			m_smplShapeSliders[i]->setValue(0);
-			m_smplShapeSliders[i]->setToolTip("0");
-		}
-		m_sliderEnableSmplUpdate = true;
-
-		std::vector<float> poses(smpl->numPoses()*smpl->numVarEachPose(), 0.f);
-		smpl->setPoseShapeVals(&poses, &shapes);
-		g_dataholder.m_clothManager->updateSmplBody();
-		m_widget3d->updateGL();
+		resetSmpl();
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;

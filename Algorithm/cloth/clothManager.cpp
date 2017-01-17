@@ -973,6 +973,12 @@ namespace ldp
 		m_shouldLevelSetUpdate = false;
 	}
 
+	void ClothManager::clearBindClothesToSmplJoints()
+	{
+		m_vertex_smplJointBind.reset((SpMat*)nullptr);
+	}
+
+
 #define USE_BODY_MESH_WEIGHTS_AS_CLOTH_WEIGHTS
 
 	void ClothManager::bindClothesToSmplJoints()

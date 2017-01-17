@@ -223,13 +223,6 @@ void Edit2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 			}
 		}
 		break;
-	case Qt::Key_E:
-		if (m_viewer->getManager())
-		{
-			m_viewer->getManager()->simulationDestroy();
-			std::cout << "simulation destroy" << std::endl;
-		}
-		break;
 	}
 
 	for (size_t iPiece = 0; iPiece < manager->numClothPieces(); iPiece++)

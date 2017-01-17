@@ -102,9 +102,13 @@ protected:
 	void simulateCloth(int iterNum);
 	void updateBodyState();
 	void finishBatchSimulation();
+	void batchSimulationInit();
 	void preComputeForBatchSimulation();
 	void updateBodyForBatchSimulation();
+	void updateShapeForBatchSimulation();
+	void updatePoseForBatchSimulation();
 	void recordDataForBatchSimulation();
+	void resetSmpl();
 	public slots:
 	void on_pbSaveSmplCoeffs_clicked();
 	void on_pbLoadSmplCoeffs_clicked();

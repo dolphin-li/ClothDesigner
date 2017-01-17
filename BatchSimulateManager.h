@@ -9,7 +9,8 @@
 
 struct BatchSimulateManager
 {
-	enum BatchSimPhase{NO_INIT,INIT_SIM,PRECOMPUTE,LOAD_BODY,OUTPUT};
+	//enum BatchSimPhase{NO_INIT,INIT_SIM,PRECOMPUTE,LOAD_BODY,OUTPUT};
+	enum BatchSimPhase{ INIT, SIM1, SIM2, ENDGAME };
 	BatchSimulateManager()
 	{
 		m_poseRoot = "./data/Mocap/poses/";
@@ -26,7 +27,7 @@ struct BatchSimulateManager
 	void init()
 	{
 		m_shapeElm = nullptr;
-		m_phase = BatchSimPhase::NO_INIT;
+		m_phase = BatchSimPhase::INIT;
 		m_batchSimMode = ldp::BatchSimNotInit;
 		m_shapeIter = m_shapeInd = 0;
 		
