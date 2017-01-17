@@ -43,7 +43,7 @@ public:
 	void on_actionLoad_svg_triggered();
 	void on_actionExport_body_mesh_triggered();
 	void on_actionExport_cloth_mesh_triggered();
-	void on_actionBatch_export_boyds_triggered();
+	void on_actionExport_batch_simulation_triggered();
 	void on_actionPlace_3d_by_2d_triggered();
 	void on_actionPrev_triggered();
 	void on_actionNext_triggered();
@@ -101,9 +101,10 @@ protected:
 	bool bindClothesToSmpl();
 	void simulateCloth(int iterNum);
 	void updateBodyState();
-	void finishBatchSimulation();
-	void batchSimulationInit();
-	void preComputeForBatchSimulation();
+	void initBatchSimulation(QStringList* patternPaths);
+	void finishBatchSimForCurPattern();
+	void initBatchSimForCurBody();
+	void initBatchSimForCurPattern(QString patternName);
 	void updateBodyForBatchSimulation();
 	void updateShapeForBatchSimulation();
 	void updatePoseForBatchSimulation();

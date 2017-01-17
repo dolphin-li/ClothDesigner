@@ -47,7 +47,7 @@ public:
     QAction *actionExport_body_mesh;
     QAction *actionExport_cloth_mesh;
     QAction *actionSave_as;
-    QAction *actionBatch_export_boyds;
+    QAction *actionExport_batch_simulation;
     QWidget *centralWidget;
     QMenuBar *menuBar;
     QMenu *menuFile;
@@ -151,8 +151,8 @@ public:
         actionExport_cloth_mesh->setObjectName(QStringLiteral("actionExport_cloth_mesh"));
         actionSave_as = new QAction(ClothDesignerClass);
         actionSave_as->setObjectName(QStringLiteral("actionSave_as"));
-        actionBatch_export_boyds = new QAction(ClothDesignerClass);
-        actionBatch_export_boyds->setObjectName(QStringLiteral("actionBatch_export_boyds"));
+        actionExport_batch_simulation = new QAction(ClothDesignerClass);
+        actionExport_batch_simulation->setObjectName(QStringLiteral("actionExport_batch_simulation"));
         centralWidget = new QWidget(ClothDesignerClass);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
         ClothDesignerClass->setCentralWidget(centralWidget);
@@ -536,7 +536,7 @@ public:
         menuFile->addSeparator();
         menuFile->addAction(actionExport_body_mesh);
         menuFile->addAction(actionExport_cloth_mesh);
-        menuFile->addAction(actionBatch_export_boyds);
+        menuFile->addAction(actionExport_batch_simulation);
         menuEdit->addAction(actionPlace_3d_by_2d);
         menuHistory->addAction(actionPrev);
         menuHistory->addAction(actionNext);
@@ -568,7 +568,7 @@ public:
         actionExport_cloth_mesh->setText(QApplication::translate("ClothDesignerClass", "export cloth mesh", 0));
         actionSave_as->setText(QApplication::translate("ClothDesignerClass", "save project as", 0));
         actionSave_as->setShortcut(QApplication::translate("ClothDesignerClass", "Ctrl+Alt+S", 0));
-        actionBatch_export_boyds->setText(QApplication::translate("ClothDesignerClass", "batch export boyds", 0));
+        actionExport_batch_simulation->setText(QApplication::translate("ClothDesignerClass", "export batch simulation", 0));
         menuFile->setTitle(QApplication::translate("ClothDesignerClass", "file", 0));
         menuEdit->setTitle(QApplication::translate("ClothDesignerClass", "edit", 0));
         menuHistory->setTitle(QApplication::translate("ClothDesignerClass", "history", 0));
