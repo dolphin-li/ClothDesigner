@@ -9,13 +9,13 @@
 
 struct BatchSimulateManager
 {
-	//enum BatchSimPhase{NO_INIT,INIT_SIM,PRECOMPUTE,LOAD_BODY,OUTPUT};
 	enum BatchSimPhase{ INIT, SIM1, SIM2, ENDGAME };
 	BatchSimulateManager()
 	{
 		m_poseRoot = "./data/Mocap/poses/";
 		m_shapeXml = "./data/spring/sprint_femal.smpl.xml";
 		m_maxBodyNum = 5;
+		m_timerIntervals = 5000;
 		init();
 	}
 	void recordPoseFiles()
@@ -30,7 +30,6 @@ struct BatchSimulateManager
 		m_phase = BatchSimPhase::INIT;
 		m_batchSimMode = ldp::BatchSimNotInit;
 		m_shapeIter = m_shapeInd = 0;
-		
 	}
 	QString m_saveRootPath;
 	std::vector<int> m_shapeIndexes;
@@ -44,6 +43,7 @@ struct BatchSimulateManager
 	int m_shapeIter;
 	int m_shapeInd;
 	int m_maxBodyNum;
+	int m_timerIntervals;
 	ldp::BatchSimulateMode m_batchSimMode = ldp::BatchSimNotInit;
 	BatchSimPhase m_phase;
 
