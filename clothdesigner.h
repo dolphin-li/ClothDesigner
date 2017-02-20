@@ -11,9 +11,9 @@
 #include "event_handles\Abstract3dEventHandle.h"
 #include "event_handles\Abstract2dEventHandle.h"
 #include "cloth\HistoryStack.h"
-#include "BatchSimulateManager.h"
 class Viewer3d;
 class Viewer2d;
+class BatchSimulateManager;
 class ClothDesigner : public QMainWindow
 {
 	Q_OBJECT
@@ -119,7 +119,7 @@ protected:
 	void onSmplShapeSlidersValueChanged(int v);
 private:
 	bool m_projectSaved;
-	BatchSimulateManager m_batchSimManager;
+	std::shared_ptr<BatchSimulateManager> m_batchSimManager;
 };
 
 #endif // CLOTHDESIGNER_H
