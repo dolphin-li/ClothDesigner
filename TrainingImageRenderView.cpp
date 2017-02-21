@@ -427,7 +427,8 @@ void TrainingImageRenderView::generateDistMap_x9(std::vector<QImage>& distMaps)
 
 	// 3. compute 9 dist maps + 1 visualization map
 	distMaps.resize(1 + 9);
-	for (size_t iMap = 0; iMap < distMaps.size(); iMap++)
+#pragma omp parallel for
+	for (int iMap = 0; iMap < (int)distMaps.size(); iMap++)
 	{
 		// 3.1 compute 1 visualization map
 		auto& D = distMaps[iMap];
