@@ -193,10 +193,16 @@ void TrainingImageRenderView::paintGL()
 	// show cloth simulation=============================
 	if (m_clothManager)
 	{
+		m_clothManager->bodyMesh()->render(m_showType);
 		auto smpl = m_clothManager->bodySmplManager();
 		if (smpl)
 		{
-			smpl->render(m_showType);
+			auto T = m_clothManager->getBodyMeshTransform().transform();
+			glPushMatrix();
+			glMultMatrixf(T.ptr());
+			int stype = m_showType & Renderable::SW_SKELETON;
+			m_clothManager->bodySmplManager()->render(stype);
+			glPopMatrix();
 		}
 	}
 	if (m_clothMeshLoaded)

@@ -3,6 +3,7 @@
 #include <QtWidgets/QMainWindow>
 #include "Ui_TrainingImageRenderWindow.h"
 #include <memory>
+class RenderedClothBodyInfo;
 class ObjMesh;
 class TrainingImageRenderWindow : public QMainWindow
 {
@@ -14,6 +15,8 @@ public:
 
 	void init();
 
+	void loadBodyInfosFromXml(QString xmlName);
+	RenderedClothBodyInfo* findCorrespondingBodyInfo(QString objFileName);
 	public slots:
 	void on_actionLoad_cloth_mesh_triggered();
 protected:
@@ -21,5 +24,6 @@ protected:
 private:
 	Ui_TrainingImageRenderWindow ui;
 	std::shared_ptr<ObjMesh> m_clothMeshLoaded;
+	std::vector<std::shared_ptr<RenderedClothBodyInfo>> m_bodyInfos;
 };
 

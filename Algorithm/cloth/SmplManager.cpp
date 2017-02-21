@@ -1628,14 +1628,18 @@ void SmplManager::setPoseShapeVals(const std::vector<float>* poses,
 	if (poses)
 	{
 		CHECK_THROW_EXCPT(poses->size() == m_curPoses.size());
-		for (size_t i = 0; i < poses->size(); i++)
-			m_curPoses.data()[i] = poses->at(i);
+		int pos = 0;
+		for (int r = 0; r < m_curPoses.rows(); r++)
+		for (int c = 0; c < m_curPoses.cols(); c++)
+			m_curPoses(r, c) = poses->at(pos++);
 	}
 	if (shapes)
 	{
 		CHECK_THROW_EXCPT(shapes->size() == m_curShapes.size());
-		for (size_t i = 0; i < shapes->size(); i++)
-			m_curShapes.data()[i] = shapes->at(i);
+		int pos = 0;
+		for (int r = 0; r < m_curShapes.rows(); r++)
+		for (int c = 0; c < m_curShapes.cols(); c++)
+			m_curShapes(r, c) = shapes->at(pos++);
 	}
 
 	updateCurMesh();
