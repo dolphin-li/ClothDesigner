@@ -6,6 +6,22 @@
 #include "Renderable\ObjMesh.h"
 #include "tinyxml\tinyxml.h"
 #include <QFileInfo>
+#include <random>
+
+#pragma region --random number generator
+static std::uniform_int_distribution<> g_batch_randintdist;
+static std::random_device g_batch_rd;
+static std::mt19937 g_batch_rgen(g_batch_rd());
+static void batch_rand_reset()
+{
+	g_batch_randintdist.reset();
+	g_batch_rgen.seed(1234);
+}
+static int batch_rand()
+{
+	return g_batch_randintdist(g_batch_rgen);
+}
+#pragma endregion
 
 struct RenderedClothBodyInfo
 {
@@ -67,11 +83,33 @@ void TrainingImageRenderWindow::init()
 	ui.widget->init(g_dataholder.m_clothManager.get(), m_clothMeshLoaded.get());
 }
 
+void TrainingImageRenderWindow::timerEvent(QTimerEvent* ev)
+{
+
+}
+
+void TrainingImageRenderWindow::on_actionBatch_render_dist_map_triggered()
+{
+	try
+	{
+		QString name = QFileDialog::getOpenFileName(this, "batch render dist map",
+			g_dataholder.m_lastClothMeshDir.c_str(), "*.batch_render.txt");
+		if (name.isEmpty())
+			return;
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error " << std::endl;
+	}
+}
+
 void TrainingImageRenderWindow::on_actionLoad_cloth_mesh_triggered()
 {
 	try
 	{
-		QString name = QFileDialog::getOpenFileName(this, "load cloth mesh", 
+		QString name = QFileDialog::getOpenFileName(this, "load cloth mesh",
 			g_dataholder.m_lastClothMeshDir.c_str(), "*.obj");
 		if (name.isEmpty())
 			return;
@@ -100,6 +138,7 @@ void TrainingImageRenderWindow::on_actionLoad_cloth_mesh_triggered()
 		// initialize widget
 		ui.widget->init(g_dataholder.m_clothManager.get(), m_clothMeshLoaded.get());
 		ui.widget->resetCamera();
+		ui.widget->updateGL();
 	} catch (std::exception e)
 	{
 		std::cout << e.what() << std::endl;
@@ -109,9 +148,31 @@ void TrainingImageRenderWindow::on_actionLoad_cloth_mesh_triggered()
 	}
 }
 
-void TrainingImageRenderWindow::timerEvent(QTimerEvent* ev)
+void TrainingImageRenderWindow::on_actionRender_current_to_distmap_triggered()
 {
+	try
+	{
+		if (g_dataholder.m_lastClothMeshDir == "")
+			return;
+		ui.widget->updateGL();
 
+		std::vector<QImage> imgs;
+		ui.widget->generateDistMap_x9(imgs);
+
+		QFileInfo finfo(g_dataholder.m_lastClothMeshDir.c_str());
+		for (size_t iMap = 0; iMap < imgs.size(); iMap++)
+		{
+			QString imgName = QDir::cleanPath(finfo.absolutePath() + QDir::separator() 
+				+ finfo.baseName() + QString().sprintf("_%d.png", iMap));
+			imgs[iMap].save(imgName);
+		}
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error " << std::endl;
+	}
 }
 
 void TrainingImageRenderWindow::loadBodyInfosFromXml(QString xmlName)

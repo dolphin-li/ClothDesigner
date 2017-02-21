@@ -19,6 +19,8 @@ public:
 	RenderedClothBodyInfo* findCorrespondingBodyInfo(QString objFileName);
 	public slots:
 	void on_actionLoad_cloth_mesh_triggered();
+	void on_actionBatch_render_dist_map_triggered();
+	void on_actionRender_current_to_distmap_triggered();
 protected:
 	virtual void timerEvent(QTimerEvent* ev);
 private:

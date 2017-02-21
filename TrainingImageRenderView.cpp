@@ -6,7 +6,36 @@
 #include "cloth\TransformInfo.h"
 #include "Renderable\ObjMesh.h"
 #include "cloth\clothManager.h"
+#include <eigen\Dense>
 #pragma region --mat_utils
+
+inline Eigen::Matrix3d convert(ldp::Mat3d A)
+{
+	Eigen::Matrix3d B;
+	for (int i = 0; i < 3; i++)
+	for (int j = 0; j < 3; j++)
+		B(i, j) = A(i, j);
+	return B;
+}
+
+inline ldp::Mat3d convert(Eigen::Matrix3d A)
+{
+	ldp::Mat3d B;
+	for (int i = 0; i < 3; i++)
+	for (int j = 0; j < 3; j++)
+		B(i, j) = A(i, j);
+	return B;
+}
+
+inline Eigen::Vector3d convert(ldp::Double3 v)
+{
+	return Eigen::Vector3d(v[0], v[1], v[2]);
+}
+
+inline ldp::Double3 convert(Eigen::Vector3d v)
+{
+	return ldp::Double3(v[0], v[1], v[2]);
+}
 
 inline ldp::Mat3f angles2rot(ldp::Float3 v)
 {
@@ -120,6 +149,7 @@ void TrainingImageRenderView::init(ldp::ClothManager* clothManager, ObjMesh* clo
 
 void TrainingImageRenderView::resetCamera()
 {
+	m_camera.setViewPort(0, width(), 0, height());
 	m_camera.setModelViewMatrix(ldp::Mat4f().eye());
 	m_camera.setPerspective(60, float(width()) / float(height()), 0.1, 10000);
 	ldp::Float3 c = 0.f;
@@ -132,7 +162,7 @@ void TrainingImageRenderView::resetCamera()
 		c = (bmax + bmin) / 2.f;
 		l = (bmax - bmin).length();
 	}
-	m_camera.lookAt(ldp::Float3(0, l, 0)*2 + c, c, ldp::Float3(0, 0, 1));
+	m_camera.lookAt(ldp::Float3(0, l, 0)*1 + c, c, ldp::Float3(0, 0, 1));
 	m_camera.arcballSetCenter(c);
 }
 
@@ -193,7 +223,9 @@ void TrainingImageRenderView::paintGL()
 	// show cloth simulation=============================
 	if (m_clothManager)
 	{
+		glColor3f(0.6, 0.8, 1.0);
 		m_clothManager->bodyMesh()->render(m_showType);
+		glColor3f(0.8, 0.8, 0.8);
 		auto smpl = m_clothManager->bodySmplManager();
 		if (smpl)
 		{
@@ -207,6 +239,7 @@ void TrainingImageRenderView::paintGL()
 	}
 	if (m_clothMeshLoaded)
 	{
+		glColor3f(0.8, 0.8, 0.8);
 		m_clothMeshLoaded->render(m_showType);
 	}
 }
@@ -226,7 +259,16 @@ void TrainingImageRenderView::renderSelectionOnFbo()
 
 	m_camera.apply();
 
-	
+	if (m_clothManager)
+	{
+		glColor4f(1, 0, 0, 1);
+		m_clothManager->bodyMesh()->render(Renderable::SW_F | Renderable::SW_FLAT);
+	}
+	if (m_clothMeshLoaded)
+	{
+		glColor4f(0, 1, 0, 1);
+		m_clothMeshLoaded->render(Renderable::SW_F | Renderable::SW_FLAT);
+	}
 
 	m_fboImage = m_fbo->toImage();
 
@@ -331,12 +373,114 @@ void TrainingImageRenderView::wheelEvent(QWheelEvent*ev)
 	updateGL();
 }
 
-int TrainingImageRenderView::fboRenderedIndex(QPoint p)const
+void TrainingImageRenderView::generateDistMap_x9(std::vector<QImage>& distMaps)
 {
-	if (m_fboImage.rect().contains(p))
+	distMaps.clear();
+	if (m_clothManager == nullptr)
+		throw std::exception("distMap: not initialized!");
+	auto smpl = m_clothManager->bodySmplManager();
+	if (smpl == nullptr)
+		throw std::exception("distMap: no smpl model!");
+	auto T = m_clothManager->getBodyMeshTransform().transform();
+
+	// 1. project 3d joint nodes into image space
+	std::vector<ldp::Float2> nodes2d;
+	for (int iNode = 0; iNode < smpl->numPoses(); iNode++)
 	{
-		QRgb c = m_fboImage.pixel(p);
-		return colorToSelectId(ldp::Float4(qRed(c), qGreen(c), qBlue(c), qAlpha(c))/255.f);
-	}
-	return 0;
+		auto p = T.getRotationPart() * convert(smpl->getCurNodeCenter(iNode)) + T.getTranslationPart();
+		p = m_camera.getScreenCoords(p);
+		nodes2d.push_back(ldp::Float2(p[0], height()-1-p[1]));
+	} // end for iNode
+
+	// 2. compute 9 bone segments
+	std::vector<ldp::Float2> bones;
+	// bone 0
+	bones.push_back(nodes2d[17]);
+	bones.push_back(nodes2d[19]);
+	// bone 1
+	bones.push_back(nodes2d[19]);
+	bones.push_back(nodes2d[21]);
+	// bone 2
+	bones.push_back(nodes2d[16]);
+	bones.push_back(nodes2d[18]);
+	// bone 3
+	bones.push_back(nodes2d[18]);
+	bones.push_back(nodes2d[20]);
+	// bone 4
+	bones.push_back(nodes2d[2]);
+	bones.push_back(nodes2d[5]);
+	// bone 5
+	bones.push_back(nodes2d[5]);
+	bones.push_back(nodes2d[8]);
+	// bone 6
+	bones.push_back(nodes2d[1]);
+	bones.push_back(nodes2d[4]);
+	// bone 7
+	bones.push_back(nodes2d[4]);
+	bones.push_back(nodes2d[7]);
+	// bone 8
+	bones.push_back((nodes2d[12] + nodes2d[9])*0.5f);
+	bones.push_back(nodes2d[0]);
+
+	// distance used to normalize the computed distance map
+	const float dist_max = (bones[8 * 2] - bones[8 * 2 + 1]).length();
+
+	// 3. compute 9 dist maps + 1 visualization map
+	distMaps.resize(1 + 9);
+	for (size_t iMap = 0; iMap < distMaps.size(); iMap++)
+	{
+		// 3.1 compute 1 visualization map
+		auto& D = distMaps[iMap];
+		D = QImage(width(), height(), QImage::Format_ARGB32);
+
+		// initialize map, filling those masked.
+		for (int y = 0; y < height(); y++)
+		{
+			const QRgb* f_scan = (const QRgb*)m_fboImage.scanLine(y);
+			QRgb* D_scan = (QRgb*)D.scanLine(y);
+			for (int x = 0; x < width(); x++)
+			{
+				if (qGreen(f_scan[x]) == 255)
+					D_scan[x] = qRgb(128, 128, 128);
+				else
+					D_scan[x] = qRgb(0, 0, 0);
+			} // end for x
+		} // end for y
+
+		if (iMap == 0)
+		{
+			QPainter painter(&D);
+			QPen pen(QColor(255, 255, 255));
+			pen.setWidth(5);
+			for (size_t iBone = 0; iBone < bones.size(); iBone += 2)
+			{
+				auto p1 = bones[iBone];
+				auto p2 = bones[iBone + 1];
+				int idx = (iBone + 2) * 255 / bones.size();
+				pen.setColor(QColor(idx, idx, idx));
+				painter.setPen(pen);
+				painter.drawLine(QPointF(p1[0], p1[1]), QPointF(p2[0], p2[1]));
+			} // end for iBone
+		} // end if iMap == 0
+		else
+		{
+			const int iBone = iMap - 1;
+			ldp::Float2 bone_s = bones[iBone * 2];
+			ldp::Float2 bone_e = bones[iBone * 2 + 1];
+			for (int y = 0; y < height(); y++)
+			{
+				QRgb* D_scan = (QRgb*)D.scanLine(y);
+				for (int x = 0; x < width(); x++)
+				{
+					if (qGreen(D_scan[x]) == 0)
+						continue;
+					float dist = ldp::pointSegDistance(ldp::Float2(x, y), bone_s, bone_e);
+					dist /= dist_max;
+					int idx = std::min(255, int(dist*255.f));
+					D_scan[x] = qRgb(idx, idx, idx);
+				} // end for x
+			} // end for y
+		} // else if iMap != 0
+	} // end for iMap
 }
+

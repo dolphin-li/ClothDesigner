@@ -27,7 +27,7 @@ public:
 	QPoint lastMousePos()const{ return m_lastPos; }
 	const QImage& fboImage()const{ return m_fboImage; }
 
-	int fboRenderedIndex(QPoint p)const;
+	void generateDistMap_x9(std::vector<QImage>& distMaps);
 protected:
 	void mousePressEvent(QMouseEvent *);
 	void mouseReleaseEvent(QMouseEvent *);

@@ -18,9 +18,9 @@
 
 #define ENABLE_ALIGNED_BATCH
 #pragma region --random number generator
-std::uniform_int_distribution<> g_batch_sim_randintdist;
-std::random_device g_batch_sim_rd;
-std::mt19937 g_batch_sim_rgen(g_batch_sim_rd());
+static std::uniform_int_distribution<> g_batch_sim_randintdist;
+static std::random_device g_batch_sim_rd;
+static std::mt19937 g_batch_sim_rgen(g_batch_sim_rd());
 static void batch_sim_rand_reset()
 {
 	g_batch_sim_randintdist.reset();

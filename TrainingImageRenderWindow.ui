@@ -66,13 +66,31 @@
      <string>file</string>
     </property>
     <addaction name="actionLoad_cloth_mesh"/>
+    <addaction name="actionBatch_render_dist_map"/>
+   </widget>
+   <widget class="QMenu" name="menuRender">
+    <property name="title">
+     <string>render</string>
+    </property>
+    <addaction name="actionRender_current_to_distmap"/>
    </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuRender"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionLoad_cloth_mesh">
    <property name="text">
     <string>load cloth mesh</string>
+   </property>
+  </action>
+  <action name="actionBatch_render_dist_map">
+   <property name="text">
+    <string>batch render dist map</string>
+   </property>
+  </action>
+  <action name="actionRender_current_to_distmap">
+   <property name="text">
+    <string>render current to distmap</string>
    </property>
   </action>
  </widget>
