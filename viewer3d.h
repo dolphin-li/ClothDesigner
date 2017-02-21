@@ -84,7 +84,6 @@ protected:
 protected:
 	CShaderManager m_shaderManager;
 	BatchSimulateManager* m_batchSimManager;
-	GLuint m_phong_program;
 	ldp::Camera m_camera;
 	QPoint m_lastPos;
 	int m_showType;

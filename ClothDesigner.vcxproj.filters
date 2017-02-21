@@ -682,6 +682,24 @@
     <ClCompile Include="Algorithm\BFGS\solver.cpp">
       <Filter>algorithm\BFGS</Filter>
     </ClCompile>
+    <ClCompile Include="TrainingImageRenderWindow.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Debug\moc_TrainingImageRenderWindow.cpp">
+      <Filter>Generated Files\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Release\moc_TrainingImageRenderWindow.cpp">
+      <Filter>Generated Files\Release</Filter>
+    </ClCompile>
+    <ClCompile Include="TrainingImageRenderView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Debug\moc_TrainingImageRenderView.cpp">
+      <Filter>Generated Files\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Release\moc_TrainingImageRenderView.cpp">
+      <Filter>Generated Files\Release</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">
@@ -700,6 +718,15 @@
       <Filter>Source Files</Filter>
     </CustomBuild>
     <CustomBuild Include="clothdesigner.h">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="TrainingImageRenderWindow.ui">
+      <Filter>Form Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="TrainingImageRenderWindow.h">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="TrainingImageRenderView.h">
       <Filter>Source Files</Filter>
     </CustomBuild>
   </ItemGroup>
@@ -1099,6 +1126,9 @@
     </ClInclude>
     <ClInclude Include="BatchSimulateManager.h">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GeneratedFiles\ui_TrainingImageRenderWindow.h">
+      <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -13,7 +13,7 @@
 #include "cloth\graph\Graph.h"
 #include "Renderable\ObjMesh.h"
 #include "cloth\SmplManager.h"
-
+#include "TrainingImageRenderWindow.h"
 #include "BatchSimulateManager.h"
 
 #define ENABLE_ALIGNED_BATCH
@@ -44,6 +44,7 @@ ClothDesigner::ClothDesigner(QWidget *parent)
 	m_widget3d = new Viewer3d(m_splitter);
 	m_splitter->addWidget(m_widget3d);
 	m_splitter->addWidget(m_widget2d);
+	m_trainingImageRenderWindow.reset(new TrainingImageRenderWindow());
 	m_batchSimManager.reset(new BatchSimulateManager);
 
 	init3dActions();
@@ -363,6 +364,7 @@ void ClothDesigner::timerEvent(QTimerEvent* ev)
 
 void ClothDesigner::closeEvent(QCloseEvent* ev)
 {
+	m_trainingImageRenderWindow->close();
 	g_dataholder.saveLastDirs();
 }
 
@@ -690,6 +692,20 @@ void ClothDesigner::on_actionNext_triggered()
 	}
 }
 
+void ClothDesigner::on_actionTraining_image_render_triggered()
+{
+	try
+	{
+		m_trainingImageRenderWindow->init();
+		m_trainingImageRenderWindow->show();
+	} catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
+	}
+}
 //////right dock///////////////////////////////////////////////////////////////////////////////
 void ClothDesigner::updateUiByParam()
 {
