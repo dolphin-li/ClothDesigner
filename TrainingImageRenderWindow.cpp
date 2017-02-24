@@ -10,23 +10,23 @@
 #include <fstream>
 
 #pragma region --random number generator
-static std::uniform_int_distribution<> g_batch_randintdist;
-static std::normal_distribution<float> g_batch_randnormdist;
+
 static std::random_device g_batch_rd;
 static std::mt19937 g_batch_rgen(g_batch_rd());
 static void batch_rand_reset()
 {
-	g_batch_randintdist.reset();
 	g_batch_rgen.seed(1234);
 }
 static int batch_rand()
 {
-	return g_batch_randintdist(g_batch_rgen);
+	std::uniform_int_distribution<> dist;
+	return dist(g_batch_rgen);
 }
 
-static float batch_rand_norm()
+static float batch_rand_norm(float mean = 0, float var = 1)
 {
-	return g_batch_randnormdist(g_batch_rgen);
+	std::normal_distribution<float> dist(mean, var);
+	return dist(g_batch_rgen);
 }
 #pragma endregion
 
@@ -81,10 +81,12 @@ struct BatchRenderDistMap
 	QString bodyTrans_xml;
 	float camera_up_down_degree = 0;
 	float camera_left_right_degree = 0;
-	float camera_near_far_scale = 0;
+	float camera_near_far_scale = 1;
+	int random_views = 1;
 
 	TrainingImageRenderWindow* window = nullptr;
 	int currentClothMeshId = 0;
+	int currentViewId = 0;
 	QVector<QString> clothSizeLabels;
 	QVector<QString> clothRenderIds;
 	std::vector<QMap<QString, std::shared_ptr<RenderedClothBodyInfo>>> m_bodyInfos;
@@ -98,10 +100,12 @@ struct BatchRenderDistMap
 		root_folder = "";
 		camera_up_down_degree = 0;
 		camera_left_right_degree = 0;
-		camera_near_far_scale = 0;
+		camera_near_far_scale = 1;
+		random_views = 1;
 		clothSizeLabels.clear();
 		clothRenderIds.clear();
 		currentClothMeshId = 0;
+		currentViewId = 0;
 	}
 
 	void loadConfig(QString filename)
@@ -131,6 +135,8 @@ struct BatchRenderDistMap
 				camera_left_right_degree = QString(lineBuffer.c_str()).toDouble();
 			else if (lineLabel == "camera_near_far_scale")
 				camera_near_far_scale = QString(lineBuffer.c_str()).toDouble();
+			else if (lineLabel == "random_views")
+				random_views = QString(lineBuffer.c_str()).toInt();
 		}
 		stream.close();
 	}
@@ -229,7 +235,22 @@ struct BatchRenderDistMap
 
 	void randomCamera(ldp::Camera& cam)
 	{
+		auto loc = cam.getLocation();
+		auto tar = cam.getDirection() + cam.getLocation();
+		auto up = cam.getUp();
 
+		float scale = batch_rand_norm(1, (camera_near_far_scale - 1)/2);
+		float xrot = batch_rand_norm(0, camera_left_right_degree * ldp::PI_S / 180 / 2);
+		float yrot = batch_rand_norm(0, camera_up_down_degree* ldp::PI_S / 180 / 2);
+
+		auto dir = tar - loc;
+		ldp::QuaternionF qx, qy;
+		qx.fromAngleAxis(xrot, up.cross(dir).normalize());
+		qy.fromAngleAxis(yrot, up.normalize());
+		dir = qy.applyVec(qx.applyVec(dir)) * scale;
+		loc = tar - dir;
+
+		cam.lookAt(loc, tar, up);
 	}
 };
 
@@ -288,19 +309,26 @@ void TrainingImageRenderWindow::timerEvent(QTimerEvent* ev)
 			for (size_t iMap = 0; iMap < imgs.size(); iMap++)
 			{
 				QString imgName = QDir::cleanPath(oinfo.absolutePath() + QDir::separator()
-					+ oinfo.baseName() + QString().sprintf("_%d.png", iMap));
+					+ oinfo.baseName() + QString().sprintf("_rv%d_%d.png", 
+					m_batchDistMapRenderer->currentViewId, iMap));
 				imgs[iMap].save(imgName);
 			}
 		} // end for iLabel
-		printf("%d/%d processed\n", m_batchDistMapRenderer->currentClothMeshId,
+		printf("mesh_%d/view_%d/total_%d processed\n", m_batchDistMapRenderer->currentClothMeshId,
+			m_batchDistMapRenderer->currentViewId,
 			m_batchDistMapRenderer->clothRenderIds.size());
 
 		// next data
-		m_batchDistMapRenderer->currentClothMeshId++;
-		if (m_batchDistMapRenderer->currentClothMeshId == m_batchDistMapRenderer->clothRenderIds.size())
+		m_batchDistMapRenderer->currentViewId++;
+		if (m_batchDistMapRenderer->currentViewId >= m_batchDistMapRenderer->random_views)
 		{
-			killTimer(m_batchDistMapRenderer->timerId);
-			printf("####################batch render dist map finished!");
+			m_batchDistMapRenderer->currentViewId = 0;
+			m_batchDistMapRenderer->currentClothMeshId++;
+			if (m_batchDistMapRenderer->currentClothMeshId == m_batchDistMapRenderer->clothRenderIds.size())
+			{
+				killTimer(m_batchDistMapRenderer->timerId);
+				printf("####################batch render dist map finished!");
+			}
 		}
 	} // end if batch render timer id
 }
