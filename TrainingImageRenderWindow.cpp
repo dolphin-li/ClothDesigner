@@ -242,7 +242,7 @@ struct BatchRenderDistMap
 		float scale = batch_rand_norm(1, (camera_near_far_scale - 1)/2);
 		float xrot = batch_rand_norm(0, camera_left_right_degree * ldp::PI_S / 180 / 2);
 		float yrot = batch_rand_norm(0, camera_up_down_degree* ldp::PI_S / 180 / 2);
-
+		printf("%f %f %f\n", scale, xrot, yrot);
 		auto dir = tar - loc;
 		ldp::QuaternionF qx, qy;
 		qx.fromAngleAxis(xrot, up.cross(dir).normalize());
@@ -279,6 +279,7 @@ void TrainingImageRenderWindow::timerEvent(QTimerEvent* ev)
 		// iterate over all sizes
 		ui.widget->resetCamera();
 		m_batchDistMapRenderer->randomCamera(ui.widget->camera());
+		ui.widget->setShowBody(false);
 		for (int iLabel = 0; iLabel < m_batchDistMapRenderer->clothSizeLabels.size(); iLabel++)
 		{
 			QString objName = QDir::cleanPath(m_batchDistMapRenderer->root_folder + QDir::separator()
@@ -311,6 +312,9 @@ void TrainingImageRenderWindow::timerEvent(QTimerEvent* ev)
 				QString imgName = QDir::cleanPath(oinfo.absolutePath() + QDir::separator()
 					+ oinfo.baseName() + QString().sprintf("_rv%d_%d.png", 
 					m_batchDistMapRenderer->currentViewId, iMap));
+				if (m_batchDistMapRenderer->random_views == 1)
+					imgName = QDir::cleanPath(oinfo.absolutePath() + QDir::separator()
+					+ oinfo.baseName() + QString().sprintf("_%d.png",iMap));
 				imgs[iMap].save(imgName);
 			}
 		} // end for iLabel
@@ -330,6 +334,7 @@ void TrainingImageRenderWindow::timerEvent(QTimerEvent* ev)
 				printf("####################batch render dist map finished!");
 			}
 		}
+		ui.widget->setShowBody(true);
 	} // end if batch render timer id
 }
 

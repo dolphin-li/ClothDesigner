@@ -221,7 +221,7 @@ void TrainingImageRenderView::paintGL()
 	m_camera.apply();
 
 	// show cloth simulation=============================
-	if (m_clothManager)
+	if (m_clothManager && m_showBody)
 	{
 		glColor3f(0.6, 0.8, 1.0);
 		m_clothManager->bodyMesh()->render(m_showType);
@@ -450,6 +450,9 @@ void TrainingImageRenderView::generateDistMap_x9(std::vector<QImage>& distMaps)
 
 		if (iMap == 0)
 		{
+#if 1
+			D = this->grabFrameBuffer();
+#else
 			QPainter painter(&D);
 			QPen pen(QColor(255, 255, 255));
 			pen.setWidth(5);
@@ -462,6 +465,7 @@ void TrainingImageRenderView::generateDistMap_x9(std::vector<QImage>& distMaps)
 				painter.setPen(pen);
 				painter.drawLine(QPointF(p1[0], p1[1]), QPointF(p2[0], p2[1]));
 			} // end for iBone
+#endif
 		} // end if iMap == 0
 		else
 		{

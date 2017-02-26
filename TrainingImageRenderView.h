@@ -27,6 +27,9 @@ public:
 	QPoint lastMousePos()const{ return m_lastPos; }
 	const QImage& fboImage()const{ return m_fboImage; }
 
+	void setShowBody(bool s) { m_showBody = s; }
+	bool isShowBody()const { return m_showBody; }
+
 	void generateDistMap_x9(std::vector<QImage>& distMaps);
 protected:
 	void mousePressEvent(QMouseEvent *);
@@ -44,6 +47,7 @@ protected:
 	Qt::MouseButtons m_buttons;
 	QGLFramebufferObject* m_fbo;
 	QImage m_fboImage;
+	bool m_showBody = true;
 
 	ldp::ClothManager* m_clothManager = nullptr;
 	ObjMesh* m_clothMeshLoaded = nullptr;
