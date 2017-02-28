@@ -17,6 +17,7 @@
 #include "kdtree\PointTree.h"
 #include <cuda_runtime_api.h>
 #include <fstream>
+#include <QString>
 #ifdef ENABLE_EDGE_WISE_STITCH
 #include <eigen\Dense>
 #include <eigen\Sparse>
@@ -2206,7 +2207,75 @@ namespace ldp
 		GraphsSewing tmpGraphSewing;
 		for (auto pele = root->FirstChildElement(); pele; pele = pele->NextSiblingElement())
 		{
-			if (pele->Value() == std::string("BodyMesh"))
+			if (pele->Value() == std::string("SimulationPara"))
+			{
+				auto para = getSimulationParam();
+				TiXmlElement* child = pele->FirstChildElement();
+				child->Attribute("outer_iter", &para.out_iter);
+				child = child->NextSiblingElement();
+
+				child->Attribute("inner_iter", &para.inner_iter);
+				child = child->NextSiblingElement();
+
+				int tmp_int;
+				double tmp_double;
+				child->Attribute("time_step", &tmp_double);
+				para.time_step = 1.0f / tmp_double;
+				child = child->NextSiblingElement();
+
+				child->Attribute("lap_damp_iter", &para.lap_damping);
+				child = child->NextSiblingElement();
+				
+				child->Attribute("air_damp", &tmp_double);
+				para.air_damping = tmp_double;
+				child = child->NextSiblingElement();
+
+				child->Attribute("control_stiff", &tmp_double);
+				para.control_mag = tmp_double;
+				child = child->NextSiblingElement();
+
+				child->Attribute("rho", &tmp_double);
+				para.rho = tmp_double;
+				child = child->NextSiblingElement();
+				
+				child->Attribute("under_relax", &tmp_double);
+				para.under_relax = tmp_double;
+				child = child->NextSiblingElement();
+				
+				child->Attribute("spring_stiff", &tmp_double);
+				para.spring_k_raw = tmp_double;
+				child = child->NextSiblingElement();
+
+				child->Attribute("bend_stiff", &tmp_double);
+				para.bending_k = tmp_double;
+				child = child->NextSiblingElement();
+
+				child->Attribute("stitch_stiff", &tmp_double);
+				para.stitch_k_raw = tmp_double;
+				child = child->NextSiblingElement();
+
+				child->Attribute("stitch_bend", &tmp_double);
+				para.stitch_bending_k = tmp_double;
+				child = child->NextSiblingElement();
+
+				child->Attribute("stitch_speed", &tmp_double);
+				para.stitch_ratio = tmp_double;
+				child = child->NextSiblingElement();
+
+				child->Attribute("gravityX", &tmp_double);
+				para.gravity[0] = tmp_double;
+				child = child->NextSiblingElement();
+
+				child->Attribute("gravityY", &tmp_double);
+				para.gravity[1] = tmp_double;
+				child = child->NextSiblingElement();
+
+				child->Attribute("gravityZ", &tmp_double);
+				para.gravity[2] = tmp_double;
+				child = child->NextSiblingElement();
+				setSimulationParam(para);
+			}
+			else if (pele->Value() == std::string("BodyMesh"))
 			{
 				for (auto child = pele->FirstChildElement(); child; child = child->NextSiblingElement())
 				{
@@ -2313,6 +2382,59 @@ namespace ldp
 		TiXmlDocument doc;
 		TiXmlElement* root = new TiXmlElement("ClothManager");
 		doc.LinkEndChild(root);
+
+		//simulation para
+		TiXmlElement* pele = new TiXmlElement("SimulationPara");
+		root->LinkEndChild(pele);
+		TiXmlElement* ele = new TiXmlElement("para");
+		pele->LinkEndChild(ele);
+		auto para = getSimulationParam();
+		ele->SetAttribute("outer_iter",para.out_iter);
+		ele = new TiXmlElement("para");
+		pele->LinkEndChild(ele);
+		ele->SetAttribute("inner_iter", para.inner_iter);
+		ele = new TiXmlElement("para");
+		pele->LinkEndChild(ele);
+		ele->SetAttribute("time_step", QString::number(1.0 / para.time_step).toStdString().c_str());
+		ele = new TiXmlElement("para");
+		pele->LinkEndChild(ele);
+		ele->SetAttribute("lap_damp_iter", QString::number(para.lap_damping).toStdString().c_str());
+		ele = new TiXmlElement("para");
+		pele->LinkEndChild(ele);
+		ele->SetAttribute("air_damp", QString::number(para.air_damping).toStdString().c_str());
+		ele = new TiXmlElement("para");
+		pele->LinkEndChild(ele);
+		ele->SetAttribute("control_stiff ", QString::number(para.control_mag).toStdString().c_str());
+		ele = new TiXmlElement("para");
+		pele->LinkEndChild(ele);
+		ele->SetAttribute("rho", QString::number(para.rho).toStdString().c_str());
+		ele = new TiXmlElement("para");
+		pele->LinkEndChild(ele);
+		ele->SetAttribute("under_relax", QString::number(para.under_relax).toStdString().c_str());
+		ele = new TiXmlElement("para");
+		pele->LinkEndChild(ele);
+		ele->SetAttribute("spring_stiff", QString::number(para.spring_k_raw).toStdString().c_str());
+		ele = new TiXmlElement("para");
+		pele->LinkEndChild(ele);
+		ele->SetAttribute("bend_stiff", QString::number(para.bending_k).toStdString().c_str());
+		ele = new TiXmlElement("para");
+		pele->LinkEndChild(ele);
+		ele->SetAttribute("stitch_stiff", QString::number(para.stitch_k_raw).toStdString().c_str());
+		ele = new TiXmlElement("para");
+		pele->LinkEndChild(ele);
+		ele->SetAttribute("stitch_bend", QString::number(para.stitch_bending_k).toStdString().c_str());
+		ele = new TiXmlElement("para");
+		pele->LinkEndChild(ele);
+		ele->SetAttribute("stitch_speed", QString::number(para.stitch_ratio).toStdString().c_str());
+		ele = new TiXmlElement("para");
+		pele->LinkEndChild(ele);
+		ele->SetAttribute("gravityX", QString::number(para.gravity[0]).toStdString().c_str());
+		ele = new TiXmlElement("para");
+		pele->LinkEndChild(ele);
+		ele->SetAttribute("gravityY", QString::number(para.gravity[1]).toStdString().c_str());
+		ele = new TiXmlElement("para");
+		pele->LinkEndChild(ele);
+		ele->SetAttribute("gravityZ", QString::number(para.gravity[2]).toStdString().c_str());
 
 		// body mesh as obj file
 		if (std::string(m_bodyMesh->scene_filename) != "")
