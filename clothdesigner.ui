@@ -20,7 +20,7 @@
      <x>0</x>
      <y>0</y>
      <width>890</width>
-     <height>23</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -49,9 +49,16 @@
     <addaction name="actionPrev"/>
     <addaction name="actionNext"/>
    </widget>
+   <widget class="QMenu" name="menuWindows">
+    <property name="title">
+     <string>windows</string>
+    </property>
+    <addaction name="actionTraining_image_render"/>
+   </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
    <addaction name="menuHistory"/>
+   <addaction name="menuWindows"/>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
    <attribute name="toolBarArea">
@@ -662,6 +669,11 @@
   <action name="actionExport_batch_simulation">
    <property name="text">
     <string>export batch simulation</string>
+   </property>
+  </action>
+  <action name="actionTraining_image_render">
+   <property name="text">
+    <string>training image render</string>
    </property>
   </action>
  </widget>

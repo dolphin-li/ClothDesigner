@@ -34,6 +34,10 @@ void GlobalDataHolder::loadLastDirs()
 			m_lastProXmlDir = lineBuffer;
 		else if (lineLabel == "smpl_shape_dir")
 			m_lastSmplShapeCoeffDir = lineBuffer;
+		else if (lineLabel == "cloth_mesh_dir")
+			m_lastClothMeshDir = lineBuffer;
+		else if (lineLabel == "cloth_mesh_script_dir")
+			m_lastClothMeshRenderScriptDir = lineBuffer;
 	}
 	stream.close();
 }
@@ -46,6 +50,8 @@ void GlobalDataHolder::saveLastDirs()
 	stm << "svg_dir: " << m_lastSvgDir << std::endl;
 	stm << "proj_dir: " << m_lastProXmlDir << std::endl;
 	stm << "smpl_shape_dir: " << m_lastSmplShapeCoeffDir << std::endl;
+	stm << "cloth_mesh_dir: " << m_lastClothMeshDir << std::endl;
+	stm << "cloth_mesh_script_dir: " << m_lastClothMeshRenderScriptDir << std::endl;
 	stm.close();
 }
 

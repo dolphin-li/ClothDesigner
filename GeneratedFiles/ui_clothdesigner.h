@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'clothdesigner.ui'
 **
-** Created by: Qt User Interface Compiler version 5.4.0
+** Created by: Qt User Interface Compiler version 5.3.1
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
 ********************************************************************************/
@@ -48,11 +48,13 @@ public:
     QAction *actionExport_cloth_mesh;
     QAction *actionSave_as;
     QAction *actionExport_batch_simulation;
+    QAction *actionTraining_image_render;
     QWidget *centralWidget;
     QMenuBar *menuBar;
     QMenu *menuFile;
     QMenu *menuEdit;
     QMenu *menuHistory;
+    QMenu *menuWindows;
     QToolBar *mainToolBar;
     QStatusBar *statusBar;
     QDockWidget *dockWidgetRight;
@@ -153,18 +155,22 @@ public:
         actionSave_as->setObjectName(QStringLiteral("actionSave_as"));
         actionExport_batch_simulation = new QAction(ClothDesignerClass);
         actionExport_batch_simulation->setObjectName(QStringLiteral("actionExport_batch_simulation"));
+        actionTraining_image_render = new QAction(ClothDesignerClass);
+        actionTraining_image_render->setObjectName(QStringLiteral("actionTraining_image_render"));
         centralWidget = new QWidget(ClothDesignerClass);
         centralWidget->setObjectName(QStringLiteral("centralWidget"));
         ClothDesignerClass->setCentralWidget(centralWidget);
         menuBar = new QMenuBar(ClothDesignerClass);
         menuBar->setObjectName(QStringLiteral("menuBar"));
-        menuBar->setGeometry(QRect(0, 0, 890, 23));
+        menuBar->setGeometry(QRect(0, 0, 890, 21));
         menuFile = new QMenu(menuBar);
         menuFile->setObjectName(QStringLiteral("menuFile"));
         menuEdit = new QMenu(menuBar);
         menuEdit->setObjectName(QStringLiteral("menuEdit"));
         menuHistory = new QMenu(menuBar);
         menuHistory->setObjectName(QStringLiteral("menuHistory"));
+        menuWindows = new QMenu(menuBar);
+        menuWindows->setObjectName(QStringLiteral("menuWindows"));
         ClothDesignerClass->setMenuBar(menuBar);
         mainToolBar = new QToolBar(ClothDesignerClass);
         mainToolBar->setObjectName(QStringLiteral("mainToolBar"));
@@ -529,6 +535,7 @@ public:
         menuBar->addAction(menuFile->menuAction());
         menuBar->addAction(menuEdit->menuAction());
         menuBar->addAction(menuHistory->menuAction());
+        menuBar->addAction(menuWindows->menuAction());
         menuFile->addAction(actionLoad_project);
         menuFile->addAction(actionSave_project);
         menuFile->addAction(actionSave_as);
@@ -540,6 +547,7 @@ public:
         menuEdit->addAction(actionPlace_3d_by_2d);
         menuHistory->addAction(actionPrev);
         menuHistory->addAction(actionNext);
+        menuWindows->addAction(actionTraining_image_render);
 
         retranslateUi(ClothDesignerClass);
 
@@ -569,9 +577,11 @@ public:
         actionSave_as->setText(QApplication::translate("ClothDesignerClass", "save project as", 0));
         actionSave_as->setShortcut(QApplication::translate("ClothDesignerClass", "Ctrl+Alt+S", 0));
         actionExport_batch_simulation->setText(QApplication::translate("ClothDesignerClass", "export batch simulation", 0));
+        actionTraining_image_render->setText(QApplication::translate("ClothDesignerClass", "training image render", 0));
         menuFile->setTitle(QApplication::translate("ClothDesignerClass", "file", 0));
         menuEdit->setTitle(QApplication::translate("ClothDesignerClass", "edit", 0));
         menuHistory->setTitle(QApplication::translate("ClothDesignerClass", "history", 0));
+        menuWindows->setTitle(QApplication::translate("ClothDesignerClass", "windows", 0));
         groupBox->setTitle(QApplication::translate("ClothDesignerClass", "Simulation Param", 0));
         label_4->setText(QApplication::translate("ClothDesignerClass", "lap damp iter", 0));
         label_11->setText(QApplication::translate("ClothDesignerClass", "gravity", 0));

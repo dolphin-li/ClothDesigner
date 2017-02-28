@@ -11,9 +11,10 @@
 #include "event_handles\Abstract3dEventHandle.h"
 #include "event_handles\Abstract2dEventHandle.h"
 #include "cloth\HistoryStack.h"
-#include "BatchSimulateManager.h"
 class Viewer3d;
 class Viewer2d;
+class BatchSimulateManager;
+class TrainingImageRenderWindow;
 class ClothDesigner : public QMainWindow
 {
 	Q_OBJECT
@@ -72,6 +73,8 @@ public:
 	void on_dbPieceOutgoDist_valueChanged(double v);
 	void on_pbMirrorSelected_clicked();
 	void on_pbCopySelected_clicked();
+	/// 
+	void on_actionTraining_image_render_triggered();
 public:
 	Ui::ClothDesignerClass ui;
 	Viewer2d* m_widget2d;
@@ -79,7 +82,7 @@ public:
 	int m_simulateTimer;
 	int m_fpsTimer;
 	int m_batchSimulateTimer;
-
+	QSharedPointer<TrainingImageRenderWindow> m_trainingImageRenderWindow;
 	//////////////////////////////////////////////////////////////////////////
 protected:
 	QSplitter* m_splitter;
@@ -119,7 +122,7 @@ protected:
 	void onSmplShapeSlidersValueChanged(int v);
 private:
 	bool m_projectSaved;
-	BatchSimulateManager m_batchSimManager;
+	std::shared_ptr<BatchSimulateManager> m_batchSimManager;
 };
 
 #endif // CLOTHDESIGNER_H

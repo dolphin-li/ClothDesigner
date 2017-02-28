@@ -25,6 +25,8 @@ public:
 	std::string m_lastSvgDir;
 	std::string m_lastProXmlDir;
 	std::string m_lastSmplShapeCoeffDir;
+	std::string m_lastClothMeshDir;
+	std::string m_lastClothMeshRenderScriptDir;
 };
 
 extern GlobalDataHolder g_dataholder;

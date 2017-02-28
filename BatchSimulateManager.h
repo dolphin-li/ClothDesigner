@@ -13,7 +13,7 @@ struct BatchSimulateManager
 	{
 		m_poseRoot = "./data/Mocap/poses/";
 		m_shapeXml = "./data/spring/sprint_femal.smpl.xml";
-		m_maxBodyNum = 3;
+		m_maxBodyNum = 1000;
 		m_timerIntervals = 5000;
 		m_curPatternId = 0;
 		m_maxShapeNum = 0;
