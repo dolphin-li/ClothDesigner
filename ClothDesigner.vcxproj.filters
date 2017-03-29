@@ -700,9 +700,6 @@
     <ClCompile Include="GeneratedFiles\Release\moc_TrainingImageRenderView.cpp">
       <Filter>Generated Files\Release</Filter>
     </ClCompile>
-    <ClCompile Include="Algorithm\cloth\SmplManager_clean.cpp">
-      <Filter>algorithm\cloth</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">
@@ -1132,9 +1129,6 @@
     </ClInclude>
     <ClInclude Include="GeneratedFiles\ui_TrainingImageRenderWindow.h">
       <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Algorithm\cloth\SmplManager_clean.h">
-      <Filter>algorithm\cloth</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

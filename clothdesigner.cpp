@@ -123,6 +123,19 @@ void addBodyToXml(TiXmlElement* rootElm, const std::string & posePath, const std
 	rootElm->LinkEndChild(bodyElement);
 }
 
+void saveSingleBodyXml(std::string filename, const std::string source_folder,
+	std::string & posePath, const std::string& clothPath)
+{
+	TiXmlDocument document;
+	TiXmlElement* rootElement = new TiXmlElement("BodyInfoDocument");
+	rootElement->SetAttribute("source_folder", source_folder.c_str());
+	document.LinkEndChild(rootElement);
+
+	addBodyToXml(rootElement, posePath, clothPath);
+
+	document.SaveFile(filename.c_str());
+}
+
 void ClothDesigner::initBatchSimulation(QStringList* patternPaths)
 {
 	if (!patternPaths)
@@ -181,12 +194,20 @@ void ClothDesigner::initBatchSimForCurPattern(QString name)
 
 void ClothDesigner::recordDataForBatchSimulation()
 {
-	QString clothPath = m_batchSimManager->m_saveRootPath + QString::number(m_batchSimManager->m_shapeInd) + ".obj";
+	QString clothFolder = m_batchSimManager->m_saveRootPath + QString::number(m_batchSimManager->m_shapeInd);
+	QString clothPath = clothFolder + ".obj";
 	std::cout << "cloth path:" << clothPath.toStdString() << std::endl;
 	exportClothMesh(clothPath.toStdString());
 
 	auto rootElem = m_batchSimManager->m_outputDoc.FirstChildElement();
 	addBodyToXml(rootElem, m_batchSimManager->m_posePath.toStdString(), clothPath.toStdString());
+
+	// ldp: save the single xml per-mesh finished
+	if (g_dataholder.m_exportSepMesh)
+		saveSingleBodyXml((clothFolder + "/Bodyinfo.xml").toStdString(),
+			m_batchSimManager->m_saveRootPath.toStdString(),
+			m_batchSimManager->m_posePath.toStdString(), clothPath.toStdString());
+
 	m_batchSimManager->m_shapeInd++;
 	g_dataholder.m_clothManager->setSimulationMode(ldp::SimulationPause);
 }
