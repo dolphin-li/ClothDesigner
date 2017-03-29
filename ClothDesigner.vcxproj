@@ -94,7 +94,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <PreprocessorDefinitions>USE_CUDA; UNICODE;WIN32;WIN64;QT_DLL;QT_CORE_LIB;QT_GUI_LIB;QT_OPENGL_LIB;QT_WIDGETS_LIB;QT_XML_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)\algorithm\svgpp\nvprsvg;$(ProjectDir)\algorithm\svgpp\nvprsvg\cg4cpp\include;$(ProjectDir)\algorithm\svgpp\nvprsvg\common;D:/boost_1_57_0;$(ProjectDir);$(ProjectDir)algorithm;.\GeneratedFiles;.;$(QTDIR)\include;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtOpenGL;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtXml;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\algorithm\arcsim\jsoncpp\include;$(ProjectDir)\algorithm\arcsim;$(ProjectDir)\algorithm\svgpp\nvprsvg;$(ProjectDir)\algorithm\svgpp\nvprsvg\cg4cpp\include;$(ProjectDir)\algorithm\svgpp\nvprsvg\common;D:/boost_1_57_0;$(ProjectDir);$(ProjectDir)algorithm;.\GeneratedFiles;.;$(QTDIR)\include;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtOpenGL;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtXml;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Disabled</Optimization>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -103,7 +103,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <OutputFile>$(OutDir)\$(ProjectName)d.exe</OutputFile>
-      <AdditionalLibraryDirectories>$(ProjectDir)\algorithm\matio;$(ProjectDir)\algorithm\GL;$(ProjectDir)\algorithm\freeImage;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>D:\boost_1_57_0\lib64-msvc-12.0;$(ProjectDir)\algorithm\arcsim\taucs\lib;$(ProjectDir)\algorithm\arcsim\lib;$(ProjectDir)\algorithm\matio;$(ProjectDir)\algorithm\GL;$(ProjectDir)\algorithm\freeImage;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>libmatio.lib;glew32.lib;qtmaind.lib;Qt5Cored.lib;Qt5Guid.lib;Qt5OpenGLd.lib;opengl32.lib;glu32.lib;Qt5Widgetsd.lib;Qt5Xmld.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
@@ -130,15 +130,16 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <PreprocessorDefinitions>USE_CUDA; UNICODE;WIN32;WIN64;QT_DLL;QT_NO_DEBUG;NDEBUG;QT_CORE_LIB;QT_GUI_LIB;QT_OPENGL_LIB;QT_WIDGETS_LIB;QT_XML_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)\algorithm\svgpp\nvprsvg;$(ProjectDir)\algorithm\svgpp\nvprsvg\cg4cpp\include;$(ProjectDir)\algorithm\svgpp\nvprsvg\common;D:/boost_1_57_0;$(ProjectDir);$(ProjectDir)algorithm;.\GeneratedFiles;.;$(QTDIR)\include;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtOpenGL;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtXml;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)\algorithm\arcsim\jsoncpp\include;$(ProjectDir)\algorithm\arcsim;$(ProjectDir)\algorithm\svgpp\nvprsvg;$(ProjectDir)\algorithm\svgpp\nvprsvg\cg4cpp\include;$(ProjectDir)\algorithm\svgpp\nvprsvg\common;D:/boost_1_57_0;$(ProjectDir);$(ProjectDir)algorithm;.\GeneratedFiles;.;$(QTDIR)\include;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtOpenGL;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtXml;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat />
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
-      <AdditionalLibraryDirectories>$(ProjectDir)\algorithm\matio;$(ProjectDir)\algorithm\GL;$(ProjectDir)\algorithm\freeImage;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>D:\boost_1_57_0\lib64-msvc-12.0;$(ProjectDir)\algorithm\arcsim\taucs\lib;$(ProjectDir)\algorithm\arcsim\lib;$(ProjectDir)\algorithm\matio;$(ProjectDir)\algorithm\GL;$(ProjectDir)\algorithm\freeImage;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>libmatio.lib;glew32.lib;freeglut.lib;qtmain.lib;Qt5Core.lib;Qt5Gui.lib;Qt5OpenGL.lib;opengl32.lib;glu32.lib;Qt5Widgets.lib;Qt5Xml.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
@@ -147,6 +148,63 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\auglag.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\bah.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\bvh.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\cloth.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\collision.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\collisionutil.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\conf.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\constraint.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\dde.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\dynamicremesh.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\geometry.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\handle.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\io.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\lbfgs.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\lsnewton.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\magic.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\mesh.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\misc.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\morph.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\mot_parser.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\nearobs.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\nlcg.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\obstacle.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\physics.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\plasticity.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\popfilter.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\proximity.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\remesh.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\runphysics.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\separate.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\separateobs.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\simulation.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\spline.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\strainlimiting.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\taucs.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\tensormax.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\timer.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\transformation.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\trustregion.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\util.cpp" />
+    <ClCompile Include="Algorithm\arcsim\adaptiveCloth\vectors.cpp" />
+    <ClCompile Include="Algorithm\arcsim\alglib\alglibinternal.cpp" />
+    <ClCompile Include="Algorithm\arcsim\alglib\alglibmisc.cpp" />
+    <ClCompile Include="Algorithm\arcsim\alglib\ap.cpp" />
+    <ClCompile Include="Algorithm\arcsim\alglib\dataanalysis.cpp" />
+    <ClCompile Include="Algorithm\arcsim\alglib\diffequations.cpp" />
+    <ClCompile Include="Algorithm\arcsim\alglib\fasttransforms.cpp" />
+    <ClCompile Include="Algorithm\arcsim\alglib\integration.cpp" />
+    <ClCompile Include="Algorithm\arcsim\alglib\interpolation.cpp" />
+    <ClCompile Include="Algorithm\arcsim\alglib\linalg.cpp" />
+    <ClCompile Include="Algorithm\arcsim\alglib\optimization.cpp" />
+    <ClCompile Include="Algorithm\arcsim\alglib\solvers.cpp" />
+    <ClCompile Include="Algorithm\arcsim\alglib\specialfunctions.cpp" />
+    <ClCompile Include="Algorithm\arcsim\alglib\statistics.cpp" />
+    <ClCompile Include="Algorithm\arcsim\jsoncpp\src\lib_json\json_reader.cpp" />
+    <ClCompile Include="Algorithm\arcsim\jsoncpp\src\lib_json\json_value.cpp" />
+    <ClCompile Include="Algorithm\arcsim\jsoncpp\src\lib_json\json_writer.cpp" />
     <ClCompile Include="Algorithm\BFGS\BFGSFit.cpp" />
     <ClCompile Include="Algorithm\BFGS\program.cpp" />
     <ClCompile Include="Algorithm\BFGS\solver.cpp" />
@@ -409,7 +467,7 @@
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Moc%27ing clothdesigner.h...</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUSE_CUDA -DUNICODE -DWIN32 -DWIN64 -DQT_DLL -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB -DQT_WIDGETS_LIB -DQT_XML_LIB  "-I$(ProjectDir)\algorithm\svgpp\nvprsvg" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\cg4cpp\include" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\common" "-ID:\boost_1_57_0" "-I$(ProjectDir)\." "-I$(ProjectDir)algorithm" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL" "-I$(QTDIR)\include\QtWidgets" "-I$(QTDIR)\include\QtXml"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUSE_CUDA -DUNICODE -DWIN32 -DWIN64 -DQT_DLL -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB -DQT_WIDGETS_LIB -DQT_XML_LIB  "-I$(ProjectDir)\algorithm\arcsim\jsoncpp\include" "-I$(ProjectDir)\algorithm\arcsim" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\cg4cpp\include" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\common" "-ID:\boost_1_57_0" "-I$(ProjectDir)\." "-I$(ProjectDir)algorithm" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL" "-I$(QTDIR)\include\QtWidgets" "-I$(QTDIR)\include\QtXml"</Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Moc%27ing clothdesigner.h...</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
@@ -417,7 +475,7 @@
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Moc%27ing clothdesigner.h...</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUSE_CUDA -DUNICODE -DWIN32 -DWIN64 -DQT_DLL -DQT_NO_DEBUG -DNDEBUG -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB -DQT_WIDGETS_LIB -DQT_XML_LIB  "-I$(ProjectDir)\algorithm\svgpp\nvprsvg" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\cg4cpp\include" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\common" "-ID:\boost_1_57_0" "-I$(ProjectDir)\." "-I$(ProjectDir)algorithm" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL" "-I$(QTDIR)\include\QtWidgets" "-I$(QTDIR)\include\QtXml"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUSE_CUDA -DUNICODE -DWIN32 -DWIN64 -DQT_DLL -DQT_NO_DEBUG -DNDEBUG -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB -DQT_WIDGETS_LIB -DQT_XML_LIB  "-I$(ProjectDir)\algorithm\arcsim\jsoncpp\include" "-I$(ProjectDir)\algorithm\arcsim" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\cg4cpp\include" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\common" "-ID:\boost_1_57_0" "-I$(ProjectDir)\." "-I$(ProjectDir)algorithm" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL" "-I$(QTDIR)\include\QtWidgets" "-I$(QTDIR)\include\QtXml"</Command>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
@@ -441,6 +499,61 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\auglag.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\bah.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\blockvectors.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\bvh.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\cloth.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\collision.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\collisionutil.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\conf.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\constraint.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\dde.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\dynamicremesh.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\geometry.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\handle.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\io.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\magic.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\mesh.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\misc.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\morph.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\mot_parser.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\nearobs.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\obstacle.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\optimization.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\physics.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\plasticity.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\popfilter.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\proximity.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\remesh.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\runphysics.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\separate.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\separateobs.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\simulation.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\sparse.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\spline.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\strainlimiting.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\taucs.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\tensormax.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\timer.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\transformation.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\util.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\vectors.hpp" />
+    <ClInclude Include="Algorithm\arcsim\adaptiveCloth\winport.hpp" />
+    <ClInclude Include="Algorithm\arcsim\alglib\alglibinternal.h" />
+    <ClInclude Include="Algorithm\arcsim\alglib\alglibmisc.h" />
+    <ClInclude Include="Algorithm\arcsim\alglib\ap.h" />
+    <ClInclude Include="Algorithm\arcsim\alglib\dataanalysis.h" />
+    <ClInclude Include="Algorithm\arcsim\alglib\diffequations.h" />
+    <ClInclude Include="Algorithm\arcsim\alglib\fasttransforms.h" />
+    <ClInclude Include="Algorithm\arcsim\alglib\integration.h" />
+    <ClInclude Include="Algorithm\arcsim\alglib\interpolation.h" />
+    <ClInclude Include="Algorithm\arcsim\alglib\linalg.h" />
+    <ClInclude Include="Algorithm\arcsim\alglib\optimization.h" />
+    <ClInclude Include="Algorithm\arcsim\alglib\solvers.h" />
+    <ClInclude Include="Algorithm\arcsim\alglib\specialfunctions.h" />
+    <ClInclude Include="Algorithm\arcsim\alglib\statistics.h" />
+    <ClInclude Include="Algorithm\arcsim\jsoncpp\src\lib_json\json_batchallocator.h" />
     <ClInclude Include="Algorithm\BFGS\BFGSFit.h" />
     <ClInclude Include="Algorithm\BFGS\program.h" />
     <ClInclude Include="Algorithm\BFGS\solver.h" />
@@ -582,7 +695,7 @@
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Moc%27ing TrainingImageRenderView.h...</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUSE_CUDA -DUNICODE -DWIN32 -DWIN64 -DQT_DLL -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB -DQT_WIDGETS_LIB -DQT_XML_LIB  "-I$(ProjectDir)\algorithm\svgpp\nvprsvg" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\cg4cpp\include" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\common" "-ID:\boost_1_57_0" "-I$(ProjectDir)\." "-I$(ProjectDir)algorithm" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL" "-I$(QTDIR)\include\QtWidgets" "-I$(QTDIR)\include\QtXml"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUSE_CUDA -DUNICODE -DWIN32 -DWIN64 -DQT_DLL -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB -DQT_WIDGETS_LIB -DQT_XML_LIB  "-I$(ProjectDir)\algorithm\arcsim\jsoncpp\include" "-I$(ProjectDir)\algorithm\arcsim" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\cg4cpp\include" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\common" "-ID:\boost_1_57_0" "-I$(ProjectDir)\." "-I$(ProjectDir)algorithm" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL" "-I$(QTDIR)\include\QtWidgets" "-I$(QTDIR)\include\QtXml"</Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Moc%27ing TrainingImageRenderView.h...</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
@@ -590,7 +703,7 @@
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Moc%27ing TrainingImageRenderView.h...</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUSE_CUDA -DUNICODE -DWIN32 -DWIN64 -DQT_DLL -DQT_NO_DEBUG -DNDEBUG -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB -DQT_WIDGETS_LIB -DQT_XML_LIB  "-I$(ProjectDir)\algorithm\svgpp\nvprsvg" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\cg4cpp\include" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\common" "-ID:\boost_1_57_0" "-I$(ProjectDir)\." "-I$(ProjectDir)algorithm" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL" "-I$(QTDIR)\include\QtWidgets" "-I$(QTDIR)\include\QtXml"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUSE_CUDA -DUNICODE -DWIN32 -DWIN64 -DQT_DLL -DQT_NO_DEBUG -DNDEBUG -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB -DQT_WIDGETS_LIB -DQT_XML_LIB  "-I$(ProjectDir)\algorithm\arcsim\jsoncpp\include" "-I$(ProjectDir)\algorithm\arcsim" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\cg4cpp\include" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\common" "-ID:\boost_1_57_0" "-I$(ProjectDir)\." "-I$(ProjectDir)algorithm" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL" "-I$(QTDIR)\include\QtWidgets" "-I$(QTDIR)\include\QtXml"</Command>
     </CustomBuild>
     <CustomBuild Include="TrainingImageRenderWindow.h">
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
@@ -600,7 +713,7 @@
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Moc%27ing TrainingImageRenderWindow.h...</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUSE_CUDA -DUNICODE -DWIN32 -DWIN64 -DQT_DLL -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB -DQT_WIDGETS_LIB -DQT_XML_LIB  "-I$(ProjectDir)\algorithm\svgpp\nvprsvg" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\cg4cpp\include" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\common" "-ID:\boost_1_57_0" "-I$(ProjectDir)\." "-I$(ProjectDir)algorithm" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL" "-I$(QTDIR)\include\QtWidgets" "-I$(QTDIR)\include\QtXml"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUSE_CUDA -DUNICODE -DWIN32 -DWIN64 -DQT_DLL -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB -DQT_WIDGETS_LIB -DQT_XML_LIB  "-I$(ProjectDir)\algorithm\arcsim\jsoncpp\include" "-I$(ProjectDir)\algorithm\arcsim" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\cg4cpp\include" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\common" "-ID:\boost_1_57_0" "-I$(ProjectDir)\." "-I$(ProjectDir)algorithm" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL" "-I$(QTDIR)\include\QtWidgets" "-I$(QTDIR)\include\QtXml"</Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Moc%27ing TrainingImageRenderWindow.h...</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
@@ -608,7 +721,7 @@
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Moc%27ing TrainingImageRenderWindow.h...</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUSE_CUDA -DUNICODE -DWIN32 -DWIN64 -DQT_DLL -DQT_NO_DEBUG -DNDEBUG -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB -DQT_WIDGETS_LIB -DQT_XML_LIB  "-I$(ProjectDir)\algorithm\svgpp\nvprsvg" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\cg4cpp\include" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\common" "-ID:\boost_1_57_0" "-I$(ProjectDir)\." "-I$(ProjectDir)algorithm" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL" "-I$(QTDIR)\include\QtWidgets" "-I$(QTDIR)\include\QtXml"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUSE_CUDA -DUNICODE -DWIN32 -DWIN64 -DQT_DLL -DQT_NO_DEBUG -DNDEBUG -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB -DQT_WIDGETS_LIB -DQT_XML_LIB  "-I$(ProjectDir)\algorithm\arcsim\jsoncpp\include" "-I$(ProjectDir)\algorithm\arcsim" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\cg4cpp\include" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\common" "-ID:\boost_1_57_0" "-I$(ProjectDir)\." "-I$(ProjectDir)algorithm" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL" "-I$(QTDIR)\include\QtWidgets" "-I$(QTDIR)\include\QtXml"</Command>
     </CustomBuild>
     <CustomBuild Include="Viewer2d.h">
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
@@ -618,7 +731,7 @@
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Moc%27ing Viewer2d.h...</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUSE_CUDA -DUNICODE -DWIN32 -DWIN64 -DQT_DLL -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB -DQT_WIDGETS_LIB -DQT_XML_LIB  "-I$(ProjectDir)\algorithm\svgpp\nvprsvg" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\cg4cpp\include" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\common" "-ID:\boost_1_57_0" "-I$(ProjectDir)\." "-I$(ProjectDir)algorithm" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL" "-I$(QTDIR)\include\QtWidgets" "-I$(QTDIR)\include\QtXml"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUSE_CUDA -DUNICODE -DWIN32 -DWIN64 -DQT_DLL -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB -DQT_WIDGETS_LIB -DQT_XML_LIB  "-I$(ProjectDir)\algorithm\arcsim\jsoncpp\include" "-I$(ProjectDir)\algorithm\arcsim" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\cg4cpp\include" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\common" "-ID:\boost_1_57_0" "-I$(ProjectDir)\." "-I$(ProjectDir)algorithm" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL" "-I$(QTDIR)\include\QtWidgets" "-I$(QTDIR)\include\QtXml"</Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Moc%27ing Viewer2d.h...</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
@@ -626,7 +739,7 @@
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Moc%27ing Viewer2d.h...</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUSE_CUDA -DUNICODE -DWIN32 -DWIN64 -DQT_DLL -DQT_NO_DEBUG -DNDEBUG -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB -DQT_WIDGETS_LIB -DQT_XML_LIB  "-I$(ProjectDir)\algorithm\svgpp\nvprsvg" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\cg4cpp\include" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\common" "-ID:\boost_1_57_0" "-I$(ProjectDir)\." "-I$(ProjectDir)algorithm" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL" "-I$(QTDIR)\include\QtWidgets" "-I$(QTDIR)\include\QtXml"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUSE_CUDA -DUNICODE -DWIN32 -DWIN64 -DQT_DLL -DQT_NO_DEBUG -DNDEBUG -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB -DQT_WIDGETS_LIB -DQT_XML_LIB  "-I$(ProjectDir)\algorithm\arcsim\jsoncpp\include" "-I$(ProjectDir)\algorithm\arcsim" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\cg4cpp\include" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\common" "-ID:\boost_1_57_0" "-I$(ProjectDir)\." "-I$(ProjectDir)algorithm" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL" "-I$(QTDIR)\include\QtWidgets" "-I$(QTDIR)\include\QtXml"</Command>
     </CustomBuild>
     <CustomBuild Include="viewer3d.h">
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
@@ -636,7 +749,7 @@
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Moc%27ing viewer3d.h...</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUSE_CUDA -DUNICODE -DWIN32 -DWIN64 -DQT_DLL -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB -DQT_WIDGETS_LIB -DQT_XML_LIB  "-I$(ProjectDir)\algorithm\svgpp\nvprsvg" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\cg4cpp\include" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\common" "-ID:\boost_1_57_0" "-I$(ProjectDir)\." "-I$(ProjectDir)algorithm" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL" "-I$(QTDIR)\include\QtWidgets" "-I$(QTDIR)\include\QtXml"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUSE_CUDA -DUNICODE -DWIN32 -DWIN64 -DQT_DLL -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB -DQT_WIDGETS_LIB -DQT_XML_LIB  "-I$(ProjectDir)\algorithm\arcsim\jsoncpp\include" "-I$(ProjectDir)\algorithm\arcsim" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\cg4cpp\include" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\common" "-ID:\boost_1_57_0" "-I$(ProjectDir)\." "-I$(ProjectDir)algorithm" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL" "-I$(QTDIR)\include\QtWidgets" "-I$(QTDIR)\include\QtXml"</Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Moc%27ing viewer3d.h...</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
@@ -644,7 +757,7 @@
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath);$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Moc%27ing viewer3d.h...</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUSE_CUDA -DUNICODE -DWIN32 -DWIN64 -DQT_DLL -DQT_NO_DEBUG -DNDEBUG -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB -DQT_WIDGETS_LIB -DQT_XML_LIB  "-I$(ProjectDir)\algorithm\svgpp\nvprsvg" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\cg4cpp\include" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\common" "-ID:\boost_1_57_0" "-I$(ProjectDir)\." "-I$(ProjectDir)algorithm" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL" "-I$(QTDIR)\include\QtWidgets" "-I$(QTDIR)\include\QtXml"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o ".\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp"  -DUSE_CUDA -DUNICODE -DWIN32 -DWIN64 -DQT_DLL -DQT_NO_DEBUG -DNDEBUG -DQT_CORE_LIB -DQT_GUI_LIB -DQT_OPENGL_LIB -DQT_WIDGETS_LIB -DQT_XML_LIB  "-I$(ProjectDir)\algorithm\arcsim\jsoncpp\include" "-I$(ProjectDir)\algorithm\arcsim" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\cg4cpp\include" "-I$(ProjectDir)\algorithm\svgpp\nvprsvg\common" "-ID:\boost_1_57_0" "-I$(ProjectDir)\." "-I$(ProjectDir)algorithm" "-I.\GeneratedFiles" "-I." "-I$(QTDIR)\include" "-I.\GeneratedFiles\$(ConfigurationName)\." "-I$(QTDIR)\include\QtCore" "-I$(QTDIR)\include\QtGui" "-I$(QTDIR)\include\QtOpenGL" "-I$(QTDIR)\include\QtWidgets" "-I$(QTDIR)\include\QtXml"</Command>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
@@ -925,6 +1038,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Activity5.nvact" />
+    <None Include="Algorithm\arcsim\jsoncpp\src\lib_json\json_internalarray.inl" />
+    <None Include="Algorithm\arcsim\jsoncpp\src\lib_json\json_internalmap.inl" />
+    <None Include="Algorithm\arcsim\jsoncpp\src\lib_json\json_valueiterator.inl" />
     <None Include="qdarkstyle\style.qss">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -960,7 +1076,7 @@
   </ImportGroup>
   <ProjectExtensions>
     <VisualStudio>
-      <UserProperties MocDir=".\GeneratedFiles\$(ConfigurationName)" UicDir=".\GeneratedFiles" RccDir=".\GeneratedFiles" lupdateOptions="" lupdateOnBuild="0" lreleaseOptions="" Qt5Version_x0020_Win32="msvc2013_64_opengl" Qt5Version_x0020_x64="msvc2013_64_opengl" MocOptions="" />
+      <UserProperties MocDir=".\GeneratedFiles\$(ConfigurationName)" UicDir=".\GeneratedFiles" RccDir=".\GeneratedFiles" lupdateOptions="" lupdateOnBuild="0" lreleaseOptions="" Qt5Version_x0020_Win32="msvc2013_64_opengl" Qt5Version_x0020_x64="$(DefaultQtVersion)" MocOptions="" />
     </VisualStudio>
   </ProjectExtensions>
 </Project>
