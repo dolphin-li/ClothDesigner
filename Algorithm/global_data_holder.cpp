@@ -21,6 +21,7 @@ void GlobalDataHolder::loadLastDirs()
 	if (stream.fail())
 		return;
 	std::string lineLabel, lineBuffer;
+	m_exportSepMesh = true;
 	while (!stream.eof())
 	{
 		std::getline(stream, lineBuffer);
@@ -38,6 +39,8 @@ void GlobalDataHolder::loadLastDirs()
 			m_lastClothMeshDir = lineBuffer;
 		else if (lineLabel == "cloth_mesh_script_dir")
 			m_lastClothMeshRenderScriptDir = lineBuffer;
+		else if (lineLabel == "export_separated_mesh")
+			m_exportSepMesh = !!atoi(lineBuffer.c_str());
 	}
 	stream.close();
 }
@@ -52,6 +55,7 @@ void GlobalDataHolder::saveLastDirs()
 	stm << "smpl_shape_dir: " << m_lastSmplShapeCoeffDir << std::endl;
 	stm << "cloth_mesh_dir: " << m_lastClothMeshDir << std::endl;
 	stm << "cloth_mesh_script_dir: " << m_lastClothMeshRenderScriptDir << std::endl;
+	stm << "export_separated_mesh: " << int(m_exportSepMesh) << std::endl;
 	stm.close();
 }
 

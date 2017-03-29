@@ -564,9 +564,27 @@ void  ClothDesigner::on_actionSave_as_triggered()
 
 void ClothDesigner::exportClothMesh(const std::string& name)
 {
-	ObjMesh mesh;
-	g_dataholder.m_clothManager->exportClothsMerged(mesh, true);
-	mesh.saveObj(name.c_str());
+	if (g_dataholder.m_exportSepMesh)
+	{
+		QFileInfo rootInfo(name.c_str());
+		QDir root(QDir::cleanPath(rootInfo.absolutePath() + QDir::separator() + rootInfo.baseName()));
+		if (!root.exists())
+			root.mkdir(root.absolutePath());
+		std::vector<ObjMesh> meshes;
+		g_dataholder.m_clothManager->exportClothsSeparated(meshes);
+		for (size_t i = 0; i < meshes.size(); i++)
+		{
+			std::string subname = QDir::cleanPath(root.absolutePath()
+				+ QDir::separator() + std::to_string(i).c_str() + ".obj").toStdString();
+			meshes[i].saveObj(subname.c_str());
+		}
+	}
+	else
+	{
+		ObjMesh mesh;
+		g_dataholder.m_clothManager->exportClothsMerged(mesh, true);
+		mesh.saveObj(name.c_str());
+	}
 }
 
 void ClothDesigner::on_actionExport_cloth_mesh_triggered()

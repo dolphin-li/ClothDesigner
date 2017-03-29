@@ -129,6 +129,7 @@ namespace ldp
 		void removeClothPiece(size_t graphPanelId);
 		void removeClothPiece(ClothPiece* piece);
 		void exportClothsMerged(ObjMesh& mesh, bool mergeStitchedVertex = false)const;
+		void exportClothsSeparated(std::vector<ObjMesh>& mesh)const;
 
 		/// bounding box
 		void get2dBound(ldp::Float2& bmin, ldp::Float2& bmax)const;

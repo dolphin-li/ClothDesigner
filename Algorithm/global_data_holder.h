@@ -27,6 +27,8 @@ public:
 	std::string m_lastSmplShapeCoeffDir;
 	std::string m_lastClothMeshDir;
 	std::string m_lastClothMeshRenderScriptDir;
+
+	bool m_exportSepMesh = true;
 };
 
 extern GlobalDataHolder g_dataholder;

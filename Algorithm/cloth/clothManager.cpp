@@ -496,6 +496,47 @@ namespace ldp
 				mesh.face_list.push_back(f);
 		}
 	}
+
+	void ClothManager::exportClothsSeparated(std::vector<ObjMesh>& meshes)const
+	{
+		std::vector<ldp::Float3> vmerged = m_X;
+		std::vector<float> wmerged(m_X.size(), 1.f);
+
+		for (const auto& stp : m_stitches)
+		{
+			int sm = std::min(stp.first, stp.second);
+			int lg = std::max(stp.first, stp.second);
+			vmerged[sm] += m_X[lg];
+			wmerged[sm]++;
+			vmerged[lg] += m_X[sm];
+			wmerged[lg]++;
+		}
+		for (size_t i = 0; i < vmerged.size(); i++)
+			vmerged[i] /= wmerged[i];
+
+		// create the mesh
+		meshes.clear();
+		for (const auto& piece : m_clothPieces)
+		{
+			meshes.push_back(ObjMesh());
+			ObjMesh& mesh = meshes.back();
+			const auto& m3d = piece->mesh3d();
+			const auto& m2d = piece->mesh2d();
+			int vs = m_clothVertBegin.at(&m3d);
+			for (size_t i = 0; i < m2d.vertex_list.size(); i++)
+			{
+				mesh.vertex_list.push_back(vmerged[i+vs]);
+				mesh.vertex_texture_list.push_back(Float2(m2d.vertex_list[i][0], -m2d.vertex_list[i][1]));
+			} // end for i
+			for (const auto& t : m3d.face_list)
+			{
+				ObjMesh::obj_face f = t;
+				for (int k = 0; k < f.vertex_count; k++)
+					f.texture_index[k] = f.vertex_index[k];
+				mesh.face_list.push_back(f);
+			}
+		} // end for piece
+	}
 	//////////////////////////////////////////////////////////////////////////////////
 	void ClothManager::clearClothPieces() 
 	{
