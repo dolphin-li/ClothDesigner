@@ -15,6 +15,7 @@ ArcsimWindow::ArcsimWindow(QWidget *parent)
 : QMainWindow(parent)
 {
 	ui.setupUi(this);
+	m_updateMeshView_timer = startTimer(30);
 }
 
 ArcsimWindow::~ArcsimWindow()
@@ -29,7 +30,11 @@ void ArcsimWindow::init()
 
 void ArcsimWindow::timerEvent(QTimerEvent* ev)
 {
-
+	if (ev->timerId() == m_updateMeshView_timer)
+	{
+		if (g_dataholder.m_arcsimManager->updateMesh())
+			ui.widget->updateGL();
+	}
 }
 
 void ArcsimWindow::on_actionLoad_conf_triggered()
@@ -56,5 +61,12 @@ void ArcsimWindow::on_actionSave_cloth_triggered()
 
 void ArcsimWindow::on_pbStartSimulation_clicked()
 {
-
+	try
+	{
+		g_dataholder.m_arcsimManager->start_simulate_loop_otherthread();
+	}
+	catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
 }

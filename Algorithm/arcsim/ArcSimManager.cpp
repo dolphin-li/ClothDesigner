@@ -14,7 +14,17 @@ namespace arcsim
 		m_bodyMesh.reset(new ObjMesh());
 		m_clothMesh.reset(new ObjMesh());
 		m_timeStamp.reset(new ldp::TimeStamp());
+		m_threadMutex.reset(new std::mutex());
 		m_timeStamp->Prefix("arcsim");
+	}
+
+	ArcSimManager::~ArcSimManager()
+	{
+		if (m_threadLoop)
+		{
+			if (m_threadLoop->joinable())
+				m_threadLoop->join();
+		}
 	}
 
 	void ArcSimManager::clear()
@@ -54,16 +64,24 @@ namespace arcsim
 		load_json(bodyMeshFileName, *m_sim.get());
 		m_timeStamp->Stamp("json loaded");
 
+		prepare(*m_sim);
+		m_needUpdateMesh = true;
+		updateMesh();
+	}
+
+	void ArcSimManager::reset()
+	{
+		if (m_sim == nullptr)
+			throw std::exception("ArcSimManager::reset: nullptr exception");
 		// prepare for simulation
 		prepare(*m_sim);
 		m_timeStamp->Stamp("prepared");
 		separate_obstacles(m_sim->obstacle_meshes, m_sim->cloth_meshes);
 		m_timeStamp->Stamp("obstacles seperated");
-		///relax_initial_state(*m_sim);
-		///m_timeStamp->Stamp("initial state relaxed\n");
-
-		updateBodyMesh();
-		updateClothMesh();
+		relax_initial_state(*m_sim);
+		m_timeStamp->Stamp("initial state relaxed\n");
+		m_needUpdateMesh = true;
+		updateMesh();
 		m_timeStamp->Stamp("obj mesh updated");
 	}
 
@@ -89,8 +107,8 @@ namespace arcsim
 			return;
 		for (int k = 0; k < nsteps; k++)
 			advance_step(*m_sim);
-		updateBodyMesh();
-		updateClothMesh();
+		m_needUpdateMesh = true;
+		updateMesh();
 		m_timeStamp->Stamp("step, time=%f/%f, phys=%f, collision=%f",
 			m_sim->time, m_sim->end_time,
 			m_sim->timers[Simulation::Physics].last,
@@ -143,19 +161,52 @@ namespace arcsim
 		}
 	}
 
-	void ArcSimManager::updateBodyMesh()
+	bool ArcSimManager::updateMesh()
 	{
-		m_bodyMesh->clear();
+		if (!m_needUpdateMesh)
+			return false;
 		if (m_sim == nullptr)
-			return;
+			return false;
+		m_threadMutex->lock();
+
 		convertToObj(m_sim->obstacle_meshes, *m_bodyMesh);
+		convertToObj(m_sim->cloth_meshes, *m_clothMesh);
+		m_needUpdateMesh = false;
+
+		m_threadMutex->unlock();
+		return true;
 	}
 
-	void ArcSimManager::updateClothMesh()
+	void ArcSimManager::start_simulate_loop_otherthread()
 	{
-		m_clothMesh->clear();
-		if (m_sim == nullptr)
-			return;
-		convertToObj(m_sim->cloth_meshes, *m_clothMesh);
+		m_timeStamp->Reset();
+
+		// check existed thread
+		if (m_threadLoop)
+		{
+			if (m_threadLoop->joinable())
+				m_threadLoop->join();
+		}
+		reset();
+		m_threadLoop.reset(new std::thread(simulate_thread_loop, this));
+	}
+
+	void simulate_thread_loop(ArcSimManager* threadData)
+	{
+		Simulation* sim = threadData->getSimulator();
+		while (sim->time < sim->end_time)
+		{
+			advance_step(*sim);
+			threadData->m_threadMutex->lock();
+			threadData->m_needUpdateMesh = true;
+			threadData->m_threadMutex->unlock();
+			threadData->m_timeStamp->Stamp("%.3f/%.1f, pr=%.3f, ps=%.3f, co=%.3f, sl=%.3f, pl=%.3f",
+				sim->time, sim->end_time,
+				sim->timers[Simulation::Proximity].last,
+				sim->timers[Simulation::Physics].last,
+				sim->timers[Simulation::Collision].last,
+				sim->timers[Simulation::StrainLimiting].last,
+				sim->timers[Simulation::Plasticity].last);
+		} // end while sim->time
 	}
 }

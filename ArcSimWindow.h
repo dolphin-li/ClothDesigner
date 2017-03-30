@@ -22,5 +22,6 @@ protected:
 	virtual void timerEvent(QTimerEvent* ev);
 private:
 	Ui_ArcsimWindow ui;
+	int m_updateMeshView_timer = 0;
 };
 

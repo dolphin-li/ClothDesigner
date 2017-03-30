@@ -2,6 +2,8 @@
 
 #include "adaptiveCloth\simulation.hpp"
 #include "ldpmat/ldp_basic_mat.h"
+#include <thread>
+#include <mutex>
 class ObjMesh;
 namespace ldp
 {
@@ -9,12 +11,16 @@ namespace ldp
 }
 namespace arcsim
 {
+	class ArcSimManager;
+	void simulate_thread_loop(ArcSimManager* threadData);
 	class ArcSimManager
 	{
 	public:
 		ArcSimManager();
+		~ArcSimManager();
 		void loadFromJsonConfig(std::string configFileName);
 		void clear();
+		void reset();	// reset to initial state
 		Simulation* getSimulator() { return m_sim.get(); }
 		const Simulation* getSimulator()const { return m_sim.get(); }
 		void simulate(int nsteps);
@@ -25,14 +31,21 @@ namespace arcsim
 		const ObjMesh* getBodyMesh()const{ return m_bodyMesh.get(); }
 		ObjMesh* getClothMesh(){ return m_clothMesh.get(); }
 		const ObjMesh* getClothMesh()const{ return m_clothMesh.get(); }
+		bool updateMesh();
+	public:
+		////////////////////////////////// multi-thread handling
+		friend void arcsim::simulate_thread_loop(ArcSimManager* threadData);
+		void start_simulate_loop_otherthread();
 	protected:
-		void updateBodyMesh();
-		void updateClothMesh();
 		void convertToObj(const std::vector<arcsim::Mesh*>& meshes, ObjMesh& omesh);
 	private:
 		std::shared_ptr<Simulation> m_sim;
 		std::shared_ptr<ObjMesh> m_bodyMesh, m_clothMesh;
 		std::shared_ptr<ldp::TimeStamp> m_timeStamp;
+		bool m_needUpdateMesh = false;
+	private:
+		std::shared_ptr<std::thread> m_threadLoop;
+		std::shared_ptr<std::mutex> m_threadMutex;
 	};
 
 }
