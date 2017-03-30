@@ -5,7 +5,7 @@
     "frame_steps": 8,											// Optional, default 1: Number of substeps per frame
     "end_time": 1,												// Optional, default infinity: Length of simulation in time
     "cloths": [{												// Required: List of cloth objects
-		"mesh": "data/arcsim_test/square4.obj",							// Required: Initial mesh. See "Creating cloth meshes" in README
+		"mesh": "data/arcsim/square4.obj",							// Required: Initial mesh. See "Creating cloth meshes" in README
 		"transform": {											// Optional, default identity: Initial pose of mesh
 			"translate": [0, 0, 0],
 			"rotate": [0, 1, 0, 0],
@@ -17,7 +17,7 @@
 																// but this functionality is not used very much.
 																// Just make a list of one element and be done with it.
 			{
-				"data": "data/arcsim_test/materials/navy-sparkle-sweat.json",  	// Required: material data, see materials/README
+				"data": "data/arcsim/materials/navy-sparkle-sweat.json",  	// Required: material data, see materials/README
 				//"density_mult": 1, 							// Optional: Multiply density by a factor
 				//"stretching_mult": 1, 						// Optional: Multiply stretching stiffness
 				"bending_mult": 1,								// Optional: Multiply bending stiffness
