@@ -19,8 +19,10 @@
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QMenu>
 #include <QtWidgets/QMenuBar>
+#include <QtWidgets/QPushButton>
 #include <QtWidgets/QStatusBar>
 #include <QtWidgets/QWidget>
+#include "arcsimview.h"
 
 QT_BEGIN_NAMESPACE
 
@@ -31,12 +33,13 @@ public:
     QAction *actionSave_cloth;
     QWidget *centralwidget;
     QGridLayout *gridLayout;
-    QWidget *widget;
+    ArcsimView *widget;
     QMenuBar *menubar;
     QMenu *menuFile;
     QStatusBar *statusbar;
     QDockWidget *dockWidget;
     QWidget *dockWidgetContents_2;
+    QPushButton *pbStartSimulation;
 
     void setupUi(QMainWindow *ArcsimWindow)
     {
@@ -51,7 +54,7 @@ public:
         centralwidget->setObjectName(QStringLiteral("centralwidget"));
         gridLayout = new QGridLayout(centralwidget);
         gridLayout->setObjectName(QStringLiteral("gridLayout"));
-        widget = new QWidget(centralwidget);
+        widget = new ArcsimView(centralwidget);
         widget->setObjectName(QStringLiteral("widget"));
 
         gridLayout->addWidget(widget, 0, 0, 1, 1);
@@ -71,6 +74,9 @@ public:
         dockWidget->setMinimumSize(QSize(150, 38));
         dockWidgetContents_2 = new QWidget();
         dockWidgetContents_2->setObjectName(QStringLiteral("dockWidgetContents_2"));
+        pbStartSimulation = new QPushButton(dockWidgetContents_2);
+        pbStartSimulation->setObjectName(QStringLiteral("pbStartSimulation"));
+        pbStartSimulation->setGeometry(QRect(20, 20, 121, 23));
         dockWidget->setWidget(dockWidgetContents_2);
         ArcsimWindow->addDockWidget(static_cast<Qt::DockWidgetArea>(1), dockWidget);
 
@@ -89,6 +95,7 @@ public:
         actionLoad_conf->setText(QApplication::translate("ArcsimWindow", "load conf", 0));
         actionSave_cloth->setText(QApplication::translate("ArcsimWindow", "save cloth", 0));
         menuFile->setTitle(QApplication::translate("ArcsimWindow", "file", 0));
+        pbStartSimulation->setText(QApplication::translate("ArcsimWindow", "start simulation", 0));
     } // retranslateUi
 
 };

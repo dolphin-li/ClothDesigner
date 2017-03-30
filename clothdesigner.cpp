@@ -15,6 +15,7 @@
 #include "cloth\SmplManager.h"
 #include "TrainingImageRenderWindow.h"
 #include "BatchSimulateManager.h"
+#include "ArcSimWindow.h"
 
 #define ENABLE_ALIGNED_BATCH
 #pragma region --random number generator
@@ -45,6 +46,7 @@ ClothDesigner::ClothDesigner(QWidget *parent)
 	m_splitter->addWidget(m_widget3d);
 	m_splitter->addWidget(m_widget2d);
 	m_trainingImageRenderWindow.reset(new TrainingImageRenderWindow());
+	m_arcsimWindow.reset(new ArcsimWindow());
 	m_batchSimManager.reset(new BatchSimulateManager);
 
 	init3dActions();
@@ -386,6 +388,7 @@ void ClothDesigner::timerEvent(QTimerEvent* ev)
 void ClothDesigner::closeEvent(QCloseEvent* ev)
 {
 	m_trainingImageRenderWindow->close();
+	m_arcsimWindow->close();
 	g_dataholder.saveLastDirs();
 }
 
@@ -741,6 +744,24 @@ void ClothDesigner::on_actionTraining_image_render_triggered()
 	{
 		std::cout << e.what() << std::endl;
 	} catch (...)
+	{
+		std::cout << "unknown error" << std::endl;
+	}
+}
+
+void ClothDesigner::on_actionArcsim_triggered()
+{
+	try
+	{
+		g_dataholder.m_clothManager->setSimulationMode(ldp::SimulationMode::SimulationPause);
+		m_arcsimWindow->init();
+		m_arcsimWindow->show();
+	}
+	catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
+	catch (...)
 	{
 		std::cout << "unknown error" << std::endl;
 	}

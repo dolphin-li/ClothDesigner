@@ -16,7 +16,7 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="0">
-     <widget class="QWidget" name="widget" native="true"/>
+     <widget class="ArcsimView" name="widget" native="true"/>
     </item>
    </layout>
   </widget>
@@ -49,7 +49,21 @@
    <attribute name="dockWidgetArea">
     <number>1</number>
    </attribute>
-   <widget class="QWidget" name="dockWidgetContents_2"/>
+   <widget class="QWidget" name="dockWidgetContents_2">
+    <widget class="QPushButton" name="pbStartSimulation">
+     <property name="geometry">
+      <rect>
+       <x>20</x>
+       <y>20</y>
+       <width>121</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>start simulation</string>
+     </property>
+    </widget>
+   </widget>
   </widget>
   <action name="actionLoad_conf">
    <property name="text">
@@ -62,6 +76,14 @@
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ArcsimView</class>
+   <extends>QWidget</extends>
+   <header>arcsimview.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

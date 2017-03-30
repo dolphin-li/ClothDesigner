@@ -6,12 +6,14 @@
 #include "cloth\TransformInfo.h"
 #include "Renderable\ObjMesh.h"
 #include <fstream>
+#include "arcsim\ArcSimManager.h"
 GlobalDataHolder g_dataholder;
 
 void GlobalDataHolder::init()
 {
 	m_clothManager.reset(new ldp::ClothManager);
 	m_historyStack.reset(new ldp::HistoryStack);
+	m_arcsimManager.reset(new arcsim::ArcSimManager);
 	loadLastDirs();
 }
 

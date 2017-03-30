@@ -20,7 +20,7 @@
      <x>0</x>
      <y>0</y>
      <width>890</width>
-     <height>21</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -54,6 +54,7 @@
      <string>windows</string>
     </property>
     <addaction name="actionTraining_image_render"/>
+    <addaction name="actionArcsim"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuEdit"/>
@@ -674,6 +675,11 @@
   <action name="actionTraining_image_render">
    <property name="text">
     <string>training image render</string>
+   </property>
+  </action>
+  <action name="actionArcsim">
+   <property name="text">
+    <string>arcsim</string>
    </property>
   </action>
  </widget>

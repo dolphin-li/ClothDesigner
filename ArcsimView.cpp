@@ -6,6 +6,7 @@
 #include "cloth\TransformInfo.h"
 #include "Renderable\ObjMesh.h"
 #include "cloth\clothManager.h"
+#include "arcsim\ArcSimManager.h"
 #include <eigen\Dense>
 
 #pragma region --mat_utils
@@ -140,6 +141,11 @@ ArcsimView::~ArcsimView()
 
 }
 
+void ArcsimView::init(arcsim::ArcSimManager* manager)
+{
+	m_arcsimManager = manager;
+}
+
 void ArcsimView::resetCamera()
 {
 	m_camera.setViewPort(0, width(), 0, height());
@@ -147,14 +153,13 @@ void ArcsimView::resetCamera()
 	m_camera.setPerspective(60, float(width()) / float(height()), 0.1, 10000);
 	ldp::Float3 c = 0.f;
 	float l = 1.f;
-	//if (m_clothManager)
-	//{
-	//	ldp::Float3 bmin, bmax;
-	//	bmin = m_clothManager->bodyMesh()->getBoundingBox(0);
-	//	bmax = m_clothManager->bodyMesh()->getBoundingBox(1);
-	//	c = (bmax + bmin) / 2.f;
-	//	l = (bmax - bmin).length();
-	//}
+	if (m_arcsimManager)
+	{
+		ldp::Float3 bmin, bmax;
+		m_arcsimManager->calcBoundingBox(bmin.ptr(), bmax.ptr());
+		c = (bmax + bmin) / 2.f;
+		l = (bmax - bmin).length();
+	}
 	m_camera.lookAt(ldp::Float3(0, l, 0)*1 + c, c, ldp::Float3(0, 0, 1));
 	m_camera.arcballSetCenter(c);
 }
@@ -195,7 +200,15 @@ void ArcsimView::paintGL()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	m_camera.apply();
 
-	
+	if (m_arcsimManager == nullptr)
+		return;
+	arcsim::Simulation* sim = m_arcsimManager->getSimulator();
+	if (sim == nullptr)
+		return;
+
+	if (m_showBody)
+		m_arcsimManager->getBodyMesh()->render(m_showType);
+	m_arcsimManager->getClothMesh()->render(m_showType);
 }
 
 void ArcsimView::mousePressEvent(QMouseEvent *ev)
@@ -251,16 +264,15 @@ void ArcsimView::mouseMoveEvent(QMouseEvent*ev)
 {
 	if (ev->buttons() == Qt::LeftButton)
 		camera().arcballDrag(ldp::Float2(ev->x(), ev->y()));
-	if (ev->buttons() == Qt::MidButton)
+	if (ev->buttons() == Qt::MidButton && m_arcsimManager)
 	{
-		//QPoint dif = ev->pos() - lastMousePos();
-		//ldp::Float3 bmin, bmax;
-		//bmin = m_clothManager->bodyMesh()->getBoundingBox(0);
-		//bmax = m_clothManager->bodyMesh()->getBoundingBox(1);
-		//float len = (bmax - bmin).length() / sqrt(3.f);
-		//ldp::Float3 t(-(float)dif.x() / width(), (float)dif.y() / height(), 0);
-		//camera().translate(t * len);
-		//camera().arcballSetCenter((bmin + bmax) / 2.f + t * len);
+		QPoint dif = ev->pos() - m_lastPos;
+		ldp::Float3 bmin, bmax;
+		m_arcsimManager->calcBoundingBox(bmin.ptr(), bmax.ptr());
+		float len = (bmax - bmin).length() / sqrt(3.f);
+		ldp::Float3 t(-(float)dif.x() / width(), (float)dif.y() / height(), 0);
+		camera().translate(t * len);
+		camera().arcballSetCenter((bmin + bmax) / 2.f + t * len);
 	}
 
 	// backup last position

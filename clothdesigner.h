@@ -15,6 +15,7 @@ class Viewer3d;
 class Viewer2d;
 class BatchSimulateManager;
 class TrainingImageRenderWindow;
+class ArcsimWindow;
 class ClothDesigner : public QMainWindow
 {
 	Q_OBJECT
@@ -75,6 +76,7 @@ public:
 	void on_pbCopySelected_clicked();
 	/// 
 	void on_actionTraining_image_render_triggered();
+	void on_actionArcsim_triggered();
 public:
 	Ui::ClothDesignerClass ui;
 	Viewer2d* m_widget2d;
@@ -83,6 +85,7 @@ public:
 	int m_fpsTimer;
 	int m_batchSimulateTimer;
 	QSharedPointer<TrainingImageRenderWindow> m_trainingImageRenderWindow;
+	QSharedPointer<ArcsimWindow> m_arcsimWindow;
 	//////////////////////////////////////////////////////////////////////////
 protected:
 	QSplitter* m_splitter;

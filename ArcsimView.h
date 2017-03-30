@@ -3,11 +3,11 @@
 #include <GL\glew.h>
 #include <QtOpenGL>
 #include "Camera\camera.h"
-namespace ldp
+
+namespace arcsim
 {
-	class ClothManager;
+	class ArcSimManager;
 }
-class ObjMesh;
 class ArcsimView : public QGLWidget
 {
 	Q_OBJECT
@@ -15,6 +15,8 @@ class ArcsimView : public QGLWidget
 public:
 	ArcsimView(QWidget *parent);
 	~ArcsimView();
+
+	void init(arcsim::ArcSimManager* manager);
 
 	const ldp::Camera& camera()const{ return m_camera; }
 	ldp::Camera& camera(){ return m_camera; }
@@ -39,5 +41,7 @@ protected:
 	QPoint m_lastPos;
 	int m_showType;
 	bool m_showBody = true;
+
+	arcsim::ArcSimManager* m_arcsimManager = nullptr;
 };
 

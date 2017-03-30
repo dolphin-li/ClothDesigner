@@ -9,6 +9,10 @@ namespace ldp
 	class LevelSet3D;
 	class HistoryStack;
 }
+namespace arcsim
+{
+	class ArcSimManager;
+}
 class GlobalDataHolder
 {
 public:
@@ -21,6 +25,7 @@ public:
 public:
 	std::shared_ptr<ldp::ClothManager> m_clothManager;
 	std::shared_ptr<ldp::HistoryStack> m_historyStack;
+	std::shared_ptr<arcsim::ArcSimManager> m_arcsimManager;
 
 	std::string m_lastSvgDir;
 	std::string m_lastProXmlDir;
