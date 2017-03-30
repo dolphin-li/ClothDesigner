@@ -8,6 +8,7 @@ class ObjMesh;
 namespace ldp
 {
 	class TimeStamp;
+	class ClothManager;
 }
 namespace arcsim
 {
@@ -19,6 +20,7 @@ namespace arcsim
 		ArcSimManager();
 		~ArcSimManager();
 		void loadFromJsonConfig(std::string configFileName);
+		void loadFromClothManager(ldp::ClothManager* clothManager);
 		void clear();
 		void reset();	// reset to initial state
 		Simulation* getSimulator() { return m_sim.get(); }

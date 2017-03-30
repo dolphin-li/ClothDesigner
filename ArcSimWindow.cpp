@@ -41,7 +41,7 @@ void ArcsimWindow::on_actionLoad_conf_triggered()
 {
 	try
 	{
-		QString name = QFileDialog::getOpenFileName(this, "open arcsim config", "", "*.json");
+		QString name = QFileDialog::getOpenFileName(this, "open arcsim config", "data/arcsim", "*.json");
 		if (name.isEmpty())
 			return;
 		g_dataholder.m_arcsimManager->loadFromJsonConfig(name.toStdString());
@@ -57,6 +57,20 @@ void ArcsimWindow::on_actionLoad_conf_triggered()
 void ArcsimWindow::on_actionSave_cloth_triggered()
 {
 
+}
+
+void ArcsimWindow::on_pbFromCloths_clicked()
+{
+	try
+	{
+		g_dataholder.m_arcsimManager->loadFromClothManager(g_dataholder.m_clothManager.get());
+		ui.widget->resetCamera();
+		ui.widget->updateGL();
+	}
+	catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
 }
 
 void ArcsimWindow::on_pbStartSimulation_clicked()

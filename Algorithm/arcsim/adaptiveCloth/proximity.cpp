@@ -65,10 +65,19 @@ namespace arcsim
 		const vector<Mesh*> &obs_meshes,
 		double mu, double mu_obs)
 	{
+		vector<AccelStruct*> obs_accs = create_accel_structs(obs_meshes, false);
+		std::vector<Constraint*> cons = proximity_constraints(meshes, obs_accs, mu, mu_obs);
+		destroy_accel_structs(obs_accs);
+		return cons;
+	}
+
+	std::vector<Constraint*> proximity_constraints
+		(const std::vector<Mesh*> &meshes, const vector<AccelStruct*> &obs_accs,
+		double mu, double mu_obs)
+	{
 		arcsim::meshes = &meshes;
 		const double dmin = 2 * arcsim::magic.repulsion_thickness;
-		vector<AccelStruct*> accs = create_accel_structs(meshes, false),
-			obs_accs = create_accel_structs(obs_meshes, false);
+		vector<AccelStruct*> accs = create_accel_structs(meshes, false);
 		int nn = size<Node>(meshes),
 			ne = size<Edge>(meshes),
 			nf = size<Face>(meshes);
@@ -105,7 +114,6 @@ namespace arcsim
 				mu, mu_obs));
 		}
 		destroy_accel_structs(accs);
-		destroy_accel_structs(obs_accs);
 		return cons;
 	}
 

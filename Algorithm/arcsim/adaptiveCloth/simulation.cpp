@@ -78,6 +78,7 @@ namespace arcsim
 		{
 			sim.obstacle_meshes[o] = &sim.obstacles[o].get_mesh();
 			update_x0(*sim.obstacle_meshes[o]);
+			sim.obstacles[o].base_acc_noccd.reset(new AccelStruct(*sim.obstacle_meshes[o], false));
 		}
 	}
 
@@ -141,12 +142,21 @@ namespace arcsim
 	{
 		sim.time += sim.step_time;
 		sim.step++;
-		update_obstacles(sim, false);
+
+		// ldp: update obstacles only if they have motions
+		if (sim.motions.size() > 1)
+			update_obstacles(sim, false);
+
+		// collect constraints
 		vector<Constraint*> cons = get_constraints(sim, true);
+
+		// physical simulation
 		physics_step(sim, cons);
 		plasticity_step(sim);
 		strainlimiting_step(sim, cons);
 		collision_step(sim);
+
+		// go to next step
 		if (sim.step % sim.frame_steps == 0)
 		{
 			remeshing_step(sim);
@@ -163,9 +173,21 @@ namespace arcsim
 		if (include_proximity && sim.enabled[proximity])
 		{
 			sim.timers[proximity].tick();
-			append(cons, proximity_constraints(sim.cloth_meshes,
-				sim.obstacle_meshes,
-				sim.friction, sim.obs_friction));
+
+			// ldp: if have motions, we re-create obs accs each frame
+			// else we reuse the base obs accs
+			if (sim.motions.size() > 1)
+				append(cons, proximity_constraints(sim.cloth_meshes,
+					sim.obstacle_meshes, sim.friction, sim.obs_friction));
+			else
+			{
+				std::vector<AccelStruct*> obs_accs(sim.obstacles.size());
+				for (size_t i = 0; i < obs_accs.size(); i++)
+					obs_accs[i] = sim.obstacles[i].base_acc_noccd.get();
+				append(cons, proximity_constraints(sim.cloth_meshes,
+					obs_accs,sim.friction, sim.obs_friction));
+			}
+
 			sim.timers[proximity].tock();
 		}
 		return cons;

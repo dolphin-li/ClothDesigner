@@ -18,6 +18,7 @@ public:
 	void on_actionLoad_conf_triggered();
 	void on_actionSave_cloth_triggered();
 	void on_pbStartSimulation_clicked();
+	void on_pbFromCloths_clicked();
 protected:
 	virtual void timerEvent(QTimerEvent* ev);
 private:

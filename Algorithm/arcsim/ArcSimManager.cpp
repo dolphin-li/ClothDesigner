@@ -4,6 +4,7 @@
 #include "adaptiveCloth\io.hpp"
 #include "ldputil.h"
 #include "Renderable\ObjMesh.h"
+#include "cloth\clothManager.h"
 namespace arcsim
 {
 	const static double g_num_edge_sample_angle_thre = 15 * ldp::PI_D / 180.;
@@ -67,6 +68,57 @@ namespace arcsim
 		prepare(*m_sim);
 		m_needUpdateMesh = true;
 		updateMesh();
+	}
+
+	static void objMesh2arcMesh(Mesh& mesh, const ObjMesh& omesh)
+	{
+		delete_mesh(mesh);
+
+		for (const auto& v : omesh.vertex_list)
+			mesh.add(new Node(Vec3(v[0], v[1], v[2])));
+		for (const auto& v : omesh.vertex_texture_list)
+			mesh.add(new Vert(Vec3(v[0], v[1], v[2])));
+		for (const auto& f : omesh.face_list)
+		{
+			std::vector<Vert*> verts;
+			std::vector<Node*> nodes;		
+			for (int k = 0; k < 3; k++)
+			{
+				nodes.push_back(mesh.nodes[f.vertex_index[k]]);
+				if (omesh.vertex_texture_list.size())
+					verts.push_back(mesh.verts[f.texture_index[k]]);
+				else
+				{
+					verts.push_back(new Vert(project<2>(nodes.back()->x),
+						nodes.back()->label));
+					mesh.add(verts.back());
+				}
+			}
+			for (int v = 0; v < verts.size(); v++)
+				connect(verts[v], nodes[v]);
+			mesh.add(new Face(verts[0], verts[1], verts[2]));
+		}
+	}
+
+	void ArcSimManager::loadFromClothManager(ldp::ClothManager* clothManager)
+	{
+		m_timeStamp->Reset();
+
+		clear();
+		m_sim.reset(new Simulation);
+		load_json("data/arcsim/default.json", *m_sim.get());
+		m_timeStamp->Stamp("json loaded");
+
+		const ObjMesh* bodyMesh = clothManager->bodyMesh();
+		ObjMesh clothMesh;
+		clothManager->exportClothsMerged(clothMesh, true);
+		objMesh2arcMesh(m_sim->cloths[0].mesh, clothMesh);
+		objMesh2arcMesh(m_sim->obstacles[0].base_mesh, *bodyMesh);
+		m_sim->obstacles[0].curr_state_mesh = deep_copy(m_sim->obstacles[0].base_mesh);
+		prepare(*m_sim);
+		m_needUpdateMesh = true;
+		updateMesh();
+		m_timeStamp->Stamp("cloth manager loaded");
 	}
 
 	void ArcSimManager::reset()

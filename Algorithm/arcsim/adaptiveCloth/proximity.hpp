@@ -27,9 +27,16 @@
 #pragma once
 #include "cloth.hpp"
 #include "constraint.hpp"
+#include "collisionutil.hpp"
 namespace arcsim
 {
 	std::vector<Constraint*> proximity_constraints
 		(const std::vector<Mesh*> &meshes, const std::vector<Mesh*> &obs_meshes,
+		double friction, double obs_friction);
+
+	// ldp: similar with the above, but assume the obs is fixed, thus do not need to recompute
+	std::vector<Constraint*> proximity_constraints
+		(const std::vector<Mesh*> &meshes, 
+		const std::vector<AccelStruct*> &obs_accs,
 		double friction, double obs_friction);
 }

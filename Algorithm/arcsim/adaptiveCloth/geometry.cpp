@@ -262,7 +262,7 @@ namespace arcsim
 	template Vec3 nor<PS>(const Face *face);
 	template Vec3 nor<WS>(const Face *face);
 
-	double unwrap_angle(double theta, double theta_ref)
+	inline double unwrap_angle(double theta, double theta_ref)
 	{
 		if (theta - theta_ref > M_PI)
 			theta -= 2 * M_PI;

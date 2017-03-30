@@ -40,6 +40,7 @@ public:
     QDockWidget *dockWidget;
     QWidget *dockWidgetContents_2;
     QPushButton *pbStartSimulation;
+    QPushButton *pbFromCloths;
 
     void setupUi(QMainWindow *ArcsimWindow)
     {
@@ -76,7 +77,10 @@ public:
         dockWidgetContents_2->setObjectName(QStringLiteral("dockWidgetContents_2"));
         pbStartSimulation = new QPushButton(dockWidgetContents_2);
         pbStartSimulation->setObjectName(QStringLiteral("pbStartSimulation"));
-        pbStartSimulation->setGeometry(QRect(20, 20, 121, 23));
+        pbStartSimulation->setGeometry(QRect(10, 50, 121, 23));
+        pbFromCloths = new QPushButton(dockWidgetContents_2);
+        pbFromCloths->setObjectName(QStringLiteral("pbFromCloths"));
+        pbFromCloths->setGeometry(QRect(10, 10, 121, 23));
         dockWidget->setWidget(dockWidgetContents_2);
         ArcsimWindow->addDockWidget(static_cast<Qt::DockWidgetArea>(1), dockWidget);
 
@@ -96,6 +100,7 @@ public:
         actionSave_cloth->setText(QApplication::translate("ArcsimWindow", "save cloth", 0));
         menuFile->setTitle(QApplication::translate("ArcsimWindow", "file", 0));
         pbStartSimulation->setText(QApplication::translate("ArcsimWindow", "start simulation", 0));
+        pbFromCloths->setText(QApplication::translate("ArcsimWindow", "from cloths", 0));
     } // retranslateUi
 
 };

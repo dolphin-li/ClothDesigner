@@ -53,7 +53,7 @@ namespace arcsim
 	//                   ... ,  ... , ...,  ... ;
 	//                  am1 B, am2 B, ..., amn B]
 	template <int m, int n, int p, int q>
-	Mat<m*p, n*q> kronecker(const Mat<m, n> &A, const Mat<p, q> &B)
+	inline Mat<m*p, n*q> kronecker(const Mat<m, n> &A, const Mat<p, q> &B)
 	{
 		Mat<m*p, n*q> C;
 		for (int i = 0; i < m; i++)
@@ -64,17 +64,17 @@ namespace arcsim
 		return C;
 	}
 
-	template <int m> Mat<m, 1> colmat(const Vec<m> &v)
+	template <int m> Mat<m, 1> inline colmat(const Vec<m> &v)
 	{
 		Mat<1, m> A; for (int i = 0; i < m; i++) A(i, 0) = v[i]; return A;
 	}
-	template <int n> Mat<1, n> rowmat(const Vec<n> &v)
+	template <int n> inline Mat<1, n> rowmat(const Vec<n> &v)
 	{
 		Mat<1, n> A; for (int i = 0; i < n; i++) A(0, i) = v[i]; return A;
 	}
 
 	template <Space s>
-	double stretching_energy(const Face *face)
+	inline double stretching_energy(const Face *face)
 	{
 		Mat3x2 F = derivative(pos<s>(face->v[0]->node), pos<s>(face->v[1]->node),
 			pos<s>(face->v[2]->node), face);
@@ -87,7 +87,7 @@ namespace arcsim
 	}
 
 	template <Space s>
-	pair<Mat9x9, Vec9> stretching_force(const Face *face)
+	inline pair<Mat9x9, Vec9> stretching_force(const Face *face)
 	{
 		Mat3x2 F = derivative(pos<s>(face->v[0]->node), pos<s>(face->v[1]->node),
 			pos<s>(face->v[2]->node), face);
@@ -121,7 +121,7 @@ namespace arcsim
 	typedef Vec<12> Vec12;
 
 	template <Space s>
-	double bending_energy(const Edge *edge)
+	inline double bending_energy(const Edge *edge)
 	{
 		const Face *face0 = edge->adjf[0], *face1 = edge->adjf[1];
 		if (!face0 || !face1)
@@ -139,7 +139,7 @@ namespace arcsim
 		return ke*shape*sq(theta - edge->theta_ideal) / 4;
 	}
 
-	double distance(const Vec3 &x, const Vec3 &a, const Vec3 &b)
+	inline double distance(const Vec3 &x, const Vec3 &a, const Vec3 &b)
 	{
 		Vec3 e = b - a;
 		Vec3 xp = e*dot(e, x - a) / dot(e, e);
@@ -147,7 +147,7 @@ namespace arcsim
 		return std::max(norm((x - a) - xp), 1e-3*norm(e));
 	}
 
-	Vec2 barycentric_weights(const Vec3 &x, const Vec3 &a, const Vec3 &b)
+	inline Vec2 barycentric_weights(const Vec3 &x, const Vec3 &a, const Vec3 &b)
 	{
 		Vec3 e = b - a;
 		double t = dot(e, x - a) / dot(e, e);
@@ -155,7 +155,7 @@ namespace arcsim
 	}
 
 	template <Space s>
-	pair<Mat12x12, Vec12> bending_force(const Edge *edge)
+	pair<Mat12x12, Vec12> inline bending_force(const Edge *edge)
 	{
 		const Face *face0 = edge->adjf[0], *face1 = edge->adjf[1];
 		if (!face0 || !face1)
@@ -186,7 +186,7 @@ namespace arcsim
 			-ke*shape*(theta - edge->theta_ideal)*dtheta / 2.);
 	}
 
-	template <int m, int n> Mat<3, 3> submat3(const Mat<m, n> &A, int i, int j)
+	template <int m, int n> Mat<3, 3> inline submat3(const Mat<m, n> &A, int i, int j)
 	{
 		Mat3x3 Asub;
 		for (int k = 0; k < 3; k++)
@@ -195,7 +195,7 @@ namespace arcsim
 		return Asub;
 	}
 
-	template <int n> Vec<3> subvec3(const Vec<n> &b, int i)
+	template <int n> Vec<3> inline subvec3(const Vec<n> &b, int i)
 	{
 		Vec3 bsub;
 		for (int k = 0; k < 3; k++)
@@ -203,20 +203,20 @@ namespace arcsim
 		return bsub;
 	}
 
-	template <int m> void add_submat(const Mat<m * 3, m * 3> &Asub, const Vec<m, int> &ix, SpMat<Mat3x3> &A)
+	template <int m> inline void add_submat(const Mat<m * 3, m * 3> &Asub, const Vec<m, int> &ix, SpMat<Mat3x3> &A)
 	{
 		for (int i = 0; i < m; i++)
 		for (int j = 0; j < m; j++)
 			A(ix[i], ix[j]) += submat3(Asub, i, j);
 	}
 
-	template <int m> void add_subvec(const Vec<m * 3> &bsub, const Vec<m, int> &ix, vector<Vec3> &b)
+	template <int m> inline void add_subvec(const Vec<m * 3> &bsub, const Vec<m, int> &ix, vector<Vec3> &b)
 	{
 		for (int i = 0; i < m; i++)
 			b[ix[i]] += subvec3(bsub, i);
 	}
 
-	Vec<3, int> indices(const Node *n0, const Node *n1, const Node *n2)
+	inline Vec<3, int> indices(const Node *n0, const Node *n1, const Node *n2)
 	{
 		Vec<3, int> ix;
 		ix[0] = n0->index;
@@ -225,7 +225,7 @@ namespace arcsim
 		return ix;
 	}
 
-	Vec<4, int> indices(const Node *n0, const Node *n1,
+	inline Vec<4, int> indices(const Node *n0, const Node *n1,
 		const Node *n2, const Node *n3)
 	{
 		Vec<4, int> ix;
@@ -429,7 +429,11 @@ namespace arcsim
 		add_internal_forces<WS>(cloth, A, b, dt);
 		add_constraint_forces(cloth, cons, A, b, dt);
 		add_friction_forces(cloth, cons, A, b, dt);
+		Timer timer;
+		timer.tick();
 		vector<Vec3> dv = taucs_linear_solve(A, b);
+		timer.tock();
+		printf("solve: %f\n", timer.last);
 		for (int n = 0; n < mesh.nodes.size(); n++)
 		{
 			Node *node = mesh.nodes[n];

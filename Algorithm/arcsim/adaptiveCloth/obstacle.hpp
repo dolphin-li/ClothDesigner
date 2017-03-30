@@ -28,6 +28,8 @@
 #include "mesh.hpp"
 #include "spline.hpp"
 #include "util.hpp"
+#include "collisionutil.hpp"
+#include <memory>
 namespace arcsim
 {
 
@@ -58,6 +60,8 @@ namespace arcsim
 		Mesh base_mesh;
 		// A mesh containing the correct mesh structure
 		Mesh curr_state_mesh;
+
+		std::shared_ptr<AccelStruct> base_acc_noccd;
 
 		Obstacle() : start_time(0), end_time(infinity), activated(false) {}
 	};

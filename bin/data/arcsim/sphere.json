@@ -3,7 +3,7 @@
 {
     "frame_time": 0.04,			 								// Required: Length of each frame
     "frame_steps": 8,											// Optional, default 1: Number of substeps per frame
-    "end_time": 0.2,												// Optional, default infinity: Length of simulation in time
+    "end_time": 1,												// Optional, default infinity: Length of simulation in time
     "cloths": [{												// Required: List of cloth objects
 		"mesh": "data/arcsim_test/square4.obj",							// Required: Initial mesh. See "Creating cloth meshes" in README
 		"transform": {											// Optional, default identity: Initial pose of mesh
@@ -23,7 +23,7 @@
 				"bending_mult": 1,								// Optional: Multiply bending stiffness
 				"thicken": 1, 									// Optional: Multiply all of the above
 				//"damping": <damp> 							// Optional: Stiffness-proportional damping
-				"strain_limits": [0.9, 1.1] 					// Optional, default [0.9, 1.1], Actually this is 1 + strain
+				"strain_limits": [0.1, 10.1] 					// Optional, default [0.9, 1.1], Actually this is 1 + strain
 				//"yield_curv": <kappa> 						// Optional, units of 1/length
 				//"weakening": <g> 								// Optional: reduce stiffnesses upon yielding
 			}
@@ -36,18 +36,6 @@
 			"aspect_min": 0.2									// Required: Lower bound on triangle aspect ratio
 		}
     }],
-    //"motions": {												// Optional: List of motions for handles and/or obstacles.
-	//															// Each motion is a list of keyframed transformations.
-	//															// Motion is interpolated using a cubic Hermite spline
-	//															// with Catmull-Rom derivatives at keyframes;
-	//															// derivatives at first and last keyframe are zero
-    //    "motfile": "data/arcsim_test/dance-paused.mot",
-    //    "fps": 30,
-    //    "transform": {
-    //        "translate": [0, 0, -1],
-    //        "rotate": [-90, 0, 0, 1]
-    //    }
-    //},
 	"obstacles": [{ 											// List of static or scripted obstacles
         "mesh": "data/arcsim_test/sphere.obj", 					// Required: Obstacle geometry
 		"transform": {											// Optional, default identity: Initial pose of mesh
@@ -57,7 +45,6 @@
 		},	
         "motion": -1 											// Optional: Index of motion for obstacle frame, -1 means none
     }],
-    //"obstacles": "models/test_%04d.obj",						// List of static or scripted obstacles, wm2_%4d.obj e.g.
     "gravity": [0, 0, -9.8],
     "magic": {
 		"repulsion_thickness": 5e-3, 

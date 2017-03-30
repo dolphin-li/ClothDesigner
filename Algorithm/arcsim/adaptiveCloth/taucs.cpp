@@ -29,7 +29,7 @@
 #include <cstdlib>
 #include <iostream>
 
-#define USE_EIGEN_INSTEADOF_TAUCS
+//#define USE_EIGEN_INSTEADOF_TAUCS
 
 using namespace std;
 
@@ -84,7 +84,11 @@ namespace arcsim
 			char* options[], // options (what to do and how)
 			void* arguments[]); // option arguments
 	}
-
+#pragma comment(lib, "blas.lib")
+#pragma comment(lib, "clapack.lib")
+#pragma comment(lib, "libmetis.lib")
+#pragma comment(lib, "vcf2c.lib")
+#pragma comment(lib, "libtaucs.lib")
 	ostream &operator<< (ostream &out, taucs_ccs_matrix *A)
 	{
 		out << "n: " << A->n << endl;
