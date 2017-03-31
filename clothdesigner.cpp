@@ -615,13 +615,13 @@ void ClothDesigner::on_actionExport_cloth_mesh_triggered()
 {
 	try
 	{
-		QString name = QFileDialog::getSaveFileName(this, "Export body mesh", g_dataholder.m_lastProXmlDir.c_str(), "*.obj");
+		QString name = QFileDialog::getSaveFileName(this, "Export body mesh", g_dataholder.m_lastClothMeshDir.c_str(), "*.obj");
 		if (name.isEmpty())
 			return;
 		if (!name.toLower().endsWith(".obj"))
 			name.append(".obj");
 
-		g_dataholder.m_lastProXmlDir = name.toStdString();
+		g_dataholder.m_lastClothMeshDir = name.toStdString();
 		g_dataholder.saveLastDirs();
 
 		exportClothMesh(name.toStdString());
@@ -646,13 +646,13 @@ void ClothDesigner::on_actionExport_body_mesh_triggered()
 {
 	try
 	{
-		QString name = QFileDialog::getSaveFileName(this, "Export body mesh", g_dataholder.m_lastProXmlDir.c_str(), "*.obj");
+		QString name = QFileDialog::getSaveFileName(this, "Export body mesh", g_dataholder.m_lastClothMeshDir.c_str(), "*.obj");
 		if (name.isEmpty())
 			return;
 		if (!name.toLower().endsWith(".obj"))
 			name.append(".obj");
 
-		g_dataholder.m_lastProXmlDir = name.toStdString();
+		g_dataholder.m_lastClothMeshDir = name.toStdString();
 		g_dataholder.saveLastDirs();
 
 		g_dataholder.m_clothManager->bodyMesh()->saveObj(name.toStdString().c_str());

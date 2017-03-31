@@ -67,6 +67,7 @@ namespace arcsim
 		m_timeStamp->Stamp("json loaded");
 
 		prepare(*m_sim);
+
 		m_needUpdateMesh = true;
 		updateMesh();
 	}
@@ -117,8 +118,6 @@ namespace arcsim
 		objMesh2arcMesh(m_sim->obstacles[0].base_mesh, *bodyMesh);
 		m_sim->obstacles[0].curr_state_mesh = deep_copy(m_sim->obstacles[0].base_mesh);
 		prepare(*m_sim);
-		separate_obstacles(m_sim->obstacle_meshes, m_sim->cloth_meshes);
-		m_timeStamp->Stamp("obstacles seperated");
 		m_needUpdateMesh = true;
 		updateMesh();
 		m_timeStamp->Stamp("cloth manager loaded");
@@ -131,8 +130,11 @@ namespace arcsim
 		// prepare for simulation
 		prepare(*m_sim);
 		m_timeStamp->Stamp("prepared");
-		separate_obstacles(m_sim->obstacle_meshes, m_sim->cloth_meshes);
-		m_timeStamp->Stamp("obstacles seperated");
+		if (m_sim->enabled[Simulation::Separation])
+		{
+			separate_obstacles(m_sim->obstacle_meshes, m_sim->cloth_meshes);
+			m_timeStamp->Stamp("obstacles seperated");
+		}
 		relax_initial_state(*m_sim);
 		m_timeStamp->Stamp("initial state relaxed\n");
 		m_needUpdateMesh = true;
