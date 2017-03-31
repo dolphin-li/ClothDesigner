@@ -246,6 +246,7 @@ namespace arcsim
 
 		stop_simulate_loop_otherthread();
 		reset();
+		m_thread_running = true;
 		m_threadLoop.reset(new std::thread(simulate_thread_loop, this));
 	}
 
@@ -254,6 +255,9 @@ namespace arcsim
 		// check existed thread
 		if (m_threadLoop)
 		{
+			m_threadMutex->lock();
+			m_thread_running = false;
+			m_threadMutex->unlock();
 			if (m_threadLoop->joinable())
 				m_threadLoop->join();
 		}
@@ -275,6 +279,8 @@ namespace arcsim
 				sim->timers[Simulation::Collision].last,
 				sim->timers[Simulation::StrainLimiting].last,
 				sim->timers[Simulation::Plasticity].last);
+			if (!threadData->m_thread_running)
+				break;
 		} // end while sim->time
 	}
 }

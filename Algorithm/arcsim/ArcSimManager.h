@@ -49,6 +49,7 @@ namespace arcsim
 	private:
 		std::shared_ptr<std::thread> m_threadLoop;
 		std::shared_ptr<std::mutex> m_threadMutex;
+		bool m_thread_running = true;
 	};
 
 }
