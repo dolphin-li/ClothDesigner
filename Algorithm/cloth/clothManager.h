@@ -130,6 +130,7 @@ namespace ldp
 		void removeClothPiece(ClothPiece* piece);
 		void exportClothsMerged(ObjMesh& mesh, bool mergeStitchedVertex = false)const;
 		void exportClothsSeparated(std::vector<ObjMesh>& mesh)const;
+		ldp::Float3 getVertexByGlobalId(int id)const { return m_X[id]; }
 
 		/// bounding box
 		void get2dBound(ldp::Float2& bmin, ldp::Float2& bmax)const;

@@ -476,16 +476,34 @@ namespace ldp
 				mesh.vertex_texture_list.push_back(Float2(m2d.vertex_list[i][0], -m2d.vertex_list[i][1]));
 			} // end for i
 		} // end for piece
+
+		// remove unreferenced tex idx
+		std::set<int> validTexIdxSet;
+		for (const auto& t : m_T)
+		{
+			if (idxMap[t[0]] != idxMap[t[1]] 
+				&& idxMap[t[0]] != idxMap[t[2]]
+				&& idxMap[t[1]] != idxMap[t[2]])
+			for (int k = 0; k < t.size(); k++)
+				validTexIdxSet.insert(t[k]);
+		}
+		std::vector<ldp::Float2> tmpTex = mesh.vertex_texture_list;
+		std::vector<int> texIdxMap(mesh.vertex_texture_list.size(), -1);
+		mesh.vertex_texture_list.clear();
+		for (auto t : validTexIdxSet)
+		{
+			texIdxMap[t] = mesh.vertex_texture_list.size();
+			mesh.vertex_texture_list.push_back(tmpTex[t]);
+		}
+
+		// write faces
 		for (const auto& t : m_T)
 		{
 			ObjMesh::obj_face f;
 			f.vertex_count = 3;
 			f.material_index = -1;
 			for (int k = 0; k < t.size(); k++)
-			{
 				f.vertex_index[k] = idxMap[t[k]];
-				f.texture_index[k] = t[k];
-			}
 			if (f.vertex_index[0] == f.vertex_index[1] || f.vertex_index[0] == f.vertex_index[2]
 				|| f.vertex_index[1] == f.vertex_index[2])
 			{
@@ -494,7 +512,14 @@ namespace ldp
 					f.vertex_index[2]);
 			}
 			else
+			{
+				for (int k = 0; k < t.size(); k++)
+				{
+					assert(texIdxMap[t[k]] >= 0);
+					f.texture_index[k] = texIdxMap[t[k]];
+				}
 				mesh.face_list.push_back(f);
+			}
 		}
 	}
 

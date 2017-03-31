@@ -406,6 +406,21 @@ void Viewer3d::renderStitches()
 		glVertex3fv(vp.second.ptr());
 	} // end for is
 	glEnd();
+
+	//// ldp debug
+	//if (m_clothManager->numClothPieces())
+	//{
+	//	glPointSize(5);
+	//	glBegin(GL_POINTS);
+	//	glColor3f(1, 0, 0);
+	//	glVertex3fv(m_clothManager->getVertexByGlobalId(1136).ptr());
+	//	glColor3f(1, 1, 0);
+	//	glVertex3fv(m_clothManager->getVertexByGlobalId(1137).ptr());
+	//	glColor3f(1, 0, 1);
+	//	glVertex3fv(m_clothManager->getVertexByGlobalId(1138).ptr());
+	//	glEnd();
+	//}
+
 	glPopAttrib();
 }
 
