@@ -30,6 +30,7 @@ namespace arcsim
 
 	void ArcSimManager::clear()
 	{
+		stop_simulate_loop_otherthread();
 		if (m_sim.get())
 		{
 			for (auto& h : m_sim->handles)
@@ -116,6 +117,8 @@ namespace arcsim
 		objMesh2arcMesh(m_sim->obstacles[0].base_mesh, *bodyMesh);
 		m_sim->obstacles[0].curr_state_mesh = deep_copy(m_sim->obstacles[0].base_mesh);
 		prepare(*m_sim);
+		separate_obstacles(m_sim->obstacle_meshes, m_sim->cloth_meshes);
+		m_timeStamp->Stamp("obstacles seperated");
 		m_needUpdateMesh = true;
 		updateMesh();
 		m_timeStamp->Stamp("cloth manager loaded");
@@ -223,8 +226,16 @@ namespace arcsim
 
 		convertToObj(m_sim->obstacle_meshes, *m_bodyMesh);
 		convertToObj(m_sim->cloth_meshes, *m_clothMesh);
-		m_needUpdateMesh = false;
 
+		// add a different material to better render clothes
+		ObjMesh::obj_material material = ObjMesh::default_material;
+		material.diff = ldp::Float3(0.5, 0.7, 0.9);
+		m_clothMesh->material_list.clear();
+		m_clothMesh->material_list.push_back(material);
+		for (auto& f : m_clothMesh->face_list)
+			f.material_index = 0;
+
+		m_needUpdateMesh = false;
 		m_threadMutex->unlock();
 		return true;
 	}
@@ -233,14 +244,19 @@ namespace arcsim
 	{
 		m_timeStamp->Reset();
 
+		stop_simulate_loop_otherthread();
+		reset();
+		m_threadLoop.reset(new std::thread(simulate_thread_loop, this));
+	}
+
+	void ArcSimManager::stop_simulate_loop_otherthread()
+	{
 		// check existed thread
 		if (m_threadLoop)
 		{
 			if (m_threadLoop->joinable())
 				m_threadLoop->join();
 		}
-		reset();
-		m_threadLoop.reset(new std::thread(simulate_thread_loop, this));
 	}
 
 	void simulate_thread_loop(ArcSimManager* threadData)

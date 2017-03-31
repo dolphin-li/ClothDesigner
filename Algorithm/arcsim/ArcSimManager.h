@@ -38,6 +38,7 @@ namespace arcsim
 		////////////////////////////////// multi-thread handling
 		friend void arcsim::simulate_thread_loop(ArcSimManager* threadData);
 		void start_simulate_loop_otherthread();
+		void stop_simulate_loop_otherthread();
 	protected:
 		void convertToObj(const std::vector<arcsim::Mesh*>& meshes, ObjMesh& omesh);
 	private:

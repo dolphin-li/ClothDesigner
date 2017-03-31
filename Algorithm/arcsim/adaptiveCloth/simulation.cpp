@@ -86,8 +86,11 @@ namespace arcsim
 	{
 		validate_handles(sim);
 		if (arcsim::magic.preserve_creases)
-		for (int c = 0; c < sim.cloths.size(); c++)
-			reset_plasticity(sim.cloths[c]);
+		{
+			for (int c = 0; c < sim.cloths.size(); c++)
+				reset_plasticity(sim.cloths[c]);
+		}
+
 		bool equilibrate = true;
 		if (equilibrate)
 		{
@@ -102,9 +105,13 @@ namespace arcsim
 			remeshing_step(sim, true);
 			strainzeroing_step(sim);
 		}
+
 		if (arcsim::magic.preserve_creases)
-		for (int c = 0; c < sim.cloths.size(); c++)
-			reset_plasticity(sim.cloths[c]);
+		{
+			for (int c = 0; c < sim.cloths.size(); c++)
+				reset_plasticity(sim.cloths[c]);
+		}
+
 		arcsim::magic.preserve_creases = false;
 		if (arcsim::magic.fixed_high_res_mesh)
 			sim.enabled[remeshing] = false;

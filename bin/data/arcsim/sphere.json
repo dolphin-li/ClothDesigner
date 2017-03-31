@@ -18,12 +18,12 @@
 																// Just make a list of one element and be done with it.
 			{
 				"data": "data/arcsim/materials/navy-sparkle-sweat.json",  	// Required: material data, see materials/README
-				//"density_mult": 1, 							// Optional: Multiply density by a factor
-				//"stretching_mult": 1, 						// Optional: Multiply stretching stiffness
+				"density_mult": 1, 							// Optional: Multiply density by a factor
+				"stretching_mult": 1, 						// Optional: Multiply stretching stiffness
 				"bending_mult": 1,								// Optional: Multiply bending stiffness
 				"thicken": 1, 									// Optional: Multiply all of the above
 				//"damping": <damp> 							// Optional: Stiffness-proportional damping
-				"strain_limits": [0.1, 10.1] 					// Optional, default [0.9, 1.1], Actually this is 1 + strain
+				"strain_limits": [0.9, 1.1] 					// Optional, default [0.9, 1.1], Actually this is 1 + strain
 				//"yield_curv": <kappa> 						// Optional, units of 1/length
 				//"weakening": <g> 								// Optional: reduce stiffnesses upon yielding
 			}
@@ -37,7 +37,7 @@
 		}
     }],
 	"obstacles": [{ 											// List of static or scripted obstacles
-        "mesh": "data/arcsim_test/sphere.obj", 					// Required: Obstacle geometry
+        "mesh": "data/arcsim/sphere.obj", 						// Required: Obstacle geometry
 		"transform": {											// Optional, default identity: Initial pose of mesh
 			"translate": [0, 0, 0],
 			"rotate": [0, 1, 0, 0],
@@ -48,6 +48,8 @@
     "gravity": [0, 0, -9.8],
     "magic": {
 		"repulsion_thickness": 5e-3, 
-		"collision_stiffness": 1e6
+		"collision_stiffness": 1e6,
+		"preserve_creases": true,
+		"fixed_high_res_mesh": false							// disable adaptive remeshing if true
 		}
 }

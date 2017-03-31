@@ -429,11 +429,8 @@ namespace arcsim
 		add_internal_forces<WS>(cloth, A, b, dt);
 		add_constraint_forces(cloth, cons, A, b, dt);
 		add_friction_forces(cloth, cons, A, b, dt);
-		Timer timer;
-		timer.tick();
+
 		vector<Vec3> dv = taucs_linear_solve(A, b);
-		timer.tock();
-		printf("solve: %f\n", timer.last);
 		for (int n = 0; n < mesh.nodes.size(); n++)
 		{
 			Node *node = mesh.nodes[n];

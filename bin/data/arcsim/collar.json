@@ -48,6 +48,8 @@
     "gravity": [0, 0, -9.8],
     "magic": {
 		"repulsion_thickness": 5e-3, 
-		"collision_stiffness": 1e6
+		"collision_stiffness": 1e6,
+		"preserve_creases": true,
+		"fixed_high_res_mesh": false							// disable adaptive remeshing if true
 		}
 }
