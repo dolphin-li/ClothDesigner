@@ -82,6 +82,12 @@ namespace arcsim
 			mesh.add(new Vert(Vec3(v[0], v[1], v[2])));
 		for (const auto& f : omesh.face_list)
 		{
+			if (f.vertex_index[0] == f.vertex_index[1] || f.vertex_index[0] == f.vertex_index[2]
+				|| f.vertex_index[1] == f.vertex_index[2])
+			{
+				printf("warning, illegal face found, possibly due to an unproper sewing: %d %d %d\n",
+					f.vertex_index[0], f.vertex_index[1], f.vertex_index[2]);
+			}
 			std::vector<Vert*> verts;
 			std::vector<Node*> nodes;		
 			for (int k = 0; k < 3; k++)

@@ -486,7 +486,8 @@ namespace ldp
 				f.vertex_index[k] = idxMap[t[k]];
 				f.texture_index[k] = t[k];
 			}
-			if (f.vertex_index[0] == f.vertex_index[1] || f.vertex_index[0] == f.vertex_index[2])
+			if (f.vertex_index[0] == f.vertex_index[1] || f.vertex_index[0] == f.vertex_index[2]
+				|| f.vertex_index[1] == f.vertex_index[2])
 			{
 				printf("warning, illegal face found, possibly due to an unproper sewing: %d %d %d -> %d %d %d\n", 
 					t[0], t[1], t[2], f.vertex_index[0], f.vertex_index[1],
