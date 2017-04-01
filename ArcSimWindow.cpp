@@ -56,7 +56,19 @@ void ArcsimWindow::on_actionLoad_conf_triggered()
 
 void ArcsimWindow::on_actionSave_cloth_triggered()
 {
-
+	try
+	{
+		QString name = QFileDialog::getSaveFileName(this, "save cloth meshes", "data/arcsim", "*.obj");
+		if (name.isEmpty())
+			return;
+		if (!name.toLower().endsWith(".obj"))
+			name.append(".obj");
+		g_dataholder.m_arcsimManager->getClothMesh()->saveObj(name.toStdString().c_str());
+	}
+	catch (std::exception e)
+	{
+		std::cout << e.what() << std::endl;
+	}
 }
 
 void ArcsimWindow::on_pbFromCloths_clicked()

@@ -141,8 +141,11 @@ namespace arcsim
 			separate_obstacles(m_sim->obstacle_meshes, m_sim->cloth_meshes);
 			m_timeStamp->Stamp("obstacles seperated");
 		}
-		relax_initial_state(*m_sim);
-		m_timeStamp->Stamp("initial state relaxed\n");
+		if (m_sim->enabled[Simulation::InitRelax])
+		{
+			relax_initial_state(*m_sim);
+			m_timeStamp->Stamp("initial state relaxed\n");
+		}
 		m_needUpdateMesh = true;
 		updateMesh();
 		m_timeStamp->Stamp("obj mesh updated");

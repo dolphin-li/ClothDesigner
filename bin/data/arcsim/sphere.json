@@ -17,7 +17,7 @@
 																// but this functionality is not used very much.
 																// Just make a list of one element and be done with it.
 			{
-				"data": "data/arcsim/materials/navy-sparkle-sweat.json",  	// Required: material data, see materials/README
+				"data": "data/arcsim/materials/camel-ponte-roma.json",  	// Required: material data, see materials/README
 				"density_mult": 1, 							// Optional: Multiply density by a factor
 				"stretching_mult": 1, 						// Optional: Multiply stretching stiffness
 				"bending_mult": 1,								// Optional: Multiply bending stiffness
@@ -51,5 +51,11 @@
 		"collision_stiffness": 1e6,
 		"preserve_creases": true,
 		"fixed_high_res_mesh": false							// disable adaptive remeshing if true
-		}
+		},
+	"disable": [
+		"separation"											// if the input cloth intersects with body and the automatic seperation cannot converge, use this
+		//,"remeshing"											// if the input cloth is non-manifold, use this
+		//,"strainlimiting"										// if use this, then no strain limit will be applied, for speed up
+		//,"initrelax"											// if use this, then the simulation will simply start from the given cloth, without the preliminary relaxation
+	]
 }

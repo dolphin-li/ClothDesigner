@@ -125,7 +125,7 @@ namespace arcsim
 		parse(sim.obs_friction, json["obs_friction"], 0.3);
 		string module_names[] = { "proximity", "physics", "strainlimiting",
 			"collision", "remeshing", "separation",
-			"popfilter", "plasticity" };
+			"popfilter", "plasticity", "initrelax" };
 		for (int i = 0; i < Simulation::nModules; i++)
 		{
 			sim.enabled[i] = true;

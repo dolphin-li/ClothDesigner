@@ -65,7 +65,7 @@ namespace arcsim
 		enum
 		{
 			Proximity, Physics, StrainLimiting, Collision, Remeshing, Separation,
-			PopFilter, Plasticity, nModules
+			PopFilter, Plasticity, InitRelax, nModules
 		};
 		bool enabled[nModules];
 		Timer timers[nModules];
