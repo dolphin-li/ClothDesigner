@@ -368,7 +368,7 @@ namespace ldp
 		{
 			for (size_t i = 0; i < (size_t)SewingTypeEnd; i++)
 			{
-				if (sewingTypeToStr((SewingType)i) == sewTypeStr)
+				if (sewingTypeToStr((SewingType)i) == std::string(sewTypeStr))
 				{
 					m_sewingType = (SewingType)i;
 					break;
