@@ -21,6 +21,7 @@ namespace ldp
 			remove(t.curve->getId());
 		m_firsts.clear();
 		m_seconds.clear();
+		m_sewingType = SewingTypeStitch;
 	}
 
 	void GraphsSewing::addFirst(Unit unit)
@@ -309,13 +310,34 @@ namespace ldp
 		GraphsSewing* r = (GraphsSewing*)AbstractGraphObject::create(getType());
 		r->m_firsts = m_firsts;
 		r->m_seconds = m_seconds;
+		r->m_sewingType = m_sewingType;
 		r->setSelected(isSelected());
 		return r;
+	}
+
+	static const char* sewingTypeToStr(GraphsSewing::SewingType s)
+	{
+		switch (s)
+		{
+		case ldp::GraphsSewing::SewingTypeStitch:
+			return "stitch";
+		case ldp::GraphsSewing::SewingTypePosition:
+			return "position";
+		case ldp::GraphsSewing::SewingTypeEnd:
+		default:
+			throw std::exception("sewingTypeToStr(): unknown type!");
+		}
+	}
+
+	const char* GraphsSewing::getSewingTypeStr()const
+	{
+		return sewingTypeToStr(m_sewingType);
 	}
 
 	TiXmlElement* GraphsSewing::toXML(TiXmlNode* parent)const
 	{
 		TiXmlElement* ele = AbstractGraphObject::toXML(parent);
+		ele->SetAttribute("type", getSewingTypeStr());
 		TiXmlElement* fele = new TiXmlElement("Firsts");
 		ele->LinkEndChild(fele);
 		for (const auto& f : m_firsts)
@@ -341,6 +363,19 @@ namespace ldp
 	{
 		AbstractGraphObject::fromXML(self);
 		clear();
+		const char* sewTypeStr = self->Attribute("type");
+		if (sewTypeStr)
+		{
+			for (size_t i = 0; i < (size_t)SewingTypeEnd; i++)
+			{
+				if (sewingTypeToStr((SewingType)i) == sewTypeStr)
+				{
+					m_sewingType = (SewingType)i;
+					break;
+				}
+			}
+		} // end if sewTypeStr
+
 		for (auto child = self->FirstChildElement(); child; child = child->NextSiblingElement())
 		{
 			if (child->Value() == std::string("Firsts"))

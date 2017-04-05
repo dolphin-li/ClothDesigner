@@ -937,10 +937,20 @@ void Viewer2d::renderOneSew(const ldp::GraphsSewing* sew, bool idxMode)
 	// draw contacts
 	if ((sew->isSelected() || sew->isHighlighted()) && !idxMode && !sew->empty())
 	{
-		if (sew->isSelected())
-			glColor4f(0, 1, 0, 0.8);
+		if (sew->getSewingType() == ldp::GraphsSewing::SewingTypeStitch)
+		{
+			if (sew->isSelected())
+				glColor4f(0, 1, 0, 0.8);
+			else
+				glColor4f(0, 1, 0, 0.5);
+		}
 		else
-			glColor4f(0, 1, 0, 0.5);
+		{
+			if (sew->isSelected())
+				glColor4f(1, 0, 0, 0.8);
+			else
+				glColor4f(1, 0, 0, 0.5);
+		}
 		glVertex3f(fb[0], fb[1], SEW_CONTACT_Z);
 		glVertex3f(sb[0], sb[1], SEW_CONTACT_Z);
 		glVertex3f(fe[0], fe[1], SEW_CONTACT_Z);

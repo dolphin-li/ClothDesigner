@@ -6,6 +6,7 @@
 #include "cloth\graph\Graph.h"
 #include "cloth\SmplManager.h"
 #include "cloth\TransformInfo.h"
+#include "cloth\graph\GraphsSewing.h"
 #include "Renderable\ObjMesh.h"
 #pragma region --mat_utils
 
@@ -397,11 +398,17 @@ void Viewer3d::renderStitches()
 
 	glPushAttrib(GL_ALL_ATTRIB_BITS);
 	glDisable(GL_LIGHTING);
-	glColor3f(0, 1, 0);
 	glBegin(GL_LINES);
 	for (int is = 0; is < m_clothManager->numStitches(); is++)
 	{
 		auto vp = m_clothManager->getStitchPos(is);
+		ldp::GraphsSewing::SewingType type = (ldp::GraphsSewing::SewingType)m_clothManager->getStitchType(is);
+		if (type == ldp::GraphsSewing::SewingTypeStitch)
+			glColor3f(0, 1, 0);
+		else if (type == ldp::GraphsSewing::SewingTypePosition)
+			glColor3f(1, 0, 0);
+		else
+			glColor3f(1, 1, 1);
 		glVertex3fv(vp.first.ptr());
 		glVertex3fv(vp.second.ptr());
 	} // end for is

@@ -68,13 +68,15 @@ namespace ldp
 		{
 			SampleParamVec* seg[2];
 			bool reverse[2];
+			size_t type = 0;
 			SegPair(SampleParamVec* seg1, bool reverse1,
-				SampleParamVec* seg2, bool reverse2)
+				SampleParamVec* seg2, bool reverse2, size_t t)
 			{
 				seg[0] = seg1;
 				reverse[0] = reverse1;
 				seg[1] = seg2;
 				reverse[1] = reverse2;
+				type = t;
 			}
 		};
 		typedef std::vector<SegPair> SegPairVec;

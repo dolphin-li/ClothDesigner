@@ -18,6 +18,12 @@ namespace ldp
 			Unit() :curve(0), reverse(false) {}
 			Unit(AbstractGraphCurve* c, bool d) :curve(c), reverse(d) {}
 		};
+		enum SewingType
+		{
+			SewingTypeStitch = 0,	// two edges a, b are stitched means that they are topological one piece
+			SewingTypePosition,		// the position of the two edges should be togither, but not topological 
+			SewingTypeEnd			// end flag, not valid
+		};
 	public:
 		GraphsSewing();
 		virtual ~GraphsSewing();
@@ -28,6 +34,9 @@ namespace ldp
 
 		void clear();
 		bool empty()const { return m_firsts.size() == 0 || m_seconds.size() == 0; }
+		SewingType getSewingType()const{ return m_sewingType; }
+		const char* getSewingTypeStr()const; 
+		void setSewingType(SewingType s){ m_sewingType = s; }
 		const std::vector<Unit>& firsts()const { return m_firsts; }
 		const std::vector<Unit>& seconds()const { return m_seconds; }
 		bool firstsContains(AbstractGraphCurve* curve)const
@@ -79,6 +88,7 @@ namespace ldp
 	protected:
 		std::vector<Unit> m_firsts;
 		std::vector<Unit> m_seconds;
+		SewingType m_sewingType = SewingTypeStitch;
 	};
 	typedef std::shared_ptr<GraphsSewing> GraphsSewingPtr;
 }

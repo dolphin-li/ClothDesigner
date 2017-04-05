@@ -680,7 +680,7 @@ namespace ldp
 	}
 
 	void ClothManager::addStitchVert(const ClothPiece* cloth1, StitchPoint s1, 
-		const ClothPiece* cloth2, StitchPoint s2)
+		const ClothPiece* cloth2, StitchPoint s2, size_t type)
 	{
 		if (m_shouldMergePieces)
 			mergePieces();
@@ -689,7 +689,7 @@ namespace ldp
 		s1 += m_clothVertBegin.at(&cloth1->mesh3d());
 		s2 += m_clothVertBegin.at(&cloth2->mesh3d());
 
-		m_stitches.push_back(StitchPointPair(s1, s2));
+		m_stitches.push_back(StitchPointPair(s1, s2, type));
 
 		m_shouldStitchUpdate = true;
 	}
@@ -700,6 +700,14 @@ namespace ldp
 		if (m_shouldMergePieces)
 			mergePieces();
 		return (int)m_stitches.size(); 
+	}
+
+	size_t ClothManager::getStitchType(int i)
+	{
+		updateDependency();
+		if (m_shouldMergePieces)
+			mergePieces();
+		return m_stitches.at(i).type;
 	}
 
 	std::pair<Float3, Float3> ClothManager::getStitchPos(int i)
@@ -1939,6 +1947,26 @@ namespace ldp
 		return change;
 	}
 
+	bool ClothManager::toggleSelectedSewingsType()
+	{
+		bool change = false;
+		for (auto& sew : m_graphSewings)
+		{
+			if (sew->isSelected())
+			{
+				if (sew->getSewingType() == ldp::GraphsSewing::SewingTypeStitch)
+					sew->setSewingType(ldp::GraphsSewing::SewingTypePosition);
+				else if (sew->getSewingType() == ldp::GraphsSewing::SewingTypePosition)
+					sew->setSewingType(ldp::GraphsSewing::SewingTypeStitch);
+				else
+					printf("warning: toggleSelectedSewingsType, unhandled type %s\n", sew->getSewingTypeStr());
+				change = true;
+			} // end for sew
+		} // end for tempSewings
+		if (change)
+			m_shouldTriangulate = true;
+		return change;
+	}
 	bool ClothManager::removeSelectedShapes()
 	{
 		bool removed = false;

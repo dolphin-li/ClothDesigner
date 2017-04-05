@@ -217,7 +217,7 @@ namespace ldp
 				updateSegStepMap((*fSegs)[fPos_1].get(), minStep);
 				updateSegStepMap((*sSegs)[sPos_1].get(), minStep);
 				m_segPairs.push_back(SegPair(fSegs->at(fPos_1).get(), fUnit.reverse,
-					sSegs->at(sPos_1).get(), sUnit.reverse));
+					sSegs->at(sPos_1).get(), sUnit.reverse, (size_t)sew->getSewingType()));
 			} // end for fPos, sPos
 		} // end for sew
 
@@ -524,10 +524,7 @@ namespace ldp
 				int id1 = param1[i].idx + s1;
 				if (id0 == id1)
 					continue;
-				StitchPointPair stp;
-				stp.first = id0;
-				stp.second = id1;
-				m_stitches.push_back(stp);
+				m_stitches.push_back(StitchPointPair(id0, id1, pair.type));
 			}
 		} // end for pair
 	}

@@ -19,14 +19,14 @@ float rand2(vec2 co)
 void main()
 {   
 	/////////////shadow/////////////////////////////////////////////////////////////
-	vec3 L = normalize(gl_LightSource[0].position.xyz - fragment_position);
+	vec3 L = normalize(gl_LightSource[0].position.xyz - fragment_position.xyz);
 	vec3 N = vec3(0, 0, 1);
-	vec3 shadow_coord = biased_MVP * fragment_position;
+	vec3 shadow_coord = (biased_MVP * fragment_position).xyz;
 	float visibility = 0.0;
 	for(int i=-3; i<=3; i++)
 	for(int j=-3; j<=3; j++)
 	{
-		vec2 pos=shadow_coord.xy+(vec2(i,j) + vec2(rand1(shadow_coord.xy), rand2(shadow_coord.xy))*1)*0.005;
+		vec2 pos=shadow_coord.xy+(vec2(i,j) + vec2(rand1(shadow_coord.xy), rand2(shadow_coord.xy))*1.0)*0.005;
 		if(texture2D(shadow_texture, pos ).z  <  shadow_coord.z)
 			visibility = visibility + 0.8;
 		else visibility = visibility +1.0;

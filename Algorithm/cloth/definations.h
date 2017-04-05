@@ -65,7 +65,17 @@ namespace ldp
 	};
 
 	typedef int StitchPoint;
-	typedef std::pair<StitchPoint, StitchPoint> StitchPointPair;
+	struct StitchPointPair
+	{
+		StitchPoint first = 0;
+		StitchPoint second = 0;
+		size_t type = 0;
+		StitchPointPair(StitchPoint a, StitchPoint b, size_t t) :first(a), second(b), type(t){}
+		bool operator < (const StitchPointPair& r)
+		{
+			return first < r.first || (first == r.first && second < r.second);
+		}
+	};
 
 	enum SimulationMode
 	{

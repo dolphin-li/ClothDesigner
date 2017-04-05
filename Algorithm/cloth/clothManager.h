@@ -90,8 +90,10 @@ namespace ldp
 
 		/// stitch related
 		void clearSewings();
-		void addStitchVert(const ClothPiece* cloth1, StitchPoint s1, const ClothPiece* cloth2, StitchPoint s2);
+		void addStitchVert(const ClothPiece* cloth1, StitchPoint s1, 
+			const ClothPiece* cloth2, StitchPoint s2, size_t type);
 		std::pair<Float3, Float3> getStitchPos(int i);
+		size_t getStitchType(int i);
 		int numStitches();
 
 		int numGraphSewings()const { return m_graphSewings.size(); }
@@ -138,6 +140,7 @@ namespace ldp
 		/// UI operations///
 		bool removeSelectedSewings();
 		bool reverseSelectedSewings();
+		bool toggleSelectedSewingsType();
 		bool removeSelectedShapes();
 		bool removeSelectedLoops();
 		bool removeLoopsOfSelectedCurves();

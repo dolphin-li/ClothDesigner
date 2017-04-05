@@ -206,6 +206,18 @@ void Sewing2dPatternEventHandle::keyPressEvent(QKeyEvent *ev)
 			}
 		}
 		break;
+	case Qt::Key_P:
+		if (ev->modifiers() == Qt::NoModifier)
+		{
+			bool change = manager->toggleSelectedSewingsType();
+			if (m_viewer->getMainUI() && change)
+			{
+				m_viewer->getMainUI()->viewer3d()->updateGL();
+				m_viewer->getMainUI()->pushHistory(QString().sprintf("sewing type changed",
+					op), ldp::HistoryStack::TypeGeneral);
+			}
+		}
+		break;
 	}
 
 	bool changed = false;
