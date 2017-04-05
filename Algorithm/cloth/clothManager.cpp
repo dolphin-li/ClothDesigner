@@ -773,29 +773,35 @@ namespace ldp
 				{
 					if (m_bmesh->fofe_count(e1) != 1 || m_bmesh->fofe_count(e2) != 1)
 						continue;
-					Int2 bend = -1;
-					BMESH_F_OF_E(f, e1, e1iter, *m_bmesh)
+
+					// bending is only needed for stitch type, but not position type
+					if (s1.type == ldp::GraphsSewing::SewingTypeStitch
+						&& s2.type == ldp::GraphsSewing::SewingTypeStitch)
 					{
-						bend[0] = -e1Idx[0] - e1Idx[1];
-						int cnt = 0;
-						BMESH_V_OF_F(v, f, viter, *m_bmesh)
+						Int2 bend = -1;
+						BMESH_F_OF_E(f, e1, e1iter, *m_bmesh)
 						{
-							bend[0] += v->getIndex();
+							bend[0] = -e1Idx[0] - e1Idx[1];
+							int cnt = 0;
+							BMESH_V_OF_F(v, f, viter, *m_bmesh)
+							{
+								bend[0] += v->getIndex();
+							}
+							break;
 						}
-						break;
-					}
-					BMESH_F_OF_E(f, e2, e2iter, *m_bmesh)
-					{
-						bend[1] = -e2Idx[0] - e2Idx[1];
-						int cnt = 0;
-						BMESH_V_OF_F(v, f, viter, *m_bmesh)
+						BMESH_F_OF_E(f, e2, e2iter, *m_bmesh)
 						{
-							bend[1] += v->getIndex();
+							bend[1] = -e2Idx[0] - e2Idx[1];
+							int cnt = 0;
+							BMESH_V_OF_F(v, f, viter, *m_bmesh)
+							{
+								bend[1] += v->getIndex();
+							}
+							break;
 						}
-						break;
-					}
-					edgeBendEdgeMap[e1Idx] = std::make_pair(e2Idx, bend);
-					edgeBendEdgeMap[e2Idx] = std::make_pair(e1Idx, bend);
+						edgeBendEdgeMap[e1Idx] = std::make_pair(e2Idx, bend);
+						edgeBendEdgeMap[e2Idx] = std::make_pair(e1Idx, bend);
+					} // end if s1, s2 type is stich
 
 					// insert boundary face map, but only for 1-to-1 map
 					// this is used for better rendering, not related to the simulation
