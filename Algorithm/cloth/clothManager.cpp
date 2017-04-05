@@ -440,6 +440,8 @@ namespace ldp
 		{
 			for (const auto& stp : m_stitches)
 			{
+				if (stp.type != ldp::GraphsSewing::SewingTypeStitch)
+					continue;
 				int sm = std::min(stp.first, stp.second);
 				int lg = std::max(stp.first, stp.second);
 				while (idxMap[lg] != lg)

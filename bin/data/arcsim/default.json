@@ -54,8 +54,8 @@
 		},
 	"disable": [
 		"separation"											// if the input cloth intersects with body and the automatic seperation cannot converge, use this
-		//,"remeshing"											// if the input cloth is non-manifold, use this
-		//,"strainlimiting"										// if use this, then no strain limit will be applied, for speed up
-		//,"initrelax"											// if use this, then the simulation will simply start from the given cloth, without the preliminary relaxation
+		,"remeshing"											// if the input cloth is non-manifold, use this
+		,"strainlimiting"										// if use this, then no strain limit will be applied, for speed up
+		,"initrelax"											// if use this, then the simulation will simply start from the given cloth, without the preliminary relaxation
 	]
 }
