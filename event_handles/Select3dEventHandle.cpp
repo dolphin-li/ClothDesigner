@@ -60,7 +60,8 @@ void Select3dEventHandle::mousePressEvent(QMouseEvent *ev)
 			if (m_pickInfo.pickInnerCoords[i] > m_pickInfo.pickInnerCoords[vpos])
 				vpos = i;
 			info.selected_vert_id = m_pickInfo.mesh->face_list[m_pickInfo.faceId].vertex_index[vpos];
-			printf("drag vert: %d\n", info.selected_vert_id);
+			printf("drag vert: local=%d, global=%d\n", info.selected_vert_id,
+				manager->pieceVertId2GlobalVertId(m_pickInfo.mesh, info.selected_vert_id));
 			auto v = info.selected_cloth->vertex_list[info.selected_vert_id];
 			ldp::Float3	p, q;
 			getSelectionRay(ev->pos(), p, q);

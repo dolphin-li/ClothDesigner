@@ -372,6 +372,15 @@ namespace ldp
 		}
 	}
 
+	int ClothManager::pieceVertId2GlobalVertId(const ObjMesh* piece, int pieceVertId)const
+	{
+		auto siter = m_clothVertBegin.find(piece);
+		if (siter == m_clothVertBegin.end())
+			return pieceVertId;
+		else
+			return siter->second + pieceVertId;
+	}
+
 	void ClothManager::updateCurrentClothsToInitial()
 	{
 		for (auto& cloth : m_clothPieces)
