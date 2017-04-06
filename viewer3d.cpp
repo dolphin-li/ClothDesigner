@@ -301,7 +301,7 @@ void Viewer3d::paintGL()
 	// we first render for selection
 	renderSelectionOnFbo();
 
-	renderShadowMap();
+	//renderShadowMap();
 
 	// then we do formal rendering=========================
 	glClearColor(0.3f, 0.3f, 0.3f, 0.0f);
@@ -313,9 +313,9 @@ void Viewer3d::paintGL()
 	// show cloth simulation=============================
 	if (m_clothManager)
 	{
-		if (isSmplMode() && m_clothManager->bodySmplManager())
+		if (1)//isSmplMode() && m_clothManager->bodySmplManager())
 		{
-			glEnable(GL_COLOR_MATERIAL);
+			//glEnable(GL_COLOR_MATERIAL);
 			showType |= Renderable::SW_COLOR;
 		}
 		else
@@ -341,7 +341,7 @@ void Viewer3d::paintGL()
 			}
 			piece->mesh3d().render(showType);
 		}
-		if (!isSmplMode() || !m_clothManager->bodySmplManager())
+		if (0)//!isSmplMode() || !m_clothManager->bodySmplManager())
 			m_shaderManager.unbind();
 		if (isSmplMode() && m_clothManager->bodySmplManager())
 		{

@@ -23,6 +23,12 @@ ArcsimWindow::~ArcsimWindow()
 
 }
 
+void ArcsimWindow::closeEvent(QCloseEvent* ev)
+{
+	if (g_dataholder.m_arcsimManager)
+		g_dataholder.m_arcsimManager->stop_simulate_loop_otherthread();
+}
+
 void ArcsimWindow::init()
 {
 	ui.widget->init(g_dataholder.m_arcsimManager.get());

@@ -13,7 +13,7 @@ public:
 	~ArcsimWindow();
 
 	void init();
-
+	void closeEvent(QCloseEvent* ev);
 	public slots:
 	void on_actionLoad_conf_triggered();
 	void on_actionSave_cloth_triggered();
