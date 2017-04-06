@@ -8,6 +8,7 @@
 #include "cloth\clothManager.h"
 #include "arcsim\ArcSimManager.h"
 #include <eigen\Dense>
+#include "global_data_holder.h"
 
 #pragma region --mat_utils
 
@@ -209,6 +210,27 @@ void ArcsimView::paintGL()
 	if (m_showBody)
 		m_arcsimManager->getBodyMesh()->render(m_showType);
 	m_arcsimManager->getClothMesh()->render(m_showType);
+
+	// debug ldp: render texmap...
+	if (g_dataholder.m_arcsim_show_texcoord)
+	{
+		glPushAttrib(GL_ALL_ATTRIB_BITS);
+		glViewport(0, 0, width() / 2, height() / 2);
+		auto cloth = m_arcsimManager->getClothMesh();
+		glMatrixMode(GL_PROJECTION);
+		glLoadIdentity();
+		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();
+		glBegin(GL_TRIANGLES);
+		for (const auto& f : cloth->face_list)
+		{
+			glVertex2fv(cloth->vertex_texture_list[f.texture_index[0]].ptr());
+			glVertex2fv(cloth->vertex_texture_list[f.texture_index[1]].ptr());
+			glVertex2fv(cloth->vertex_texture_list[f.texture_index[2]].ptr());
+		}
+		glEnd();
+		glPopAttrib();
+	}
 }
 
 void ArcsimView::mousePressEvent(QMouseEvent *ev)

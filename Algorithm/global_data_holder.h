@@ -34,6 +34,7 @@ public:
 	std::string m_lastClothMeshRenderScriptDir;
 
 	bool m_exportSepMesh = true;
+	bool m_arcsim_show_texcoord = false;
 };
 
 extern GlobalDataHolder g_dataholder;

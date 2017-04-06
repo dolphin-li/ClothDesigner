@@ -106,6 +106,7 @@ namespace arcsim
 				connect(verts[v], nodes[v]);
 			mesh.add(new Face(verts[0], verts[1], verts[2]));
 		}
+		compute_ms_data(mesh);
 	}
 
 	void ArcSimManager::loadFromClothManager(ldp::ClothManager* clothManager)
@@ -117,12 +118,19 @@ namespace arcsim
 		load_json("data/arcsim/default.json", *m_sim.get());
 		m_timeStamp->Stamp("json loaded");
 
+		// transfer body mesh
 		const ObjMesh* bodyMesh = clothManager->bodyMesh();
+		objMesh2arcMesh(m_sim->obstacles[0].base_mesh, *bodyMesh);
+		m_sim->obstacles[0].curr_state_mesh = deep_copy(m_sim->obstacles[0].base_mesh);
+
+		// transfer cloth mesh
 		ObjMesh clothMesh;
 		clothManager->exportClothsMerged(clothMesh, true);
 		objMesh2arcMesh(m_sim->cloths[0].mesh, clothMesh);
-		objMesh2arcMesh(m_sim->obstacles[0].base_mesh, *bodyMesh);
-		m_sim->obstacles[0].curr_state_mesh = deep_copy(m_sim->obstacles[0].base_mesh);
+
+		// TODO: create handles here
+
+		// perform other preparations
 		prepare(*m_sim);
 		m_needUpdateMesh = true;
 		updateMesh();

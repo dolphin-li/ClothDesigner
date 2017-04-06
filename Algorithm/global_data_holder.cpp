@@ -43,6 +43,8 @@ void GlobalDataHolder::loadLastDirs()
 			m_lastClothMeshRenderScriptDir = lineBuffer;
 		else if (lineLabel == "export_separated_mesh")
 			m_exportSepMesh = !!atoi(lineBuffer.c_str());
+		else if (lineLabel == "arcsim_show_texcoord")
+			m_arcsim_show_texcoord = !!atoi(lineBuffer.c_str());
 	}
 	stream.close();
 }
@@ -58,6 +60,7 @@ void GlobalDataHolder::saveLastDirs()
 	stm << "cloth_mesh_dir: " << m_lastClothMeshDir << std::endl;
 	stm << "cloth_mesh_script_dir: " << m_lastClothMeshRenderScriptDir << std::endl;
 	stm << "export_separated_mesh: " << int(m_exportSepMesh) << std::endl;
+	stm << "arcsim_show_texcoord: " << int(m_arcsim_show_texcoord) << std::endl;
 	stm.close();
 }
 

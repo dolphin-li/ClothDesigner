@@ -22,6 +22,7 @@ build/
 [Bb]in/data/debug*.txt
 [Bb]in/data/debug*.xml
 [Bb]in/data/Body_Cloth
+[Bb]in/data/arcsim/*.png
 
 
 # Enable "build/" folder in the NuGet Packages folder since NuGet packages use it for MSBuild targets

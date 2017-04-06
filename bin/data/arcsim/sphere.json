@@ -20,7 +20,7 @@
 				"data": "data/arcsim/materials/gray-interlock.json",  	// Required: material data, see materials/README
 				"density_mult": 1, 							// Optional: Multiply density by a factor
 				"stretching_mult": 1, 						// Optional: Multiply stretching stiffness
-				"bending_mult": 100,								// Optional: Multiply bending stiffness
+				"bending_mult": 1,								// Optional: Multiply bending stiffness
 				"thicken": 1, 									// Optional: Multiply all of the above
 				//"damping": <damp> 							// Optional: Stiffness-proportional damping
 				"strain_limits": [0.9, 1.1] 					// Optional, default [0.9, 1.1], Actually this is 1 + strain

@@ -185,9 +185,9 @@ void Viewer3d::initializeGL()
 	CHECK_GL_ERROR();
 
 	// shader
-	glewInit();
-	m_shaderManager.create("shaders");
-	initializeShadowMap();
+	////glewInit();
+	//m_shaderManager.create("shaders");
+	//initializeShadowMap();
 }
 
 void Viewer3d::initializeShadowMap()
