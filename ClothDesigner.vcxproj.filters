@@ -110,6 +110,12 @@
     <Filter Include="algorithm\CmlShadowMap">
       <UniqueIdentifier>{8f94b12e-b10b-4aa6-9ecb-5cb9b9104603}</UniqueIdentifier>
     </Filter>
+    <Filter Include="algorithm\cudpp">
+      <UniqueIdentifier>{3ea8606e-df86-496a-bfb5-5ae3d216d685}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="algorithm\cudpp\moderngpu">
+      <UniqueIdentifier>{800a02b7-bdf3-4b64-9ff4-31f93255da62}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -913,6 +919,21 @@
     <ClCompile Include="Algorithm\CmlShadowMap\GPUBuffers.cpp">
       <Filter>algorithm\CmlShadowMap</Filter>
     </ClCompile>
+    <ClCompile Include="Algorithm\cloth\CudaBsrMatrix.cpp">
+      <Filter>algorithm\cloth</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\cudpp\moderngpu\src\mgpuutil.cpp">
+      <Filter>algorithm\cudpp\moderngpu</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\cudpp\moderngpu\src\mmio.cpp">
+      <Filter>algorithm\cudpp\moderngpu</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\cudpp\moderngpu\src\sparsematrix.cpp">
+      <Filter>algorithm\cudpp\moderngpu</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\cloth\CudaDiagBlockMatrix.cpp">
+      <Filter>algorithm\cloth</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">
@@ -1532,6 +1553,21 @@
     <ClInclude Include="Algorithm\CmlShadowMap\GPUBuffers.h">
       <Filter>algorithm\CmlShadowMap</Filter>
     </ClInclude>
+    <ClInclude Include="Algorithm\cloth\CudaBsrMatrix.h">
+      <Filter>algorithm\cloth</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cudpp\ModerGpuWrapper.h">
+      <Filter>algorithm\cudpp</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cudpp\thrust_wrapper.h">
+      <Filter>algorithm\cudpp</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\CudaDiagBlockMatrix.h">
+      <Filter>algorithm\cloth</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\GpuCholeSky.h">
+      <Filter>algorithm\cloth</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="qdarkstyle\rc\up_arrow_disabled.png">
@@ -1677,6 +1713,24 @@
       <Filter>algorithm\cloth</Filter>
     </CudaCompile>
     <CudaCompile Include="Algorithm\cloth\SelfCollider.cu">
+      <Filter>algorithm\cloth</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Algorithm\cloth\CudaBsrMatrix.cu">
+      <Filter>algorithm\cloth</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Algorithm\cudpp\ModerGpuWrapper.cu">
+      <Filter>algorithm\cudpp</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Algorithm\cudpp\thrust_wrapper.cu">
+      <Filter>algorithm\cudpp</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Algorithm\cudpp\moderngpu\src\mgpucontext.cu">
+      <Filter>algorithm\cudpp\moderngpu</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Algorithm\cloth\CudaDiagBlockMatrix.cu">
+      <Filter>algorithm\cloth</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Algorithm\cloth\GpuCholesky.cu">
       <Filter>algorithm\cloth</Filter>
     </CudaCompile>
   </ItemGroup>
