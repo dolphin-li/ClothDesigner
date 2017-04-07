@@ -8,6 +8,8 @@
 #include <Shader\ShaderManager.h>
 class ClothDesigner;
 class BatchSimulateManager;
+class MeshRender;
+class GPUBuffers;
 class Viewer3d : public QGLWidget
 {
 	Q_OBJECT
@@ -82,34 +84,47 @@ protected:
 	void renderGroupPlane();
 
 protected:
-	CShaderManager m_shaderManager;
-	BatchSimulateManager* m_batchSimManager;
+	BatchSimulateManager* m_batchSimManager = nullptr;
 	ldp::Camera m_camera;
 	QPoint m_lastPos;
-	int m_showType;
-	Qt::MouseButtons m_buttons;
-	QGLFramebufferObject* m_fbo;
+	int m_showType = 0;
+	Qt::MouseButtons m_buttons = Qt::MouseButton::NoButton;
+	QGLFramebufferObject* m_fbo = nullptr;
 	QImage m_fboImage;
-	bool m_isDragBox;
+	bool m_isDragBox = false;
 	QPoint m_dragBoxBegin;
-	TrackBallMode m_trackBallMode;
+	TrackBallMode m_trackBallMode = TrackBall_None;
 	ldp::Float3 m_trackBallPos;
 	ldp::Mat3f m_trackBallR;
-	float m_trackBallScale;
-	int m_activeTrackBallAxis;
-	int m_hoverTrackBallAxis;
-	bool m_isSmplMode;
-	Abstract3dEventHandle* m_currentEventHandle;
+	float m_trackBallScale = 1.f;
+	int m_activeTrackBallAxis = 0;
+	int m_hoverTrackBallAxis = 0;
+	bool m_isSmplMode = false;
+	Abstract3dEventHandle* m_currentEventHandle = nullptr;
 	std::vector<std::shared_ptr<Abstract3dEventHandle>> m_eventHandles;
 
-	ldp::ClothManager* m_clothManager;
-	ClothDesigner* m_mainUI;
-
+	ldp::ClothManager* m_clothManager = nullptr;
+	ClothDesigner* m_mainUI = nullptr;
+////////////////////////////////////////////////////////////////////////////////////
+// shadow map related
 protected:
-	GLuint m_shadowDepthTexture = 0;
-	GLuint m_shadowDepthFbo = 0;
-	ldp::Float3 m_lightPosition;
-	void initializeShadowMap();
-	void renderShadowMap();
+	enum{
+		MAX_LIGHTS_PASS = 4
+	};
+	int m_lightNum = 0;
+	bool m_showShadow = false;
+	bool m_shadowMapInitialized = false;
+	std::vector<ldp::Float3> m_lightOriginalColors;
+	std::vector<ldp::Float3> m_lightShadeColors;
+	std::vector<ldp::Float3> m_lightDirections;
+	std::shared_ptr<MeshRender> m_MeshRender;
+	std::shared_ptr<GPUBuffers> m_GPUBuffers;
+	ldp::Mat4f m_LightModelViewMatrix[MAX_LIGHTS_PASS];
+	ldp::Mat4f m_LightProjectionMatrix[MAX_LIGHTS_PASS];
+	ldp::Mat4f m_LightModelViewProjectionMatrix[MAX_LIGHTS_PASS];
+
+	void initShadowMap();
+	bool loadLight(QString filename);
+	void renderWithShadowMap();
 };
 

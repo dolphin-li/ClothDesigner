@@ -8,6 +8,8 @@
 #include "cloth\TransformInfo.h"
 #include "cloth\graph\GraphsSewing.h"
 #include "Renderable\ObjMesh.h"
+#include "CmlShadowMap\MeshRender.h"
+#include "CmlShadowMap\GPUBuffers.h"
 #pragma region --mat_utils
 
 inline ldp::Mat3f angles2rot(ldp::Float3 v)
@@ -103,17 +105,6 @@ Viewer3d::Viewer3d(QWidget *parent)
 : QGLWidget(QGLFormat(QGL::SampleBuffers), parent)
 {
 	setMouseTracking(true);
-	m_buttons = Qt::MouseButton::NoButton;
-	m_isDragBox = false;
-	m_isSmplMode = false;
-	m_trackBallMode = TrackBall_None;
-	m_currentEventHandle = nullptr;
-	m_fbo = nullptr;
-	m_clothManager = nullptr;
-	m_mainUI = nullptr;
-	m_batchSimManager = nullptr;
-	m_lightPosition = ldp::Float3(-2, 1, 4);
-
 	m_eventHandles.resize((size_t)Abstract3dEventHandle::ProcessorTypeEnd, nullptr);
 	for (size_t i = (size_t)Abstract3dEventHandle::ProcessorTypeGeneral;
 		i < (size_t)Abstract3dEventHandle::ProcessorTypeEnd; i++)
@@ -122,8 +113,6 @@ Viewer3d::Viewer3d(QWidget *parent)
 			Abstract3dEventHandle::create(Abstract3dEventHandle::ProcessorType(i), this));
 	}
 	setEventHandleType(Abstract3dEventHandle::ProcessorTypeGeneral);
-
-	//startTimer(30);
 }
 
 Viewer3d::~Viewer3d()
@@ -158,17 +147,7 @@ void Viewer3d::resetCamera()
 
 void Viewer3d::initializeGL()
 {
-	glEnable(GL_TEXTURE_2D);
-	glEnable(GL_MULTISAMPLE);
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_LIGHTING);
-	glEnable(GL_LIGHT0);
-	glEnable(GL_FRONT_AND_BACK);
-	//glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
-	glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
-	glEnable(GL_POLYGON_OFFSET_FILL);
-	glPolygonOffset(1, 1);
-	glLightfv(GL_LIGHT0, GL_POSITION, m_lightPosition.ptr());
+	glewInit();
 
 	m_showType = Renderable::SW_F | Renderable::SW_SMOOTH | Renderable::SW_TEXTURE
 		| Renderable::SW_LIGHTING | Renderable::SW_SKELETON;
@@ -182,96 +161,10 @@ void Viewer3d::initializeGL()
 	if (!m_fbo->isValid())
 		printf("error: invalid depth fbo!\n");
 
+	// shadow map
+	initShadowMap();
+
 	CHECK_GL_ERROR();
-
-	// shader
-	////glewInit();
-	//m_shaderManager.create("shaders");
-	//initializeShadowMap();
-}
-
-void Viewer3d::initializeShadowMap()
-{
-	QOpenGLFunctions func(QOpenGLContext::currentContext());
-
-	//Init depth texture and FBO
-	func.glGenFramebuffers(1, &m_shadowDepthFbo);
-	func.glBindFramebuffer(GL_FRAMEBUFFER, m_shadowDepthFbo);
-
-	// Depth texture. Slower than a depth buffer, but you can sample it later in your shader
-	glGenTextures(1, &m_shadowDepthTexture);
-	glBindTexture(GL_TEXTURE_2D, m_shadowDepthTexture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 1024, 1024, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, m_shadowDepthTexture, 0);
-	glDrawBuffer(GL_NONE);
-	if (func.glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) 
-		printf("Init_Shadow_Map failed.\n");
-	glBindTexture(GL_TEXTURE_2D, 0);
-	func.glBindBuffer(GL_FRAMEBUFFER, 0);
-	CHECK_GL_ERROR();
-}
-
-void Viewer3d::renderShadowMap()
-{
-	QGLFunctions func(QGLContext::currentContext());
-	func.glBindFramebuffer(GL_FRAMEBUFFER, m_shadowDepthFbo);
-	glViewport(0, 0, 1024, 1024);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glEnable(GL_DEPTH_TEST);
-
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(-2, 2, -2, 2, 0, 20);
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	gluLookAt(m_lightPosition[0], m_lightPosition[1], m_lightPosition[2], 0, 0, 0, 0, 1, 0);
-
-	glPushMatrix();
-	glLoadIdentity();
-	glMultMatrixf(m_camera.getModelViewMatrix().ptr());
-	m_clothManager->bodyMesh()->render(Renderable::SW_F | Renderable::SW_SMOOTH
-		| Renderable::SW_LIGHTING | Renderable::SW_TEXTURE);
-	for (int i = 0; i < m_clothManager->numClothPieces(); i++)
-	{
-		const auto& piece = m_clothManager->clothPiece(i);
-		piece->mesh3d().render(Renderable::SW_F | Renderable::SW_SMOOTH);
-	}
-	glPopMatrix();
-
-	//Also we need to set up the projection matrix for shadow texture	
-	// This is matrix transform every coordinate x,y,z
-	// Moving from unit cube [-1,1] to [0,1]  
-	float bias[16] = { 0.5, 0.0, 0.0, 0.0,
-		0.0, 0.5, 0.0, 0.0,
-		0.0, 0.0, 0.5, 0.0,
-		0.5, 0.5, 0.5, 1.0 };
-
-	// Grab modelview and transformation matrices
-	float	modelView[16];
-	float	projection[16];
-	float	biased_MVP[16];
-	glGetFloatv(GL_MODELVIEW_MATRIX, modelView);
-	glGetFloatv(GL_PROJECTION_MATRIX, projection);
-
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	glLoadMatrixf(bias);
-	// concatating all matrice into one.
-	glMultMatrixf(projection);
-	glMultMatrixf(modelView);
-
-	glGetFloatv(GL_MODELVIEW_MATRIX, biased_MVP);
-
-	m_shaderManager.bind(CShaderManager::shadow);
-	m_shaderManager.getCurShader()->setUniformMatrix4fv("biased_MVP", 1, GL_FALSE, biased_MVP);
-	m_shaderManager.unbind();
-	CHECK_GL_ERROR();
-
-	func.glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void Viewer3d::resizeGL(int w, int h)
@@ -287,6 +180,8 @@ void Viewer3d::resizeGL(int w, int h)
 	fmt.setAttachment(QGLFramebufferObject::CombinedDepthStencil);
 	fmt.setMipmap(true);
 	m_fbo = new QGLFramebufferObject(width(), height(), fmt);
+
+	m_GPUBuffers->ResetFrameSize(w, h);
 }
 
 void Viewer3d::timerEvent(QTimerEvent* ev)
@@ -301,8 +196,6 @@ void Viewer3d::paintGL()
 	// we first render for selection
 	renderSelectionOnFbo();
 
-	//renderShadowMap();
-
 	// then we do formal rendering=========================
 	glClearColor(0.3f, 0.3f, 0.3f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -310,53 +203,59 @@ void Viewer3d::paintGL()
 
 	int showType = m_showType;
 
+	glPushAttrib(GL_ALL_ATTRIB_BITS);
+
 	// show cloth simulation=============================
-	if (m_clothManager)
+	if (m_showShadow)
 	{
-		if (1)//isSmplMode() && m_clothManager->bodySmplManager())
+		renderWithShadowMap();
+	} // end if show shadow
+	else
+	{
+		glEnable(GL_TEXTURE_2D);
+		glEnable(GL_MULTISAMPLE);
+		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_LIGHTING);
+		glEnable(GL_LIGHT0);
+		glEnable(GL_FRONT_AND_BACK);
+		//glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
+		glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
+		glEnable(GL_POLYGON_OFFSET_FILL);
+		glPolygonOffset(1, 1);
+		if (m_clothManager)
 		{
-			//glEnable(GL_COLOR_MATERIAL);
-			showType |= Renderable::SW_COLOR;
-		}
-		else
-		{
-			m_shaderManager.bind(CShaderManager::shadow);
-			m_shaderManager.getCurShader()->setUniform1i("shadow_texture", 0);
-			func.glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, m_shadowDepthTexture);
-			glDisable(GL_COLOR_MATERIAL);
-		}
-		m_clothManager->bodyMesh()->render(showType);
-		for (int i = 0; i < m_clothManager->numClothPieces(); i++)
-		{
-			const auto& piece = m_clothManager->clothPiece(i);
-			if (piece->mesh3d().material_list.size())
+			m_clothManager->bodyMesh()->render(showType);
+			for (int i = 0; i < m_clothManager->numClothPieces(); i++)
 			{
-				if (piece->graphPanel().isHighlighted())
-					piece->mesh3d().material_list[0].diff = ldp::Float3(0.0, 0.6, 0.8);
-				else if (piece->graphPanel().isSelected())
-					piece->mesh3d().material_list[0].diff = ldp::Float3(0.8, 0.6, 0);
-				else
-					piece->mesh3d().material_list[0].diff = ldp::Float3(1, 1, 1);
+				const auto& piece = m_clothManager->clothPiece(i);
+				if (piece->mesh3d().material_list.size())
+				{
+					if (piece->graphPanel().isHighlighted())
+						piece->mesh3d().material_list[0].diff = ldp::Float3(0.0, 0.6, 0.8);
+					else if (piece->graphPanel().isSelected())
+						piece->mesh3d().material_list[0].diff = ldp::Float3(0.8, 0.6, 0);
+					else
+						piece->mesh3d().material_list[0].diff = ldp::Float3(1, 1, 1);
+				}
+				piece->mesh3d().render(showType);
 			}
-			piece->mesh3d().render(showType);
-		}
-		if (0)//!isSmplMode() || !m_clothManager->bodySmplManager())
-			m_shaderManager.unbind();
-		if (isSmplMode() && m_clothManager->bodySmplManager())
-		{
-			auto T = m_clothManager->getBodyMeshTransform().transform();
-			glPushMatrix();
-			glMultMatrixf(T.ptr());
-			int stype = showType & Renderable::SW_SKELETON;
-			m_clothManager->bodySmplManager()->render(stype);
-			glPopMatrix();
-		} // end if smpl mode
+			if (isSmplMode() && m_clothManager->bodySmplManager())
+			{
+				auto T = m_clothManager->getBodyMeshTransform().transform();
+				glPushMatrix();
+				glMultMatrixf(T.ptr());
+				int stype = showType & Renderable::SW_SKELETON;
+				m_clothManager->bodySmplManager()->render(stype);
+				glPopMatrix();
+			} // end if smpl mode
+		} // end if m_clothManager
 		renderStitches();
-	}
-	renderTrackBall(false);
-	renderDragBox();
-	renderGroupPlane();
+		renderTrackBall(false);
+		renderDragBox();
+		renderGroupPlane();
+	} // end else not show shadow
+
+	glPopAttrib();
 }
 
 void Viewer3d::renderGroupPlane()
@@ -529,6 +428,10 @@ void Viewer3d::keyPressEvent(QKeyEvent*ev)
 	case Qt::Key_S:
 		m_showType ^= Renderable::SW_SMOOTH;
 		m_showType ^= Renderable::SW_FLAT;
+		break;
+	case Qt::Key_L:
+		if (m_shadowMapInitialized)
+			m_showShadow = !m_showShadow;
 		break;
 	}
 	m_currentEventHandle->keyPressEvent(ev);
@@ -778,4 +681,147 @@ void Viewer3d::renderTrackBall(bool indexMode)
 
 	glPopMatrix();
 	glPopAttrib();
+}
+
+////////////////////////////////////////////////////////////////////////
+inline int lightDivUp(int a, int b)
+{
+	return (a + b - 1) / b;
+}
+
+void Viewer3d::initShadowMap()
+{
+	QString lightFile = "Env/ironman_op50.dir";
+	if (!loadLight(lightFile))
+	{
+		printf("lighting file not found: %s\n", lightFile.toStdString().c_str());
+		return;
+	}
+	for (auto& ld : m_lightDirections)
+	{
+		ldp::Mat3f R = ldp::QuaternionF().fromAngleAxis(
+			-ldp::PI_S / 2.f, 
+			ldp::Float3(1, 0, 0)).toRotationMatrix3();
+		ld = R * ld;
+	}
+
+
+	m_MeshRender.reset(new MeshRender());
+	if (!m_MeshRender->Initialize())
+		return;
+	m_GPUBuffers.reset(new GPUBuffers());
+	m_GPUBuffers->SetShadowSize(1024 * 2, 1024 * 2);
+	m_GPUBuffers->SetFrameSize(width(), height());
+	m_GPUBuffers->CreateTextures();
+	m_GPUBuffers->CreateFBOs();
+	m_GPUBuffers->AttachFBOTextures();
+	m_shadowMapInitialized = true;
+}
+
+void Viewer3d::renderWithShadowMap()
+{
+	if (!m_shadowMapInitialized)
+		return;
+
+	glClearColor(0., 0., 0., 0.);
+	glClear(GL_COLOR_BUFFER_BIT);
+	glEnable(GL_MULTISAMPLE);
+
+	m_camera.apply();
+
+	const float shadeLight = 0.4;
+	const float shadeShadow = 1;
+	const float shadeAmbient = 0.1 / m_lightNum;
+	const float shadeDiffuse = 1.;
+	const float shadeSpecular = 0.5;
+	const ldp::Float3 clothColor(0.7, 0.9, 1);
+	const ldp::Float3 bodyColor(1, 1, 1);
+
+	if (m_clothManager)
+	{
+		// collect meshes
+		std::vector<ObjMesh*> meshes;
+		meshes.push_back(m_clothManager->bodyMesh());
+		for (int i = 0; i < m_clothManager->numClothPieces(); i++)
+		{
+			const auto& piece = m_clothManager->clothPiece(i);
+			if (piece->mesh3d().material_list.size())
+			{
+				if (piece->graphPanel().isHighlighted())
+					piece->mesh3d().material_list[0].diff = ldp::Float3(0.0, 0.6, 0.8);
+				else if (piece->graphPanel().isSelected())
+					piece->mesh3d().material_list[0].diff = ldp::Float3(0.8, 0.6, 0);
+				else
+					piece->mesh3d().material_list[0].diff = ldp::Float3(1, 1, 1);
+			}
+			meshes.push_back(&piece->mesh3d());
+		}
+
+		m_MeshRender->updateGeometry(meshes.data() + 1, meshes.size() - 1, meshes.data(), 1);
+
+		for (int lightI = 0; lightI < m_lightNum; ++lightI)
+			m_lightShadeColors[lightI] = m_lightOriginalColors[lightI] * shadeLight;
+
+		std::vector<ldp::Float3> lightDirsRot = m_lightDirections;
+		for (auto& ld : lightDirsRot)
+			ld = m_camera.getModelViewMatrix().getRotationPart().inv() * ld;
+
+		// render each passes
+		for (int passI = 0; passI < lightDivUp(m_lightNum, MAX_LIGHTS_PASS); passI++){
+			m_MeshRender->PrepareLightMatrix(
+				meshes[0]->boundingBox[0], meshes[0]->boundingBox[1],
+				lightDirsRot.data() + passI * MAX_LIGHTS_PASS,
+				m_LightModelViewMatrix, m_LightProjectionMatrix);
+
+			m_MeshRender->RenderShadowMap(
+				m_LightModelViewMatrix,
+				m_LightProjectionMatrix,
+				m_GPUBuffers->GetShadowFBO());
+
+			for (int lightI = 0; lightI < MAX_LIGHTS_PASS; lightI++)
+				m_LightModelViewProjectionMatrix[lightI] =
+				m_LightProjectionMatrix[lightI] * m_LightModelViewMatrix[lightI];
+
+			m_MeshRender->RenderMesh(
+				m_camera.getLocation(),
+				m_lightShadeColors.data() + passI * MAX_LIGHTS_PASS,
+				lightDirsRot.data() + passI * MAX_LIGHTS_PASS,
+				m_LightModelViewMatrix,
+				m_LightModelViewProjectionMatrix,
+				shadeAmbient, shadeDiffuse, shadeSpecular, shadeShadow,
+				clothColor, bodyColor,
+				m_GPUBuffers->GetFrameFBO(),
+				m_GPUBuffers->GetShadowFBO().GetColorTexture(),
+				m_showType);
+
+			m_MeshRender->RenderComposite(m_GPUBuffers->GetFrameFBO().GetColorTexture());
+		}
+	} // end if clothManager
+}
+
+bool Viewer3d::loadLight(QString fileName)
+{
+	QFile lightFile(fileName);
+	if (!lightFile.open(QIODevice::ReadOnly | QIODevice::Text))
+		return false;
+	QTextStream lightStream(&lightFile);
+	lightStream >> m_lightNum;
+	m_lightOriginalColors.clear();
+	m_lightShadeColors.clear();
+	m_lightDirections.clear();
+	m_lightOriginalColors.resize(lightDivUp(m_lightNum, MAX_LIGHTS_PASS)*MAX_LIGHTS_PASS);
+	m_lightShadeColors.resize(lightDivUp(m_lightNum, MAX_LIGHTS_PASS)*MAX_LIGHTS_PASS);
+	m_lightDirections.resize(lightDivUp(m_lightNum, MAX_LIGHTS_PASS)*MAX_LIGHTS_PASS, ldp::Float3(0, 0, -1));
+	float lightIntensity = 0.f;
+	for (int lightI = 0; lightI < m_lightNum; ++lightI){
+		lightStream >> m_lightOriginalColors[lightI][0] >> m_lightOriginalColors[lightI][1] >> m_lightOriginalColors[lightI][2];
+		lightStream >> m_lightDirections[lightI][0] >> m_lightDirections[lightI][1] >> m_lightDirections[lightI][2];
+		lightStream >> lightIntensity;
+		m_lightOriginalColors[lightI] *= lightIntensity;
+		m_lightShadeColors[lightI] = m_lightOriginalColors[lightI];
+		m_lightDirections[lightI].normalize();
+		m_lightDirections[lightI] *= -1.f;
+	}
+	lightFile.close();
+	return true;
 }

@@ -107,6 +107,9 @@
     <Filter Include="algorithm\arcsim\jsoncpp">
       <UniqueIdentifier>{6b6eda38-a34e-43da-bfed-b24ca08e5b48}</UniqueIdentifier>
     </Filter>
+    <Filter Include="algorithm\CmlShadowMap">
+      <UniqueIdentifier>{8f94b12e-b10b-4aa6-9ecb-5cb9b9104603}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -904,6 +907,12 @@
     <ClCompile Include="GeneratedFiles\Release\moc_ArcsimView.cpp">
       <Filter>Generated Files\Release</Filter>
     </ClCompile>
+    <ClCompile Include="Algorithm\CmlShadowMap\MeshRender.cpp">
+      <Filter>algorithm\CmlShadowMap</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\CmlShadowMap\GPUBuffers.cpp">
+      <Filter>algorithm\CmlShadowMap</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">
@@ -1513,6 +1522,15 @@
     </ClInclude>
     <ClInclude Include="GeneratedFiles\ui_ArcSimWindow.h">
       <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\CmlShadowMap\GLHelper.h">
+      <Filter>algorithm\CmlShadowMap</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\CmlShadowMap\MeshRender.h">
+      <Filter>algorithm\CmlShadowMap</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\CmlShadowMap\GPUBuffers.h">
+      <Filter>algorithm\CmlShadowMap</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
