@@ -135,6 +135,7 @@
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
       <OpenMPSupport>true</OpenMPSupport>
+      <DisableSpecificWarnings>4819</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -216,6 +217,7 @@
     <ClCompile Include="Algorithm\cloth\CudaDiagBlockMatrix.cpp" />
     <ClCompile Include="Algorithm\cloth\definations.cpp" />
     <ClCompile Include="Algorithm\cloth\device_memory.cpp" />
+    <ClCompile Include="Algorithm\cloth\GpuSim.cpp" />
     <ClCompile Include="Algorithm\cloth\graph\AbstractGraphCurve.cpp" />
     <ClCompile Include="Algorithm\cloth\graph\AbstractGraphOjbect.cpp" />
     <ClCompile Include="Algorithm\cloth\graph\Graph.cpp" />
@@ -232,6 +234,7 @@
     <CudaCompile Include="Algorithm\cloth\CudaBsrMatrix.cu" />
     <CudaCompile Include="Algorithm\cloth\CudaDiagBlockMatrix.cu" />
     <CudaCompile Include="Algorithm\cloth\GpuCholesky.cu" />
+    <CudaCompile Include="Algorithm\cloth\GpuSim.cu" />
     <CudaCompile Include="Algorithm\cloth\SelfCollider.cu">
       <FileType>CppCode</FileType>
     </CudaCompile>
@@ -603,6 +606,7 @@
     <ClInclude Include="Algorithm\cloth\device_memory.h" />
     <ClInclude Include="Algorithm\cloth\device_utils.h" />
     <ClInclude Include="Algorithm\cloth\GpuCholeSky.h" />
+    <ClInclude Include="Algorithm\cloth\GpuSim.h" />
     <ClInclude Include="Algorithm\cloth\graph\AbstractGraphCurve.h" />
     <ClInclude Include="Algorithm\cloth\graph\AbstractGraphObject.h" />
     <ClInclude Include="Algorithm\cloth\graph\Graph.h" />

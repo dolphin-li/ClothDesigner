@@ -7,7 +7,7 @@
 #include <texture_fetch_functions.h>
 #include <surface_types.h>
 #include <surface_functions.h>
-#include "helper_math.h"
+#include "cloth\helper_math.h"
 
 #include <thrust\device_ptr.h>
 #include <thrust\sort.h>

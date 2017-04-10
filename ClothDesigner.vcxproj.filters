@@ -934,6 +934,9 @@
     <ClCompile Include="Algorithm\cloth\CudaDiagBlockMatrix.cpp">
       <Filter>algorithm\cloth</Filter>
     </ClCompile>
+    <ClCompile Include="Algorithm\cloth\GpuSim.cpp">
+      <Filter>algorithm\cloth</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">
@@ -1568,6 +1571,9 @@
     <ClInclude Include="Algorithm\cloth\GpuCholeSky.h">
       <Filter>algorithm\cloth</Filter>
     </ClInclude>
+    <ClInclude Include="Algorithm\cloth\GpuSim.h">
+      <Filter>algorithm\cloth</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="qdarkstyle\rc\up_arrow_disabled.png">
@@ -1731,6 +1737,9 @@
       <Filter>algorithm\cloth</Filter>
     </CudaCompile>
     <CudaCompile Include="Algorithm\cloth\GpuCholesky.cu">
+      <Filter>algorithm\cloth</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Algorithm\cloth\GpuSim.cu">
       <Filter>algorithm\cloth</Filter>
     </CudaCompile>
   </ItemGroup>

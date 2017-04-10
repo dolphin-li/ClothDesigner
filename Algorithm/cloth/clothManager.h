@@ -32,6 +32,7 @@ namespace ldp
 	class TransformInfo;
 	class ClothManager
 	{
+		friend class GpuSim;
 	public:
 		typedef float ValueType;
 		typedef ldp::ldp_basic_vec3<ValueType> Vec3;
@@ -114,6 +115,7 @@ namespace ldp
 		void setBodyMeshTransform(const TransformInfo& info);
 		const LevelSet3D* bodyLevelSet()const { return m_bodyLvSet.get(); }
 		LevelSet3D* bodyLevelSet() { return m_bodyLvSet.get(); }
+		const ValueType* bodyLevelSetDevicePtr()const{ return m_dev_phi.ptr(); }
 		SmplManager* bodySmplManager() { return m_smplBody; }
 		const SmplManager* bodySmplManager()const { return m_smplBody; }
 		void updateSmplBody();
