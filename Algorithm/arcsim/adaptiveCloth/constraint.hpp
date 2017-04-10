@@ -34,6 +34,11 @@
 #include <map>
 #include <vector>
 
+namespace ldp
+{
+	class LevelSet3D;
+}
+
 namespace arcsim
 {
 
@@ -102,4 +107,22 @@ namespace arcsim
 		MeshGrad friction(double dt, MeshHess &jac);
 	};
 
+	struct IneqConLvSet : public Constraint
+	{
+		// n . sum(w[i] verts[i]->x) >= 0
+		Node *node = nullptr;
+		ldp::LevelSet3D* obj = nullptr;
+		bool free = false;
+		Vec3 n;
+		double a; // area
+		double mu; // friction
+		double stiff;
+		double value(int *sign = NULL);
+		MeshGrad gradient();
+		MeshGrad project();
+		double energy(double value);
+		double energy_grad(double value);
+		double energy_hess(double value);
+		MeshGrad friction(double dt, MeshHess &jac);
+	};
 }

@@ -35,6 +35,7 @@
 #include <algorithm>
 #include <fstream>
 #include <omp.h>
+#include "cloth\LevelSet3D.h"
 using namespace std;
 
 namespace arcsim
@@ -92,6 +93,8 @@ namespace arcsim
 
 	vector<Impact> find_impacts(const vector<AccelStruct*> &acc,
 		const vector<AccelStruct*> &obs_accs);
+	vector<Impact> find_impacts(const vector<AccelStruct*> &acc,
+		const vector<ldp::LevelSet3D*> &obs_accs);
 	vector<Impact> independent_impacts(const vector<Impact> &impacts);
 
 	void add_impacts(const vector<Impact> &impacts, vector<ImpactZone*> &zones);
@@ -198,6 +201,7 @@ namespace arcsim
 	static vector<Impact> *impacts = NULL;
 
 	void find_face_impacts(const Face *face0, const Face *face1);
+	void find_face_impacts_lv(const Face *face0, const ldp::LevelSet3D *face1);
 
 	vector<Impact> find_impacts(const vector<AccelStruct*> &accs,
 		const vector<AccelStruct*> &obs_accs)
@@ -210,6 +214,23 @@ namespace arcsim
 		for (int t = 0; t < arcsim::nthreads; t++)
 			arcsim::impacts[t].clear();
 		for_overlapping_faces(accs, obs_accs, arcsim::thickness, find_face_impacts);
+		vector<Impact> impacts;
+		for (int t = 0; t < arcsim::nthreads; t++)
+			append(impacts, arcsim::impacts[t]);
+		return impacts;
+	}
+
+	vector<Impact> find_impacts(const vector<AccelStruct*> &accs,
+		const vector<ldp::LevelSet3D*> &obs_accs)
+	{
+		if (!impacts)
+		{
+			arcsim::nthreads = omp_get_max_threads();
+			arcsim::impacts = new vector<Impact>[arcsim::nthreads];
+		}
+		for (int t = 0; t < arcsim::nthreads; t++)
+			arcsim::impacts[t].clear();
+		for_overlapping_faces(accs, obs_accs, arcsim::thickness, find_face_impacts, find_face_impacts_lv);
 		vector<Impact> impacts;
 		for (int t = 0; t < arcsim::nthreads; t++)
 			append(impacts, arcsim::impacts[t]);
@@ -233,6 +254,22 @@ namespace arcsim
 		for (int e1 = 0; e1 < 3; e1++)
 		if (ee_collision_test(face0->adje[e0], face1->adje[e1], impact))
 			arcsim::impacts[t].push_back(impact);
+	}
+
+	void find_face_impacts_lv(const Face *face0, const ldp::LevelSet3D *obj)
+	{
+#if 0
+		int t = omp_get_thread_num();
+		Impact impact;
+		for (int v = 0; v < 3; v++)
+		{
+			const Node *node = face0->v[v]->node;
+			return collision_test(Impact::VF, node, face->v[0]->node, face->v[1]->node,
+				face->v[2]->node, impact);
+			if (vf_collision_test(face0->v[v], face1, impact))
+				arcsim::impacts[t].push_back(impact);
+		}
+#endif
 	}
 
 	bool collision_test(Impact::Type type, const Node *node0, const Node *node1,

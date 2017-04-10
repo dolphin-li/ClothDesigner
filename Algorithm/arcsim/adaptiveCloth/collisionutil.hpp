@@ -27,6 +27,11 @@
 
 #include "bvh.hpp"
 
+namespace ldp
+{
+	class LevelSet3D;
+}
+
 namespace arcsim
 {
 
@@ -48,6 +53,7 @@ namespace arcsim
 
 	// callback must be safe to parallelize via OpenMP
 	typedef void(*BVHCallback) (const Face *face0, const Face *face1);
+	typedef void(*BVHCallback_1) (const Face *face0, const ldp::LevelSet3D *face1);
 
 	void for_overlapping_faces(BVHNode *node, float thickness,
 		BVHCallback callback);
@@ -60,6 +66,20 @@ namespace arcsim
 	void for_faces_overlapping_obstacles(const std::vector<AccelStruct*> &accs,
 		const std::vector<AccelStruct*> &obs_accs,
 		double thickness, BVHCallback callback,
+		bool parallel = true);
+
+	/// ldp: dist field based object-cloth collision
+	void for_overlapping_faces(BVHNode *node, float thickness,
+		BVHCallback_1 callback);
+	void for_overlapping_faces(BVHNode *node0, ldp::LevelSet3D* node1, float thickness,
+		BVHCallback_1 callback);
+	void for_overlapping_faces(const std::vector<AccelStruct*> &accs,
+		const std::vector<ldp::LevelSet3D*> &obs_accs,
+		double thickness, BVHCallback callback, BVHCallback_1 callback1,
+		bool parallel = true);
+	void for_faces_overlapping_obstacles(const std::vector<AccelStruct*> &accs,
+		const std::vector<ldp::LevelSet3D*> &obs_accs,
+		double thickness, BVHCallback_1 callback,
 		bool parallel = true);
 
 	std::vector<AccelStruct*> create_accel_structs

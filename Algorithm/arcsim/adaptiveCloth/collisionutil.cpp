@@ -28,6 +28,7 @@
 
 #include "simulation.hpp"
 #include <omp.h>
+#include "cloth\LevelSet3D.h"
 using namespace std;
 
 namespace arcsim
@@ -232,4 +233,65 @@ namespace arcsim
 	template int find_mesh(const Face*, const vector<Mesh*>&);
 
 	const vector<Mesh*> *meshes, *obs_meshes;
+
+	//////////////////////////////////////////////////////////////////////
+	// ldp use distmap for object-cloth collision
+
+	void for_overlapping_faces(const vector<AccelStruct*> &accs,
+		const vector<ldp::LevelSet3D*> &obs_accs,
+		double thickness, BVHCallback callback, BVHCallback_1 callback1,
+		bool parallel)
+	{
+		int nnodes = (int)ceil(sqrt(2 * omp_get_max_threads()));
+		vector<BVHNode*> nodes = collect_upper_nodes(accs, nnodes);
+		int nthreads = omp_get_max_threads();
+		omp_set_num_threads(parallel ? omp_get_max_threads() : 1);
+#pragma omp parallel for
+		for (int n = 0; n < nodes.size(); n++)
+		{
+			for_overlapping_faces(nodes[n], thickness, callback);
+			for (int m = 0; m < n; m++)
+				for_overlapping_faces(nodes[n], nodes[m], thickness, callback);
+			for (int o = 0; o < obs_accs.size(); o++)
+			if (obs_accs[o])
+				for_overlapping_faces(nodes[n], obs_accs[o], thickness,
+				callback1);
+		}
+		omp_set_num_threads(nthreads);
+	}
+
+	void for_faces_overlapping_obstacles(const vector<AccelStruct*> &accs,
+		const vector<ldp::LevelSet3D*> &obs_accs,
+		double thickness, BVHCallback_1 callback,
+		bool parallel)
+	{
+		int nnodes = omp_get_max_threads();
+		vector<BVHNode*> nodes = collect_upper_nodes(accs, nnodes);
+		int nthreads = omp_get_max_threads();
+		omp_set_num_threads(parallel ? omp_get_max_threads() : 1);
+#pragma omp parallel for
+		for (int n = 0; n < nodes.size(); n++)
+		for (int o = 0; o < obs_accs.size(); o++)
+		if (obs_accs[o])
+			for_overlapping_faces(nodes[n], obs_accs[o], thickness,
+			callback);
+		omp_set_num_threads(nthreads);
+	}
+
+	void for_overlapping_faces(BVHNode *node0, ldp::LevelSet3D *node1, float thickness,
+		BVHCallback_1 callback)
+	{
+		if (!node0->_active)
+			return;
+		if (node0->isLeaf())
+		{
+			Face *face0 = node0->getFace();
+			callback(face0, node1);
+		}
+		else
+		{
+			for_overlapping_faces(node0->getLeftChild(), node1, thickness, callback);
+			for_overlapping_faces(node0->getRightChild(), node1, thickness, callback);
+		}
+	}
 }

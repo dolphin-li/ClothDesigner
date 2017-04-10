@@ -25,7 +25,7 @@
 */
 
 #include "constraint.hpp"
-
+#include "cloth\LevelSet3D.h"
 #include "magic.hpp"
 using namespace std;
 
@@ -146,6 +146,77 @@ namespace arcsim
 					}
 				}
 			}
+		}
+		return force;
+	}
+/////////////////////////////////////////////////////////////////////////////
+	double IneqConLvSet::value(int *sign)
+	{
+		if (sign)
+			*sign = 1;
+		double d = obj->globalValue(node->x[0], node->x[1], node->x[2]);
+		d -= arcsim::magic.repulsion_thickness;
+		return d;
+	}
+
+	MeshGrad IneqConLvSet::gradient()
+	{
+		MeshGrad grad;
+		grad[node] = n;
+		return grad;
+	}
+
+	MeshGrad IneqConLvSet::project()
+	{
+		double d = value() + arcsim::magic.repulsion_thickness - arcsim::magic.projection_thickness;
+		if (d >= 0)
+			return MeshGrad();
+		double inv_mass = 0;
+		if (free)
+			inv_mass += 1 / node->m;
+		MeshGrad dx;
+		if (free)
+		{
+			dx[node] = -(1 / node->m) / inv_mass*n*d;
+		}
+		return dx;
+	}
+
+	double IneqConLvSet::energy(double value)
+	{
+		double v = violation(value);
+		return stiff*v*v*v / arcsim::magic.repulsion_thickness / 6;
+	}
+	double IneqConLvSet::energy_grad(double value)
+	{
+		return -stiff*sq(violation(value)) / arcsim::magic.repulsion_thickness / 2;
+	}
+	double IneqConLvSet::energy_hess(double value)
+	{
+		return stiff*violation(value) / arcsim::magic.repulsion_thickness;
+	}
+
+	MeshGrad IneqConLvSet::friction(double dt, MeshHess &jac)
+	{
+		if (mu == 0)
+			return MeshGrad();
+		double fn = abs(energy_grad(value()));
+		if (fn == 0)
+			return MeshGrad();
+		Vec3 v = Vec3(0);
+		double inv_mass = 0;
+		v += node->v;
+		if (free)
+			inv_mass += 1 / node->m;
+		Mat3x3 T = Mat3x3(1) - outer(n, n);
+		double vt = norm(T*v);
+		double f_by_v = std::min(mu*fn / vt, 1 / (dt*inv_mass));
+		// double f_by_v = mu*fn/max(vt, 1e-1);
+		MeshGrad force;
+		if (free)
+		{
+			force[node] = -f_by_v*T*v;
+			jac[make_pair(node, node)] = -f_by_v*T;
 		}
 		return force;
 	}

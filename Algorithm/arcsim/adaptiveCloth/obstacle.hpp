@@ -30,6 +30,12 @@
 #include "util.hpp"
 #include "collisionutil.hpp"
 #include <memory>
+
+namespace ldp
+{
+	class LevelSet3D;
+}
+
 namespace arcsim
 {
 
@@ -62,6 +68,7 @@ namespace arcsim
 		Mesh curr_state_mesh;
 
 		std::shared_ptr<AccelStruct> base_acc_noccd;
+		std::shared_ptr<ldp::LevelSet3D> base_objLevelSet;
 
 		Obstacle() : start_time(0), end_time(infinity), activated(false) {}
 	};

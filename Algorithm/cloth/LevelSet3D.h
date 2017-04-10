@@ -55,6 +55,21 @@ namespace ldp
 			return localValue(p[0], p[1], p[2]);
 		}
 
+		void localGradient(ValueType x, ValueType y, ValueType z, ValueType &gx, ValueType &gy, ValueType &gz)const
+		{
+			gx = gy = gz = 0;
+			if (x<2 || y<2 || z<2 || x>m_size[0] - 3 || y>m_size[1] - 3 || z>m_size[2] - 3)
+				return;
+			gx = (localValue(x + 1, y, z) - localValue(x - 1, y, z))*0.5;
+			gy = (localValue(x, y + 1, z) - localValue(x, y - 1, z))*0.5;
+			gz = (localValue(x, y, z + 1) - localValue(x, y, z - 1))*0.5;
+		}
+
+		void localGradient(Vec3 p, Vec3& g)const
+		{
+			localGradient(p[0], p[1], p[2], g[0], g[1], g[2]);
+		}
+
 		ValueType globalValue(ValueType x, ValueType y, ValueType z)const
 		{
 			return globalValue(Vec3(x, y, z));
@@ -63,6 +78,20 @@ namespace ldp
 		ValueType globalValue(Vec3 p)const
 		{
 			return localValue((p-m_start)/m_step);
+		}
+
+		void globalGradient(ValueType x, ValueType y, ValueType z, ValueType &gx, ValueType &gy, ValueType &gz)const
+		{
+			Vec3 g;
+			globalGradient(Vec3(x, y, z), g);
+			gx = g[0];
+			gy = g[1];
+			gz = g[2];
+		}
+
+		void globalGradient(Vec3 p, Vec3& g)const
+		{
+			localGradient((p - m_start) / m_step, g);
 		}
 	protected:
 		void fastMarching(const int band_width = 6, bool reinitialize = true, bool boundary = false);

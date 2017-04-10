@@ -31,6 +31,7 @@
 #include "magic.hpp"
 #include "simulation.hpp"
 #include <vector>
+#include "cloth\LevelSet3D.h"
 using namespace std;
 
 namespace arcsim
@@ -54,12 +55,19 @@ namespace arcsim
 	static vector< Min<Face*> > node_prox[2];
 	static vector< Min<Edge*> > edge_prox[2];
 	static vector< Min<Node*> > face_prox[2];
+	static vector< Min<ldp::LevelSet3D*> > node_levelset_prox[2];
+	static vector< Min<ldp::LevelSet3D*> > edge_levelset_prox[2];
 
 	void find_proximities(const Face *face0, const Face *face1);
+	void find_proximities_lv(const Face *face0, const ldp::LevelSet3D *obj);
 	Constraint *make_constraint(const Node *node, const Face *face,
+		double mu, double mu_obs);
+	Constraint *make_constraint(const Node *node, const ldp::LevelSet3D *obj,
 		double mu, double mu_obs);
 	Constraint *make_constraint(const Edge *edge0, const Edge *edge1,
 		double mu, double mu_obs);
+	//Constraint *make_constraint(const Edge *edge0, const ldp::LevelSet3D *obj,
+	//	double mu, double mu_obs);
 
 	vector<Constraint*> proximity_constraints(const vector<Mesh*> &meshes,
 		const vector<Mesh*> &obs_meshes,
@@ -117,8 +125,60 @@ namespace arcsim
 		return cons;
 	}
 
+	std::vector<Constraint*> proximity_constraints
+		(const std::vector<Mesh*> &meshes, const vector<ldp::LevelSet3D*> &obs_accs,
+		double mu, double mu_obs)
+	{
+		arcsim::meshes = &meshes;
+		const double dmin = 2 * arcsim::magic.repulsion_thickness;
+		vector<AccelStruct*> accs = create_accel_structs(meshes, false);
+		int nn = size<Node>(meshes),
+			ne = size<Edge>(meshes),
+			nf = size<Face>(meshes);
+		for (int i = 0; i < 2; i++)
+		{
+			arcsim::node_prox[i].assign(nn, Min<Face*>());
+			arcsim::edge_prox[i].assign(ne, Min<Edge*>());
+			arcsim::face_prox[i].assign(nf, Min<Node*>());
+		}
+		for_overlapping_faces(accs, obs_accs, dmin, find_proximities, find_proximities_lv);
+		vector<Constraint*> cons;
+		for (int n = 0; n < nn; n++)
+		for (int i = 0; i < 2; i++)
+		{
+			Min<Face*> &m = arcsim::node_prox[i][n];
+			if (m.key < dmin)
+				cons.push_back(make_constraint(get<Node>(n, meshes), m.val,
+				mu, mu_obs));
+			Min<ldp::LevelSet3D*> &ms = arcsim::node_levelset_prox[i][n];
+			if (ms.key < dmin)
+				cons.push_back(make_constraint(get<Node>(n, meshes), ms.val,
+				mu, mu_obs));
+		}
+		for (int e = 0; e < ne; e++)
+		for (int i = 0; i < 2; i++)
+		{
+			Min<Edge*> &m = arcsim::edge_prox[i][e];
+			if (m.key < dmin)
+				cons.push_back(make_constraint(get<Edge>(e, meshes), m.val,
+				mu, mu_obs));
+		}
+		for (int f = 0; f < nf; f++)
+		for (int i = 0; i < 2; i++)
+		{
+			Min<Node*> &m = arcsim::face_prox[i][f];
+			if (m.key < dmin)
+				cons.push_back(make_constraint(m.val, get<Face>(f, meshes),
+				mu, mu_obs));
+		}
+		destroy_accel_structs(accs);
+		return cons;
+	}
+
 	void add_proximity(const Node *node, const Face *face);
 	void add_proximity(const Edge *edge0, const Edge *edge1);
+	void add_proximity(const Node *node, const ldp::LevelSet3D *obj);
+	void add_proximity(const Edge *edge0, const ldp::LevelSet3D *obj);
 
 	void find_proximities(const Face *face0, const Face *face1)
 	{
@@ -129,6 +189,15 @@ namespace arcsim
 		for (int e0 = 0; e0 < 3; e0++)
 		for (int e1 = 0; e1 < 3; e1++)
 			add_proximity(face0->adje[e0], face1->adje[e1]);
+	}
+
+	void find_proximities_lv(const Face *face0, const ldp::LevelSet3D *obj)
+	{
+		for (int v = 0; v < 3; v++)
+			add_proximity(face0->v[v]->node, obj);
+		for (int e0 = 0; e0 < 3; e0++)
+		for (int e1 = 0; e1 < 3; e1++)
+			add_proximity(face0->adje[e0], obj);
 	}
 
 	void add_proximity(const Node *node, const Face *face)
@@ -155,6 +224,22 @@ namespace arcsim
 		{
 			int side = dot(-n, face->n) >= 0 ? 0 : 1;
 			arcsim::face_prox[side][get_index(face, *arcsim::meshes)].add(d, (Node*)node);
+		}
+	}
+
+	void add_proximity(const Node *node, const ldp::LevelSet3D *obj)
+	{
+		Vec3 n;
+		double w[4];
+		double d = obj->globalValue(node->x[0], node->x[1], node->x[2]); 
+		d = abs(d);
+		bool inside = (min(-w[1], -w[2], -w[3]) >= -1e-6);
+		if (!inside)
+			return;
+		if (is_free(node))
+		{
+			int side = dot(n, node->n) >= 0 ? 0 : 1;
+			arcsim::node_levelset_prox[side][get_index(node, *arcsim::meshes)].add(d, (ldp::LevelSet3D *)obj);
 		}
 	}
 
@@ -204,6 +289,29 @@ namespace arcsim
 		}
 	}
 
+	void add_proximity(const Edge *edge0, const ldp::LevelSet3D *obj)
+	{
+#if 0
+		Vec3 n;
+		double w[4];
+		double d = signed_ee_distance(edge0->n[0]->x, edge0->n[1]->x,
+			edge1->n[0]->x, edge1->n[1]->x,
+			&n, w);
+		d = abs(d);
+		bool inside = (min(w[0], w[1], -w[2], -w[3]) >= -1e-6
+			&& in_wedge(w[1], edge0, edge1)
+			&& in_wedge(-w[3], edge1, edge0));
+		if (!inside)
+			return;
+		if (is_free(edge0))
+		{
+			Vec3 edge0n = edge0->n[0]->n + edge0->n[1]->n;
+			int side = dot(n, edge0n) >= 0 ? 0 : 1;
+			arcsim::edge_levelset_prox[side][get_index(edge0, *arcsim::meshes)].add(d, (ldp::LevelSet3D*)obj);
+		}
+#endif
+	}
+
 	double area(const Node *node);
 	double area(const Edge *edge);
 	double area(const Face *face);
@@ -229,6 +337,25 @@ namespace arcsim
 		return con;
 	}
 
+	Constraint *make_constraint(const Node *node, const ldp::LevelSet3D *obj,
+		double mu, double mu_obs)
+	{
+		IneqConLvSet *con = new IneqConLvSet();
+		con->node = (Node*)node;
+		con->free = is_free(con->node);
+		con->a = area(node);
+		con->obj = (ldp::LevelSet3D *)obj;
+		con->stiff = arcsim::magic.collision_stiffness*con->a;
+		double d = obj->globalValue(node->x[0], node->x[1], node->x[2]);
+		ldp::LevelSet3D::Vec3 g;
+		obj->localGradient(node->x[0], node->x[1], node->x[2], g[0], g[1], g[2]);
+		con->n = Vec3(g[0], g[1], g[2]);
+		if (d < 0)
+			con->n = -con->n;
+		con->mu = (!is_free(node)) ? mu_obs : mu;
+		return con;
+	}
+
 	Constraint *make_constraint(const Edge *edge0, const Edge *edge1,
 		double mu, double mu_obs)
 	{
@@ -249,6 +376,29 @@ namespace arcsim
 		con->mu = (!is_free(edge0) || !is_free(edge1)) ? mu_obs : mu;
 		return con;
 	}
+
+#if 0
+	Constraint *make_constraint(const Edge *edge0, const ldp::LevelSet3D *obj,
+		double mu, double mu_obs)
+	{
+		IneqCon *con = new IneqCon;
+		con->nodes[0] = (Node*)edge0->n[0];
+		con->nodes[1] = (Node*)edge0->n[1];
+		con->nodes[2] = (Node*)edge1->n[0];
+		con->nodes[3] = (Node*)edge1->n[1];
+		for (int n = 0; n < 4; n++)
+			con->free[n] = is_free(con->nodes[n]);
+		double a = std::min(area(edge0), area(edge1));
+		con->stiff = arcsim::magic.collision_stiffness*a;
+		double d = signed_ee_distance(con->nodes[0]->x, con->nodes[1]->x,
+			con->nodes[2]->x, con->nodes[3]->x,
+			&con->n, con->w);
+		if (d < 0)
+			con->n = -con->n;
+		con->mu = (!is_free(edge0) || !is_free(edge1)) ? mu_obs : mu;
+		return con;
+	}
+#endif
 
 	double area(const Node *node)
 	{

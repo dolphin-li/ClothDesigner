@@ -5,6 +5,7 @@
 #include "ldputil.h"
 #include "Renderable\ObjMesh.h"
 #include "cloth\clothManager.h"
+#include "cloth\LevelSet3D.h"
 namespace arcsim
 {
 	const static double g_num_edge_sample_angle_thre = 15 * ldp::PI_D / 180.;
@@ -57,19 +58,26 @@ namespace arcsim
 		}
 	}
 
-	void ArcSimManager::loadFromJsonConfig(std::string bodyMeshFileName)
+	static void arcMesh2objMesh(const Mesh& mesh, ObjMesh& omesh)
 	{
-		m_timeStamp->Reset();
+		omesh.clear();
+		
+		for (const auto& v : mesh.verts)
+		{
+			omesh.vertex_list.push_back(ldp::Float3(v->node->x0[0],
+				v->node->x0[1], v->node->x0[2]));
+		}
+		for (const auto& t : mesh.faces)
+		{
+			ObjMesh::obj_face f;
+			f.vertex_count = 3;
+			f.material_index = -1;
+			for (int k = 0; k < 3; k++)
+				f.vertex_index[k] = t->v[k]->node->index;
+		}
 
-		clear();
-		m_sim.reset(new Simulation);
-		load_json(bodyMeshFileName, *m_sim.get());
-		m_timeStamp->Stamp("json loaded");
-
-		prepare(*m_sim);
-
-		m_needUpdateMesh = true;
-		updateMesh();
+		omesh.updateNormals();
+		omesh.updateBoundingBox();
 	}
 
 	static void objMesh2arcMesh(Mesh& mesh, const ObjMesh& omesh)
@@ -89,7 +97,7 @@ namespace arcsim
 					f.vertex_index[0], f.vertex_index[1], f.vertex_index[2]);
 			}
 			std::vector<Vert*> verts;
-			std::vector<Node*> nodes;		
+			std::vector<Node*> nodes;
 			for (int k = 0; k < 3; k++)
 			{
 				nodes.push_back(mesh.nodes[f.vertex_index[k]]);
@@ -109,6 +117,30 @@ namespace arcsim
 		compute_ms_data(mesh);
 	}
 
+	void ArcSimManager::loadFromJsonConfig(std::string bodyMeshFileName)
+	{
+		m_timeStamp->Reset();
+
+		clear();
+		m_sim.reset(new Simulation);
+		load_json(bodyMeshFileName, *m_sim.get());
+		for (int i = 0; i < m_sim->obstacles.size(); i++)
+		{
+			m_sim->obstacles[i].base_objLevelSet.reset(new ldp::LevelSet3D());
+
+			ObjMesh mesh;
+			arcMesh2objMesh(m_sim->obstacles[i].base_mesh, mesh);
+			m_sim->obstacles[i].base_objLevelSet->fromMesh(mesh);
+		}
+		m_timeStamp->Stamp("json loaded");
+
+		prepare(*m_sim);
+
+		m_needUpdateMesh = true;
+		updateMesh();
+	}
+
+
 	void ArcSimManager::loadFromClothManager(ldp::ClothManager* clothManager)
 	{
 		m_timeStamp->Reset();
@@ -122,6 +154,7 @@ namespace arcsim
 		const ObjMesh* bodyMesh = clothManager->bodyMesh();
 		objMesh2arcMesh(m_sim->obstacles[0].base_mesh, *bodyMesh);
 		m_sim->obstacles[0].curr_state_mesh = deep_copy(m_sim->obstacles[0].base_mesh);
+		m_sim->obstacles[0].base_objLevelSet.reset(new ldp::LevelSet3D(*clothManager->bodyLevelSet()));
 
 		// transfer cloth mesh
 		ObjMesh clothMesh;
