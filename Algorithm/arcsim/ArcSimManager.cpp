@@ -74,6 +74,7 @@ namespace arcsim
 			f.material_index = -1;
 			for (int k = 0; k < 3; k++)
 				f.vertex_index[k] = t->v[k]->node->index;
+			omesh.face_list.push_back(f);
 		}
 
 		omesh.updateNormals();

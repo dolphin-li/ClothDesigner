@@ -54,6 +54,7 @@
 		},
 	"disable": [
 		"test"
+		,"collision"
 		//,"separation"											// if the input cloth intersects with body and the automatic seperation cannot converge, use this
 		//,"remeshing"											// if the input cloth is non-manifold, use this
 		//,"strainlimiting"										// if use this, then no strain limit will be applied, for speed up
