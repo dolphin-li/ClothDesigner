@@ -2,5 +2,8 @@
 
 namespace ldp
 {
+	void copyMaterial_toGpu()
+	{
 
+	}
 }

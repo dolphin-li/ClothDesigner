@@ -629,6 +629,7 @@ namespace ldp
 		if (m_shouldTriangulate)
 			triangulate();
 		m_X.clear();
+		m_X_texCoords.clear();
 		m_T.clear();
 		m_clothVertBegin.clear();
 		m_avgArea = 0;
@@ -642,6 +643,8 @@ namespace ldp
 			m_clothVertBegin.insert(std::make_pair(&mesh, vid_s));
 			for (const auto& v : mesh.vertex_list)
 				m_X.push_back(v);
+			for (const auto& v : piece->mesh2d().vertex_list)
+				m_X_texCoords.push_back(Vec2(v[0], v[1]));
 			for (const auto& f : mesh.face_list)
 			{
 				m_T.push_back(ldp::Int3(f.vertex_index[0], f.vertex_index[1],

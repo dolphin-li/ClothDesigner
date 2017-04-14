@@ -208,6 +208,7 @@ namespace ldp
 		std::shared_ptr<SpMat> m_vertex_smplJointBind;	// bind each cloth vertex to some smpl joints 
 		std::vector<Vec3> m_vertex_smpl_defaultPosition;
 		std::vector<Vec3> m_X;							// vertex position list
+		std::vector<Vec2> m_X_texCoords;				// vertex texcoord list
 		std::vector<Vec3> m_V;							// vertex velocity list
 		std::vector<ValueType> m_V_bending_k_mult;		// bending param of each vertex
 		std::vector<ValueType> m_V_outgo_dist;			// we want some vertices to go outside some distance
