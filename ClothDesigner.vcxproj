@@ -111,6 +111,7 @@
     </Link>
     <CudaCompile>
       <CodeGeneration>compute_30,sm_30</CodeGeneration>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -149,6 +150,7 @@
     <CudaCompile>
       <CodeGeneration>compute_30,sm_30</CodeGeneration>
       <AdditionalCompilerOptions>/FS /wd4819</AdditionalCompilerOptions>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -216,10 +218,7 @@
     <ClCompile Include="Algorithm\camera\Camera.cpp" />
     <ClCompile Include="Algorithm\cloth\clothManager.cpp" />
     <ClCompile Include="Algorithm\cloth\clothPiece.cpp" />
-    <ClCompile Include="Algorithm\cloth\CudaBsrMatrix.cpp" />
-    <ClCompile Include="Algorithm\cloth\CudaDiagBlockMatrix.cpp" />
     <ClCompile Include="Algorithm\cloth\definations.cpp" />
-    <ClCompile Include="Algorithm\cloth\device_memory.cpp" />
     <ClCompile Include="Algorithm\cloth\GpuSim.cpp" />
     <ClCompile Include="Algorithm\cloth\graph\AbstractGraphCurve.cpp" />
     <ClCompile Include="Algorithm\cloth\graph\AbstractGraphOjbect.cpp" />
@@ -234,9 +233,6 @@
     <ClCompile Include="Algorithm\cloth\HistoryStack.cpp" />
     <ClCompile Include="Algorithm\cloth\LevelSet3D.cpp" />
     <ClCompile Include="Algorithm\cloth\RigidEstimation.cpp" />
-    <CudaCompile Include="Algorithm\cloth\CudaBsrMatrix.cu" />
-    <CudaCompile Include="Algorithm\cloth\CudaDiagBlockMatrix.cu" />
-    <CudaCompile Include="Algorithm\cloth\GpuCholesky.cu" />
     <CudaCompile Include="Algorithm\cloth\GpuSim.cu" />
     <CudaCompile Include="Algorithm\cloth\SelfCollider.cu">
       <FileType>CppCode</FileType>
@@ -248,6 +244,10 @@
     <ClCompile Include="Algorithm\conv\ConvolutionPyramid.cpp" />
     <ClCompile Include="Algorithm\conv\Convolution_Helper.cpp" />
     <ClCompile Include="Algorithm\conv\ImageData.cpp" />
+    <ClCompile Include="Algorithm\cudpp\CachedDeviceBuffer.cpp" />
+    <ClCompile Include="Algorithm\cudpp\CudaBsrMatrix.cpp" />
+    <ClCompile Include="Algorithm\cudpp\CudaDiagBlockMatrix.cpp" />
+    <ClCompile Include="Algorithm\cudpp\device_memory.cpp" />
     <ClCompile Include="Algorithm\cudpp\moderngpu\src\mgpuutil.cpp" />
     <ClCompile Include="Algorithm\cudpp\moderngpu\src\mmio.cpp" />
     <ClCompile Include="Algorithm\cudpp\moderngpu\src\sparsematrix.cpp" />
@@ -492,6 +492,9 @@
     <ClCompile Include="TrainingImageRenderWindow.cpp" />
     <ClCompile Include="Viewer2d.cpp" />
     <ClCompile Include="viewer3d.cpp" />
+    <CudaCompile Include="Algorithm\cudpp\CudaBsrMatrix.cu" />
+    <CudaCompile Include="Algorithm\cudpp\CudaDiagBlockMatrix.cu" />
+    <CudaCompile Include="Algorithm\cudpp\GpuCholesky.cu" />
     <CudaCompile Include="Algorithm\cudpp\ModerGpuWrapper.cu" />
     <CudaCompile Include="Algorithm\cudpp\moderngpu\src\mgpucontext.cu" />
     <CudaCompile Include="Algorithm\cudpp\thrust_wrapper.cu" />
@@ -601,14 +604,7 @@
     <ClInclude Include="Algorithm\cloth\clothManager.h" />
     <ClInclude Include="Algorithm\cloth\clothPiece.h" />
     <ClInclude Include="Algorithm\cloth\COLLISION_HANDLER.h" />
-    <ClInclude Include="Algorithm\cloth\CudaBsrMatrix.h" />
-    <ClInclude Include="Algorithm\cloth\CudaDiagBlockMatrix.h" />
-    <ClInclude Include="Algorithm\cloth\cuda_utils.h" />
     <ClInclude Include="Algorithm\cloth\definations.h" />
-    <ClInclude Include="Algorithm\cloth\device_array.h" />
-    <ClInclude Include="Algorithm\cloth\device_memory.h" />
-    <ClInclude Include="Algorithm\cloth\device_utils.h" />
-    <ClInclude Include="Algorithm\cloth\GpuCholeSky.h" />
     <ClInclude Include="Algorithm\cloth\GpuSim.h" />
     <ClInclude Include="Algorithm\cloth\graph\AbstractGraphCurve.h" />
     <ClInclude Include="Algorithm\cloth\graph\AbstractGraphObject.h" />
@@ -620,15 +616,12 @@
     <ClInclude Include="Algorithm\cloth\graph\GraphPoint.h" />
     <ClInclude Include="Algorithm\cloth\graph\GraphQuadratic.h" />
     <ClInclude Include="Algorithm\cloth\graph\GraphsSewing.h" />
-    <ClInclude Include="Algorithm\cloth\helper_math.h" />
     <ClInclude Include="Algorithm\cloth\HistoryStack.h" />
-    <ClInclude Include="Algorithm\cloth\kernel_containers.h" />
     <ClInclude Include="Algorithm\cloth\LevelSet3D.h" />
     <ClInclude Include="Algorithm\cloth\LEVEL_SET_COLLISION.h" />
     <ClInclude Include="Algorithm\cloth\RigidEstimation.h" />
     <ClInclude Include="Algorithm\cloth\SelfCollider.h" />
     <ClInclude Include="Algorithm\cloth\SmplManager.h" />
-    <ClInclude Include="Algorithm\cloth\thrust_wrapper.h" />
     <ClInclude Include="Algorithm\cloth\TransformInfo.h" />
     <ClInclude Include="Algorithm\CmlShadowMap\GLHelper.h" />
     <ClInclude Include="Algorithm\CmlShadowMap\GPUBuffers.h" />
@@ -636,6 +629,16 @@
     <ClInclude Include="Algorithm\conv\ConvolutionPyramid.h" />
     <ClInclude Include="Algorithm\conv\Convolution_Helper.h" />
     <ClInclude Include="Algorithm\conv\ImageData.h" />
+    <ClInclude Include="Algorithm\cudpp\CachedDeviceBuffer.h" />
+    <ClInclude Include="Algorithm\cudpp\CudaBsrMatrix.h" />
+    <ClInclude Include="Algorithm\cudpp\CudaDiagBlockMatrix.h" />
+    <ClInclude Include="Algorithm\cudpp\cuda_utils.h" />
+    <ClInclude Include="Algorithm\cudpp\device_array.h" />
+    <ClInclude Include="Algorithm\cudpp\device_memory.h" />
+    <ClInclude Include="Algorithm\cudpp\device_utils.h" />
+    <ClInclude Include="Algorithm\cudpp\GpuCholeSky.h" />
+    <ClInclude Include="Algorithm\cudpp\helper_math.h" />
+    <ClInclude Include="Algorithm\cudpp\kernel_containers.h" />
     <ClInclude Include="Algorithm\cudpp\ModerGpuWrapper.h" />
     <ClInclude Include="Algorithm\cudpp\thrust_wrapper.h" />
     <ClInclude Include="Algorithm\FreeImage\CFreeImage.h" />
@@ -1171,7 +1174,6 @@
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="Algorithm\cloth\clothManager.cu" />
-    <CudaCompile Include="Algorithm\cloth\thrust_wrapper.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

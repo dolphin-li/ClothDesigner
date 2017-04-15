@@ -196,6 +196,17 @@ void CudaBsrMatrix::setRowFromBsrRowPtr(const int* bsrRowPtr)
 	endConstructRowPtr();
 }
 
+void CudaBsrMatrix::setRowFromBooRowPtr(const int* booptr)
+{
+	if (blocksInRow() == 0)
+		return;
+	beginConstructRowPtr();
+	cusparseCheck(cusparseXcoo2csr(m_cusparseHandle,
+		booptr, nnzBlocks(), blocksInRow(),
+		bsrRowPtr(), CUSPARSE_INDEX_BASE_ZERO));
+	endConstructRowPtr();
+}
+
 void CudaBsrMatrix::fromCsr(const int* csrRowPtr, const int* csrColIdx, const float* csrValue)
 {
 	if (isSymbolic())

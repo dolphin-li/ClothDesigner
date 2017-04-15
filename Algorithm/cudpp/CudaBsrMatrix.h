@@ -97,6 +97,9 @@ public:
 	// blocked csrRowPtr indicates that the input is blocked: its value is inherently block-by-block
 	void setRowFromBlockedCsrRowPtr(const int* csrRowPtr);
 
+	// similar with Bsr, Boo is respect to Coo
+	void setRowFromBooRowPtr(const int* booptr);
+
 	/// resize nnz related memories, called inside endConstructRowPtr() functions
 	// generally you do not need to call this function explicitly
 	void resize_nnzBlocks(int nnzBlocks);

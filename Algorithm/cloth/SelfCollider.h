@@ -1,7 +1,7 @@
 #pragma once
 
-#include "helper_math.h"
-#include "device_array.h"
+#include "cudpp\helper_math.h"
+#include "cudpp\device_array.h"
 namespace ldp
 {
 

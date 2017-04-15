@@ -202,9 +202,6 @@
     <ClCompile Include="Algorithm\cloth\LevelSet3D.cpp">
       <Filter>algorithm\cloth</Filter>
     </ClCompile>
-    <ClCompile Include="Algorithm\cloth\device_memory.cpp">
-      <Filter>algorithm\cloth</Filter>
-    </ClCompile>
     <ClCompile Include="Viewer2d.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -919,9 +916,6 @@
     <ClCompile Include="Algorithm\CmlShadowMap\GPUBuffers.cpp">
       <Filter>algorithm\CmlShadowMap</Filter>
     </ClCompile>
-    <ClCompile Include="Algorithm\cloth\CudaBsrMatrix.cpp">
-      <Filter>algorithm\cloth</Filter>
-    </ClCompile>
     <ClCompile Include="Algorithm\cudpp\moderngpu\src\mgpuutil.cpp">
       <Filter>algorithm\cudpp\moderngpu</Filter>
     </ClCompile>
@@ -931,11 +925,20 @@
     <ClCompile Include="Algorithm\cudpp\moderngpu\src\sparsematrix.cpp">
       <Filter>algorithm\cudpp\moderngpu</Filter>
     </ClCompile>
-    <ClCompile Include="Algorithm\cloth\CudaDiagBlockMatrix.cpp">
-      <Filter>algorithm\cloth</Filter>
-    </ClCompile>
     <ClCompile Include="Algorithm\cloth\GpuSim.cpp">
       <Filter>algorithm\cloth</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\cudpp\CachedDeviceBuffer.cpp">
+      <Filter>algorithm\cudpp</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\cudpp\CudaBsrMatrix.cpp">
+      <Filter>algorithm\cudpp</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\cudpp\CudaDiagBlockMatrix.cpp">
+      <Filter>algorithm\cudpp</Filter>
+    </ClCompile>
+    <ClCompile Include="Algorithm\cudpp\device_memory.cpp">
+      <Filter>algorithm\cudpp</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1094,28 +1097,10 @@
     <ClInclude Include="Algorithm\cloth\LevelSet3D.h">
       <Filter>algorithm\cloth</Filter>
     </ClInclude>
-    <ClInclude Include="Algorithm\cloth\cuda_utils.h">
-      <Filter>algorithm\cloth</Filter>
-    </ClInclude>
-    <ClInclude Include="Algorithm\cloth\device_array.h">
-      <Filter>algorithm\cloth</Filter>
-    </ClInclude>
-    <ClInclude Include="Algorithm\cloth\device_memory.h">
-      <Filter>algorithm\cloth</Filter>
-    </ClInclude>
-    <ClInclude Include="Algorithm\cloth\kernel_containers.h">
-      <Filter>algorithm\cloth</Filter>
-    </ClInclude>
     <ClInclude Include="Algorithm\cloth\COLLISION_HANDLER.h">
       <Filter>algorithm\cloth</Filter>
     </ClInclude>
     <ClInclude Include="Algorithm\cloth\LEVEL_SET_COLLISION.h">
-      <Filter>algorithm\cloth</Filter>
-    </ClInclude>
-    <ClInclude Include="Algorithm\cloth\device_utils.h">
-      <Filter>algorithm\cloth</Filter>
-    </ClInclude>
-    <ClInclude Include="Algorithm\cloth\helper_math.h">
       <Filter>algorithm\cloth</Filter>
     </ClInclude>
     <ClInclude Include="event_handles\Abstract2dEventHandle.h">
@@ -1364,9 +1349,6 @@
     <ClInclude Include="Algorithm\BFGS\solver.h">
       <Filter>algorithm\BFGS</Filter>
     </ClInclude>
-    <ClInclude Include="Algorithm\cloth\thrust_wrapper.h">
-      <Filter>algorithm\cloth</Filter>
-    </ClInclude>
     <ClInclude Include="Algorithm\cloth\SelfCollider.h">
       <Filter>algorithm\cloth</Filter>
     </ClInclude>
@@ -1556,23 +1538,44 @@
     <ClInclude Include="Algorithm\CmlShadowMap\GPUBuffers.h">
       <Filter>algorithm\CmlShadowMap</Filter>
     </ClInclude>
-    <ClInclude Include="Algorithm\cloth\CudaBsrMatrix.h">
-      <Filter>algorithm\cloth</Filter>
-    </ClInclude>
     <ClInclude Include="Algorithm\cudpp\ModerGpuWrapper.h">
       <Filter>algorithm\cudpp</Filter>
     </ClInclude>
     <ClInclude Include="Algorithm\cudpp\thrust_wrapper.h">
       <Filter>algorithm\cudpp</Filter>
     </ClInclude>
-    <ClInclude Include="Algorithm\cloth\CudaDiagBlockMatrix.h">
-      <Filter>algorithm\cloth</Filter>
-    </ClInclude>
-    <ClInclude Include="Algorithm\cloth\GpuCholeSky.h">
-      <Filter>algorithm\cloth</Filter>
-    </ClInclude>
     <ClInclude Include="Algorithm\cloth\GpuSim.h">
       <Filter>algorithm\cloth</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cudpp\CachedDeviceBuffer.h">
+      <Filter>algorithm\cudpp</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cudpp\cuda_utils.h">
+      <Filter>algorithm\cudpp</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cudpp\CudaBsrMatrix.h">
+      <Filter>algorithm\cudpp</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cudpp\CudaDiagBlockMatrix.h">
+      <Filter>algorithm\cudpp</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cudpp\device_array.h">
+      <Filter>algorithm\cudpp</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cudpp\device_memory.h">
+      <Filter>algorithm\cudpp</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cudpp\device_utils.h">
+      <Filter>algorithm\cudpp</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cudpp\GpuCholeSky.h">
+      <Filter>algorithm\cudpp</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cudpp\helper_math.h">
+      <Filter>algorithm\cudpp</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cudpp\kernel_containers.h">
+      <Filter>algorithm\cudpp</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1715,13 +1718,7 @@
     <CudaCompile Include="Algorithm\cloth\clothManager.cu">
       <Filter>algorithm\cloth</Filter>
     </CudaCompile>
-    <CudaCompile Include="Algorithm\cloth\thrust_wrapper.cu">
-      <Filter>algorithm\cloth</Filter>
-    </CudaCompile>
     <CudaCompile Include="Algorithm\cloth\SelfCollider.cu">
-      <Filter>algorithm\cloth</Filter>
-    </CudaCompile>
-    <CudaCompile Include="Algorithm\cloth\CudaBsrMatrix.cu">
       <Filter>algorithm\cloth</Filter>
     </CudaCompile>
     <CudaCompile Include="Algorithm\cudpp\ModerGpuWrapper.cu">
@@ -1733,14 +1730,17 @@
     <CudaCompile Include="Algorithm\cudpp\moderngpu\src\mgpucontext.cu">
       <Filter>algorithm\cudpp\moderngpu</Filter>
     </CudaCompile>
-    <CudaCompile Include="Algorithm\cloth\CudaDiagBlockMatrix.cu">
-      <Filter>algorithm\cloth</Filter>
-    </CudaCompile>
-    <CudaCompile Include="Algorithm\cloth\GpuCholesky.cu">
-      <Filter>algorithm\cloth</Filter>
-    </CudaCompile>
     <CudaCompile Include="Algorithm\cloth\GpuSim.cu">
       <Filter>algorithm\cloth</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Algorithm\cudpp\CudaBsrMatrix.cu">
+      <Filter>algorithm\cudpp</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Algorithm\cudpp\CudaDiagBlockMatrix.cu">
+      <Filter>algorithm\cudpp</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Algorithm\cudpp\GpuCholesky.cu">
+      <Filter>algorithm\cudpp</Filter>
     </CudaCompile>
   </ItemGroup>
 </Project>

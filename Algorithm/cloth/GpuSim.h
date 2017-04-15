@@ -2,17 +2,8 @@
 
 #include <vector>
 #include <memory>
-#include "device_array.h"
+#include "cudpp\CudaBsrMatrix.h"
 #include "ldpMat\ldp_basic_mat.h"
-#include <map>
-#include <set>
-#include "definations.h"
-#include "graph\AbstractGraphObject.h"
-#include "CudaBsrMatrix.h"
-#ifndef __CUDACC__
-#include <eigen\Dense>
-#include <eigen\Sparse>
-#endif
 
 namespace arcsim
 {
@@ -22,7 +13,15 @@ namespace arcsim
 namespace ldp
 {
 	class ClothManager;
-	class LevelSet3D;
+	class LevelSet3D;		
+	__device__ __host__ inline int vertPair_to_idx(ldp::Int2 v, int n)
+	{
+		return v[0] * n + v[1];
+	}
+	__device__ __host__ inline ldp::Int2 vertPair_from_idx(int idx, int n)
+	{
+		return ldp::Int2(idx / n, idx%n);
+	}
 	class GpuSim
 	{
 	public:
@@ -68,17 +67,16 @@ namespace ldp
 		// simulatio parameter update; resulting in numerical updates
 		void updateNumeric();
 
-		static __device__ __host__ inline int vertPair_to_idx(ldp::Int2 v, int n)
-		{
-			return v[0] * n + v[1];
-		}
-		static __device__ __host__ inline ldp::Int2 vertPair_from_idx(int idx, int n)
-		{
-			return ldp::Int2(idx/n, idx%n);
-		}
+		static cudaTextureObject_t createTexture(cudaArray_t ary, cudaTextureFilterMode filterMode);
+		static cudaSurfaceObject_t createSurface(cudaArray_t ary);
+		static void dumpVec(std::string name, const DeviceArray<float>& A);
+		static void dumpVec(std::string name, const DeviceArray2D<float>& A);
+		static void dumpVec(std::string name, const DeviceArray<ldp::Float3>& A);
+		static void dumpVec(std::string name, const DeviceArray<ldp::Float2>& A);
+		static void dumpStretchSampleArray(std::string name, cudaArray_t ary);
 	protected:
-		void createMaterialMemory();
 		void releaseMaterialMemory();
+		void initializeMaterialMemory();
 
 		void updateTopology_arcSim();
 		void updateTopology_clothManager();
@@ -126,31 +124,104 @@ namespace ldp
 		
 		//////////////////////// material related///////////////////////////////////////////////////////
 	public:
-		struct StretchingData { 
+		class StretchingData { 
+		public:
 			enum {
 				DIMS = 2,
 				POINTS = 5
 			};
-			ldp::Float4 d[DIMS][POINTS];
+			StretchingData(){
+				d.resize(rows()*cols());
+			}
+			ldp::Float4& operator()(int x, int y){
+				return d[y*cols() + x];
+			}
+			const ldp::Float4& operator()(int x, int y)const{
+				return d[y*cols() + x];
+			}
+			ldp::Float4* data(){ return d.data(); }
+			const ldp::Float4* data()const{ return d.data(); }
+			int size()const{ return d.size(); }
+			int rows()const{ return POINTS; }
+			int cols()const{ return DIMS; }
+		protected:
+			std::vector<ldp::Float4> d;
 		};
-		struct StretchingSamples {
+		class StretchingSamples {
+		public:
 			enum{
-				SAMPLES = 40
+				SAMPLES = 40,
+				SAMPLES2 = SAMPLES*SAMPLES,
 			};
-			ldp::Float4 s[SAMPLES][SAMPLES][SAMPLES];
+			StretchingSamples(){
+				m_data.resize(SAMPLES*SAMPLES*SAMPLES);
+				initDeviceMemory();
+			}
+			~StretchingSamples(){
+				releaseDeviceMemory();
+			}
+			ldp::Float4& operator()(int x, int y, int z){
+				return m_data[z*SAMPLES2 + y*SAMPLES + x];
+			}
+			const ldp::Float4& operator()(int x, int y, int z)const{
+				return m_data[z*SAMPLES2 + y*SAMPLES + x];
+			}
+			ldp::Float4* data(){ return m_data.data(); }
+			const ldp::Float4* data()const{ return m_data.data(); }
+			int size()const{ return m_data.size(); }
+	
+			cudaArray_t getCudaArray()const{ return m_ary; }
+			cudaTextureObject_t getCudaTexture()const{ return m_tex; }
+			cudaSurfaceObject_t getCudaSurface()const{ return m_surf; }
+
+			void initDeviceMemory();
+			void releaseDeviceMemory();
+			void updateHostToDevice();
+			void updateDeviceToHost();
+		protected:
+			std::vector<ldp::Float4> m_data;
+			cudaArray_t m_ary = nullptr;
+			cudaTextureObject_t m_tex = 0;
+			cudaSurfaceObject_t m_surf = 0;
 		};
-		struct BendingData {
+		class BendingData {
+		public:
 			enum {
 				DIMS = 3,
 				POINTS = 5
 			};
-			float d[DIMS][POINTS];
+			BendingData(){
+				m_data.resize(rows()*cols());
+				initDeviceMemory();
+			}
+			~BendingData(){
+				releaseDeviceMemory();
+			}
+			float& operator()(int x, int y){
+				return m_data[y*cols() + x];
+			}
+			const float& operator()(int x, int y)const{
+				return m_data[y*cols() + x];
+			}
+			float* data(){ return m_data.data(); }
+			const float* data()const{ return m_data.data(); }
+			int size()const{ return m_data.size(); }
+			int rows()const{ return POINTS; }
+			int cols()const{ return DIMS; }
+
+			const DeviceArray2D<float>& getCudaArray()const{ return m_ary; }
+			cudaTextureObject_t getCudaTexture()const{ return m_tex; }
+
+			void initDeviceMemory();
+			void releaseDeviceMemory();
+			void updateHostToDevice();
+			void updateDeviceToHost();
+		protected:
+			std::vector<float> m_data;
+			DeviceArray2D<float> m_ary;
+			cudaTextureObject_t m_tex;
 		};
 		std::vector<StretchingSamples> m_stretchSamples_h;			
 		std::vector<BendingData> m_bendingData_h;
-		std::vector<cudaArray_t> m_stretchSamples_d;
-		std::vector<DeviceArray2D<float>> m_bendingData_d;
-		std::vector<cudaTextureObject_t> m_stretchSamples_tex_h;
-		std::vector<cudaTextureObject_t> m_bendingData_tex_h;
 	};
 }

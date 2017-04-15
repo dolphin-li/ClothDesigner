@@ -27,32 +27,7 @@ namespace ldp
 		}
 	}
 
-	template<class T>
-	static cudaTextureObject_t createTexture(DeviceArray2D<T>& ary, cudaTextureFilterMode filterMode)
-	{
-		cudaResourceDesc texRes;
-		memset(&texRes, 0, sizeof(cudaResourceDesc));
-		texRes.resType = cudaResourceTypePitch2D;
-		texRes.res.pitch2D.height = ary.rows();
-		texRes.res.pitch2D.width = ary.cols();
-		texRes.res.pitch2D.pitchInBytes = ary.colsBytes();
-		texRes.res.pitch2D.desc = cudaCreateChannelDesc<T>();
-		texRes.res.pitch2D.devPtr = ary.ptr();
-		cudaTextureDesc texDescr;
-		memset(&texDescr, 0, sizeof(cudaTextureDesc));
-		texDescr.normalizedCoords = 0;
-		texDescr.filterMode = filterMode;
-		texDescr.addressMode[0] = cudaAddressModeClamp;
-		texDescr.addressMode[1] = cudaAddressModeClamp;
-		texDescr.addressMode[2] = cudaAddressModeClamp;
-		texDescr.readMode = cudaReadModeElementType;
-		cudaTextureObject_t tex;
-		cudaSafeCall(cudaCreateTextureObject(&tex, &texRes, &texDescr, NULL),
-			"GpuSim, bindTexture 1");
-		return tex;
-	}
-
-	static cudaTextureObject_t createTexture(cudaArray_t ary, cudaTextureFilterMode filterMode)
+	cudaTextureObject_t GpuSim::createTexture(cudaArray_t ary, cudaTextureFilterMode filterMode)
 	{
 		cudaResourceDesc texRes;
 		memset(&texRes, 0, sizeof(cudaResourceDesc));
@@ -71,6 +46,17 @@ namespace ldp
 			"GpuSim, bindTexture 2");
 		return tex;
 	}
+	cudaSurfaceObject_t GpuSim::createSurface(cudaArray_t ary)
+	{
+		cudaResourceDesc texRes;
+		memset(&texRes, 0, sizeof(cudaResourceDesc));
+		texRes.resType = cudaResourceTypeArray;
+		texRes.res.array.array = ary;
+		cudaSurfaceObject_t tex;
+		cudaSafeCall(cudaCreateSurfaceObject(&tex, &texRes),
+			"GpuSim, createSurface 2");
+		return tex;
+	}
 #pragma endregion
 
 	GpuSim::GpuSim()
@@ -82,6 +68,7 @@ namespace ldp
 	GpuSim::~GpuSim()
 	{
 		releaseMaterialMemory();
+		cusparseCheck(cusparseDestroy(m_cusparseHandle));
 	}
 
 	void GpuSim::init(ClothManager* clothManager)
@@ -89,18 +76,13 @@ namespace ldp
 		release_assert(ldp::is_float<ClothManager::ValueType>::value);
 		m_arcSimManager = nullptr;
 		m_clothManager = clothManager;
-		createMaterialMemory();
-		updateMaterial();
-		updateTopology();
-		updateNumeric();
-		restart();
 	}
 
 	void GpuSim::init(arcsim::ArcSimManager* arcSimManager)
 	{
 		m_clothManager = nullptr;
 		m_arcSimManager = arcSimManager;
-		createMaterialMemory();
+		initializeMaterialMemory();
 		updateMaterial();
 		updateTopology();
 		updateNumeric();
@@ -127,12 +109,12 @@ namespace ldp
 	{
 		std::vector<cudaTextureObject_t> tmp;
 		for (const auto& idx : m_faces_idxMat_h)
-			tmp.push_back(m_stretchSamples_tex_h[idx]);
+			tmp.push_back(m_stretchSamples_h[idx].getCudaTexture());
 		m_faces_texStretch_d.upload(tmp);
 
 		tmp.clear();
 		for (const auto& idx : m_faces_idxMat_h)
-			tmp.push_back(m_bendingData_tex_h[idx]);
+			tmp.push_back(m_bendingData_h[idx].getCudaTexture());
 		m_faces_texBend_d.upload(tmp);
 	}
 
@@ -261,6 +243,8 @@ namespace ldp
 			A.innerSize()*sizeof(float), cudaMemcpyHostToDevice));
 		cudaSafeCall(cudaMemset(m_A->value(), 0, m_A->nnz()*sizeof(float)));
 
+		m_A->dump("D:/tmp/eigen_A.txt");
+
 		// compute sparse structure via sorting
 		const int nVerts = m_x_init.size();
 		m_faceEdge_vertIds_h.clear();
@@ -296,10 +280,16 @@ namespace ldp
 		m_faceEdge_order_d.upload(m_faceEdge_order_h);
 		thrust_wrapper::sort_by_key(m_faceEdge_vertIds_d.ptr(), 
 			m_faceEdge_order_d.ptr(), m_faceEdge_vertIds_d.size());
+		m_faceEdge_vertIds_d.download(m_faceEdge_vertIds_h);
 		m_faceEdge_order_d.download(m_faceEdge_order_h);
+
+		std::vector<int> m_faceEdge_vertIds_h_unique = m_faceEdge_vertIds_h;
+		m_faceEdge_vertIds_h_unique.resize(std::unique(m_faceEdge_vertIds_h_unique.begin(), 
+			m_faceEdge_vertIds_h_unique.end()) - m_faceEdge_vertIds_h_unique.begin());
+		std::vector<Eigen::Triplet<float>> cooSys1;
 	}
 
-	void GpuSim::createMaterialMemory()
+	void GpuSim::initializeMaterialMemory()
 	{
 		releaseMaterialMemory();
 
@@ -313,11 +303,12 @@ namespace ldp
 				for (int x = 0; x < StretchingSamples::SAMPLES; x++)
 				for (int y = 0; y < StretchingSamples::SAMPLES; y++)
 				for (int z = 0; z < StretchingSamples::SAMPLES; z++)
-					m_stretchSamples_h.back().s[x][y][z] = convert(mat->stretching.s[x][y][z]);
+					m_stretchSamples_h.back()(x, y, z) = convert(mat->stretching.s[x][y][z]);
 				m_bendingData_h.push_back(BendingData());
-				for (int x = 0; x < BendingData::DIMS; x++)
-				for (int y = 0; y < BendingData::POINTS; y++)
-					m_bendingData_h.back().d[x][y] = mat->bending.d[x][y];
+				auto& bdata = m_bendingData_h.back();
+				for (int x = 0; x < bdata.cols(); x++)
+				for (int y = 0; y < bdata.rows(); y++)
+					bdata(x, y) = mat->bending.d[x][y];
 			} // end for mat, cloth
 			
 		} // end if arcSim
@@ -325,45 +316,113 @@ namespace ldp
 		{
 			// TO DO: accomplish the importing from cloth manager
 		} // end if clothManager
-
+		
 		// copy to gpu
-		for (const auto& bd : m_bendingData_h)
+		for (auto& bd : m_bendingData_h)
 		{
-			m_bendingData_d.push_back(DeviceArray2D<float>());
-			m_bendingData_d.back().upload((float*)bd.d, bd.POINTS*sizeof(float), bd.DIMS, bd.POINTS);
-			m_bendingData_tex_h.push_back(createTexture(m_bendingData_d.back(), cudaFilterModePoint));
+			bd.updateHostToDevice();
+			dumpVec("D:/tmp/bendData.txt", bd.getCudaArray());
 		} // end for m_bendingData_h
-
-		for (const auto& sp : m_stretchSamples_h)
+		
+		for (auto& sp : m_stretchSamples_h)
 		{
-			cudaExtent ext;
-			ext.width = sp.SAMPLES;
-			ext.height = sp.SAMPLES;
-			ext.depth = sp.SAMPLES;
-			cudaChannelFormatDesc desc = cudaCreateChannelDesc<float4>();
-			cudaArray_t ary;
-			cudaSafeCall(cudaMalloc3DArray(&ary, &desc, ext));
-			cudaSafeCall(cudaMemcpyToArray(ary, 0, 0, sp.s, sp.SAMPLES*sp.SAMPLES
-				*sp.SAMPLES*sizeof(float4), cudaMemcpyHostToDevice));
-			m_stretchSamples_d.push_back(ary);
-			m_stretchSamples_tex_h.push_back(createTexture(ary, cudaFilterModeLinear));
+			sp.updateHostToDevice();
+			dumpStretchSampleArray("D:/tmp/stretchSample.txt", sp.getCudaArray());
 		} // end for m_stretchSamples_h
 	}
 
 	void GpuSim::releaseMaterialMemory()
 	{
 		m_bendingData_h.clear();
-		m_bendingData_d.clear();
-		m_stretchSamples_h.clear();
-		for (auto& t : m_stretchSamples_d)
-			cudaSafeCall(cudaFreeArray(t));
-		m_stretchSamples_d.clear();
+		m_stretchSamples_h.clear();	
+	}
+
+	void GpuSim::dumpVec(std::string name, const DeviceArray<float>& A)
+	{
+		std::vector<float> hA;
+		A.download(hA);
+
+		FILE* pFile = fopen(name.c_str(), "w");
+		if (pFile)
+		{
+			for (int y = 0; y < A.size(); y++)
+				fprintf(pFile, "%ef\n", hA[y]);
+			fclose(pFile);
+			printf("saved: %s\n", name.c_str());
+		}
+	}
+	void GpuSim::dumpVec(std::string name, const DeviceArray<ldp::Float2>& A)
+	{
+		std::vector<ldp::Float2> hA;
+		A.download(hA);
+
+		FILE* pFile = fopen(name.c_str(), "w");
+		if (pFile)
+		{
+			for (int y = 0; y < A.size(); y++)
+				fprintf(pFile, "%ef %ef\n", hA[y][0], hA[y][1]);
+			fclose(pFile);
+			printf("saved: %s\n", name.c_str());
+		}
+	}
+	void GpuSim::dumpVec(std::string name, const DeviceArray<ldp::Float3>& A)
+	{
+		std::vector<ldp::Float3> hA;
+		A.download(hA);
+
+		FILE* pFile = fopen(name.c_str(), "w");
+		if (pFile)
+		{
+			for (int y = 0; y < A.size(); y++)
+				fprintf(pFile, "%ef %ef %ef\n", hA[y][0], hA[y][1], hA[y][2]);
+			fclose(pFile);
+			printf("saved: %s\n", name.c_str());
+		}
+	}
+	void GpuSim::dumpVec(std::string name, const DeviceArray2D<float>& A)
+	{
+		std::vector<float> hA(A.rows()*A.cols());
+		A.download(hA.data(), A.cols()*sizeof(float));
+
+		FILE* pFile = fopen(name.c_str(), "w");
+		if (pFile)
+		{
+			for (int y = 0; y < A.rows(); y++)
+			{
+				for (int x = 0; x < A.cols(); x++)
+					fprintf(pFile, "%ef ", hA[y*A.cols()+x]);
+				fprintf(pFile, "\n");
+			}
+			fclose(pFile);
+			printf("saved: %s\n", name.c_str());
+		}
+	}
+	void GpuSim::dumpStretchSampleArray(std::string name, cudaArray_t ary)
+	{
+		StretchingSamples smp;
+		cudaExtent ext;
+		ext.width = StretchingSamples::SAMPLES;
+		ext.height = StretchingSamples::SAMPLES;
+		ext.depth = StretchingSamples::SAMPLES;
+		cudaChannelFormatDesc desc = cudaCreateChannelDesc<float4>();
+		cudaSafeCall(cudaMemcpyFromArray(smp.data(), ary, 0, 0,
+			smp.size()*sizeof(float4), cudaMemcpyHostToDevice));
 		
-		for (const auto& t : m_stretchSamples_tex_h)
-			cudaSafeCall(cudaDestroyTextureObject(t));
-		m_stretchSamples_tex_h.clear();
-		for (const auto& t : m_bendingData_tex_h)
-			cudaSafeCall(cudaDestroyTextureObject(t));	
-		m_bendingData_tex_h.clear();
+		FILE* pFile = fopen(name.c_str(), "w");
+		if (pFile)
+		{
+			for (int z = 0; z < StretchingSamples::SAMPLES; z++)
+			{
+				for (int y = 0; y < StretchingSamples::SAMPLES; y++)
+				{
+					for (int x = 0; x < StretchingSamples::SAMPLES; x++)
+						fprintf(pFile, "%ef ", smp(x, y, z));
+					fprintf(pFile, "\n");
+				}
+				fprintf(pFile, "\n");
+			}
+			fclose(pFile);
+			printf("saved: %s\n", name.c_str());
+		}
 	}
 }

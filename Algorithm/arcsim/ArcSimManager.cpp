@@ -6,6 +6,7 @@
 #include "Renderable\ObjMesh.h"
 #include "cloth\clothManager.h"
 #include "cloth\LevelSet3D.h"
+#include "cloth\GpuSim.h"
 namespace arcsim
 {
 	const static double g_num_edge_sample_angle_thre = 15 * ldp::PI_D / 180.;
@@ -17,6 +18,7 @@ namespace arcsim
 		m_clothMesh.reset(new ObjMesh());
 		m_timeStamp.reset(new ldp::TimeStamp());
 		m_threadMutex.reset(new std::mutex());
+		m_gpuSim.reset(new ldp::GpuSim());
 		m_timeStamp->Prefix("arcsim");
 	}
 
@@ -139,6 +141,9 @@ namespace arcsim
 
 		m_needUpdateMesh = true;
 		updateMesh();
+
+		//debug
+		m_gpuSim->init(this);
 	}
 
 

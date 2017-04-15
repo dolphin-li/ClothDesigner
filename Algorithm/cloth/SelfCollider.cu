@@ -1,7 +1,7 @@
 #include "SelfCollider.h"
 
-#include "cuda_utils.h"
-#include "thrust_wrapper.h"
+#include "cudpp\cuda_utils.h"
+#include "cudpp\thrust_wrapper.h"
 #include <thrust\device_ptr.h>
 #include <thrust\device_vector.h>
 

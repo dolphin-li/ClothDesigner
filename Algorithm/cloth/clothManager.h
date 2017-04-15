@@ -2,7 +2,7 @@
 
 #include <vector>
 #include <memory>
-#include "device_array.h"
+#include "cudpp\device_array.h"
 #include "ldpMat\ldp_basic_vec.h"
 #include <map>
 #include <set>

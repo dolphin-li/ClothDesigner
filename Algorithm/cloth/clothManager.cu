@@ -1,8 +1,8 @@
 #include "clothManager.h"
-#include "cuda_utils.h"
 #include "LevelSet3D.h"
 #include "LEVEL_SET_COLLISION.h"
-#include "helper_math.h"
+#include "cudpp\cuda_utils.h"
+#include "cudpp\helper_math.h"
 
 //#include "MY_MATH.h"
 //#include "COLLISION_HANDLER.h"

@@ -7,7 +7,7 @@
 #include <texture_fetch_functions.h>
 #include <surface_types.h>
 #include <surface_functions.h>
-#include "cloth\helper_math.h"
+#include "helper_math.h"
 
 #include <thrust\device_ptr.h>
 #include <thrust\sort.h>
@@ -21,6 +21,7 @@
 #include <thrust/generate.h>
 #include <thrust/sort.h>
 #include <thrust/pair.h>
+#include <thrust/extrema.h>
 #include <map>
 #include <algorithm>
 #include "thrust_wrapper.h"
@@ -160,6 +161,24 @@ namespace thrust_wrapper
 	};
 
 	cached_allocator g_allocator;
+
+	char* cached_allocate(size_t bytes)
+	{
+		return g_allocator.allocate(bytes);
+	}
+	void cached_free(char* ptr)
+	{
+		if (ptr != nullptr)
+			g_allocator.deallocate(ptr, 0);
+	}
+
+	int max_element(const int* data, int n)
+	{
+		thrust::device_ptr<int> data_begin((int*)data);
+		thrust::device_ptr<int> data_end((int*)data + n);
+		auto ret = thrust::max_element(thrust::cuda::par(g_allocator), data_begin, data_end);
+		return ret[0];
+	}
 
 	void stable_sort_by_key(int* key_d, float4* value_d, int n)
 	{

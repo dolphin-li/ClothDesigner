@@ -7,6 +7,11 @@
 
 namespace thrust_wrapper
 {
+	char* cached_allocate(size_t bytes);
+	void cached_free(char* ptr);
+
+	int max_element(const int* data, int n);
+
 	void sort_by_key(int* key_d, float4* value_d, int n);
 	void sort_by_key(float* key_d, int* value_d, int n);
 	void sort_by_key(int* key_d, int* value_d, int n);

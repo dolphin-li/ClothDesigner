@@ -9,6 +9,7 @@ namespace ldp
 {
 	class TimeStamp;
 	class ClothManager;
+	class GpuSim;
 }
 namespace arcsim
 {
@@ -46,6 +47,7 @@ namespace arcsim
 		std::shared_ptr<ObjMesh> m_bodyMesh, m_clothMesh;
 		std::shared_ptr<ldp::TimeStamp> m_timeStamp;
 		bool m_needUpdateMesh = false;
+		std::shared_ptr<ldp::GpuSim> m_gpuSim;
 	private:
 		std::shared_ptr<std::thread> m_threadLoop;
 		std::shared_ptr<std::mutex> m_threadMutex;
