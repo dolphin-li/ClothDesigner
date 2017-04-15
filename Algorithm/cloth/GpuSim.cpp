@@ -5,6 +5,7 @@
 #include "Renderable\ObjMesh.h"
 #include "cloth\LevelSet3D.h"
 #include "arcsim\adaptiveCloth\dde.hpp"
+#include "cudpp\thrust_wrapper.h"
 namespace ldp
 {
 #pragma region -- utils
@@ -183,22 +184,22 @@ namespace ldp
 			const auto& cloth = sim->cloths[iCloth];
 			for (const auto& f : cloth.mesh.faces)
 			{
-				m_faces_idxWorld_h.push_back(ldp::Int3(f->v[0]->node->index,
-					f->v[1]->node->index, f->v[2]->node->index) + node_index_begin);
-				m_faces_idxTex_h.push_back(ldp::Int3(f->v[0]->index,
-					f->v[1]->index, f->v[2]->index) + tex_index_begin);
+				m_faces_idxWorld_h.push_back(ldp::Int4(f->v[0]->node->index,
+					f->v[1]->node->index, f->v[2]->node->index, 0) + node_index_begin);
+				m_faces_idxTex_h.push_back(ldp::Int4(f->v[0]->index,
+					f->v[1]->index, f->v[2]->index, 0) + tex_index_begin);
 				m_faces_idxMat_h.push_back(mat_index_begin + f->label);
 			} // end for f
 			for (const auto& e : cloth.mesh.edges)
 			{
 				EdgeData ed;
-				ed.edge_idxWorld.x = e->n[0]->index + node_index_begin;
-				ed.edge_idxWorld.y = e->n[1]->index + node_index_begin;
-				ed.faceIdx.x = ed.faceIdx.y = -1;
+				ed.edge_idxWorld[0] = e->n[0]->index + node_index_begin;
+				ed.edge_idxWorld[1] = e->n[1]->index + node_index_begin;
+				ed.faceIdx[0] = ed.faceIdx[1] = -1;
 				if (e->adjf[0])
-					ed.faceIdx.x = e->adjf[0]->index + tex_index_begin;
+					ed.faceIdx[0] = e->adjf[0]->index + tex_index_begin;
 				if (e->adjf[1])
-					ed.faceIdx.y = e->adjf[1]->index + tex_index_begin;
+					ed.faceIdx[1] = e->adjf[1]->index + tex_index_begin;
 			} // end for e
 			for (const auto& n : cloth.mesh.nodes)
 				tmp_x_init.push_back(convert(n->x0));
@@ -208,9 +209,9 @@ namespace ldp
 			tex_index_begin += cloth.mesh.verts.size();
 			mat_index_begin += cloth.materials.size();
 		} // end for iCloth
-		m_x_init.upload((const float3*)tmp_x_init.data(), tmp_x_init.size());
-		m_texCoord_init.upload((const float2*)tmp_texCoord_init.data(), tmp_texCoord_init.size());
-		m_faces_idxTex_d.upload((const int3*)m_faces_idxTex_h.data(), m_faces_idxTex_h.size());
+		m_x_init.upload(tmp_x_init); 
+		m_texCoord_init.upload(tmp_texCoord_init);
+		m_faces_idxTex_d.upload(m_faces_idxTex_h);
 		m_edgeData_d.upload(m_edgeData_h.data(), m_edgeData_h.size());
 		m_edgeThetaIdeals_h.clear();
 		m_edgeThetaIdeals_h.resize(m_edgeData_h.size(), 0);
@@ -227,6 +228,7 @@ namespace ldp
 
 	void GpuSim::setup_sparse_structure_from_cpu()
 	{
+		// compute sparse structure via eigen
 		std::vector<Eigen::Triplet<float>> cooSys;
 		for (const auto& f : m_faces_idxWorld_h)
 		for (int k = 0; k < 3; k++)
@@ -235,12 +237,12 @@ namespace ldp
 			cooSys.push_back(Eigen::Triplet<float>(f[(k + 1) % 3], f[k], 0));
 		}
 		for (const auto& ed : m_edgeData_h)
-		if (ed.faceIdx.x >= 0 && ed.faceIdx.y >= 0)
+		if (ed.faceIdx[0] >= 0 && ed.faceIdx[1] >= 0)
 		{
-			const ldp::Int3& f1 = m_faces_idxWorld_h[ed.faceIdx.x];
-			const ldp::Int3& f2 = m_faces_idxWorld_h[ed.faceIdx.y];
-			int v1 = f1[0] + f1[1] + f1[2] - ed.edge_idxWorld.x - ed.edge_idxWorld.y;
-			int v2 = f2[0] + f2[1] + f2[2] - ed.edge_idxWorld.x - ed.edge_idxWorld.y;
+			const ldp::Int4& f1 = m_faces_idxWorld_h[ed.faceIdx[0]];
+			const ldp::Int4& f2 = m_faces_idxWorld_h[ed.faceIdx[1]];
+			int v1 = f1[0] + f1[1] + f1[2] - ed.edge_idxWorld[0] - ed.edge_idxWorld[1];
+			int v2 = f2[0] + f2[1] + f2[2] - ed.edge_idxWorld[0] - ed.edge_idxWorld[1];
 			cooSys.push_back(Eigen::Triplet<float>(v1, v2, 0));
 			cooSys.push_back(Eigen::Triplet<float>(v2, v1, 0));
 		}
@@ -258,6 +260,43 @@ namespace ldp
 		cudaSafeCall(cudaMemcpy(m_A->bsrColIdx(), A.innerIndexPtr(),
 			A.innerSize()*sizeof(float), cudaMemcpyHostToDevice));
 		cudaSafeCall(cudaMemset(m_A->value(), 0, m_A->nnz()*sizeof(float)));
+
+		// compute sparse structure via sorting
+		const int nVerts = m_x_init.size();
+		m_faceEdge_vertIds_h.clear();
+		m_faceEdge_order_h.clear();
+		for (const auto& f : m_faces_idxWorld_h)
+		for (int k = 0; k < 3; k++)
+		{
+			m_faceEdge_vertIds_h.push_back(vertPair_to_idx(ldp::Int2(f[k], f[k]), nVerts));
+			m_faceEdge_vertIds_h.push_back(vertPair_to_idx(ldp::Int2(f[k], f[(k + 1) % 3]), nVerts));
+			m_faceEdge_vertIds_h.push_back(vertPair_to_idx(ldp::Int2(f[(k + 1) % 3], f[k]), nVerts));
+			m_faceEdge_order_h.push_back(m_faceEdge_order_h.size());
+			m_faceEdge_order_h.push_back(m_faceEdge_order_h.size());
+			m_faceEdge_order_h.push_back(m_faceEdge_order_h.size());
+		}
+		for (const auto& ed : m_edgeData_h)
+		if (ed.faceIdx[0] >= 0 && ed.faceIdx[1] >= 0)
+		{
+			const ldp::Int4& f1 = m_faces_idxWorld_h[ed.faceIdx[0]];
+			const ldp::Int4& f2 = m_faces_idxWorld_h[ed.faceIdx[1]];
+			int v[4] = { 0 };
+			v[0] = ed.edge_idxWorld[0];
+			v[1] = ed.edge_idxWorld[1];
+			v[2] = f1[0] + f1[1] + f1[2] - ed.edge_idxWorld[0] - ed.edge_idxWorld[1];
+			v[3] = f2[0] + f2[1] + f2[2] - ed.edge_idxWorld[0] - ed.edge_idxWorld[1];
+			for (int i = 0; i < 4; i++)
+			for (int j = 0; j < 4; j++)
+			{
+				m_faceEdge_vertIds_h.push_back(vertPair_to_idx(ldp::Int2(v[i], v[j]), nVerts));
+				m_faceEdge_order_h.push_back(m_faceEdge_order_h.size());
+			} // end for i,j
+		} // end for edgeData
+		m_faceEdge_vertIds_d.upload(m_faceEdge_vertIds_h);
+		m_faceEdge_order_d.upload(m_faceEdge_order_h);
+		thrust_wrapper::sort_by_key(m_faceEdge_vertIds_d.ptr(), 
+			m_faceEdge_order_d.ptr(), m_faceEdge_vertIds_d.size());
+		m_faceEdge_order_d.download(m_faceEdge_order_h);
 	}
 
 	void GpuSim::createMaterialMemory()

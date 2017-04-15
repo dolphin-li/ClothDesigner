@@ -132,58 +132,75 @@ public:
 	}
 
 	/**
-	* Operators: +,- with mat; +,-,*,/ with scalar
-	* */
+		* Operators: +,- with mat; +,-,*,/ with scalar
+		* */
 #define LDP_BASIC_MAT_ARITHMATIC(OP)																					\
 	template<typename E>																								\
 	__device__ __host__ typename ldp_basic_mat<typename type_promote<T, E>::type, N, M> operator OP (const ldp_basic_mat<E, N, M>& rhs)const	\
 	{																													\
-		typename ldp_basic_mat<typename type_promote<T,E>::type, N, M> out;												\
-		for(size_t i=0; i<NUM_ELEMENTS; i++)																			\
-			out[i] = (*this)[i] OP rhs[i];																				\
-		return out;																										\
-	}																							
+	typename ldp_basic_mat<typename type_promote<T, E>::type, N, M> out;												\
+	for (size_t i = 0; i < NUM_ELEMENTS; i++)																			\
+	out[i] = (*this)[i] OP rhs[i];																				\
+	return out;																										\
+	}
 #define LDP_BASIC_MAT_ARITHMATIC_SCALAR(OP)														\
 	__device__ __host__ ldp_basic_mat<T, N, M> operator OP (const T& rhs)const										\
 	{																							\
-		ldp_basic_mat<T,N,M> out;																\
-		for(size_t i=0; i<NUM_ELEMENTS; i++)													\
-			out[i] = (*this)[i] OP rhs;															\
-		return out;																				\
+	ldp_basic_mat<T, N, M> out;																\
+	for (size_t i = 0; i < NUM_ELEMENTS; i++)													\
+	out[i] = (*this)[i] OP rhs;															\
+	return out;																				\
 	}																							\
 	//friend ldp_basic_mat<T,N,M> operator OP (const T& lhs, const ldp_basic_mat<T,N,M>& rhs);
 	/**
-	* Operators: +=, -=, = with mat; +=, -=, *=, /=, = with scalar
-	* */
+		* Operators: +=, -=, = with mat; +=, -=, *=, /=, = with scalar
+		* */
 #define LDP_BASIC_MAT_ARITHMATIC2(OP)															\
 	template<class E>																			\
 	__device__ __host__ ldp_basic_mat<T, N, M>& operator OP (const ldp_basic_mat<E, N, M>& rhs)						\
 	{																							\
-		for(size_t i=0; i<NUM_ELEMENTS; i++)													\
-			(*this)[i] OP static_cast<T>(rhs[i]);												\
-		return *this;																			\
-	}																							
+	for (size_t i = 0; i < NUM_ELEMENTS; i++)													\
+	(*this)[i] OP static_cast<T>(rhs[i]);												\
+	return *this;																			\
+	}
 #define LDP_BASIC_MAT_ARITHMATIC2_SCALAR(OP)													\
 	__device__ __host__ ldp_basic_mat<T, N, M>& operator OP (const T& rhs)											\
 	{																							\
-		for(size_t i=0; i<NUM_ELEMENTS; i++)													\
-			(*this)[i] OP rhs;																	\
-		return *this;																			\
-	}	
-
+	for (size_t i = 0; i < NUM_ELEMENTS; i++)													\
+	(*this)[i] OP rhs;																	\
+	return *this;																			\
+	}
+#define LDP_BASIC_MAT_ARITHMATIC3(OP)															\
+	template<class E>																			\
+	__device__ __host__ ldp_basic_mat<T, N, M> operator OP ()const								\
+	{																							\
+		ldp_basic_mat<T, N, M> rhs;																\
+		for (size_t i = 0; i<NUM_ELEMENTS; i++)													\
+			rhs[i] = OP (*this)[i];																\
+		return rhs;																				\
+	}
 	LDP_BASIC_MAT_ARITHMATIC(+)
 	LDP_BASIC_MAT_ARITHMATIC(-)
 	LDP_BASIC_MAT_ARITHMATIC_SCALAR(+)
 	LDP_BASIC_MAT_ARITHMATIC_SCALAR(-)
 	LDP_BASIC_MAT_ARITHMATIC_SCALAR(*)
 	LDP_BASIC_MAT_ARITHMATIC_SCALAR(/)
+	LDP_BASIC_MAT_ARITHMATIC_SCALAR(&)
+	LDP_BASIC_MAT_ARITHMATIC_SCALAR(|)
+	LDP_BASIC_MAT_ARITHMATIC_SCALAR(^)
 	LDP_BASIC_MAT_ARITHMATIC2(+=)
 	LDP_BASIC_MAT_ARITHMATIC2(-=)
+	LDP_BASIC_MAT_ARITHMATIC3(!)
+	LDP_BASIC_MAT_ARITHMATIC3(-)
+	LDP_BASIC_MAT_ARITHMATIC3(+)
 	LDP_BASIC_MAT_ARITHMATIC2_SCALAR(+=)
 	LDP_BASIC_MAT_ARITHMATIC2_SCALAR(-=)
 	LDP_BASIC_MAT_ARITHMATIC2_SCALAR(*=)
 	LDP_BASIC_MAT_ARITHMATIC2_SCALAR(/=)
 	LDP_BASIC_MAT_ARITHMATIC2_SCALAR(=)
+	LDP_BASIC_MAT_ARITHMATIC2_SCALAR(&=)
+	LDP_BASIC_MAT_ARITHMATIC2_SCALAR(|=)
+	LDP_BASIC_MAT_ARITHMATIC2_SCALAR(^=)
 
 	/**
 	* Arithmatic Operators: +,-,*,/ scale with mat

@@ -3,7 +3,7 @@
 #include <vector>
 #include <memory>
 #include "device_array.h"
-#include "ldpMat\ldp_basic_vec.h"
+#include "ldpMat\ldp_basic_mat.h"
 #include <map>
 #include <set>
 #include "definations.h"
@@ -40,8 +40,8 @@ namespace ldp
 		// _idxTex: index in tex space
 		struct EdgeData
 		{
-			int2 edge_idxWorld;
-			int2 faceIdx;
+			ldp::Int2 edge_idxWorld;
+			ldp::Int2 faceIdx;
 		};
 	public:
 		GpuSim();
@@ -68,13 +68,24 @@ namespace ldp
 		// simulatio parameter update; resulting in numerical updates
 		void updateNumeric();
 
+		static __device__ __host__ inline int vertPair_to_idx(ldp::Int2 v, int n)
+		{
+			return v[0] * n + v[1];
+		}
+		static __device__ __host__ inline ldp::Int2 vertPair_from_idx(int idx, int n)
+		{
+			return ldp::Int2(idx/n, idx%n);
+		}
 	protected:
 		void createMaterialMemory();
 		void releaseMaterialMemory();
+
 		void updateTopology_arcSim();
 		void updateTopology_clothManager();
+
 		void linearSolve();
 
+	protected:
 		void setup_sparse_structure_from_cpu();
 	private:
 		ClothManager* m_clothManager = nullptr;
@@ -84,28 +95,36 @@ namespace ldp
 		ldp::LevelSet3D* m_bodyLvSet_h = nullptr;
 		DeviceArray<float> m_bodyLvSet_d;
 
-		std::vector<ldp::Int3> m_faces_idxWorld_h;
-		DeviceArray<int3> m_faces_idxWorld_d;
-		std::vector<ldp::Int3> m_faces_idxTex_h;
-		DeviceArray<int3> m_faces_idxTex_d;
+		std::vector<ldp::Int4> m_faces_idxWorld_h;				// triangle face with 1 paded int
+		DeviceArray<ldp::Int4> m_faces_idxWorld_d;
+		std::vector<ldp::Int4> m_faces_idxTex_h;
+		DeviceArray<ldp::Int4> m_faces_idxTex_d;
 		std::vector<int> m_faces_idxMat_h;						// material index of each face
 		DeviceArray<cudaTextureObject_t> m_faces_texStretch_d;	// cuda texture of stretching
 		DeviceArray<cudaTextureObject_t> m_faces_texBend_d;		// cuda texture of bending
 		std::vector<EdgeData> m_edgeData_h;
 		DeviceArray<EdgeData> m_edgeData_d;
-		std::vector<float> m_edgeThetaIdeals_h;			// the folding angles (in arc) on the edge
+
+		///////////////// precomputed data /////////////////////////////////////////////////////////////
+		std::vector<float> m_edgeThetaIdeals_h;					// the folding angles (in arc) on the edge
 		DeviceArray<float> m_edgeThetaIdeals_d;			
 
-		// solve for the simulation linear system: A*dv=b
+		std::vector<int> m_faceEdge_vertIds_h;	// computing internal forces, the vertex index of each face/edge/bend
+		DeviceArray<int> m_faceEdge_vertIds_d;
+		std::vector<int> m_faceEdge_order_h;	// the face/edge/bend filling order, beforScan_A[order]
+		DeviceArray<int> m_faceEdge_order_d;
+		DeviceArray<ldp::Mat3f> m_faceEdge_beforScan_A;
+		DeviceArray<ldp::Float3> m_faceEdge_beforScan_b;
+		///////////////// solve for the simulation linear system: A*dv=b////////////////////////////////
 		std::shared_ptr<CudaBsrMatrix> m_A;
-		DeviceArray<float3> m_b;							
-		DeviceArray<float2> m_texCoord_init;				// material (tex) space vertex texCoord		
-		DeviceArray<float3> m_x_init;						// world space vertex position
-		DeviceArray<float3> m_x;							// position of current step	
-		DeviceArray<float3> m_v;							// velocity of current step
-		DeviceArray<float3> m_dv;							// velocity changed in this step
-
-		// material related
+		DeviceArray<ldp::Float3> m_b;							
+		DeviceArray<ldp::Float2> m_texCoord_init;				// material (tex) space vertex texCoord		
+		DeviceArray<ldp::Float3> m_x_init;						// world space vertex position
+		DeviceArray<ldp::Float3> m_x;							// position of current step	
+		DeviceArray<ldp::Float3> m_v;							// velocity of current step
+		DeviceArray<ldp::Float3> m_dv;							// velocity changed in this step
+		
+		//////////////////////// material related///////////////////////////////////////////////////////
 	public:
 		struct StretchingData { 
 			enum {

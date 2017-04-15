@@ -114,17 +114,17 @@ public:
 	template<typename E>																			\
 	__device__ __host__ typename ldp_basic_vec<typename type_promote<T, E>::type, N> operator OP (const ldp_basic_vec<E, N>& rhs)const	\
 	{																							\
-		typename ldp_basic_vec<typename type_promote<T,E>::type, N> out;												\
-		for(size_t i=0; i<N; i++)																\
-			out[i] = (*this)[i] OP rhs[i];														\
-		return out;																				\
+	typename ldp_basic_vec<typename type_promote<T, E>::type, N> out;												\
+	for (size_t i = 0; i < N; i++)																\
+	out[i] = (*this)[i] OP rhs[i];														\
+	return out;																				\
 	}																							\
 	__device__ __host__ ldp_basic_vec<T, N> operator OP (const T& rhs)const					\
 	{																							\
-		ldp_basic_vec<T,N> out;												\
-		for(size_t i=0; i<N; i++)																\
-			out[i] = (*this)[i] OP rhs;															\
-		return out;																				\
+	ldp_basic_vec<T, N> out;												\
+	for (size_t i = 0; i < N; i++)																\
+	out[i] = (*this)[i] OP rhs;															\
+	return out;																				\
 	}																							\
 	//friend ldp_basic_vec<T,N> operator OP (const T& lhs, const ldp_basic_vec<T,N>& rhs);
 	/**
@@ -134,26 +134,42 @@ public:
 	template<class E>																			\
 	__device__ __host__ ldp_basic_vec<T, N>& operator OP (const ldp_basic_vec<E, N>& rhs)							\
 	{																							\
-		for(size_t i=0; i<N; i++)																\
-			(*this)[i] OP static_cast<T>(rhs[i]);													\
-		return *this;																			\
+	for (size_t i = 0; i < N; i++)																\
+	(*this)[i] OP static_cast<T>(rhs[i]);													\
+	return *this;																			\
 	}																							\
 	__device__ __host__ ldp_basic_vec<T, N>& operator OP (const T& rhs)												\
 	{																							\
-		for(size_t i=0; i<N; i++)																\
-			(*this)[i] OP rhs;													\
-		return *this;																			\
-	}																							\
-
+	for (size_t i = 0; i < N; i++)																\
+	(*this)[i] OP rhs;													\
+	return *this;																			\
+	}																							
+#define LDP_BASIC_VEC_ARITHMATIC3(OP)															\
+	__device__ __host__ ldp_basic_vec<T, N> operator OP ()const												\
+	{																							\
+		ldp_basic_vec<T, N> rhs;				\
+		for (size_t i = 0; i<N; i++)																\
+			rhs[i] = OP (*this)[i];													\
+		return rhs;																			\
+	}
 	LDP_BASIC_VEC_ARITHMATIC(+)
 	LDP_BASIC_VEC_ARITHMATIC(-)
 	LDP_BASIC_VEC_ARITHMATIC(*)
 	LDP_BASIC_VEC_ARITHMATIC(/)
+	LDP_BASIC_VEC_ARITHMATIC(&)
+	LDP_BASIC_VEC_ARITHMATIC(^)
+	LDP_BASIC_VEC_ARITHMATIC(|)
 	LDP_BASIC_VEC_ARITHMATIC2(+=)
 	LDP_BASIC_VEC_ARITHMATIC2(-=)
 	LDP_BASIC_VEC_ARITHMATIC2(*=)
 	LDP_BASIC_VEC_ARITHMATIC2(/=)
 	LDP_BASIC_VEC_ARITHMATIC2(=)
+	LDP_BASIC_VEC_ARITHMATIC2(&=)
+	LDP_BASIC_VEC_ARITHMATIC2(|=)
+	LDP_BASIC_VEC_ARITHMATIC2(^=)
+	LDP_BASIC_VEC_ARITHMATIC3(+)
+	LDP_BASIC_VEC_ARITHMATIC3(-)
+	LDP_BASIC_VEC_ARITHMATIC3(!)
 
 	/**
 	* Logic Operators: >,<,>=,<=,==,!=
