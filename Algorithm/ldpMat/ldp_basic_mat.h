@@ -268,7 +268,7 @@ public:
 * I/O
 * */
 template<typename T, size_t N, size_t M>
-__device__ __host__ inline std::ostream& operator<<(std::ostream& out, const ldp_basic_mat<T, N, M>& v)
+inline std::ostream& operator<<(std::ostream& out, const ldp_basic_mat<T, N, M>& v)
 {
 	for(size_t i=0; i<N; i++)
 	{
@@ -280,13 +280,53 @@ __device__ __host__ inline std::ostream& operator<<(std::ostream& out, const ldp
 }
 
 template<typename T, size_t N, size_t M>
-__device__ __host__ inline std::istream& operator>>(std::istream& in, const ldp_basic_mat<T, N, M>& v)
+inline std::istream& operator>>(std::istream& in, const ldp_basic_mat<T, N, M>& v)
 {
 	for(size_t i=0; i<N; i++)
 		for(size_t j=0; j<M; j++)
 			in >> v(i, j);
     return in;
 }
+
+/** *************************************************************************************
+* one column
+* **************************************************************************************/
+template<class T, size_t N>
+class ldp_basic_mat_col : public ldp_basic_mat<T, N, 1>
+{
+public:
+	/**
+	* Constructors
+	* */
+	__device__ __host__ ldp_basic_mat_col() :ldp_basic_mat(){}
+	__device__ __host__ ldp_basic_mat_col(const T* data) : ldp_basic_mat(data){}
+	__device__ __host__ ldp_basic_mat_col(const T& v) : ldp_basic_mat(v){}
+	template<class E>
+	__device__ __host__ ldp_basic_mat_col(const ldp_basic_mat_col<E, N>& rhs) : ldp_basic_mat(rhs){}
+	template<class E>
+	__device__ __host__ ldp_basic_mat_col(const ldp_basic_vec<E, N>& rhs)
+	{
+		for (size_t i = 0; i<NUM_ELEMENTS; i++)
+			(*this)[i] = rhs[i];
+	}
+	template<class E1, class E2, size_t K>
+	__device__ __host__ ldp_basic_mat_col(const ldp_basic_mat_col<E1, K>& rhs1, const ldp_basic_mat_col<E2, N - K>& rhs2)
+	{
+		for (size_t i = 0; i<K; i++)
+			(*this)(i, 0) = rhs1(i, 0);
+		for (size_t i = K; i<N; i++)
+			(*this)(i, 0) = rhs2(i - K, 0);
+	}
+
+	__device__ __host__ operator ldp_basic_vec<T, N>()const
+	{
+		ldp_basic_vec<T, N> v;
+		for (size_t i = 0; i < NUM_ELEMENTS; i++)
+			v[i] = (*this)[i];
+		return v;
+	}
+};
+
 
 /** *************************************************************************************
 * Square Matrix
@@ -600,6 +640,14 @@ public:
 	template<class E1, class E2, size_t K> 
 	__device__ __host__ ldp_basic_mat2(const ldp_basic_mat<E1, 2, K>& rhs1, const ldp_basic_mat<E2, 2, 2 - K>& rhs2)
 	:ldp_basic_mat_sqr<T,2>(rhs1, rhs2){}
+	__device__ __host__ ldp_basic_mat2(const ldp_basic_vec<T, 2>& a_col, const ldp_basic_vec<T, 2>& b_col)
+	{
+		for (int r = 0; r < nRow(); r++)
+		{
+			(*this)(r, 0) = a_col[r];
+			(*this)(r, 1) = b_col[r];
+		}
+	}
 
 	/**
 	* Operator: * with mat and vec
@@ -750,6 +798,16 @@ public:
 	template<class E1, class E2, size_t K> 
 	__device__ __host__ ldp_basic_mat3(const ldp_basic_mat<E1, 3, K>& rhs1, const ldp_basic_mat<E2, 3, 3 - K>& rhs2)
 	:ldp_basic_mat_sqr<T,3>(rhs1, rhs2){}
+	__device__ __host__ ldp_basic_mat3(const ldp_basic_vec<T, 3>& a_col, 
+		const ldp_basic_vec<T, 3>& b_col, const ldp_basic_vec<T, 3>& c_col)
+	{
+		for (int r = 0; r < nRow(); r++)
+		{
+			(*this)(r, 0) = a_col[r];
+			(*this)(r, 1) = b_col[r];
+			(*this)(r, 2) = c_col[r];
+		}
+	}
 
 	/**
 	* Operator: * with mat and vec
@@ -913,6 +971,17 @@ public:
 	template<class E1, class E2, size_t K> 
 	__device__ __host__ ldp_basic_mat4(const ldp_basic_mat<E1, 4, K>& rhs1, const ldp_basic_mat<E2, 4, 4 - K>& rhs2)
 	:ldp_basic_mat_sqr<T,4>(rhs1, rhs2){}
+	__device__ __host__ ldp_basic_mat4(const ldp_basic_vec<T, 4>& a_col, const ldp_basic_vec<T, 4>& b_col,
+		const ldp_basic_vec<T, 4>& c_col, const ldp_basic_vec<T, 4>& d_col)
+	{
+		for (int r = 0; r < nRow(); r++)
+		{
+			(*this)(r, 0) = a_col[r];
+			(*this)(r, 1) = b_col[r];
+			(*this)(r, 2) = c_col[r];
+			(*this)(r, 3) = d_col[r];
+		}
+	}
 
 	/**
 	* Operator: * with mat and vec

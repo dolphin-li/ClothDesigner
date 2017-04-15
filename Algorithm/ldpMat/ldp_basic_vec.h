@@ -228,7 +228,7 @@ public:
 * I/O
 * */
 template<typename T, size_t N>
-__device__ __host__ inline std::ostream& operator<<(std::ostream& out, const ldp_basic_vec<T, N>& v)
+inline std::ostream& operator<<(std::ostream& out, const ldp_basic_vec<T, N>& v)
 {
 	for(size_t i=0; i<N-1; i++)
 		out << std::left << std::setw(10) << v[i] << " ";
@@ -237,7 +237,7 @@ __device__ __host__ inline std::ostream& operator<<(std::ostream& out, const ldp
 }
 
 template<typename T, size_t N>
-__device__ __host__ inline std::istream& operator>>(std::istream& in, const ldp_basic_vec<T, N>& v)
+inline std::istream& operator>>(std::istream& in, const ldp_basic_vec<T, N>& v)
 {
 	for(size_t i=0; i<N; i++)
 		in >> v[i];
