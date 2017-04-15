@@ -14,7 +14,7 @@ namespace ldp
 		DataType w;
 		Vec v;
 	public:
-		Quaternion()
+		__device__ __host__ Quaternion()
 		{
 			w = (DataType)0;
 			v[0] = (DataType)0;
@@ -23,19 +23,19 @@ namespace ldp
 		}
 		
 		template<class E>
-		Quaternion(const Quaternion<E>& q)
+		__device__ __host__ Quaternion(const Quaternion<E>& q)
 		{
 			w = static_cast<DataType>(q.w);
 			v = q.v;
 		}
-		Quaternion(DataType x, DataType y, DataType z, DataType w)
+		__device__ __host__ Quaternion(DataType x, DataType y, DataType z, DataType w)
 		{
 			this->v[0] = x;
 			this->v[1] = y;
 			this->v[2] = z;
 			this->w = w;
 		}
-		Quaternion(Vec v, DataType w)
+		__device__ __host__ Quaternion(Vec v, DataType w)
 		{
 			this->v = v;
 			this->w = w;
@@ -46,7 +46,7 @@ namespace ldp
 		// [1]: x
 		// [2]: y
 		// [3]: z
-		DataType& operator[](int i)
+		__device__ __host__ DataType& operator[](int i)
 		{
 			return ((DataType*)(this))[i];
 		}
@@ -56,53 +56,53 @@ namespace ldp
 		// [1]: x
 		// [2]: y
 		// [3]: z
-		const DataType& operator[](int i)const
+		__device__ __host__ const DataType& operator[](int i)const
 		{
 			return ((DataType*)(this))[i];
 		}
 
-		Quaternion& setIdentity()
+		__device__ __host__ Quaternion& setIdentity()
 		{
 			v = Vec(DataType(0));
 			w = DataType(1);
 			return *this;
 		}
 
-		bool isIdentity()const
+		__device__ __host__ bool isIdentity()const
 		{
 			return v == Vec(DataType(0)) && w == DataType(1);
 		}
 
-		Quaternion& setZero()
+		__device__ __host__ Quaternion& setZero()
 		{
 			v = Vec(DataType(0));
 			w = DataType(0);
 			return *this;
 		}
 
-		DataType dot(Quaternion other)const
+		__device__ __host__ DataType dot(Quaternion other)const
 		{
 			return v.dot(other.v) + w*other.w;
 		}
 
-		DataType norm()const
+		__device__ __host__ DataType norm()const
 		{
 			return sqrt(w * w + v.sqrLength());
 		}
 
-		Quaternion& normalizeLocal()
+		__device__ __host__ Quaternion& normalizeLocal()
 		{
 			(*this) /= norm();
 			return *this;
 		}
 
-		Quaternion normalize()const
+		__device__ __host__ Quaternion normalize()const
 		{
 			Quaternion q = *this;
 			return q.normalizeLocal();
 		}
 
-		Quaternion& inverseLocal()
+		__device__ __host__ Quaternion& inverseLocal()
 		{
 			DataType norm2 = dot(*this);
 			if (norm2 > DataType(0)) {
@@ -113,18 +113,18 @@ namespace ldp
 			return *this;
 		}
 
-		Quaternion inverse()const
+		__device__ __host__ Quaternion inverse()const
 		{
 			Quaternion q = *this;
 			return q.inverseLocal();
 		}
 
-		Quaternion conjugate()const
+		__device__ __host__ Quaternion conjugate()const
 		{
 			return Quaternion(-v, w);
 		}
 
-		Vec applyVec(Vec p)const
+		__device__ __host__ Vec applyVec(Vec p)const
 		{
 			// nVidia SDK implementation
 			Vec vp, vvp;
@@ -139,28 +139,28 @@ namespace ldp
 		/**
 		* Operators
 		* */
-		Quaternion operator*(const DataType& scalar)const
+		__device__ __host__ Quaternion operator*(const DataType& scalar)const
 		{
 			return Quaternion(scalar*v, scalar * w);
 		}
-		Quaternion& operator*=(const DataType& scalar)
+		__device__ __host__ Quaternion& operator*=(const DataType& scalar)
 		{
 			v *= scalar;
 			w *= scalar;
 			return *this;
 		}
-		Quaternion operator/(const DataType& scalar)const
+		__device__ __host__ Quaternion operator/(const DataType& scalar)const
 		{
 			return Quaternion(v/scalar, w/scalar);
 		}
-		Quaternion& operator/=(const DataType& scalar)
+		__device__ __host__ Quaternion& operator/=(const DataType& scalar)
 		{
 			v /= scalar;
 			w /= scalar;
 			return *this;
 		}
 
-		Quaternion operator*(const Quaternion &other)const
+		__device__ __host__ Quaternion operator*(const Quaternion &other)const
 		{
 			Quaternion r;
 			r.w = (other.w * w) - other.v.dot(v);
@@ -169,37 +169,37 @@ namespace ldp
 			r.v[2] = (other.w * v[2]) + (other.v[2] * w) - (other.v[0] * v[1]) + (other.v[1] * v[0]);
 			return r;
 		}
-		Quaternion& operator*=(const Quaternion &other)
+		__device__ __host__ Quaternion& operator*=(const Quaternion &other)
 		{
 			(*this) = (*this) * other;
 			return *this;
 		}
-		Quaternion operator+(const Quaternion& q)const
+		__device__ __host__ Quaternion operator+(const Quaternion& q)const
 		{
 			return Quaternion(v + q.v, w + q.w);
 		}
-		Quaternion& operator+=(const Quaternion& q)
+		__device__ __host__ Quaternion& operator+=(const Quaternion& q)
 		{
 			v += q.v;
 			w += q.w;
 			return *this;
 		}
-		Quaternion operator-(const Quaternion& q)const
+		__device__ __host__ Quaternion operator-(const Quaternion& q)const
 		{
 			return Quaternion(v-q.v, w-q.w);
 		}
-		Quaternion& operator-=(const Quaternion& q)
+		__device__ __host__ Quaternion& operator-=(const Quaternion& q)
 		{
 			v -= q.v;
 			w -= q.w;
 			return *this;
 		}
-		Quaternion operator-()const
+		__device__ __host__ Quaternion operator-()const
 		{
 			return Quaternion(Vec(DataType(0)) - v,  - w);
 		}
 
-		Quaternion& fromAngles(Vec eularAngle)
+		__device__ __host__ Quaternion& fromAngles(Vec eularAngle)
 		{
 			DataType angle;
 
@@ -228,7 +228,7 @@ namespace ldp
 			return normalizeLocal();
 		}
 
-		Vec toAngles()const
+		__device__ __host__ Vec toAngles()const
 		{
 			const DataType sqw = w*w;
 			const DataType sqx = v[0]*v[0];
@@ -237,7 +237,7 @@ namespace ldp
 			const DataType test = DataType(2.0) * (v[1]*w - v[0]*v[2]);
 
 			Vec euler;
-			if (abs(test - DataType(1.0)) < DataType(0.000001))
+			if (abs(test - DataType(1.0)) < numeric_limits_eps<T>())
 			{
 				// heading = rotation about z-axis
 				euler[2] = (DataType)(-2.0*atan2(X, W));
@@ -246,7 +246,7 @@ namespace ldp
 				// attitude = rotation about y-axis
 				euler[1] = (DataType)(ldp::PI_D / 2.0);
 			}
-			else if (abs(test - DataType(-1.0)) < DataType(0.000001))
+			else if (abs(test - DataType(-1.0)) < numeric_limits_eps<T>())
 			{
 				// heading = rotation about z-axis
 				euler[2] = (DataType)(2.0*atan2(v[0], w));
@@ -266,7 +266,7 @@ namespace ldp
 			}
 		}
 
-		Quaternion& fromAngleAxis(const DataType& angle, const Vec& axis)
+		__device__ __host__ Quaternion& fromAngleAxis(const DataType& angle, const Vec& axis)
 		{
 			const DataType fHalfAngle = DataType(0.5)*angle;
 			const DataType fSin = sinf(fHalfAngle);
@@ -275,7 +275,7 @@ namespace ldp
 			return *this;
 		}
 
-		void toAngleAxis(Vec& axis, DataType& angle)const
+		__device__ __host__ void toAngleAxis(Vec& axis, DataType& angle)const
 		{
 			const DataType scale = v.length();
 
@@ -293,7 +293,7 @@ namespace ldp
 			}
 		}
 
-		Quaternion& fromRotationVecs(const Vec& from, const Vec& to)
+		__device__ __host__ Quaternion& fromRotationVecs(const Vec& from, const Vec& to)
 		{
 			// Based on Stan Melax's article in Game Programming Gems
 			// Copy, since cannot modify local
@@ -327,7 +327,7 @@ namespace ldp
 			return normalizeLocal();
 		}
 
-		Quaternion& fromRotationMatrix(const ldp::ldp_basic_mat3<DataType>& M)
+		__device__ __host__ Quaternion& fromRotationMatrix(const ldp::ldp_basic_mat3<DataType>& M)
 		{
 			const DataType diag = M.trace() + DataType(1);
 
@@ -384,12 +384,12 @@ namespace ldp
 			return normalizeLocal();
 		}
 
-		Quaternion& fromRotationMatrix(const ldp::ldp_basic_mat4<DataType>& M)
+		__device__ __host__ Quaternion& fromRotationMatrix(const ldp::ldp_basic_mat4<DataType>& M)
 		{
 			return fromRotationMatrix(M.getRotationPart());
 		}
 
-		ldp::ldp_basic_mat4<DataType> toRotationMatrix()const
+		__device__ __host__ ldp::ldp_basic_mat4<DataType> toRotationMatrix()const
 		{
 			ldp::ldp_basic_mat4<DataType> dest;
 			dest.eye();
@@ -412,14 +412,14 @@ namespace ldp
 			return dest;
 		}
 
-		ldp::ldp_basic_mat3<DataType> toRotationMatrix3()const
+		__device__ __host__ ldp::ldp_basic_mat3<DataType> toRotationMatrix3()const
 		{
 			return toRotationMatrix().getRotationPart();
 		}
 	};
 
 	template<class DataType>
-	Quaternion<DataType> operator*(const DataType& scalar, const Quaternion<DataType>& q)
+	__device__ __host__ Quaternion<DataType> operator*(const DataType& scalar, const Quaternion<DataType>& q)
 	{
 		return q*scalar;
 	}
@@ -436,40 +436,40 @@ class DualQuaternion
 public:
 	Quaternion<DataType> dq[2];
 public:
-	DualQuaternion()
+	__device__ __host__ DualQuaternion()
 	{
 		setZero();
 	}
 
 	template<class E1, class E2>
-	DualQuaternion(const Quaternion<E1>& q1, const Quaternion<E2>& q2)
+	__device__ __host__ DualQuaternion(const Quaternion<E1>& q1, const Quaternion<E2>& q2)
 	{
 		dq[0] = q1;
 		dq[1] = q2;
 	}
 
 	template<class E>
-	DualQuaternion(const DualQuaternion<E>& r)
+	__device__ __host__ DualQuaternion(const DualQuaternion<E>& r)
 	{
 		dq[0] = r.dq[0];
 		dq[1] = r.dq[1];
 	}
 
-	DualQuaternion& setZero()
+	__device__ __host__ DualQuaternion& setZero()
 	{
 		dq[0].setZero();
 		dq[1].setZero();
 		return *this;
 	}
 
-	DualQuaternion& setIdentity()
+	__device__ __host__ DualQuaternion& setIdentity()
 	{
 		dq[0].setIdentity();
 		dq[1].setZero();
 		return *this;
 	}
 
-	DualQuaternion& normalizeLocal()
+	__device__ __host__ DualQuaternion& normalizeLocal()
 	{
 		DataType len = dq[0].norm();
 		dq[0] /= len;
@@ -478,13 +478,13 @@ public:
 		return *this;
 	}
 
-	DualQuaternion normalize()const
+	__device__ __host__ DualQuaternion normalize()const
 	{
 		DualQuaternion q = (*this);
 		return q.normalizeLocal();
 	}
 
-	DualQuaternion inverse()const
+	__device__ __host__ DualQuaternion inverse()const
 	{
 		DualQuaternion result;
 		result.dq[0] = dq[0].inverse();
@@ -492,13 +492,13 @@ public:
 		return result;
 	}
 
-	DualQuaternion& inverseLocal()
+	__device__ __host__ DualQuaternion& inverseLocal()
 	{
 		*this = inverse();
 		return *this;
 	}
 
-	DualQuaternion conjugate()const
+	__device__ __host__ DualQuaternion conjugate()const
 	{
 		DualQuaternion result;
 		result.dq[0] = dq[0].conjugate();
@@ -506,7 +506,7 @@ public:
 		return result;
 	}
 
-	DualQuaternion operator * (const DualQuaternion& other)const
+	__device__ __host__ DualQuaternion operator * (const DualQuaternion& other)const
 	{
 		DualQuaternion r;
 		r.dq[0] = dq[0] * other.dq[0];
@@ -514,13 +514,13 @@ public:
 		return r;
 	}
 
-	DualQuaternion& operator *= (const DualQuaternion& other)
+	__device__ __host__ DualQuaternion& operator *= (const DualQuaternion& other)
 	{
 		*this = (*this) * other;
 		return *this;
 	}
 
-	DualQuaternion operator * (DataType v)const
+	__device__ __host__ DualQuaternion operator * (DataType v)const
 	{
 		DualQuaternion r;
 		r.dq[0] = dq[0] * v;
@@ -528,14 +528,14 @@ public:
 		return r;
 	}
 
-	DualQuaternion& operator *= (DataType v)
+	__device__ __host__ DualQuaternion& operator *= (DataType v)
 	{
 		dq[0] *= v;
 		dq[1] *= v;
 		return *this;
 	}
 
-	DualQuaternion operator / (DataType v)const
+	__device__ __host__ DualQuaternion operator / (DataType v)const
 	{
 		DualQuaternion r;
 		r.dq[0] = dq[0] / v;
@@ -543,14 +543,14 @@ public:
 		return r;
 	}
 
-	DualQuaternion& operator /= (DataType v)
+	__device__ __host__ DualQuaternion& operator /= (DataType v)
 	{
 		dq[0] /= v;
 		dq[1] /= v;
 		return *this;
 	}
 
-	DualQuaternion operator + (const DualQuaternion& rhs)const
+	__device__ __host__ DualQuaternion operator + (const DualQuaternion& rhs)const
 	{
 		DualQuaternion r;
 		r.dq[0] = dq[0] + rhs.dq[0];
@@ -558,14 +558,14 @@ public:
 		return r;
 	}
 
-	DualQuaternion& operator += (const DualQuaternion& rhs)
+	__device__ __host__ DualQuaternion& operator += (const DualQuaternion& rhs)
 	{
 		dq[0] += rhs.dq[0];
 		dq[1] += rhs.dq[1];
 		return *this;
 	}
 
-	DualQuaternion operator - (const DualQuaternion& rhs)const
+	__device__ __host__ DualQuaternion operator - (const DualQuaternion& rhs)const
 	{
 		DualQuaternion r;
 		r.dq[0] = dq[0] - rhs.dq[0];
@@ -573,7 +573,7 @@ public:
 		return r;
 	}
 
-	DualQuaternion operator - ()const
+	__device__ __host__ DualQuaternion operator - ()const
 	{
 		DualQuaternion r;
 		r.dq[0] = -dq[0];
@@ -581,7 +581,7 @@ public:
 		return r;
 	}
 
-	DualQuaternion& operator -= (const DualQuaternion& rhs)
+	__device__ __host__ DualQuaternion& operator -= (const DualQuaternion& rhs)
 	{
 		dq[0] -= rhs.dq[0];
 		dq[1] -= rhs.dq[1];
@@ -590,7 +590,7 @@ public:
 
 	// input: unit quaternion 'q0', translation vector 't' 
 	// output: unit dual quaternion 'dq'
-	inline void setFromQuatTrans(Quaternion<DataType> q0, ldp::ldp_basic_vec3<DataType> t)
+	__device__ __host__ inline void setFromQuatTrans(Quaternion<DataType> q0, ldp::ldp_basic_vec3<DataType> t)
 	{
 		// non-dual part (just copy q0):
 		dq[0] = q0;
@@ -604,12 +604,12 @@ public:
 
 	// input: dual quat. 'dq' with non-zero non-dual part
 	// output: unit quaternion 'q0', translation vector 't'
-	inline void getQuatTrans(Quaternion<DataType>& q0, ldp::ldp_basic_vec3<DataType>& t)const
+	__device__ __host__ inline void getQuatTrans(Quaternion<DataType>& q0, ldp::ldp_basic_vec3<DataType>& t)const
 	{
 		DataType len2 = dq[0].dot(dq[0]);
 		DataType len = sqrt(len2);
 
-		if (len > std::numeric_limits<DataType>::epsilon())
+		if (len > numeric_limits_eps<DataType>())
 			for (int i = 0; i<4; i++) q0[i] = dq[0][i] / len;
 		else
 		{
@@ -625,7 +625,7 @@ public:
 		t[2] = 2.0*(-dq[1][0] * dq[0][3] - dq[1][1] * dq[0][2] + dq[1][2] * dq[0][1] + dq[1][3] * dq[0][0]) / len2;
 	}
 
-	inline void getQuatTransNoNormalize(Quaternion<DataType>& q0, ldp::ldp_basic_vec3<DataType>& t)const
+	__device__ __host__ inline void getQuatTransNoNormalize(Quaternion<DataType>& q0, ldp::ldp_basic_vec3<DataType>& t)const
 	{
 		for (int i = 0; i<4; i++) q0[i] = dq[0][i];
 
@@ -637,7 +637,7 @@ public:
 
 	// M must be a rotation matrix plused with a translation
 	// or the result is not guaranteed
-	inline void setFromTransform(const ldp::ldp_basic_mat4<DataType>& M)
+	__device__ __host__ inline void setFromTransform(const ldp::ldp_basic_mat4<DataType>& M)
 	{
 		Quaternion<DataType> q;
 		q.fromRotationMatrix(M.getRotationPart());
@@ -645,7 +645,7 @@ public:
 		setFromQuatTrans(q, t);
 	}
 
-	inline void getTransform(ldp::ldp_basic_mat4<DataType>& M)const
+	__device__ __host__ inline void getTransform(ldp::ldp_basic_mat4<DataType>& M)const
 	{
 		Quaternion<DataType> q;
 		ldp::ldp_basic_vec3<DataType> t;
@@ -657,7 +657,7 @@ public:
 		M(3, 3) = 1;
 	}
 
-	inline void getTransformNoNormalize(ldp::ldp_basic_mat4<DataType>& M)const
+	__device__ __host__ inline void getTransformNoNormalize(ldp::ldp_basic_mat4<DataType>& M)const
 	{
 		Quaternion<DataType> q;
 		ldp::ldp_basic_vec3<DataType> t;
@@ -671,7 +671,7 @@ public:
 };
 
 template<class DataType>
-DualQuaternion<DataType> operator * (DataType v, const DualQuaternion<DataType>& rhs)
+__device__ __host__ DualQuaternion<DataType> operator * (DataType v, const DualQuaternion<DataType>& rhs)
 {
 	return rhs * v;
 }
@@ -684,7 +684,7 @@ typedef DualQuaternion<double> DualQuaternionD;
 * Assert R is a rotation matrix, then this method calcualtes the log
 * */
 template<class T>
-inline ldp_basic_mat3<T> transform_matrix_log(const ldp_basic_mat3<T>& R)
+__device__ __host__ inline ldp_basic_mat3<T> transform_matrix_log(const ldp_basic_mat3<T>& R)
 {
 	Quaternion<T> q;
 	q.fromRotationMatrix(R);
@@ -707,12 +707,12 @@ inline ldp_basic_mat3<T> transform_matrix_log(const ldp_basic_mat3<T>& R)
 * Assert A is a log rotation matrix, then this method calcualtes the exp
 * */
 template<class T>
-inline ldp_basic_mat3<T> transform_matrix_exp(const ldp_basic_mat3<T>& A)
+__device__ __host__ inline ldp_basic_mat3<T> transform_matrix_exp(const ldp_basic_mat3<T>& A)
 {
 	ldp_basic_mat3<T> R;
 	ldp::ldp_basic_vec3<T> a(-A(1, 2), A(0, 2), -A(0, 1));
 	T theta = a.length();
-	if (theta < std::numeric_limits<T>::epsilon())
+	if (theta < numeric_limits_eps<T>())
 	{
 		R.eye();
 	}
@@ -729,7 +729,7 @@ inline ldp_basic_mat3<T> transform_matrix_exp(const ldp_basic_mat3<T>& A)
 * Assert R is a rotation + translation matrix, then this method calcualtes the log
 * */
 template<class T>
-inline ldp_basic_mat4<T> transform_matrix_log(const ldp_basic_mat4<T>& R)
+__device__ __host__ inline ldp_basic_mat4<T> transform_matrix_log(const ldp_basic_mat4<T>& R)
 {
 	// firstly, calculate the rotation part
 	Quaternion<T> q;
@@ -756,7 +756,7 @@ inline ldp_basic_mat4<T> transform_matrix_log(const ldp_basic_mat4<T>& R)
 	// secondly, calculate the translation part
 	ldp_basic_vec3<T> t(R(0, 3), R(1, 3), R(2, 3));
 
-	if (theta < std::numeric_limits<T>::epsilon())
+	if (theta < numeric_limits_eps<T>())
 	{
 		M(0, 3) = t[0];
 		M(1, 3) = t[1];
@@ -785,13 +785,13 @@ inline ldp_basic_mat4<T> transform_matrix_log(const ldp_basic_mat4<T>& R)
 * Assert A is a log rotation matrix, then this method calcualtes the exp
 * */
 template<class T>
-inline ldp_basic_mat4<T> transform_matrix_exp(const ldp_basic_mat4<T>& A)
+__device__ __host__ inline ldp_basic_mat4<T> transform_matrix_exp(const ldp_basic_mat4<T>& A)
 {
 	ldp_basic_mat4<T> R;
 	ldp_basic_vec3<T> a(-A(1, 2), A(0, 2), -A(0, 1));
 	ldp_basic_vec3<T> v(A(0, 3), A(1, 3), A(2, 3));
 	T theta = a.length();
-	if (theta < std::numeric_limits<T>::epsilon())
+	if (theta < numeric_limits_eps<T>())
 	{
 		R.eye();
 		R(0, 3) = A(0, 3);
@@ -820,7 +820,7 @@ inline ldp_basic_mat4<T> transform_matrix_exp(const ldp_basic_mat4<T>& A)
 * I/O
 * */
 template<typename T>
-inline std::ostream& operator<<(std::ostream& out, const Quaternion<T>& v)
+__device__ __host__ inline std::ostream& operator<<(std::ostream& out, const Quaternion<T>& v)
 {
 	for (size_t i = 0; i<3; i++)
 		out << std::left << std::setw(10) << v[i] << " ";
@@ -829,7 +829,7 @@ inline std::ostream& operator<<(std::ostream& out, const Quaternion<T>& v)
 }
 
 template<typename T>
-inline std::istream& operator>>(std::istream& in, const Quaternion<T>& v)
+__device__ __host__ inline std::istream& operator>>(std::istream& in, const Quaternion<T>& v)
 {
 	for (size_t i = 0; i<4; i++)
 		in >> v[i];
@@ -837,14 +837,14 @@ inline std::istream& operator>>(std::istream& in, const Quaternion<T>& v)
 }
 
 template<typename T>
-inline std::ostream& operator<<(std::ostream& out, const DualQuaternion<T>& v)
+__device__ __host__ inline std::ostream& operator<<(std::ostream& out, const DualQuaternion<T>& v)
 {
 	out << std::left << std::setw(10) << v.dq[0] << ", " << v.dq[1];
 	return out;
 }
 
 template<typename T>
-inline std::istream& operator>>(std::istream& in, const DualQuaternion<T>& v)
+__device__ __host__ inline std::istream& operator>>(std::istream& in, const DualQuaternion<T>& v)
 {
 	in >> v.dq[0] >> v.dq[1];
 	return in;

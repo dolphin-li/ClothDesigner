@@ -26,7 +26,7 @@ namespace ldp
 * ***************************************************************************************/
 
 //for eigenvalues and eigenvectors computation
-template<typename _Tp> bool
+template<typename _Tp> __device__ __host__ bool
 JacobiImpl_( _Tp* A, size_t astep, _Tp* W, _Tp* V, size_t vstep, int n, int* buf );
 
 /** **************************************************************************************
@@ -36,26 +36,30 @@ template<class T, size_t N, size_t M>
 class ldp_basic_mat
 {
 public:
-	const static size_t NUM_ELEMENTS = N*M;
+	enum{
+		NUM_ELEMENTS = N*M
+	};
 protected:
 	T _data[NUM_ELEMENTS];
 public:
 	/**
 	* Constructors
 	* */
-	ldp_basic_mat(){memset(_data, 0, NUM_ELEMENTS*sizeof(T));}
-	ldp_basic_mat(const T* data){copy(data);}
-	ldp_basic_mat(const T& v)
+	__device__ __host__ ldp_basic_mat(){ memset(_data, 0, NUM_ELEMENTS*sizeof(T)); }
+	__device__ __host__ ldp_basic_mat(const T* data){ copy(data); }
+	__device__ __host__ ldp_basic_mat(const T& v)
 	{
 		for(size_t i=0; i<NUM_ELEMENTS; i++)
 				(*this)[i] = v;
 	}
-	template<class E> ldp_basic_mat(const ldp_basic_mat<E,N,M>& rhs)
+	template<class E> 
+	__device__ __host__ ldp_basic_mat(const ldp_basic_mat<E, N, M>& rhs)
 	{
 		for(size_t i=0; i<NUM_ELEMENTS; i++)
 				(*this)[i] = rhs[i];
 	}
-	template<class E1, class E2, size_t K> ldp_basic_mat(const ldp_basic_mat<E1,K,M>& rhs1, const ldp_basic_mat<E2,N-K,M>& rhs2)
+	template<class E1, class E2, size_t K> 
+	__device__ __host__ ldp_basic_mat(const ldp_basic_mat<E1, K, M>& rhs1, const ldp_basic_mat<E2, N - K, M>& rhs2)
 	{
 		for(size_t i=0; i<K; i++)
 			for(size_t j=0; j<M; j++)
@@ -64,7 +68,8 @@ public:
 			for(size_t j=0; j<M; j++)
 				(*this)(i, j) = rhs2(i-K, j);
 	}
-	template<class E1, class E2, size_t K> ldp_basic_mat(const ldp_basic_mat<E1,N,K>& rhs1, const ldp_basic_mat<E2,N,M-K>& rhs2)
+	template<class E1, class E2, size_t K> 
+	__device__ __host__ ldp_basic_mat(const ldp_basic_mat<E1, N, K>& rhs1, const ldp_basic_mat<E2, N, M - K>& rhs2)
 	{
 		for(size_t i=0; i<N; i++)
 		{
@@ -78,20 +83,20 @@ public:
 	/**
 	* Data Access Methods
 	* */
-	Size2 size()const {return Size2(N,M);}
-	size_t nRow()const{return N;}
-	size_t nCol()const{return M;}
-	const T* ptr()const {return _data;}
-	T* ptr() {return _data;}
-	const T& operator() (size_t i, size_t j)const {return _data[j*N+i];}
-	T& operator() (size_t i, size_t j) {return _data[j*N+i];}
-	const T& operator[] (size_t i)const {return _data[i];}
-	T& operator[] (size_t i) {return _data[i];}
+	__device__ __host__ Size2 size()const { return Size2(N, M); }
+	__device__ __host__ size_t nRow()const{ return N; }
+	__device__ __host__ size_t nCol()const{ return M; }
+	__device__ __host__ const T* ptr()const { return _data; }
+	__device__ __host__ T* ptr() { return _data; }
+	__device__ __host__ const T& operator() (size_t i, size_t j)const { return _data[j*N + i]; }
+	__device__ __host__ T& operator() (size_t i, size_t j) { return _data[j*N + i]; }
+	__device__ __host__ const T& operator[] (size_t i)const { return _data[i]; }
+	__device__ __host__ T& operator[] (size_t i) { return _data[i]; }
 
 	/**
 	* Utilities
 	* */
-	ldp_basic_mat<T, M, N> trans()const
+	__device__ __host__ ldp_basic_mat<T, M, N> trans()const
 	{
 		ldp_basic_mat<T, M, N> out;
 		for(size_t i=0; i<N; i++)
@@ -99,25 +104,25 @@ public:
 				out(i, j) = (*this)(j, i);
 		return out;
 	}
-	ldp_basic_mat<T, N, M>& zeros()
+	__device__ __host__ ldp_basic_mat<T, N, M>& zeros()
 	{
 		memset(_data, 0, NUM_ELEMENTS*sizeof(T));
 		return *this;
 	}
-	ldp_basic_mat<T, N, M>& ones()
+	__device__ __host__ ldp_basic_mat<T, N, M>& ones()
 	{
 		for(size_t i=0; i<NUM_ELEMENTS; i++)
 			(*this)[i] = 1;
 		return *this;
 	}
-	ldp_basic_mat<T, N, M>& copy(const T* data)
+	__device__ __host__ ldp_basic_mat<T, N, M>& copy(const T* data)
 	{
 		memcpy(_data, data, NUM_ELEMENTS*sizeof(T));
 		return *this;
 	}
 
 	// note: this is the F-norm
-	T norm()const
+	__device__ __host__ T norm()const
 	{
 		T sum = 0;
 		for (int y = 0; y < N; y++)
@@ -131,7 +136,7 @@ public:
 	* */
 #define LDP_BASIC_MAT_ARITHMATIC(OP)																					\
 	template<typename E>																								\
-	typename ldp_basic_mat<typename type_promote<T,E>::type, N, M> operator OP (const ldp_basic_mat<E,N,M>& rhs)const	\
+	__device__ __host__ typename ldp_basic_mat<typename type_promote<T, E>::type, N, M> operator OP (const ldp_basic_mat<E, N, M>& rhs)const	\
 	{																													\
 		typename ldp_basic_mat<typename type_promote<T,E>::type, N, M> out;												\
 		for(size_t i=0; i<NUM_ELEMENTS; i++)																			\
@@ -139,7 +144,7 @@ public:
 		return out;																										\
 	}																							
 #define LDP_BASIC_MAT_ARITHMATIC_SCALAR(OP)														\
-	ldp_basic_mat<T,N,M> operator OP (const T& rhs)const										\
+	__device__ __host__ ldp_basic_mat<T, N, M> operator OP (const T& rhs)const										\
 	{																							\
 		ldp_basic_mat<T,N,M> out;																\
 		for(size_t i=0; i<NUM_ELEMENTS; i++)													\
@@ -152,14 +157,14 @@ public:
 	* */
 #define LDP_BASIC_MAT_ARITHMATIC2(OP)															\
 	template<class E>																			\
-	ldp_basic_mat<T, N, M>& operator OP (const ldp_basic_mat<E,N,M>& rhs)						\
+	__device__ __host__ ldp_basic_mat<T, N, M>& operator OP (const ldp_basic_mat<E, N, M>& rhs)						\
 	{																							\
 		for(size_t i=0; i<NUM_ELEMENTS; i++)													\
 			(*this)[i] OP static_cast<T>(rhs[i]);												\
 		return *this;																			\
 	}																							
 #define LDP_BASIC_MAT_ARITHMATIC2_SCALAR(OP)													\
-	ldp_basic_mat<T, N, M>& operator OP (const T& rhs)											\
+	__device__ __host__ ldp_basic_mat<T, N, M>& operator OP (const T& rhs)											\
 	{																							\
 		for(size_t i=0; i<NUM_ELEMENTS; i++)													\
 			(*this)[i] OP rhs;																	\
@@ -184,7 +189,7 @@ public:
 	* Arithmatic Operators: +,-,*,/ scale with mat
 	* */
 	#define LDP_BASIC_MAT_ARITHMATIC_FRIEND(OP)																		\
-		friend ldp_basic_mat<T,N,M> operator OP (const T& lhs, const ldp_basic_mat<T,N,M>& rhs)						\
+	__device__ __host__ friend ldp_basic_mat<T, N, M> operator OP (const T& lhs, const ldp_basic_mat<T, N, M>& rhs)						\
 		{																											\
 			ldp::ldp_basic_mat<T, N, M> out;																		\
 			for(size_t i=0; i<NUM_ELEMENTS; i++)																	\
@@ -209,7 +214,7 @@ public:
 	* Point-Wise mult and divide
 	* */
 	template<typename E>																								
-	typename ldp_basic_mat<typename type_promote<T,E>::type, N, M> pmul (const ldp_basic_mat<E,N,M>& rhs)const	
+	__device__ __host__ typename ldp_basic_mat<typename type_promote<T, E>::type, N, M> pmul(const ldp_basic_mat<E, N, M>& rhs)const
 	{																													
 		typename ldp_basic_mat<typename type_promote<T,E>::type, N, M> out;												
 		for(size_t i=0; i<NUM_ELEMENTS; i++)																			
@@ -217,7 +222,7 @@ public:
 		return out;																										
 	}	
 	template<typename E>																								
-	typename ldp_basic_mat<typename type_promote<T,E>::type, N, M> pdiv (const ldp_basic_mat<E,N,M>& rhs)const	
+	__device__ __host__ typename ldp_basic_mat<typename type_promote<T, E>::type, N, M> pdiv(const ldp_basic_mat<E, N, M>& rhs)const
 	{																													
 		typename ldp_basic_mat<typename type_promote<T,E>::type, N, M> out;												
 		for(size_t i=0; i<NUM_ELEMENTS; i++)																			
@@ -229,7 +234,7 @@ public:
 	* Operator: * with mat and vec
 	* */
 	template<typename E, size_t K>																								
-	typename ldp_basic_mat<typename type_promote<T,E>::type, N, K> operator * (const ldp_basic_mat<E,M,K>& rhs)const	
+	__device__ __host__ typename ldp_basic_mat<typename type_promote<T, E>::type, N, K> operator * (const ldp_basic_mat<E, M, K>& rhs)const
 	{																													
 		typename ldp_basic_mat<typename type_promote<T,E>::type, N, K> out;												
 		for(size_t i=0; i<N; i++)
@@ -245,7 +250,7 @@ public:
 		return out;																										
 	}
 	template<typename E>																								
-	typename ldp_basic_vec<typename type_promote<T,E>::type, N> operator * (const ldp_basic_vec<E,M>& rhs)const	
+	__device__ __host__ typename ldp_basic_vec<typename type_promote<T, E>::type, N> operator * (const ldp_basic_vec<E, M>& rhs)const
 	{																													
 		typename ldp_basic_vec<typename type_promote<T,E>::type, N> out;												
 		for(size_t i=0; i<N; i++)
@@ -263,7 +268,7 @@ public:
 * I/O
 * */
 template<typename T, size_t N, size_t M>
-inline std::ostream& operator<<(std::ostream& out, const ldp_basic_mat<T,N,M>& v) 
+__device__ __host__ inline std::ostream& operator<<(std::ostream& out, const ldp_basic_mat<T, N, M>& v)
 {
 	for(size_t i=0; i<N; i++)
 	{
@@ -275,7 +280,7 @@ inline std::ostream& operator<<(std::ostream& out, const ldp_basic_mat<T,N,M>& v
 }
 
 template<typename T, size_t N, size_t M>
-inline std::istream& operator>>(std::istream& in, const ldp_basic_mat<T,N,M>& v) 
+__device__ __host__ inline std::istream& operator>>(std::istream& in, const ldp_basic_mat<T, N, M>& v)
 {
 	for(size_t i=0; i<N; i++)
 		for(size_t j=0; j<M; j++)
@@ -293,19 +298,22 @@ public:
 	/**
 	* Constructors
 	* */
-	ldp_basic_mat_sqr():ldp_basic_mat<T,N,N>(){}
-	ldp_basic_mat_sqr(const T* data):ldp_basic_mat<T,N,N>(data){}
-	ldp_basic_mat_sqr(const T& v):ldp_basic_mat<T,N,N>(v){}
-	template<class E> ldp_basic_mat_sqr(const ldp_basic_mat<E,N,N>& rhs):ldp_basic_mat<T,N,N>(rhs){}
-	template<class E1, class E2, size_t K> ldp_basic_mat_sqr(const ldp_basic_mat<E1,K,N>& rhs1, const ldp_basic_mat<E2,N-K,N>& rhs2)
+	__device__ __host__ ldp_basic_mat_sqr() :ldp_basic_mat<T, N, N>(){}
+	__device__ __host__ ldp_basic_mat_sqr(const T* data) : ldp_basic_mat<T, N, N>(data){}
+	__device__ __host__ ldp_basic_mat_sqr(const T& v) : ldp_basic_mat<T, N, N>(v){}
+	template<class E> 
+	__device__ __host__ ldp_basic_mat_sqr(const ldp_basic_mat<E, N, N>& rhs) : ldp_basic_mat<T, N, N>(rhs){}
+	template<class E1, class E2, size_t K> 
+	__device__ __host__ ldp_basic_mat_sqr(const ldp_basic_mat<E1, K, N>& rhs1, const ldp_basic_mat<E2, N - K, N>& rhs2)
 	:ldp_basic_mat<T,N,N>(rhs1, rhs2){}
-	template<class E1, class E2, size_t K> ldp_basic_mat_sqr(const ldp_basic_mat<E1,N,K>& rhs1, const ldp_basic_mat<E2,N,N-K>& rhs2)
+	template<class E1, class E2, size_t K> 
+	__device__ __host__ ldp_basic_mat_sqr(const ldp_basic_mat<E1, N, K>& rhs1, const ldp_basic_mat<E2, N, N - K>& rhs2)
 	:ldp_basic_mat<T,N,N>(rhs1, rhs2){}
 
 	/**
 	* Utilities
 	* */
-	ldp_basic_mat_sqr<T, N>& eye()
+	__device__ __host__ ldp_basic_mat_sqr<T, N>& eye()
 	{
 		zeros();
 		for(size_t i=0; i<N; i++)
@@ -313,7 +321,7 @@ public:
 		return *this;
 	}
 
-	T trace()const
+	__device__ __host__ T trace()const
 	{
 		T s = T(0);
 		for(size_t i=0; i<N; i++)
@@ -321,7 +329,7 @@ public:
 		return s;
 	}
 
-	ldp_basic_vec<T, N> diag()const
+	__device__ __host__ ldp_basic_vec<T, N> diag()const
 	{
 		ldp_basic_vec<T, N> x;
 		for(size_t i=0; i<N; i++)
@@ -329,7 +337,7 @@ public:
 		return x;
 	}
 
-	ldp_basic_mat_sqr<T, N>& fromDiag(const ldp_basic_vec<T,N>& x)
+	__device__ __host__ ldp_basic_mat_sqr<T, N>& fromDiag(const ldp_basic_vec<T, N>& x)
 	{
 		zeros();
 		for(size_t i=0; i<N; i++)
@@ -344,7 +352,7 @@ public:
 	*			1 if matrix is positive definite
 	*			-1 if matrix is negative definite
 	* */
-	int lu(ldp_basic_mat<T,N,N>& A, ldp_basic_vec<int,N>& permute)const
+	__device__ __host__ int lu(ldp_basic_mat<T, N, N>& A, ldp_basic_vec<int, N>& permute)const
 	{
 		int i, j, k, p = 1;  
 		A = (*this);
@@ -355,13 +363,13 @@ public:
 			for( j = i+1; j < N; j++ )
 				if( std::abs(A(j,i)) > std::abs(A(k,i)) )
 					k = j;
-			std::swap(permute[i], permute[k]);
-			if( std::abs(A(k,i)) < std::numeric_limits<T>::epsilon() )
+			ldp_swap(permute[i], permute[k]);
+			if( std::abs(A(k,i)) < numeric_limits_eps<T>() )
 				return 0;
 			if( k != i )
 			{
 				for( j = 0; j < N; j++ )
-					std::swap(A(i,j), A(k,j));
+					ldp_swap(A(i,j), A(k,j));
 				p = -p;
 			}
         
@@ -384,7 +392,7 @@ public:
 	*			1 if matrix is positive definite
 	*			-1 if matrix is negative definite
 	* */
-	int lu(ldp_basic_mat<T,N,N>& L, ldp_basic_mat<T,N,N>& U) const
+	__device__ __host__ int lu(ldp_basic_mat<T, N, N>& L, ldp_basic_mat<T, N, N>& U) const
 	{
 		ldp_basic_mat_sqr<T,N> A;
 		ldp_basic_vec<int, N> p;
@@ -402,7 +410,7 @@ public:
 		}
 		return r;
 	}
-	int lu(ldp_basic_mat<T,N,N>& L, ldp_basic_mat<T,N,N>& U, ldp_basic_vec<int, N>& permute) const
+	__device__ __host__ int lu(ldp_basic_mat<T, N, N>& L, ldp_basic_mat<T, N, N>& U, ldp_basic_vec<int, N>& permute) const
 	{
 		ldp_basic_mat_sqr<T,N> A;
 		int r = lu(A, permute);
@@ -424,7 +432,7 @@ public:
 	* back substitution given lu factorized matrix
 	* (*this) = p[L U], L*U*x = p(b)
 	* */
-	void luBackSubst(const ldp_basic_vec<int,N>& p, ldp_basic_vec<T,N> b, ldp_basic_vec<T,N>& x)const
+	__device__ __host__ void luBackSubst(const ldp_basic_vec<int, N>& p, ldp_basic_vec<T, N> b, ldp_basic_vec<T, N>& x)const
 	{
 		ldp_basic_vec<T, N> ux;
 		//backup substitution for L: L*ux = P(b)
@@ -453,7 +461,7 @@ public:
 	/**
 	* A*x = b, solve x = A\b
 	* */
-	ldp_basic_vec<T,N> solve(const ldp_basic_vec<T,N>& b)const
+	__device__ __host__ ldp_basic_vec<T, N> solve(const ldp_basic_vec<T, N>& b)const
 	{
 		ldp_basic_mat_sqr<T, N> A = (*this);
 		ldp_basic_vec<T, N> x;
@@ -475,7 +483,7 @@ public:
 	/**
 	* Matrix Inverse
 	* */
-	void inv(ldp_basic_mat<T,N,N>& result)const
+	__device__ __host__ void inv(ldp_basic_mat<T, N, N>& result)const
 	{
 		ldp_basic_vec<T,N> x,b;
 		ldp_basic_vec<int,N> p;
@@ -483,7 +491,7 @@ public:
 		int r = lu(A, p);
 		if(r == 0)
 		{
-			result = std::numeric_limits<T>::infinity();
+			result = numeric_limits_inf<T>();
 			return;
 		}
 		for(size_t i=0; i<N; i++)
@@ -495,7 +503,7 @@ public:
 				result(j,i) = x[j];
 		}
 	}
-	ldp_basic_mat<T, N, N> inv()const
+	__device__ __host__ ldp_basic_mat<T, N, N> inv()const
 	{
 		ldp_basic_mat<T,N,N> r;
 		inv(r);
@@ -505,7 +513,7 @@ public:
 	/**
 	* Matrix Determinant
 	* */
-	T det()const
+	__device__ __host__ T det()const
 	{
 		ldp_basic_mat_sqr<T, N> A = (*this);
 		ldp_basic_vec<int, N> p;
@@ -520,19 +528,19 @@ public:
 	/**
 	* EigenValues and EigenVectors of symmetric matrix
 	* */
-	void eig(ldp_basic_vec<T,N>& eigVals, ldp_basic_mat<T,N,N>& eigVecs)const
+	__device__ __host__ void eig(ldp_basic_vec<T, N>& eigVals, ldp_basic_mat<T, N, N>& eigVecs)const
 	{
 		int buf[N*N + N*5 + 32];
 		ldp_basic_mat_sqr<T,N> A = *this;
 		JacobiImpl_(A.ptr(), N, eigVals.ptr(), eigVecs.ptr(), N, N, buf);
 	}
-	void eig(ldp_basic_vec<T,N>& eigVals)const
+	__device__ __host__ void eig(ldp_basic_vec<T, N>& eigVals)const
 	{
 		int buf[N*N + N*5 + 32];
 		ldp_basic_mat_sqr<T,N> A = *this;
 		JacobiImpl_(A.ptr(), N, eigVals.ptr(), (T*)0, N, N, buf);
 	}
-	ldp_basic_vec<T,N> eig()const
+	__device__ __host__ ldp_basic_vec<T, N> eig()const
 	{
 		ldp_basic_vec<T,N> x;
 		eig(x);
@@ -543,14 +551,14 @@ public:
 	* Operators: *=
 	* */
 	template<typename E>																								
-	ldp_basic_mat_sqr<T,N>& operator *= (const ldp_basic_mat<E,N,N>& rhs)	
+	__device__ __host__ ldp_basic_mat_sqr<T, N>& operator *= (const ldp_basic_mat<E, N, N>& rhs)
 	{																													
 		return (*this) = ((*this)*rhs);																									
 	}
 
 	//Newton iteration method for polor decomposition.
 	//argmin{||self-R'*R||} subject to R'*R=I. and self = R*S.
-	inline void polorDecomposition(ldp_basic_mat_sqr<T,N>& R, ldp_basic_mat_sqr<T,N>& S, 
+	__device__ __host__ inline void polorDecomposition(ldp_basic_mat_sqr<T, N>& R, ldp_basic_mat_sqr<T, N>& S,
 		const T& tol = T(1e-5))
 	{
 		R = *this;
@@ -581,20 +589,23 @@ public:
 	/**
 	* Constructors
 	* */
-	ldp_basic_mat2():ldp_basic_mat_sqr<T,2>(){}
-	ldp_basic_mat2(const T* data):ldp_basic_mat_sqr<T,2>(data){}
-	ldp_basic_mat2(const T& v):ldp_basic_mat_sqr<T,2,2>(v){}
-	template<class E> ldp_basic_mat2(const ldp_basic_mat<E,2,2>& rhs):ldp_basic_mat_sqr<T,2>(rhs){}
-	template<class E1, class E2, size_t K> ldp_basic_mat2(const ldp_basic_mat<E1,K,2>& rhs1, const ldp_basic_mat<E2,2-K,2>& rhs2)
+	__device__ __host__ ldp_basic_mat2() :ldp_basic_mat_sqr<T, 2>(){}
+	__device__ __host__ ldp_basic_mat2(const T* data) : ldp_basic_mat_sqr<T, 2>(data){}
+	__device__ __host__ ldp_basic_mat2(const T& v) : ldp_basic_mat_sqr<T, 2>(v){}
+	template<class E> 
+	__device__ __host__ ldp_basic_mat2(const ldp_basic_mat<E, 2, 2>& rhs) : ldp_basic_mat_sqr<T, 2>(rhs){}
+	template<class E1, class E2, size_t K> 
+	__device__ __host__ ldp_basic_mat2(const ldp_basic_mat<E1, K, 2>& rhs1, const ldp_basic_mat<E2, 2 - K, 2>& rhs2)
 	:ldp_basic_mat_sqr<T,2>(rhs1, rhs2){}
-	template<class E1, class E2, size_t K> ldp_basic_mat2(const ldp_basic_mat<E1,2,K>& rhs1, const ldp_basic_mat<E2,2,2-K>& rhs2)
+	template<class E1, class E2, size_t K> 
+	__device__ __host__ ldp_basic_mat2(const ldp_basic_mat<E1, 2, K>& rhs1, const ldp_basic_mat<E2, 2, 2 - K>& rhs2)
 	:ldp_basic_mat_sqr<T,2>(rhs1, rhs2){}
 
 	/**
 	* Operator: * with mat and vec
 	* */
 	template<typename E, size_t K>																								
-	typename ldp_basic_mat<typename type_promote<T,E>::type, 2, K> operator * (const ldp_basic_mat<E,2,K>& rhs)const	
+	__device__ __host__ typename ldp_basic_mat<typename type_promote<T, E>::type, 2, K> operator * (const ldp_basic_mat<E, 2, K>& rhs)const
 	{																													
 		typename ldp_basic_mat<typename type_promote<T,E>::type, 2, K> out;	
 		for(size_t i=0; i<K; i++)
@@ -605,7 +616,7 @@ public:
 		return out;
 	}
 	template<typename E>																								
-	typename ldp_basic_mat2<typename type_promote<T,E>::type> operator * (const ldp_basic_mat<E,2,2>& rhs)const	
+	__device__ __host__ typename ldp_basic_mat2<typename type_promote<T, E>::type> operator * (const ldp_basic_mat<E, 2, 2>& rhs)const
 	{																													
 		typename ldp_basic_mat2<typename type_promote<T,E>::type> out;												
 		out._data[0] = _data[0] * rhs[0] + _data[2] * rhs[1];										
@@ -616,14 +627,14 @@ public:
 	}
 
 	template<typename E>																								
-	typename ldp_basic_vec2<typename type_promote<T,E>::type> operator * (const ldp_basic_vec<E,2>& rhs)const	
+	__device__ __host__ typename ldp_basic_vec2<typename type_promote<T, E>::type> operator * (const ldp_basic_vec<E, 2>& rhs)const
 	{																													
 		typename ldp_basic_vec2<typename type_promote<T,E>::type> out;												
 		out[0] = _data[0] * rhs[0] + _data[2] * rhs[1];												
 		out[1] = _data[1] * rhs[0] + _data[3] * rhs[1];	
 		return out;																										
 	}	
-	ldp_basic_mat2<T> operator * (const T& rhs)const										
+	__device__ __host__ ldp_basic_mat2<T> operator * (const T& rhs)const
 	{																							
 		return ldp_basic_mat<T,2,2>::operator*(rhs);																			
 	}	
@@ -631,11 +642,11 @@ public:
 	* Operators: *=
 	* */
 	template<typename E>																								
-	ldp_basic_mat2<T>& operator *= (const ldp_basic_mat<E,2,2>& rhs)	
+	__device__ __host__ ldp_basic_mat2<T>& operator *= (const ldp_basic_mat<E, 2, 2>& rhs)
 	{																													
 		return (*this) = ((*this)*rhs);																									
 	}
-	ldp_basic_mat2<T>& operator *= (const T& x)
+	__device__ __host__ ldp_basic_mat2<T>& operator *= (const T& x)
 	{
 		for(size_t i=0; i<NUM_ELEMENTS; i++)
 			(*this)[i] *= x;
@@ -644,14 +655,14 @@ public:
 	/**
 	* Matrix Determinant
 	* */
-	T det()const
+	__device__ __host__ T det()const
 	{
 		return _data[0]*_data[3] - _data[1]*_data[2];
 	}
 	/**
 	* Matrix Inverse
 	* */
-	void inv(ldp_basic_mat<T,2,2>& result)const
+	__device__ __host__ void inv(ldp_basic_mat<T, 2, 2>& result)const
 	{
 		T dt = 1/det();
 		result(0,0) = (*this)(1,1) * dt;
@@ -659,7 +670,7 @@ public:
 		result(0,1) = -(*this)(0,1) * dt;
 		result(1,1) = (*this)(0,0) * dt;
 	}
-	ldp_basic_mat2<T> inv()const
+	__device__ __host__ ldp_basic_mat2<T> inv()const
 	{
 		ldp_basic_mat2<T> r;
 		inv(r);
@@ -668,14 +679,14 @@ public:
 	/**
 	* A*x = b, solve x = A\b
 	* */
-	ldp_basic_vec2<T> solve(const ldp_basic_vec<T,2>& b)const
+	__device__ __host__ ldp_basic_vec2<T> solve(const ldp_basic_vec<T, 2>& b)const
 	{
 		return inv()*b;
 	}
 	/**
 	* EigenValues and EigenVectors of symmetric matrix
 	* */
-	void eig(ldp_basic_vec<T,2>& eigVals, ldp_basic_mat<T,2,2>& eigVecs)const
+	__device__ __host__ void eig(ldp_basic_vec<T, 2>& eigVals, ldp_basic_mat<T, 2, 2>& eigVecs)const
 	{
 		T b=-trace();
 		T c=det();
@@ -683,7 +694,7 @@ public:
 		eigVals[0]=(-b+delta)*T(0.5);
 		eigVals[1]=(-b-delta)*T(0.5);
 		if(eigVals[0] < eigVals[1])
-			std::swap(eigVals[0], eigVals[1]);
+			ldp_swap(eigVals[0], eigVals[1]);
 		ldp_basic_vec2<T> v1(_data[0]-eigVals[1],_data[1]);
 		ldp_basic_vec2<T> v2(_data[0]-eigVals[0],_data[1]);
 		T len1 = v1.sqrLength(), len2 = v2.sqrLength();
@@ -702,7 +713,7 @@ public:
 			eigVecs[3]=v2[1];
 		}
 	}
-	void eig(ldp_basic_vec<T,2>& eigVals)const
+	__device__ __host__ void eig(ldp_basic_vec<T, 2>& eigVals)const
 	{
 		T b=-trace();
 		T c=det();
@@ -710,9 +721,9 @@ public:
 		eigVals[0]=(-b+delta)*T(0.5);
 		eigVals[1]=(-b-delta)*T(0.5);
 		if(eigVals[0] < eigVals[1])
-			std::swap(eigVals[0], eigVals[1]);
+			ldp_swap(eigVals[0], eigVals[1]);
 	}
-	ldp_basic_vec2<T> eig()const
+	__device__ __host__ ldp_basic_vec2<T> eig()const
 	{
 		ldp_basic_vec2<T> x;
 		eig(x);
@@ -728,20 +739,23 @@ public:
 	/**
 	* Constructors
 	* */
-	ldp_basic_mat3():ldp_basic_mat_sqr<T,3>(){}
-	ldp_basic_mat3(const T* data):ldp_basic_mat_sqr<T,3>(data){}
-	ldp_basic_mat3(const T& v):ldp_basic_mat_sqr<T,3>(v){}
-	template<class E> ldp_basic_mat3(const ldp_basic_mat<E,3,3>& rhs):ldp_basic_mat_sqr<T,3>(rhs){}
-	template<class E1, class E2, size_t K> ldp_basic_mat3(const ldp_basic_mat<E1,K,3>& rhs1, const ldp_basic_mat<E2,3-K,3>& rhs2)
+	__device__ __host__ ldp_basic_mat3() :ldp_basic_mat_sqr<T, 3>(){}
+	__device__ __host__ ldp_basic_mat3(const T* data) : ldp_basic_mat_sqr<T, 3>(data){}
+	__device__ __host__ ldp_basic_mat3(const T& v) : ldp_basic_mat_sqr<T, 3>(v){}
+	template<class E> 
+	__device__ __host__ ldp_basic_mat3(const ldp_basic_mat<E, 3, 3>& rhs) : ldp_basic_mat_sqr<T, 3>(rhs){}
+	template<class E1, class E2, size_t K> 
+	__device__ __host__ ldp_basic_mat3(const ldp_basic_mat<E1, K, 3>& rhs1, const ldp_basic_mat<E2, 3 - K, 3>& rhs2)
 	:ldp_basic_mat_sqr<T,3>(rhs1, rhs2){}
-	template<class E1, class E2, size_t K> ldp_basic_mat3(const ldp_basic_mat<E1,3,K>& rhs1, const ldp_basic_mat<E2,3,3-K>& rhs2)
+	template<class E1, class E2, size_t K> 
+	__device__ __host__ ldp_basic_mat3(const ldp_basic_mat<E1, 3, K>& rhs1, const ldp_basic_mat<E2, 3, 3 - K>& rhs2)
 	:ldp_basic_mat_sqr<T,3>(rhs1, rhs2){}
 
 	/**
 	* Operator: * with mat and vec
 	* */
 	template<typename E, size_t K>																								
-	typename ldp_basic_mat<typename type_promote<T,E>::type, 3, K> operator * (const ldp_basic_mat<E,3,K>& rhs)const	
+	__device__ __host__ typename ldp_basic_mat<typename type_promote<T, E>::type, 3, K> operator * (const ldp_basic_mat<E, 3, K>& rhs)const
 	{																													
 		typename ldp_basic_mat<typename type_promote<T,E>::type, 3, K> out;	
 		for(size_t i=0; i<K; i++)
@@ -753,7 +767,7 @@ public:
 		return out;
 	}
 	template<typename E>																								
-	typename ldp_basic_mat3<typename type_promote<T,E>::type> operator * (const ldp_basic_mat<E,3,3>& rhs)const	
+	__device__ __host__ typename ldp_basic_mat3<typename type_promote<T, E>::type> operator * (const ldp_basic_mat<E, 3, 3>& rhs)const
 	{																													
 		typename ldp_basic_mat3<typename type_promote<T,E>::type> out;												
 		out[0] = _data[0] * rhs[0] + _data[3] * rhs[1] + _data[6] * rhs[2];				
@@ -769,7 +783,7 @@ public:
 	}
 
 	template<typename E>																								
-	typename ldp_basic_vec3<typename type_promote<T,E>::type> operator * (const ldp_basic_vec<E,3>& rhs)const	
+	__device__ __host__ typename ldp_basic_vec3<typename type_promote<T, E>::type> operator * (const ldp_basic_vec<E, 3>& rhs)const
 	{																													
 		typename ldp_basic_vec3<typename type_promote<T,E>::type> out;												
 		out[0] = _data[0] * rhs[0] + _data[3] * rhs[1] + _data[6] * rhs[2];									
@@ -777,7 +791,7 @@ public:
 		out[2] = _data[2] * rhs[0] + _data[5] * rhs[1] + _data[8] * rhs[2];
 		return out;																										
 	}
-	ldp_basic_mat3<T> operator * (const T& rhs)const										
+	__device__ __host__ ldp_basic_mat3<T> operator * (const T& rhs)const
 	{																							
 		return ldp_basic_mat<T,3,3>::operator*(rhs);																			
 	}	
@@ -785,11 +799,11 @@ public:
 	* Operators: *=
 	* */
 	template<typename E>																								
-	ldp_basic_mat3<T>& operator *= (const ldp_basic_mat<E,3,3>& rhs)	
+	__device__ __host__ ldp_basic_mat3<T>& operator *= (const ldp_basic_mat<E, 3, 3>& rhs)
 	{																													
 		return (*this) = ((*this)*rhs);																									
 	}
-	ldp_basic_mat3<T>& operator *= (const T& x)
+	__device__ __host__ ldp_basic_mat3<T>& operator *= (const T& x)
 	{
 		for(size_t i=0; i<NUM_ELEMENTS; i++)
 			(*this)[i] *= x;
@@ -807,7 +821,7 @@ public:
 	/**
 	* Matrix Inverse
 	* */
-	void inv(ldp_basic_mat<T,3,3>& result)const
+	__device__ __host__ void inv(ldp_basic_mat<T, 3, 3>& result)const
 	{
 		T dt = 1/det();
 		result(0,0) = dt * ( (*this)(1,1) * (*this)(2,2) - (*this)(1,2) * (*this)(2,1) );
@@ -822,7 +836,7 @@ public:
 		result(1,2) = dt * ( (*this)(0,2) * (*this)(1,0) - (*this)(0,0) * (*this)(1,2) );
 		result(2,2) = dt * ( (*this)(0,0) * (*this)(1,1) - (*this)(0,1) * (*this)(1,0) );
 	}
-	ldp_basic_mat3<T> inv()const
+	__device__ __host__ ldp_basic_mat3<T> inv()const
 	{
 		ldp_basic_mat3<T> r;
 		inv(r);
@@ -831,18 +845,18 @@ public:
 	/**
 	* A*x = b, solve x = A\b
 	* */
-	ldp_basic_vec3<T> solve(const ldp_basic_vec<T,3>& b)const
+	__device__ __host__ ldp_basic_vec3<T> solve(const ldp_basic_vec<T, 3>& b)const
 	{
 		return inv()*b;
 	}
 	/**
 	* EigenValues and EigenVectors of symmetric matrix
 	* */
-	void eig(ldp_basic_vec<T,3>& eigVals, ldp_basic_mat<T,3,3>& eigVecs)const
+	__device__ __host__ void eig(ldp_basic_vec<T, 3>& eigVals, ldp_basic_mat<T, 3, 3>& eigVecs)const
 	{
 		ldp_basic_mat_sqr<T,3>::eig();
 	}
-	void eig(ldp_basic_vec<T,3>& eigVals)const
+	__device__ __host__ void eig(ldp_basic_vec<T, 3>& eigVals)const
 	{
 		const ldp_basic_mat3<T>& A = (*this);
 		T p = sqr(A(0,1)) + sqr(A(0,2)) + sqr(A(1,2));
@@ -872,7 +886,7 @@ public:
 			eigVals[1] = T(3) * q - eigVals[0] - eigVals[2]; 
 		}
 	}
-	ldp_basic_vec3<T> eig()const
+	__device__ __host__ ldp_basic_vec3<T> eig()const
 	{
 		ldp_basic_vec3<T> x;
 		eig(x);
@@ -888,20 +902,23 @@ public:
 	/**
 	* Constructors
 	* */
-	ldp_basic_mat4():ldp_basic_mat_sqr<T,4>(){}
-	ldp_basic_mat4(const T* data):ldp_basic_mat_sqr<T,4>(data){}
-	ldp_basic_mat4(const T& v):ldp_basic_mat_sqr<T,4>(v){}
-	template<class E> ldp_basic_mat4(const ldp_basic_mat<E,4,4>& rhs):ldp_basic_mat_sqr<T,4>(rhs){}
-	template<class E1, class E2, size_t K> ldp_basic_mat4(const ldp_basic_mat<E1,K,4>& rhs1, const ldp_basic_mat<E2,4-K,4>& rhs2)
+	__device__ __host__ ldp_basic_mat4() :ldp_basic_mat_sqr<T, 4>(){}
+	__device__ __host__ ldp_basic_mat4(const T* data) : ldp_basic_mat_sqr<T, 4>(data){}
+	__device__ __host__ ldp_basic_mat4(const T& v) : ldp_basic_mat_sqr<T, 4>(v){}
+	template<class E> 
+	__device__ __host__ ldp_basic_mat4(const ldp_basic_mat<E, 4, 4>& rhs) : ldp_basic_mat_sqr<T, 4>(rhs){}
+	template<class E1, class E2, size_t K> 
+	__device__ __host__ ldp_basic_mat4(const ldp_basic_mat<E1, K, 4>& rhs1, const ldp_basic_mat<E2, 4 - K, 4>& rhs2)
 	:ldp_basic_mat_sqr<T,4>(rhs1, rhs2){}
-	template<class E1, class E2, size_t K> ldp_basic_mat4(const ldp_basic_mat<E1,4,K>& rhs1, const ldp_basic_mat<E2,4,4-K>& rhs2)
+	template<class E1, class E2, size_t K> 
+	__device__ __host__ ldp_basic_mat4(const ldp_basic_mat<E1, 4, K>& rhs1, const ldp_basic_mat<E2, 4, 4 - K>& rhs2)
 	:ldp_basic_mat_sqr<T,4>(rhs1, rhs2){}
 
 	/**
 	* Operator: * with mat and vec
 	* */
 	template<typename E, size_t K>																								
-	typename ldp_basic_mat<typename type_promote<T,E>::type, 4, K> operator * (const ldp_basic_mat<E,4,K>& rhs)const	
+	__device__ __host__ typename ldp_basic_mat<typename type_promote<T, E>::type, 4, K> operator * (const ldp_basic_mat<E, 4, K>& rhs)const
 	{																													
 		typename ldp_basic_mat<typename type_promote<T,E>::type, 4, K> out;	
 		for(size_t i=0; i<K; i++)
@@ -915,7 +932,7 @@ public:
 	}
 
 	template<typename E>																								
-	typename ldp_basic_vec4<typename type_promote<T,E>::type> operator * (const ldp_basic_vec<E,4>& rhs)const	
+	__device__ __host__ typename ldp_basic_vec4<typename type_promote<T, E>::type> operator * (const ldp_basic_vec<E, 4>& rhs)const
 	{																													
 		typename ldp_basic_vec4<typename type_promote<T,E>::type> out;									
 		out[0] = _data[0] * rhs[0] + _data[4] * rhs[1] + _data[8 ] * rhs[2] + _data[12] * rhs[3];
@@ -924,7 +941,7 @@ public:
 		out[3] = _data[3] * rhs[0] + _data[7] * rhs[1] + _data[11] * rhs[2] + _data[15] * rhs[3];	
 		return out;																										
 	}
-	ldp_basic_mat4<T> operator * (const T& rhs)const										
+	__device__ __host__ ldp_basic_mat4<T> operator * (const T& rhs)const
 	{																							
 		return ldp_basic_mat<T,4,4>::operator*(rhs);																			
 	}
@@ -932,18 +949,18 @@ public:
 	* Operators: *=
 	* */
 	template<typename E>																								
-	ldp_basic_mat4<T>& operator *= (const ldp_basic_mat<E,4,4>& rhs)	
+	__device__ __host__ ldp_basic_mat4<T>& operator *= (const ldp_basic_mat<E, 4, 4>& rhs)
 	{																													
 		return (*this) = ((*this)*rhs);																									
 	}
-	ldp_basic_mat4<T>& operator *= (const T& x)
+	__device__ __host__ ldp_basic_mat4<T>& operator *= (const T& x)
 	{
 		for(size_t i=0; i<NUM_ELEMENTS; i++)
 			(*this)[i] *= x;
 		return *this;
 	}
 
-	ldp_basic_mat3<T> getRotationPart()const
+	__device__ __host__ ldp_basic_mat3<T> getRotationPart()const
 	{
 		ldp_basic_mat3<T> R;
 		for (int y = 0; y < 3; y++)
@@ -952,14 +969,14 @@ public:
 		return R;
 	}
 
-	void setRotationPart(const ldp_basic_mat3<T>& R)
+	__device__ __host__ void setRotationPart(const ldp_basic_mat3<T>& R)
 	{
 		for (int y = 0; y < 3; y++)
 		for (int x = 0; x < 3; x++)
 			(*this)(y, x) = R(y, x);
 	}
 
-	ldp_basic_vec3<T> getTranslationPart()const
+	__device__ __host__ ldp_basic_vec3<T> getTranslationPart()const
 	{
 		ldp_basic_vec3<T> t;
 		for (int y = 0; y < 3; y++)
@@ -967,7 +984,7 @@ public:
 		return t;
 	}
 
-	void setTranslationPart(const ldp_basic_vec3<T>& t)
+	__device__ __host__ void setTranslationPart(const ldp_basic_vec3<T>& t)
 	{
 		for (int y = 0; y < 3; y++)
 			(*this)(y, 3) = t[y];
@@ -1021,10 +1038,10 @@ typedef ldp_basic_mat_sqr<double, 6> Mat6d;
 /** ***************************************************************************************************
 * Some details
 * *****************************************************************************************************/
-template<typename _Tp> bool
+template<typename _Tp> __device__ __host__ bool
 JacobiImpl_( _Tp* A, size_t astep, _Tp* W, _Tp* V, size_t vstep, int n, int* buf )
 {
-    const _Tp eps = std::numeric_limits<_Tp>::epsilon();
+	const _Tp eps = numeric_limits_eps<_Tp>();
     int i, j, k, m;
     
     if( V )
@@ -1157,10 +1174,10 @@ JacobiImpl_( _Tp* A, size_t astep, _Tp* W, _Tp* V, size_t vstep, int n, int* buf
         }
         if( k != m )
         {
-            std::swap(W[m], W[k]);
+            ldp_swap(W[m], W[k]);
             if( V )
                 for( i = 0; i < n; i++ )
-                    std::swap(V[vstep*m + i], V[vstep*k + i]);
+                    ldp_swap(V[vstep*m + i], V[vstep*k + i]);
         }
     }
     

@@ -73,7 +73,6 @@ namespace ldp
 		void releaseMaterialMemory();
 		void updateTopology_arcSim();
 		void updateTopology_clothManager();
-		void copyMaterial_toGpu();
 		void linearSolve();
 
 		void setup_sparse_structure_from_cpu();

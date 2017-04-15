@@ -50,6 +50,68 @@ namespace ldp
 #endif
 	#define release_assert(_Expression) (void)( (!!(_Expression)) || (_wassert(_CRT_WIDE(#_Expression), _CRT_WIDE(__FILE__), __LINE__), 0) )
 
+	/** *********************************************************************************
+	*cuda wrappers
+	* **********************************************************************************/
+#ifndef __device__
+#define __device__
+#endif
+
+#ifndef __host__
+#define __host__
+#endif
+
+	template<class T> __device__ __host__ void ldp_swap(T& a, T& b)
+	{
+		T c = a;
+		a = b;
+		b = c;
+	}
+
+	template<class T> __device__ __host__ T numeric_limits_eps();
+
+	template<>  __device__ __host__ inline float numeric_limits_eps<float>()
+	{
+		return FLT_EPSILON;
+	}
+	template<>  __device__ __host__ inline double numeric_limits_eps<double>()
+	{
+		return DBL_EPSILON;
+	}
+
+	template<class T> __device__ __host__ T numeric_limits_max();
+
+	template<>  __device__ __host__ inline float numeric_limits_max<float>()
+	{
+		return FLT_MAX;
+	}
+	template<>  __device__ __host__ inline double numeric_limits_max<double>()
+	{
+		return DBL_MAX;
+	}
+
+	template<class T> __device__ __host__ T numeric_limits_min();
+
+	template<>  __device__ __host__ inline float numeric_limits_min<float>()
+	{
+		return FLT_MIN;
+	}
+	template<>  __device__ __host__ inline double numeric_limits_min<double>()
+	{
+		return DBL_MIN;
+	}
+
+	template<class T> __device__ __host__ T numeric_limits_inf();
+	template<>  __device__ __host__ inline float numeric_limits_inf<float>()
+	{
+		return HUGE_VALF;
+	}
+	template<>  __device__ __host__ inline double numeric_limits_inf<double>()
+	{
+		return HUGE_VALD;
+	}
+
+
 
 	/** *********************************************************************************
 	* Basic Type Declaration
@@ -220,50 +282,36 @@ namespace ldp
 	const double SQRT_TWO_D = 1.414213562373095;
 	const float SQRT_TWO_S = 1.414213562373095f;
 
-	inline double eps(double x=1.0)
+	template<class T>
+	__device__ __host__ inline T eps(T x = T(1.0))
 	{
-		if(x == 1.0) return DOUBLE_EPS;
-		if(x > DOUBLE_MAX) return DOUBLE_MAX;
-		if(x < DOUBLE_MIN) return DOUBLE_MIN;
-		int n = (int)(log(abs(x))/LOG_2D);
-		return DOUBLE_EPS * pow(2.0,n);
-	}
-	inline float eps(float x=1.0f)
-	{
-		if(x == 1.0f) return SINGLE_EPS;
-		if(x > SINGLE_MAX) return SINGLE_MAX;
-		if(x < SINGLE_MIN) return SINGLE_MIN;
-		int n = (int)(log(abs(x))/LOG_2S);
-		return SINGLE_EPS * pow(2.0f,n);
+		if(x == T(1.0)) return numeric_limits_eps<T>();
+		if (x > numeric_limits_max<T>()) return numeric_limits_max<T>();
+		if (x < numeric_limits_min<T>()) return numeric_limits_min<T>();
+		int n = (int)(log(abs(x))/log(T(2)));
+		return numeric_limits_eps<T>() * pow(T(2.0), n);
 	}
 
-	template<class T> int sign(const T& v)
+	template<class T> 
+	__device__ __host__ int sign(const T& v)
 	{
-		if(v>0) return 1;
-		if(v<0) return -1;
-		return 0;
+		return (v>0) - (v<0);
 	}
 
-	template<class T> T sqr(T x)
+	template<class T> 
+	__device__ __host__ inline T sqr(T x)
 	{
 		return x*x;
 	}
 
-	inline bool isInf(double x)
+	template<class T>
+	__device__ __host__ inline bool isInf(T x)
 	{
-		return x > DOUBLE_MAX  || x < -DOUBLE_MAX;
+		return x > numeric_limits_max<T>() || x < -numeric_limits_max<T>();
 	}
 
-	inline bool isInf(float x)
-	{
-		return x > SINGLE_MAX  || x < -SINGLE_MAX;
-	}
-
-	inline bool isNan(double x)
-	{
-		return x!=x;
-	}
-	inline bool isNan(float x)
+	template<class T>
+	__device__ __host__ inline bool isNan(T x)
 	{
 		return x!=x;
 	}
