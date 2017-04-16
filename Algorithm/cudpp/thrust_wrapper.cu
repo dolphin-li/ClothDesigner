@@ -262,6 +262,14 @@ namespace thrust_wrapper
 		return ptr.first - key_begin;
 	}
 
+	size_t unique(int* data, int n)
+	{
+		thrust::device_ptr<int> key_begin(data);
+		thrust::device_ptr<int> key_end(data + n);
+		auto ptr = thrust::unique(thrust::cuda::par(g_allocator), key_begin, key_end);
+		return ptr - key_begin;
+	}
+
 	size_t unique_counting_by_key_copy(const int* key_d, int input_count_begin,
 		int* out_key_d, int* out_value_d, int n)
 	{

@@ -26,6 +26,7 @@ namespace thrust_wrapper
 	void inclusive_scan_by_key(int* key_d, float4* value_d, float4* dst_d, int n);
 
 	size_t unique_by_key(int* key_d, float4* value_d, int n);
+	size_t unique(int* data, int n);
 
 	// the input value are counting iterators from @input_count_begin
 	size_t unique_counting_by_key_copy(const int* key_d, int input_count_begin, 

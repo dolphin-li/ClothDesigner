@@ -6,6 +6,7 @@
 #include "cloth\LevelSet3D.h"
 #include "arcsim\adaptiveCloth\dde.hpp"
 #include "cudpp\thrust_wrapper.h"
+#include "cudpp\CachedDeviceBuffer.h"
 namespace ldp
 {
 #pragma region -- utils
@@ -25,35 +26,6 @@ namespace ldp
 			printf("cusparse error[%d]: %s", st, msg);
 			throw std::exception(msg);
 		}
-	}
-
-	cudaTextureObject_t GpuSim::createTexture(cudaArray_t ary, cudaTextureFilterMode filterMode)
-	{
-		cudaResourceDesc texRes;
-		memset(&texRes, 0, sizeof(cudaResourceDesc));
-		texRes.resType = cudaResourceTypeArray;
-		texRes.res.array.array = ary;
-		cudaTextureDesc texDescr;
-		memset(&texDescr, 0, sizeof(cudaTextureDesc));
-		texDescr.normalizedCoords = 0;
-		texDescr.filterMode = filterMode;
-		texDescr.addressMode[0] = cudaAddressModeClamp;
-		texDescr.addressMode[1] = cudaAddressModeClamp;
-		texDescr.addressMode[2] = cudaAddressModeClamp;
-		texDescr.readMode = cudaReadModeElementType;
-		cudaTextureObject_t tex;
-		cudaSafeCall(cudaCreateTextureObject(&tex, &texRes, &texDescr, NULL));
-		return tex;
-	}
-	cudaSurfaceObject_t GpuSim::createSurface(cudaArray_t ary)
-	{
-		cudaResourceDesc texRes;
-		memset(&texRes, 0, sizeof(cudaResourceDesc));
-		texRes.resType = cudaResourceTypeArray;
-		texRes.res.array.array = ary;
-		cudaSurfaceObject_t tex;
-		cudaSafeCall(cudaCreateSurfaceObject(&tex, &texRes));
-		return tex;
 	}
 #pragma endregion
 
@@ -209,11 +181,13 @@ namespace ldp
 
 	void GpuSim::setup_sparse_structure_from_cpu()
 	{
+#if 0
 		// compute sparse structure via eigen
 		std::vector<Eigen::Triplet<float>> cooSys;
 		for (const auto& f : m_faces_idxWorld_h)
 		for (int k = 0; k < 3; k++)
 		{
+			cooSys.push_back(Eigen::Triplet<float>(f[k], f[k], 0));
 			cooSys.push_back(Eigen::Triplet<float>(f[k], f[(k + 1) % 3], 0));
 			cooSys.push_back(Eigen::Triplet<float>(f[(k + 1) % 3], f[k], 0));
 		}
@@ -243,21 +217,21 @@ namespace ldp
 		cudaSafeCall(cudaMemset(m_A->value(), 0, m_A->nnz()*sizeof(float)));
 
 		m_A->dump("D:/tmp/eigen_A.txt");
-
-		// compute sparse structure via sorting
+#else
+		// compute sparse structure via sorting---------------------------------
 		const int nVerts = m_x_init.size();
+
+		// 1. collect face adjacents
 		m_faceEdge_vertIds_h.clear();
-		m_faceEdge_order_h.clear();
 		for (const auto& f : m_faces_idxWorld_h)
 		for (int k = 0; k < 3; k++)
 		{
-			m_faceEdge_vertIds_h.push_back(vertPair_to_idx(ldp::Int2(f[k], f[k]), nVerts));
-			m_faceEdge_vertIds_h.push_back(vertPair_to_idx(ldp::Int2(f[k], f[(k + 1) % 3]), nVerts));
-			m_faceEdge_vertIds_h.push_back(vertPair_to_idx(ldp::Int2(f[(k + 1) % 3], f[k]), nVerts));
-			m_faceEdge_order_h.push_back(m_faceEdge_order_h.size());
-			m_faceEdge_order_h.push_back(m_faceEdge_order_h.size());
-			m_faceEdge_order_h.push_back(m_faceEdge_order_h.size());
+			m_faceEdge_vertIds_h.push_back(ldp::vertPair_to_idx(ldp::Int2(f[k], f[k]), nVerts));
+			m_faceEdge_vertIds_h.push_back(ldp::vertPair_to_idx(ldp::Int2(f[k], f[(k + 1) % 3]), nVerts));
+			m_faceEdge_vertIds_h.push_back(ldp::vertPair_to_idx(ldp::Int2(f[(k + 1) % 3], f[k]), nVerts));
 		}
+
+		// 2. collect edge adjacents
 		for (const auto& ed : m_edgeData_h)
 		if (ed.faceIdx[0] >= 0 && ed.faceIdx[1] >= 0)
 		{
@@ -270,22 +244,34 @@ namespace ldp
 			v[3] = f2[0] + f2[1] + f2[2] - ed.edge_idxWorld[0] - ed.edge_idxWorld[1];
 			for (int i = 0; i < 4; i++)
 			for (int j = 0; j < 4; j++)
-			{
-				m_faceEdge_vertIds_h.push_back(vertPair_to_idx(ldp::Int2(v[i], v[j]), nVerts));
-				m_faceEdge_order_h.push_back(m_faceEdge_order_h.size());
-			} // end for i,j
+				m_faceEdge_vertIds_h.push_back(ldp::vertPair_to_idx(ldp::Int2(v[i], v[j]), nVerts));
 		} // end for edgeData
-		m_faceEdge_vertIds_d.upload(m_faceEdge_vertIds_h);
-		m_faceEdge_order_d.upload(m_faceEdge_order_h);
-		thrust_wrapper::sort_by_key(m_faceEdge_vertIds_d.ptr(), 
-			m_faceEdge_order_d.ptr(), m_faceEdge_vertIds_d.size());
-		m_faceEdge_vertIds_d.download(m_faceEdge_vertIds_h);
-		m_faceEdge_order_d.download(m_faceEdge_order_h);
 
-		std::vector<int> m_faceEdge_vertIds_h_unique = m_faceEdge_vertIds_h;
-		m_faceEdge_vertIds_h_unique.resize(std::unique(m_faceEdge_vertIds_h_unique.begin(), 
-			m_faceEdge_vertIds_h_unique.end()) - m_faceEdge_vertIds_h_unique.begin());
-		std::vector<Eigen::Triplet<float>> cooSys1;
+		// 3. upload to GPU
+		m_faceEdge_vertIds_d.upload(m_faceEdge_vertIds_h);
+
+		// 4. make order array
+		m_faceEdge_order_d.create(m_faceEdge_vertIds_h.size());
+		thrust_wrapper::make_counting_array(m_faceEdge_order_d.ptr(), m_faceEdge_order_d.size());
+
+		// 5. sort the order array by vertex-pair idx, then unique
+		thrust_wrapper::sort_by_key(m_faceEdge_vertIds_d.ptr(), m_faceEdge_order_d.ptr(), m_faceEdge_vertIds_d.size());
+		auto nUniqueNnz = thrust_wrapper::unique(m_faceEdge_vertIds_d.ptr(), m_faceEdge_vertIds_d.size());
+		
+		// 6. convert vertex-pair idx to coo array
+		CachedDeviceBuffer booRow(nUniqueNnz*sizeof(int));
+		CachedDeviceBuffer booCol(nUniqueNnz*sizeof(int));
+		vertPair_from_idx((int*)booRow.data(), (int*)booCol.data(), 
+			m_faceEdge_vertIds_d.ptr(), nVerts, nUniqueNnz);
+
+		// 7. build the sparse matrix via coo
+		m_A->resize(nVerts, nVerts, 3);
+		m_A->setRowFromBooRowPtr((const int*)booRow.data(), nUniqueNnz);
+		cudaSafeCall(cudaMemcpy(m_A->bsrColIdx(), (const int*)booCol.data(),
+			nUniqueNnz*sizeof(int), cudaMemcpyDeviceToDevice));
+		cudaSafeCall(cudaMemset(m_A->value(), 0, m_A->nnz()*sizeof(float)));
+		//m_A->dump("D:/tmp/eigen_A_1.txt");
+#endif	
 	}
 
 	void GpuSim::initializeMaterialMemory()
@@ -321,13 +307,13 @@ namespace ldp
 		{
 			bd.updateHostToDevice();
 
-			dumpBendDataArray("D:/tmp/bendData_h.txt", bd);
-			bd.updateDeviceToHost();
-			dumpBendDataArray("D:/tmp/bendData_d.txt", bd);
-			BendingData tmp;
-			bd.getCudaArray().copyTo(tmp.getCudaArray());
-			tmp.updateDeviceToHost();
-			dumpBendDataArray("D:/tmp/bendData_d1.txt", tmp);
+			//dumpBendDataArray("D:/tmp/bendData_h.txt", bd);
+			//bd.updateDeviceToHost();
+			//dumpBendDataArray("D:/tmp/bendData_d.txt", bd);
+			//BendingData tmp;
+			//bd.getCudaArray().copyTo(tmp.getCudaArray());
+			//tmp.updateDeviceToHost();
+			//dumpBendDataArray("D:/tmp/bendData_d1.txt", tmp);
 
 		} // end for m_bendingData_h
 		
@@ -335,13 +321,13 @@ namespace ldp
 		{
 			sp.updateHostToDevice();
 
-			dumpStretchSampleArray("D:/tmp/stretchSample_h.txt", sp);
-			sp.updateDeviceToHost();
-			dumpStretchSampleArray("D:/tmp/stretchSample_d.txt", sp);
-			StretchingSamples tmp;
-			sp.getCudaArray().copyTo(tmp.getCudaArray());
-			tmp.updateDeviceToHost();
-			dumpStretchSampleArray("D:/tmp/stretchSample_d1.txt", tmp);
+			//dumpStretchSampleArray("D:/tmp/stretchSample_h.txt", sp);
+			//sp.updateDeviceToHost();
+			//dumpStretchSampleArray("D:/tmp/stretchSample_d.txt", sp);
+			//StretchingSamples tmp;
+			//sp.getCudaArray().copyTo(tmp.getCudaArray());
+			//tmp.updateDeviceToHost();
+			//dumpStretchSampleArray("D:/tmp/stretchSample_d1.txt", tmp);
 		} // end for m_stretchSamples_h
 	}
 

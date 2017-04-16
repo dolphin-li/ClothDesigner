@@ -100,10 +100,9 @@ namespace ldp
 		std::vector<float> m_edgeThetaIdeals_h;					// the folding angles (in arc) on the edge
 		DeviceArray<float> m_edgeThetaIdeals_d;			
 
-		std::vector<int> m_faceEdge_vertIds_h;	// computing internal forces, the vertex index of each face/edge/bend
-		DeviceArray<int> m_faceEdge_vertIds_d;
-		std::vector<int> m_faceEdge_order_h;	// the face/edge/bend filling order, beforScan_A[order]
-		DeviceArray<int> m_faceEdge_order_d;
+		std::vector<int> m_faceEdge_vertIds_h;	
+		DeviceArray<int> m_faceEdge_vertIds_d;	// computing internal forces, the vertex index of each face/edge/bend
+		DeviceArray<int> m_faceEdge_order_d;	// the face/edge/bend filling order, beforScan_A[order]
 		DeviceArray<ldp::Mat3f> m_faceEdge_beforScan_A;
 		DeviceArray<ldp::Float3> m_faceEdge_beforScan_b;
 		///////////////// solve for the simulation linear system: A*dv=b////////////////////////////////
@@ -213,8 +212,8 @@ namespace ldp
 		std::vector<StretchingSamples> m_stretchSamples_h;			
 		std::vector<BendingData> m_bendingData_h;
 	public:
-		static cudaTextureObject_t createTexture(cudaArray_t ary, cudaTextureFilterMode filterMode);
-		static cudaSurfaceObject_t createSurface(cudaArray_t ary);
+		static void vertPair_to_idx(const int* ids_v1, const int* ids_v2, int* ids, int nVerts, int nPairs);
+		static void vertPair_from_idx(int* ids_v1, int* ids_v2, const int* ids, int nVerts, int nPairs);
 		static void dumpVec(std::string name, const DeviceArray<float>& A);
 		static void dumpVec(std::string name, const DeviceArray2D<float>& A);
 		static void dumpVec(std::string name, const DeviceArray<ldp::Float3>& A);

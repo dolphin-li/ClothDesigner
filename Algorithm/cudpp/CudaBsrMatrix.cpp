@@ -45,13 +45,13 @@ void CudaBsrMatrix::clear()
 	m_nnzBlocks = 0;
 
 	if (m_tex_values)
-		cudaSafeCall(cudaDestroyTextureObject(m_tex_values), "CudaBsrMatrix::clear(), destroy tex 1");
+		cudaSafeCall(cudaDestroyTextureObject(m_tex_values));
 	if (m_tex_bsrRowPtr)
-		cudaSafeCall(cudaDestroyTextureObject(m_tex_bsrRowPtr), "CudaBsrMatrix::clear(), destroy tex 2");
+		cudaSafeCall(cudaDestroyTextureObject(m_tex_bsrRowPtr));
 	if (m_tex_bsrRowPtr_coo)
-		cudaSafeCall(cudaDestroyTextureObject(m_tex_bsrRowPtr_coo), "CudaBsrMatrix::clear(), destroy tex 3");
+		cudaSafeCall(cudaDestroyTextureObject(m_tex_bsrRowPtr_coo));
 	if (m_tex_bsrColIdx)
-		cudaSafeCall(cudaDestroyTextureObject(m_tex_bsrColIdx), "CudaBsrMatrix::clear(), destroy tex 4");
+		cudaSafeCall(cudaDestroyTextureObject(m_tex_bsrColIdx));
 	m_tex_values = 0;
 	m_tex_bsrRowPtr = 0;
 	m_tex_bsrRowPtr_coo = 0;
@@ -68,7 +68,7 @@ template<class T>
 static void bindLinearTex(T* ptr, int sizeBytes, cudaTextureObject_t& old)
 {
 	if (old)
-		cudaSafeCall(cudaDestroyTextureObject(old), "CudaBsrMatrix::bindTexture::Destory");
+		cudaSafeCall(cudaDestroyTextureObject(old));
 	cudaResourceDesc texRes;
 	memset(&texRes, 0, sizeof(cudaResourceDesc));
 	texRes.resType = cudaResourceTypeLinear;
@@ -83,8 +83,7 @@ static void bindLinearTex(T* ptr, int sizeBytes, cudaTextureObject_t& old)
 	texDescr.addressMode[1] = cudaAddressModeClamp;
 	texDescr.addressMode[2] = cudaAddressModeClamp;
 	texDescr.readMode = cudaReadModeElementType;
-	cudaSafeCall(cudaCreateTextureObject(&old, &texRes, &texDescr, NULL),
-		"CudaBsrMatrix::bindTexture");
+	cudaSafeCall(cudaCreateTextureObject(&old, &texRes, &texDescr, NULL));
 }
 
 void CudaBsrMatrix::resize(int blocksInRow, int blocksInCol, int rowsPerBlock, int colsPerBlock)
@@ -134,8 +133,7 @@ void CudaBsrMatrix::endConstructRowPtr()
 		return;
 
 	int nnzBlocks = 0;
-	cudaSafeCall(cudaMemcpy(&nnzBlocks, bsrRowPtr() + blocksInRow(), sizeof(int),
-		cudaMemcpyDeviceToHost), "CudaBsrMatrix::endConstructRowPtr: copy nnz");
+	cudaSafeCall(cudaMemcpy(&nnzBlocks, bsrRowPtr() + blocksInRow(), sizeof(int), cudaMemcpyDeviceToHost));
 
 	endConstructRowPtr(nnzBlocks);
 }
@@ -154,15 +152,11 @@ void CudaBsrMatrix::transposeStructureTo(CudaBsrMatrix& rhs)const
 	rhs.resize_nnzBlocks(nnzBlocks());
 	if (nnzBlocks() == 0)
 		return;
-	cudaSafeCall(cudaMemcpy(rhs.bsrRowPtr_coo(), bsrColIdx(), nnzBlocks()*sizeof(int), 
-		cudaMemcpyDeviceToDevice), "CudaBsrMatrix::transposeStructureTo, 1");
-	cudaSafeCall(cudaMemcpy(rhs.bsrColIdx(), bsrRowPtr_coo(), nnzBlocks()*sizeof(int),
-		cudaMemcpyDeviceToDevice), "CudaBsrMatrix::transposeStructureTo, 2");
-
+	cudaSafeCall(cudaMemcpy(rhs.bsrRowPtr_coo(), bsrColIdx(), nnzBlocks()*sizeof(int), cudaMemcpyDeviceToDevice));
+	cudaSafeCall(cudaMemcpy(rhs.bsrColIdx(), bsrRowPtr_coo(), nnzBlocks()*sizeof(int), cudaMemcpyDeviceToDevice));
 	modergpu_wrapper::mergesort_by_key(rhs.bsrRowPtr_coo(), rhs.bsrColIdx(), rhs.nnzBlocks());
-	cudaSafeCall(cudaGetLastError(), "CudaBsrMatrix::transposeStructureTo 3");
-	cusparseCheck(cusparseXcoo2csr(m_cusparseHandle,
-		rhs.bsrRowPtr_coo(), rhs.nnzBlocks(), rhs.blocksInRow(),
+	cudaSafeCall(cudaGetLastError());
+	cusparseCheck(cusparseXcoo2csr(m_cusparseHandle, rhs.bsrRowPtr_coo(), rhs.nnzBlocks(), rhs.blocksInRow(),
 		rhs.bsrRowPtr(), CUSPARSE_INDEX_BASE_ZERO));
 }
 
@@ -175,13 +169,12 @@ void CudaBsrMatrix::transposeValueTo(CudaBsrMatrix& rhs)const
 	rhs.resize_nnzBlocks(m_nnzBlocks);
 	if (nnzBlocks() == 0)
 		return;
-	cudaSafeCall(cudaMemcpy(rhs.bsrRowPtr_coo(), bsrColIdx(), nnzBlocks()*sizeof(int),
-		cudaMemcpyDeviceToDevice), "CudaBsrMatrix::transposeValueTo, 1");
+	cudaSafeCall(cudaMemcpy(rhs.bsrRowPtr_coo(), bsrColIdx(), nnzBlocks()*sizeof(int), cudaMemcpyDeviceToDevice));
 
 	int *hptr = (int*)get_helper_buffer(m_bsrColIdx.sizeBytes());
 	fill_increment_1_n(hptr, m_nnzBlocks);
 	modergpu_wrapper::mergesort_by_key(rhs.bsrRowPtr_coo(), hptr, rhs.nnzBlocks());
-	cudaSafeCall(cudaGetLastError(), "CudaBsrMatrix::transposeValueTo 2");
+	cudaSafeCall(cudaGetLastError());
 
 	rhs.transpose_fill_values_by_blockId(hptr, *this);
 }
@@ -191,18 +184,17 @@ void CudaBsrMatrix::setRowFromBsrRowPtr(const int* bsrRowPtr)
 	if (blocksInRow() == 0)
 		return;
 	beginConstructRowPtr();
-	cudaSafeCall(cudaMemcpy(m_bsrRowPtr, bsrRowPtr, (1+blocksInRow())*m_bsrRowPtr.elem_size,
-		cudaMemcpyDeviceToDevice));
+	cudaSafeCall(cudaMemcpy(m_bsrRowPtr, bsrRowPtr, (1+blocksInRow())*
+		m_bsrRowPtr.elem_size, cudaMemcpyDeviceToDevice));
 	endConstructRowPtr();
 }
 
-void CudaBsrMatrix::setRowFromBooRowPtr(const int* booptr)
+void CudaBsrMatrix::setRowFromBooRowPtr(const int* booptr, int nnzBlocks)
 {
 	if (blocksInRow() == 0)
 		return;
 	beginConstructRowPtr();
-	cusparseCheck(cusparseXcoo2csr(m_cusparseHandle,
-		booptr, nnzBlocks(), blocksInRow(),
+	cusparseCheck(cusparseXcoo2csr(m_cusparseHandle, booptr, nnzBlocks, blocksInRow(),
 		bsrRowPtr(), CUSPARSE_INDEX_BASE_ZERO));
 	endConstructRowPtr();
 }

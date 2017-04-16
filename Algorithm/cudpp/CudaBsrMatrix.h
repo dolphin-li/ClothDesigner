@@ -98,7 +98,8 @@ public:
 	void setRowFromBlockedCsrRowPtr(const int* csrRowPtr);
 
 	// similar with Bsr, Boo is respect to Coo
-	void setRowFromBooRowPtr(const int* booptr);
+	// nnzBlocks: count of booptr
+	void setRowFromBooRowPtr(const int* booptr, int nnzBlocks);
 
 	/// resize nnz related memories, called inside endConstructRowPtr() functions
 	// generally you do not need to call this function explicitly
