@@ -6,7 +6,9 @@
 namespace ldp
 {
 	enum{
-		CTA_SIZE = 512
+		CTA_SIZE = 512,
+		CTA_SIZE_X = 32,
+		CTA_SIZE_Y = 16
 	};
 
 	template<class T>
@@ -33,6 +35,7 @@ namespace ldp
 		return tex;
 	}
 
+#pragma region -- vert pair <--> idx
 	__global__ void vertPair_to_idx_kernel(const int* v1, const int* v2, int* ids, int nVerts, int nPairs)
 	{
 		int i = threadIdx.x + blockIdx.x * blockDim.x;
@@ -63,4 +66,12 @@ namespace ldp
 			v1, v2, ids, nVerts, nPairs);
 		cudaSafeCall(cudaGetLastError());
 	}
+#pragma endregion
+
+#pragma region --update numeric
+	void GpuSim::updateNumeric()
+	{
+
+	}
+#pragma endregion
 }

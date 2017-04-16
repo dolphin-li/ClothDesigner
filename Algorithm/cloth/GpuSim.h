@@ -183,7 +183,7 @@ namespace ldp
 			};
 			BendingData(){
 				m_data.resize(rows()*cols());
-				m_ary.create(make_int2(rows(), cols()));
+				m_ary.create(make_int2(rows(), cols()), cudaFilterModePoint);
 			}
 			~BendingData(){
 				m_ary.release();
@@ -203,7 +203,7 @@ namespace ldp
 			const Cuda2DArray<float>& getCudaArray()const{ return m_ary; }
 			Cuda2DArray<float>& getCudaArray(){ return m_ary; }
 
-			void updateHostToDevice(){ m_ary.fromHost(data(), m_ary.size()); }
+			void updateHostToDevice(){ m_ary.fromHost(data(), m_ary.size(), cudaFilterModePoint); }
 			void updateDeviceToHost(){ m_ary.toHost(data()); }
 		protected:
 			std::vector<float> m_data;

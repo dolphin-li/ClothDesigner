@@ -98,11 +98,6 @@ namespace ldp
 			throw std::exception("GpuSim, not initialized!");
 	}
 
-	void GpuSim::updateNumeric()
-	{
-		
-	}
-
 	void GpuSim::linearSolve()
 	{
 
@@ -247,24 +242,19 @@ namespace ldp
 				m_faceEdge_vertIds_h.push_back(ldp::vertPair_to_idx(ldp::Int2(v[i], v[j]), nVerts));
 		} // end for edgeData
 
-		// 3. upload to GPU
+		// 3. upload to GPU; make order array, then sort the orders by vertex-pair idx, then unique
 		m_faceEdge_vertIds_d.upload(m_faceEdge_vertIds_h);
-
-		// 4. make order array
 		m_faceEdge_order_d.create(m_faceEdge_vertIds_h.size());
 		thrust_wrapper::make_counting_array(m_faceEdge_order_d.ptr(), m_faceEdge_order_d.size());
-
-		// 5. sort the order array by vertex-pair idx, then unique
 		thrust_wrapper::sort_by_key(m_faceEdge_vertIds_d.ptr(), m_faceEdge_order_d.ptr(), m_faceEdge_vertIds_d.size());
 		auto nUniqueNnz = thrust_wrapper::unique(m_faceEdge_vertIds_d.ptr(), m_faceEdge_vertIds_d.size());
 		
-		// 6. convert vertex-pair idx to coo array
+		// 4. convert vertex-pair idx to coo array
 		CachedDeviceBuffer booRow(nUniqueNnz*sizeof(int));
 		CachedDeviceBuffer booCol(nUniqueNnz*sizeof(int));
-		vertPair_from_idx((int*)booRow.data(), (int*)booCol.data(), 
-			m_faceEdge_vertIds_d.ptr(), nVerts, nUniqueNnz);
+		vertPair_from_idx((int*)booRow.data(), (int*)booCol.data(), m_faceEdge_vertIds_d.ptr(), nVerts, nUniqueNnz);
 
-		// 7. build the sparse matrix via coo
+		// 5. build the sparse matrix via coo
 		m_A->resize(nVerts, nVerts, 3);
 		m_A->setRowFromBooRowPtr((const int*)booRow.data(), nUniqueNnz);
 		cudaSafeCall(cudaMemcpy(m_A->bsrColIdx(), (const int*)booCol.data(),
