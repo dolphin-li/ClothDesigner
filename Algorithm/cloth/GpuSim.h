@@ -66,14 +66,6 @@ namespace ldp
 
 		// simulatio parameter update; resulting in numerical updates
 		void updateNumeric();
-
-		static cudaTextureObject_t createTexture(cudaArray_t ary, cudaTextureFilterMode filterMode);
-		static cudaSurfaceObject_t createSurface(cudaArray_t ary);
-		static void dumpVec(std::string name, const DeviceArray<float>& A);
-		static void dumpVec(std::string name, const DeviceArray2D<float>& A);
-		static void dumpVec(std::string name, const DeviceArray<ldp::Float3>& A);
-		static void dumpVec(std::string name, const DeviceArray<ldp::Float2>& A);
-		static void dumpStretchSampleArray(std::string name, cudaArray_t ary);
 	protected:
 		void releaseMaterialMemory();
 		void initializeMaterialMemory();
@@ -223,5 +215,13 @@ namespace ldp
 		};
 		std::vector<StretchingSamples> m_stretchSamples_h;			
 		std::vector<BendingData> m_bendingData_h;
+	public:
+		static cudaTextureObject_t createTexture(cudaArray_t ary, cudaTextureFilterMode filterMode);
+		static cudaSurfaceObject_t createSurface(cudaArray_t ary);
+		static void dumpVec(std::string name, const DeviceArray<float>& A);
+		static void dumpVec(std::string name, const DeviceArray2D<float>& A);
+		static void dumpVec(std::string name, const DeviceArray<ldp::Float3>& A);
+		static void dumpVec(std::string name, const DeviceArray<ldp::Float2>& A);
+		static void dumpStretchSampleArray(std::string name, const StretchingSamples& samples);
 	};
 }

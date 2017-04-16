@@ -132,7 +132,7 @@ namespace ldp
 		Constraint_0_Kernel << <blocksPerGrid, threadsPerBlock >> >(
 			m_dev_X.ptr(), m_dev_init_B.ptr(), m_dev_new_VC.ptr(), m_dev_fixed.ptr(), 
 			m_dev_more_fixed.ptr(), 1 / m_simulationParam.time_step, m_X.size());
-		cudaSafeCall(cudaGetLastError(), "constrain0");
+		cudaSafeCall(cudaGetLastError());
 		m_dev_X.copyTo(m_dev_prev_X);
 	}
 #pragma endregion
@@ -208,7 +208,7 @@ __global__ void Constraint_1_Kernel(const float* X, const float* init_B,
 			m_dev_all_vv_num.ptr(), m_simulationParam.spring_k, m_X.size(),
 			m_dev_stitch_VV.ptr(), m_dev_stitch_VW.ptr(), m_dev_stitch_VC.ptr(), m_dev_stitch_VV_num.ptr(),
 			m_dev_stitch_VL.ptr(), m_simulationParam.stitch_k, m_curStitchRatio);
-		cudaSafeCall(cudaGetLastError(), "constrain1");
+		cudaSafeCall(cudaGetLastError());
 	}
 #pragma endregion
 
@@ -235,7 +235,7 @@ __global__ void Constraint_1_Kernel(const float* X, const float* init_B,
 		Constraint_2_Kernel << <blocksPerGrid, threadsPerBlock >> >(
 			m_dev_prev_X.ptr(), m_dev_X.ptr(), m_dev_next_X.ptr(),
 			omega, m_X.size(), m_simulationParam.under_relax);
-		cudaSafeCall(cudaGetLastError(), "constrain2");
+		cudaSafeCall(cudaGetLastError());
 	}
 #pragma endregion
 
@@ -286,7 +286,7 @@ __global__ void Constraint_1_Kernel(const float* X, const float* init_B,
 			m_dev_X.ptr(), m_dev_old_X.ptr(), m_X.size(),
 			m_dev_phi.ptr(), m_dev_V_outgo_dist.ptr(), make_float3(start[0], start[1], start[2]), h, inv_h, 
 			size[0], size[1], size[2]);
-		cudaSafeCall(cudaGetLastError(), "constrain3");
+		cudaSafeCall(cudaGetLastError());
 	}
 #pragma endregion
 
@@ -310,7 +310,7 @@ __global__ void Constraint_1_Kernel(const float* X, const float* init_B,
 		Constraint_4_Kernel << <blocksPerGrid, threadsPerBlock >> >(
 			m_dev_X.ptr(), m_dev_init_B.ptr(), m_dev_V.ptr(), m_dev_fixed.ptr(), 
 			m_dev_more_fixed.ptr(), 1 / m_simulationParam.time_step, m_X.size());
-		cudaSafeCall(cudaGetLastError(), "constrain4");
+		cudaSafeCall(cudaGetLastError());
 	}
 #pragma endregion
 
@@ -339,7 +339,7 @@ __global__ void Constraint_1_Kernel(const float* X, const float* init_B,
 			m_dev_X.ptr(), m_dev_more_fixed.ptr(), m_simulationParam.control_mag, 
 			m_X.size(), m_curDragInfo.vert_id, m_curDragInfo.piece_id_start,
 			m_curDragInfo.piece_id_end);
-		cudaSafeCall(cudaGetLastError(), "resetMoreFixed");
+		cudaSafeCall(cudaGetLastError());
 	}
 #pragma endregion
 

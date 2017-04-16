@@ -3,7 +3,7 @@
 #include "moderngpu\include\moderngpu.cuh"
 #include <algorithm>
 #include <device_functions.h>
-#include "cloth\helper_math.h"
+#include "helper_math.h"
 using namespace mgpu;
 
 

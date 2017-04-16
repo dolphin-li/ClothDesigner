@@ -15,14 +15,14 @@
 #pragma comment(lib, "cudart.lib")
 #include <exception>
 
-#define cudaSafeCall ___cudaSafeCall
+#define cudaSafeCall(err) ___cudaSafeCall(err, __FILE__, __LINE__)
 
 
-static inline void ___cudaSafeCall(cudaError_t err, const char* msg = NULL)
+static inline void ___cudaSafeCall(cudaError_t err, const char* file, int line)
 {
 	if (cudaSuccess != err)
 	{
-		printf("CUDA error(%s): %s\n", msg, cudaGetErrorString(err));
+		printf("[CUDA error][%s][%d]: %s\n", file, line, cudaGetErrorString(err));
 		throw std::exception("cuda error");
 	}
 }

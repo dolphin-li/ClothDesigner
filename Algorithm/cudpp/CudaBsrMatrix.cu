@@ -538,7 +538,7 @@ void CudaBsrMatrix::fill_increment_1_n(int* data, int n)
 		return;
 	CudaBsrMatrix_fill_increment_1_n << <divUp(n, CTA_SIZE), CTA_SIZE >> >(
 		data, n);
-	cudaSafeCall(cudaGetLastError(), "CudaBsrMatrix::fill_increment_1_n");
+	cudaSafeCall(cudaGetLastError());
 }
 
 void CudaBsrMatrix::transpose_fill_values_by_blockId(const int* blockIds, const CudaBsrMatrix& t)
@@ -548,7 +548,7 @@ void CudaBsrMatrix::transpose_fill_values_by_blockId(const int* blockIds, const 
 	CudaBsrMatrix_transpose_fill_value_by_bid << <divUp(nnz(), CTA_SIZE), CTA_SIZE >> >(
 		blockIds, t.value(), value(), rowsPerBlock() * colsPerBlock(), rowsPerBlock(), 
 		colsPerBlock(), nnz());
-	cudaSafeCall(cudaGetLastError(), "CudaBsrMatrix::CudaBsrMatrix_transpose_fill_value_by_bid");
+	cudaSafeCall(cudaGetLastError());
 }
 
 CudaBsrMatrix& CudaBsrMatrix::operator = (float constVal)
@@ -559,13 +559,12 @@ CudaBsrMatrix& CudaBsrMatrix::operator = (float constVal)
 		return *this;
 	if (constVal == 0.f)
 	{
-		cudaSafeCall(cudaMemset(m_values.ptr(), 0, nnz()*m_values.elem_size),
-			"CudaBsrMatrix::operator = 0");
+		cudaSafeCall(cudaMemset(m_values.ptr(), 0, nnz()*m_values.elem_size));
 	}
 	else
 	{
 		CudaBsrMatrix_set << <divUp(nnz(), CTA_SIZE), CTA_SIZE >> >(nnz(), m_values.ptr(), constVal);
-		cudaSafeCall(cudaGetLastError(), "CudaBsrMatrix::operator = constVal");
+		cudaSafeCall(cudaGetLastError());
 	}
 	return *this;
 }
@@ -578,18 +577,14 @@ CudaBsrMatrix& CudaBsrMatrix::operator = (const CudaBsrMatrix& rhs)
 	resize_nnzBlocks(rhs.nnzBlocks());
 
 	cudaSafeCall(cudaMemcpy(bsrRowPtr(), rhs.bsrRowPtr(), 
-		(1+rhs.blocksInRow())*sizeof(int), cudaMemcpyDeviceToDevice),
-		"CudaBsrMatrix::operator =, cpy bsrRowPtr");
+		(1+rhs.blocksInRow())*sizeof(int), cudaMemcpyDeviceToDevice));
 	cudaSafeCall(cudaMemcpy(bsrRowPtr_coo(), rhs.bsrRowPtr_coo(), 
-		rhs.nnzBlocks()*sizeof(int), cudaMemcpyDeviceToDevice),
-		"CudaBsrMatrix::operator =, cpy bsrRowPtr_coo");
+		rhs.nnzBlocks()*sizeof(int), cudaMemcpyDeviceToDevice));
 	cudaSafeCall(cudaMemcpy(bsrColIdx(), rhs.bsrColIdx(),
-		rhs.nnzBlocks()*sizeof(int), cudaMemcpyDeviceToDevice),
-		"CudaBsrMatrix::operator =, cpy bsrColIdx");
+		rhs.nnzBlocks()*sizeof(int), cudaMemcpyDeviceToDevice));
 	if (!isSymbolic())
 		cudaSafeCall(cudaMemcpy(value(), rhs.value(),
-			rhs.nnz()*sizeof(float), cudaMemcpyDeviceToDevice),
-			"CudaBsrMatrix::operator =, cpy value");
+			rhs.nnz()*sizeof(float), cudaMemcpyDeviceToDevice));
 	return *this;
 }
 
@@ -601,7 +596,7 @@ CudaBsrMatrix& CudaBsrMatrix::axpy(float alpha, float beta)
 		return *this;
 	CudaBsrMatrix_scale_add << <divUp(nnz(), CTA_SIZE), CTA_SIZE >> >(
 		nnz(), value(), alpha, beta);
-	cudaSafeCall(cudaGetLastError(), "CudaBsrMatrix::axpy");
+	cudaSafeCall(cudaGetLastError());
 	return *this;
 }
 
@@ -615,7 +610,7 @@ CudaBsrMatrix& CudaBsrMatrix::axpy_diag(float alpha, float beta)
 		return *this;
 	CudaBsrMatrix_scale_add_diag << <divUp(rows(), CTA_SIZE), CTA_SIZE >> >(
 		rows(), value(), bsrRowPtr(), bsrColIdxTexture(), rowsPerBlock(), alpha, beta);
-	cudaSafeCall(cudaGetLastError(), "CudaBsrMatrix::axpy_diag");
+	cudaSafeCall(cudaGetLastError());
 	return *this;
 }
 
@@ -623,8 +618,7 @@ void CudaBsrMatrix::setValue(const float* val_d)
 {
 	if (isSymbolic())
 		throw std::exception("CudaBsrMatrix::setValue(): symbolic matrix cannot touch values");
-	cudaSafeCall(cudaMemcpy(value(), val_d, nnz()*sizeof(float),
-		cudaMemcpyDeviceToDevice), "CudaBsrMatrix::setValue");
+	cudaSafeCall(cudaMemcpy(value(), val_d, nnz()*sizeof(float), cudaMemcpyDeviceToDevice));
 }
 
 void CudaBsrMatrix::Mv(const float* x, float* y, float alpha, float beta)const
@@ -670,7 +664,7 @@ void CudaBsrMatrix::Mv(const float* x, float* y, float alpha, float beta)const
 	default:
 		throw std::exception("non-supported block size!");
 	}
-	cudaSafeCall(cudaGetLastError(), "CudaBsrMatrix::Mv");
+	cudaSafeCall(cudaGetLastError());
 }
 
 void CudaBsrMatrix::rightMultDiag_structure(const CudaDiagBlockMatrix& x, CudaBsrMatrix& y)const
@@ -714,7 +708,7 @@ void CudaBsrMatrix::rightMultDiag_value(const CudaDiagBlockMatrix& x, CudaBsrMat
 		CudaBsrMatrix_rightMultDiag<false, true> << <divUp(nnz(), CTA_SIZE), CTA_SIZE >> >(
 		bsrRowPtr(), bsrRowPtr_coo(), bsrColIdxTexture(), valueTexture(),
 		x.getTexture(), y.value(), alpha, beta, rowsPerBlock(), colsPerBlock(), nnz());
-	cudaSafeCall(cudaGetLastError(), "CudaBsrMatrix::rightMultDiag_value");
+	cudaSafeCall(cudaGetLastError());
 }
 
 void CudaBsrMatrix::setRowFromBlockedCsrRowPtr(const int* csrRowPtr)
@@ -725,7 +719,7 @@ void CudaBsrMatrix::setRowFromBlockedCsrRowPtr(const int* csrRowPtr)
 	beginConstructRowPtr();
 	CudaBsrMatrix_setRowFromBlockedCsrRowPtr << <divUp(blocksInRow(), CTA_SIZE), CTA_SIZE >> >(
 		csrRowPtr, bsrRowPtr(), blocksInRow(), rowsPerBlock(), rowsPerBlock()*colsPerBlock());
-	cudaSafeCall(cudaGetLastError(), "CudaBsrMatrix::setRowFromBlockedCsrRowPtr");
+	cudaSafeCall(cudaGetLastError());
 	endConstructRowPtr();
 }
 
@@ -863,13 +857,13 @@ void CudaBsrMatrix::subRows_structure(CudaBsrMatrix& S, int blockRowBegin, int b
 	S.beginConstructRowPtr();
 	CudaBsrMatrix_subRows_structure_rptr << <divUp(S.blocksInRow(), CTA_SIZE), CTA_SIZE >> >(
 		bsrRowPtr(), S.bsrRowPtr(), blockRowBegin, S.blocksInRow());
-	cudaSafeCall(cudaGetLastError(), "CudaBsrMatrix_subRows_structure_rptr");
+	cudaSafeCall(cudaGetLastError());
 	S.endConstructRowPtr();
 
 	// cols
 	CudaBsrMatrix_subRows_structure_cidx << <divUp(S.nnzBlocks(), CTA_SIZE), CTA_SIZE >> >(
 		bsrRowPtrTexture(), bsrColIdx(), S.bsrColIdx(), blockRowBegin, S.nnzBlocks());
-	cudaSafeCall(cudaGetLastError(), "CudaBsrMatrix_subRows_structure_cidx");
+	cudaSafeCall(cudaGetLastError());
 }
 
 void CudaBsrMatrix::subRows_value(CudaBsrMatrix& S, int blockRowBegin, int blockRowEnd)const
@@ -887,7 +881,7 @@ void CudaBsrMatrix::subRows_value(CudaBsrMatrix& S, int blockRowBegin, int block
 	CudaBsrMatrix_subRows_value << <divUp(S.nnz(), CTA_SIZE), CTA_SIZE >> >(
 		bsrRowPtrTexture(), value(), S.value(), blockRowBegin, S.nnz(),
 		S.rowsPerBlock() * S.colsPerBlock());
-	cudaSafeCall(cudaGetLastError(), "CudaBsrMatrix_subRows_value");
+	cudaSafeCall(cudaGetLastError());
 
 }
 
@@ -904,7 +898,7 @@ void CudaBsrMatrix::toCsr_structure(CudaBsrMatrix& B)const
 	B.beginConstructRowPtr();
 	CudaBsrMatrix_toCsr_structure_rptr << <divUp(rows()+1, CTA_SIZE), CTA_SIZE >> >(
 		bsrRowPtrTexture(), B.bsrRowPtr(), rowsPerBlock(), colsPerBlock(), rows());
-	cudaSafeCall(cudaGetLastError(), "CudaBsrMatrix_toCsr_structure_rptr");
+	cudaSafeCall(cudaGetLastError());
 	B.endConstructRowPtr(nnz());
 
 	// 2. cidx
@@ -912,7 +906,7 @@ void CudaBsrMatrix::toCsr_structure(CudaBsrMatrix& B)const
 		bsrRowPtrTexture(), bsrColIdxTexture(),
 		B.bsrRowPtr_coo(), B.bsrRowPtr(), B.bsrColIdx(),
 		rowsPerBlock(), colsPerBlock(), nnz());
-	cudaSafeCall(cudaGetLastError(), "CudaBsrMatrix_toCsr_structure_cidx");
+	cudaSafeCall(cudaGetLastError());
 
 }
 
@@ -929,5 +923,5 @@ void CudaBsrMatrix::toCsr_value(CudaBsrMatrix& B)const
 		bsrRowPtrTexture(), valueTexture(),
 		B.bsrRowPtr_coo(), B.bsrRowPtr(), B.value(),
 		rowsPerBlock(), colsPerBlock(), nnz());
-	cudaSafeCall(cudaGetLastError(), "CudaBsrMatrix_toCsr_structure_cidx");
+	cudaSafeCall(cudaGetLastError());
 }

@@ -264,7 +264,7 @@ namespace gpu_cholesky
 		dim3 grid(divUp(batchSize, block.x));
 		__single_thread_cholesky_batched<T, N> << <grid, block >> >(
 			ptr, stride, batchSize);
-		cudaSafeCall(cudaGetLastError(), "__single_thread_cholesky_batched");
+		cudaSafeCall(cudaGetLastError());
 	}
 
 	template<typename T, int N>
@@ -274,7 +274,7 @@ namespace gpu_cholesky
 		dim3 grid(divUp(batchSize, block.x));
 		__single_thread_tril_inv_batched<T, N> << <grid, block >> >(
 			ptr, stride, batchSize);
-		cudaSafeCall(cudaGetLastError(), "__single_thread_tril_inv_batched");
+		cudaSafeCall(cudaGetLastError());
 	}
 
 	template<typename T, int N>
@@ -285,7 +285,7 @@ namespace gpu_cholesky
 		dim3 grid(divUp(batchSize, block.x));
 		__single_thread_LtL_batched<T, N> << <grid, block >> >(
 			outputLLt, strideLLt, inputL, strideL, batchSize);
-		cudaSafeCall(cudaGetLastError(), "__single_thread_LtL_batched");
+		cudaSafeCall(cudaGetLastError());
 	}
 
 	template<typename T>
@@ -301,59 +301,38 @@ namespace gpu_cholesky
 	template<typename T>
 	void _strip_update(T *a_d, int block_offset, int n_remaining_blocks, int n_rows_padded)
 	{
-		cudaError_t error;
-
 		dim3 stripgrid(n_remaining_blocks - 1);
 		dim3 threads(TILE_SIZE, TILE_SIZE);
 		__strip_update << <stripgrid, threads >> >(a_d, block_offset, n_rows_padded);
 		cudaThreadSynchronize();
-		error = cudaGetLastError();
-		if (error != cudaSuccess)
-		{
-			printf("     Error code %d: %s.\n", error, cudaGetErrorString(error));
-			exit(-1);
-		}
+		cudaSafeCall(cudaGetLastError());
 	}
 
 	template<typename T>
 	void _diag_update(T *a_d, int block_offset, int n_rows_padded, int n_remaining_blocks)
 	{
-		cudaError_t error;
 		dim3 stripgrid(n_remaining_blocks - 1);
 		dim3 threads(TILE_SIZE, TILE_SIZE);
 		__diag_update << <stripgrid, threads >> >(a_d, block_offset, n_rows_padded);
 		cudaThreadSynchronize();
-		error = cudaGetLastError();
-		if (error != cudaSuccess)
-		{
-			printf("     Error code %d: %s.\n", error, cudaGetErrorString(error));
-			exit(-1);
-		}
+		cudaSafeCall(cudaGetLastError());
 	}
 
 	template<typename T>
 	void _lo_update(T *a_d, int block_offset, int n_blocks, int n_rows_padded, int n_remaining_blocks)
 	{
-		cudaError_t error;
 		dim3 logrid;
 		logrid.x = 1;
 		logrid.y = n_remaining_blocks - 2;
 		dim3 threads(TILE_SIZE, TILE_SIZE);
 		__lo_update << < logrid, threads >> >(a_d, block_offset, n_blocks, n_rows_padded);
 		cudaThreadSynchronize();
-		error = cudaGetLastError();
-		if (error != cudaSuccess)
-		{
-			printf("     Error code %d: %s.\n", error, cudaGetErrorString(error));
-			exit(-1);
-		}
+		cudaSafeCall(cudaGetLastError());
 	}
 
 	template<typename T>
 	void _cholesky(T * a_d, int n_rows)
 	{
-		cudaError_t error;
-
 		int n_blocks = (n_rows + int(TILE_SIZE) - 1) / int(TILE_SIZE);
 		int n_rows_padded = n_blocks*TILE_SIZE;
 
@@ -397,12 +376,7 @@ namespace gpu_cholesky
 
 		cudaThreadSynchronize();
 
-		error = cudaGetLastError();
-		if (error != cudaSuccess)
-		{
-			printf("     Error code %d: %s.\n", error, cudaGetErrorString(error));
-			exit(-1);
-		}
+		cudaSafeCall(cudaGetLastError());
 	}
 
 	cudaError_t factorize_diagonal_block(float *A, int block_offset, int global_row_length)

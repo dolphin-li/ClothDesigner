@@ -182,6 +182,7 @@ namespace ldp
 					ed.faceIdx[0] = e->adjf[0]->index + tex_index_begin;
 				if (e->adjf[1])
 					ed.faceIdx[1] = e->adjf[1]->index + tex_index_begin;
+				m_edgeData_h.push_back(ed);
 			} // end for e
 			for (const auto& n : cloth.mesh.nodes)
 				tmp_x_init.push_back(convert(n->x0));
@@ -237,10 +238,10 @@ namespace ldp
 		m_A->resize(A.rows(), A.cols(), 3);
 		m_A->beginConstructRowPtr();
 		cudaSafeCall(cudaMemcpy(m_A->bsrRowPtr(), A.outerIndexPtr(),
-			A.outerSize()*sizeof(float), cudaMemcpyHostToDevice));
+			(1+A.outerSize())*sizeof(int), cudaMemcpyHostToDevice));
 		m_A->endConstructRowPtr();
 		cudaSafeCall(cudaMemcpy(m_A->bsrColIdx(), A.innerIndexPtr(),
-			A.innerSize()*sizeof(float), cudaMemcpyHostToDevice));
+			A.nonZeros()*sizeof(float), cudaMemcpyHostToDevice));
 		cudaSafeCall(cudaMemset(m_A->value(), 0, m_A->nnz()*sizeof(float)));
 
 		m_A->dump("D:/tmp/eigen_A.txt");
@@ -321,20 +322,22 @@ namespace ldp
 		for (auto& bd : m_bendingData_h)
 		{
 			bd.updateHostToDevice();
-			dumpVec("D:/tmp/bendData.txt", bd.getCudaArray());
+			//dumpVec("D:/tmp/bendData.txt", bd.getCudaArray());
 		} // end for m_bendingData_h
 		
 		for (auto& sp : m_stretchSamples_h)
 		{
 			sp.updateHostToDevice();
-			dumpStretchSampleArray("D:/tmp/stretchSample.txt", sp.getCudaArray());
+			//dumpStretchSampleArray("D:/tmp/stretchSample_h.txt", sp);
+			//sp.updateDeviceToHost();
+			//dumpStretchSampleArray("D:/tmp/stretchSample_d.txt", sp);
 		} // end for m_stretchSamples_h
 	}
 
 	void GpuSim::releaseMaterialMemory()
 	{
 		m_bendingData_h.clear();
-		m_stretchSamples_h.clear();	
+		m_stretchSamples_h.clear();
 	}
 
 	void GpuSim::dumpVec(std::string name, const DeviceArray<float>& A)
@@ -397,17 +400,8 @@ namespace ldp
 			printf("saved: %s\n", name.c_str());
 		}
 	}
-	void GpuSim::dumpStretchSampleArray(std::string name, cudaArray_t ary)
-	{
-		StretchingSamples smp;
-		cudaExtent ext;
-		ext.width = StretchingSamples::SAMPLES;
-		ext.height = StretchingSamples::SAMPLES;
-		ext.depth = StretchingSamples::SAMPLES;
-		cudaChannelFormatDesc desc = cudaCreateChannelDesc<float4>();
-		cudaSafeCall(cudaMemcpyFromArray(smp.data(), ary, 0, 0,
-			smp.size()*sizeof(float4), cudaMemcpyHostToDevice));
-		
+	void GpuSim::dumpStretchSampleArray(std::string name, const StretchingSamples& samples)
+	{	
 		FILE* pFile = fopen(name.c_str(), "w");
 		if (pFile)
 		{
@@ -416,7 +410,8 @@ namespace ldp
 				for (int y = 0; y < StretchingSamples::SAMPLES; y++)
 				{
 					for (int x = 0; x < StretchingSamples::SAMPLES; x++)
-						fprintf(pFile, "%ef ", smp(x, y, z));
+						fprintf(pFile, "%ef/%ef/%ef/%ef ", samples(x, y, z)[0],
+						samples(x, y, z)[1], samples(x, y, z)[2], samples(x, y, z)[3]);
 					fprintf(pFile, "\n");
 				}
 				fprintf(pFile, "\n");

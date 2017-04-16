@@ -25,8 +25,7 @@ namespace ldp
 		texDescr.addressMode[2] = cudaAddressModeClamp;
 		texDescr.readMode = cudaReadModeElementType;
 		cudaTextureObject_t tex;
-		cudaSafeCall(cudaCreateTextureObject(&tex, &texRes, &texDescr, NULL),
-			"GpuSim, bindTexture 1");
+		cudaSafeCall(cudaCreateTextureObject(&tex, &texRes, &texDescr, NULL));
 		return tex;
 	}
 
@@ -65,7 +64,7 @@ namespace ldp
 		releaseDeviceMemory();
 		cudaExtent ext = make_cudaExtent(SAMPLES, SAMPLES, SAMPLES);
 		cudaChannelFormatDesc desc = cudaCreateChannelDesc<float4>();
-		cudaSafeCall(cudaMalloc3DArray(&m_ary, &desc, ext), "malloc 3d arrays for stretching samples");
+		cudaSafeCall(cudaMalloc3DArray(&m_ary, &desc, ext));
 		m_tex = GpuSim::createTexture(m_ary, cudaFilterModeLinear);
 		m_surf = GpuSim::createSurface(m_ary);
 	}
@@ -73,11 +72,27 @@ namespace ldp
 	void GpuSim::StretchingSamples::releaseDeviceMemory()
 	{
 		if (m_surf)
+		{
 			cudaSafeCall(cudaDestroySurfaceObject(m_surf));
+			m_surf = 0;
+		}
 		if (m_tex)
+		{
 			cudaSafeCall(cudaDestroyTextureObject(m_tex));
+			m_tex = 0;
+		}
 		if (m_ary)
+		{
+			int deviceCount = 0;
+			cudaGetDeviceCount(&deviceCount);
+			int device = 0;
+			cudaGetDevice(&device);
+			printf("device count: %d, device: %d\n", deviceCount, device);
+			printf("1: %ld\n", m_ary);
 			cudaSafeCall(cudaFreeArray(m_ary));
+			printf("2: %ld\n", m_ary);
+			m_ary = nullptr;
+		}
 	}
 
 	void GpuSim::StretchingSamples::updateHostToDevice()
@@ -92,7 +107,7 @@ namespace ldp
 
 		copyArrayHostToDeviceKernel << <grid, block >> >((const float4*)tmp.data(), 
 			make_int3(SAMPLES, SAMPLES, SAMPLES), m_surf);
-		cudaSafeCall(cudaGetLastError(), "StretchingSamples::updateHostToDevice");
+		cudaSafeCall(cudaGetLastError());
 	}
 
 	void GpuSim::StretchingSamples::updateDeviceToHost()
@@ -107,7 +122,7 @@ namespace ldp
 
 		copyArrayDeviceToHostKernel << <grid, block >> >((float4*)tmp.data(), 
 			make_int3(SAMPLES, SAMPLES, SAMPLES), m_surf);
-		cudaSafeCall(cudaGetLastError(), "StretchingSamples::updateHostToDevice");
+		cudaSafeCall(cudaGetLastError());
 
 		tmp.toHost(data());
 	}
@@ -123,6 +138,7 @@ namespace ldp
 	{
 		if (m_tex)
 			cudaSafeCall(cudaDestroyTextureObject(m_tex));
+		m_tex = 0;
 		m_ary.release();
 	}
 

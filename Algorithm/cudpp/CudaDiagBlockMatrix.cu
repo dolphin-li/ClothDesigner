@@ -97,13 +97,12 @@ CudaDiagBlockMatrix& CudaDiagBlockMatrix::operator = (float constVal)
 		return *this;
 	if (constVal == 0.f)
 	{
-		cudaSafeCall(cudaMemset(m_values.ptr(), 0, nnz()*m_values.elem_size),
-			"CudaDiagBlockMatrix::operator = 0");
+		cudaSafeCall(cudaMemset(m_values.ptr(), 0, nnz()*m_values.elem_size));
 	}
 	else
 	{
 		CudaDiagBlockMatrix_set << <divUp(nnz(), CTA_SIZE), CTA_SIZE >> >(nnz(), m_values.ptr(), constVal);
-		cudaSafeCall(cudaGetLastError(), "CudaDiagBlockMatrix::operator = constVal");
+		cudaSafeCall(cudaGetLastError());
 	}
 	return *this;
 }
@@ -113,7 +112,7 @@ CudaDiagBlockMatrix& CudaDiagBlockMatrix::axpy(float alpha, float beta)
 	if (nnz() == 0)
 		return *this;
 	CudaDiagBlockMatrix_scale_add << <divUp(nnz(), CTA_SIZE), CTA_SIZE >> >(nnz(), m_values.ptr(), alpha, beta);
-	cudaSafeCall(cudaGetLastError(), "CudaDiagBlockMatrix::axpy");
+	cudaSafeCall(cudaGetLastError());
 	return *this;
 }
 
@@ -123,7 +122,7 @@ CudaDiagBlockMatrix& CudaDiagBlockMatrix::axpy_diag(float alpha, float beta)
 		return *this;
 	CudaDiagBlockMatrix_scale_add_diag << <divUp(rows(), CTA_SIZE), CTA_SIZE >> >(
 		rows(), blockSize(), m_values.ptr(), alpha, beta);
-	cudaSafeCall(cudaGetLastError(), "CudaDiagBlockMatrix::axpy_diag");
+	cudaSafeCall(cudaGetLastError());
 	return *this;
 }
 
@@ -133,7 +132,7 @@ CudaDiagBlockMatrix& CudaDiagBlockMatrix::transpose_L_to_U()
 		return *this;
 	CudaDiagBlockMatrix_transpose_L_to_U << <divUp(nnz(), CTA_SIZE), CTA_SIZE >> >(
 		value(), nnz(), rows(), blockSize());
-	cudaSafeCall(cudaGetLastError(), "CudaDiagBlockMatrix::transpose_L_to_U");
+	cudaSafeCall(cudaGetLastError());
 	return *this;
 }
 
@@ -144,7 +143,7 @@ void CudaDiagBlockMatrix::Lv(const float* vec_in, float* vec_out, float alpha, f
 		return;
 	CudaDiagBlockMatrix_Lv_kernel << <divUp(rows(), CTA_SIZE), CTA_SIZE >> >(
 		m_tex, vec_out, vec_in, rows(), blockSize(), alpha, beta);
-	cudaSafeCall(cudaGetLastError(), "CudaDiagBlockMatrix::Lv");
+	cudaSafeCall(cudaGetLastError());
 }
 
 // vec_out = alpha * Lower(this)^t * vec_in + beta;
@@ -154,5 +153,5 @@ void CudaDiagBlockMatrix::Ltv(const float* vec_in, float* vec_out, float alpha, 
 		return;
 	CudaDiagBlockMatrix_Ltv_kernel << <divUp(rows(), CTA_SIZE), CTA_SIZE >> >(
 		m_tex, vec_out, vec_in, rows(), blockSize(), alpha, beta);
-	cudaSafeCall(cudaGetLastError(), "CudaDiagBlockMatrix::Ltv");
+	cudaSafeCall(cudaGetLastError());
 }
