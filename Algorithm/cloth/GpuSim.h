@@ -4,7 +4,8 @@
 #include <memory>
 #include "cudpp\CudaBsrMatrix.h"
 #include "ldpMat\ldp_basic_mat.h"
-
+#include "cudpp\Cuda3DArray.h"
+#include "cudpp\Cuda2DArray.h"
 namespace arcsim
 {
 	class ArcSimManager;
@@ -147,10 +148,14 @@ namespace ldp
 			};
 			StretchingSamples(){
 				m_data.resize(SAMPLES*SAMPLES*SAMPLES);
-				initDeviceMemory();
+				m_ary.create(make_int3(SAMPLES, SAMPLES, SAMPLES));
+			}
+			StretchingSamples(const StretchingSamples& rhs){
+				m_data = rhs.m_data;
+				m_ary = rhs.m_ary;
 			}
 			~StretchingSamples(){
-				releaseDeviceMemory();
+				m_ary.release();
 			}
 			ldp::Float4& operator()(int x, int y, int z){
 				return m_data[z*SAMPLES2 + y*SAMPLES + x];
@@ -162,19 +167,14 @@ namespace ldp
 			const ldp::Float4* data()const{ return m_data.data(); }
 			int size()const{ return m_data.size(); }
 	
-			cudaArray_t getCudaArray()const{ return m_ary; }
-			cudaTextureObject_t getCudaTexture()const{ return m_tex; }
-			cudaSurfaceObject_t getCudaSurface()const{ return m_surf; }
+			const Cuda3DArray<float4>& getCudaArray()const{ return m_ary; }
+			Cuda3DArray<float4>& getCudaArray(){ return m_ary; }
 
-			void initDeviceMemory();
-			void releaseDeviceMemory();
-			void updateHostToDevice();
-			void updateDeviceToHost();
+			void updateHostToDevice(){ m_ary.fromHost((const float4*)m_data.data(), m_ary.size()); }
+			void updateDeviceToHost(){ m_ary.toHost((float4*)m_data.data()); }
 		protected:
 			std::vector<ldp::Float4> m_data;
-			cudaArray_t m_ary = nullptr;
-			cudaTextureObject_t m_tex = 0;
-			cudaSurfaceObject_t m_surf = 0;
+			Cuda3DArray<float4> m_ary;
 		};
 		class BendingData {
 		public:
@@ -184,10 +184,10 @@ namespace ldp
 			};
 			BendingData(){
 				m_data.resize(rows()*cols());
-				initDeviceMemory();
+				m_ary.create(make_int2(rows(), cols()));
 			}
 			~BendingData(){
-				releaseDeviceMemory();
+				m_ary.release();
 			}
 			float& operator()(int x, int y){
 				return m_data[y*cols() + x];
@@ -201,17 +201,14 @@ namespace ldp
 			int rows()const{ return POINTS; }
 			int cols()const{ return DIMS; }
 
-			const DeviceArray2D<float>& getCudaArray()const{ return m_ary; }
-			cudaTextureObject_t getCudaTexture()const{ return m_tex; }
+			const Cuda2DArray<float>& getCudaArray()const{ return m_ary; }
+			Cuda2DArray<float>& getCudaArray(){ return m_ary; }
 
-			void initDeviceMemory();
-			void releaseDeviceMemory();
-			void updateHostToDevice();
-			void updateDeviceToHost();
+			void updateHostToDevice(){ m_ary.fromHost(data(), m_ary.size()); }
+			void updateDeviceToHost(){ m_ary.toHost(data()); }
 		protected:
 			std::vector<float> m_data;
-			DeviceArray2D<float> m_ary;
-			cudaTextureObject_t m_tex;
+			Cuda2DArray<float> m_ary;
 		};
 		std::vector<StretchingSamples> m_stretchSamples_h;			
 		std::vector<BendingData> m_bendingData_h;
@@ -223,5 +220,6 @@ namespace ldp
 		static void dumpVec(std::string name, const DeviceArray<ldp::Float3>& A);
 		static void dumpVec(std::string name, const DeviceArray<ldp::Float2>& A);
 		static void dumpStretchSampleArray(std::string name, const StretchingSamples& samples);
+		static void dumpBendDataArray(std::string name, const BendingData& samples);
 	};
 }

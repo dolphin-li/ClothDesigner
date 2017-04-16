@@ -1577,6 +1577,12 @@
     <ClInclude Include="Algorithm\cudpp\kernel_containers.h">
       <Filter>algorithm\cudpp</Filter>
     </ClInclude>
+    <ClInclude Include="Algorithm\cudpp\Cuda3DArray.h">
+      <Filter>algorithm\cudpp</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cudpp\Cuda2DArray.h">
+      <Filter>algorithm\cudpp</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="qdarkstyle\rc\up_arrow_disabled.png">
@@ -1740,6 +1746,12 @@
       <Filter>algorithm\cudpp</Filter>
     </CudaCompile>
     <CudaCompile Include="Algorithm\cudpp\GpuCholesky.cu">
+      <Filter>algorithm\cudpp</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Algorithm\cudpp\Cuda3DArray.cu">
+      <Filter>algorithm\cudpp</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Algorithm\cudpp\Cuda2DArray.cu">
       <Filter>algorithm\cudpp</Filter>
     </CudaCompile>
   </ItemGroup>

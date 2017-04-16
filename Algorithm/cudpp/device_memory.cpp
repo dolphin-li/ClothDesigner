@@ -148,7 +148,7 @@ void DeviceMemory::create(size_t sizeBytes_arg)
 
 		sizeBytes_ = sizeBytes_arg;
 
-		cudaSafeCall( cudaMalloc(&data_, sizeBytes_), "DeviceMemory::create, alloc" );
+		cudaSafeCall( cudaMalloc(&data_, sizeBytes_));
 
 		//refcount_ = (int*)cv::fastMalloc(sizeof(*refcount_));
 		refcount_ = new int;
@@ -163,8 +163,8 @@ void DeviceMemory::copyTo(DeviceMemory& other) const
 	else
 	{    
 		other.create(sizeBytes_);    
-		cudaSafeCall( cudaMemcpy(other.data_, data_, sizeBytes_, cudaMemcpyDeviceToDevice), "DeviceMemory::copyTo, cpy" );
-		cudaSafeCall( cudaDeviceSynchronize(), "DeviceMemory::copyTo, sync" );
+		cudaSafeCall( cudaMemcpy(other.data_, data_, sizeBytes_, cudaMemcpyDeviceToDevice));
+		cudaSafeCall( cudaDeviceSynchronize());
 	}
 }
 
@@ -174,7 +174,7 @@ void DeviceMemory::release()
 	{
 		//cv::fastFree(refcount);
 		delete refcount_;
-		cudaSafeCall( cudaFree(data_), "DeviceMemory::release, free" );
+		cudaSafeCall( cudaFree(data_) );
 	}
 	data_ = 0;
 	sizeBytes_ = 0;
@@ -184,14 +184,14 @@ void DeviceMemory::release()
 void DeviceMemory::upload(const void *host_ptr_arg, size_t sizeBytes_arg)
 {
 	create(sizeBytes_arg);
-	cudaSafeCall( cudaMemcpy(data_, host_ptr_arg, sizeBytes_, cudaMemcpyHostToDevice), "DeviceMemory::upload, cpy" );
-	cudaSafeCall( cudaDeviceSynchronize(), "DeviceMemory::upload, sync" );
+	cudaSafeCall( cudaMemcpy(data_, host_ptr_arg, sizeBytes_, cudaMemcpyHostToDevice));
+	cudaSafeCall( cudaDeviceSynchronize());
 }
 
 void DeviceMemory::download(void *host_ptr_arg) const
 {    
-	cudaSafeCall( cudaMemcpy(host_ptr_arg, data_, sizeBytes_, cudaMemcpyDeviceToHost), "DeviceMemory::download, cpy" );
-	cudaSafeCall( cudaDeviceSynchronize(), "DeviceMemory::download, sync" );
+	cudaSafeCall( cudaMemcpy(host_ptr_arg, data_, sizeBytes_, cudaMemcpyDeviceToHost));
+	cudaSafeCall( cudaDeviceSynchronize());
 }          
 
 void DeviceMemory::swap(DeviceMemory& other_arg)
@@ -259,7 +259,7 @@ void DeviceMemory2D::create(int rows_arg, int colsBytes_arg)
 		colsBytes_ = colsBytes_arg;
 		rows_ = rows_arg;
 
-		cudaSafeCall( cudaMallocPitch( (void**)&data_, &step_, colsBytes_, rows_), "DeviceMemory2D::create, alloc pitch" );        
+		cudaSafeCall( cudaMallocPitch( (void**)&data_, &step_, colsBytes_, rows_));        
 
 		//refcount = (int*)cv::fastMalloc(sizeof(*refcount));
 		refcount_ = new int;
@@ -273,7 +273,7 @@ void DeviceMemory2D::release()
 	{
 		//cv::fastFree(refcount);
 		delete refcount_;
-		cudaSafeCall( cudaFree(data_), "DeviceMemory2D::release, free" );
+		cudaSafeCall( cudaFree(data_));
 	}
 
 	colsBytes_ = 0;
@@ -290,22 +290,22 @@ void DeviceMemory2D::copyTo(DeviceMemory2D& other) const
 	else
 	{
 		other.create(rows_, colsBytes_);    
-		cudaSafeCall( cudaMemcpy2D(other.data_, other.step_, data_, step_, colsBytes_, rows_, cudaMemcpyDeviceToDevice), "DeviceMemory2D::copyTo cpy" );
-		cudaSafeCall( cudaDeviceSynchronize(), "DeviceMemory2D::copyTo, sync" );
+		cudaSafeCall( cudaMemcpy2D(other.data_, other.step_, data_, step_, colsBytes_, rows_, cudaMemcpyDeviceToDevice));
+		cudaSafeCall( cudaDeviceSynchronize());
 	}
 }
 
 void DeviceMemory2D::upload(const void *host_ptr_arg, size_t host_step_arg, int rows_arg, int colsBytes_arg)
 {
 	create(rows_arg, colsBytes_arg);
-	cudaSafeCall( cudaMemcpy2D(data_, step_, host_ptr_arg, host_step_arg, colsBytes_, rows_, cudaMemcpyHostToDevice), "DeviceMemory2D::upload, cpy" );        
-	cudaSafeCall( cudaDeviceSynchronize(), "DeviceMemory2D::upload, sync" );
+	cudaSafeCall( cudaMemcpy2D(data_, step_, host_ptr_arg, host_step_arg, colsBytes_, rows_, cudaMemcpyHostToDevice));        
+	cudaSafeCall( cudaDeviceSynchronize());
 }
 
 void DeviceMemory2D::download(void *host_ptr_arg, size_t host_step_arg) const
 {    
-	cudaSafeCall( cudaMemcpy2D(host_ptr_arg, host_step_arg, data_, step_, colsBytes_, rows_, cudaMemcpyDeviceToHost), "DeviceMemory2D::download, cpy" );
-	cudaSafeCall( cudaDeviceSynchronize(), "DeviceMemory2D::download, sync" );
+	cudaSafeCall( cudaMemcpy2D(host_ptr_arg, host_step_arg, data_, step_, colsBytes_, rows_, cudaMemcpyDeviceToHost));
+	cudaSafeCall( cudaDeviceSynchronize());
 }      
 
 void DeviceMemory2D::swap(DeviceMemory2D& other_arg)

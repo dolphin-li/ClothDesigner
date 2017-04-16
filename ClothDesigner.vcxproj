@@ -43,7 +43,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 7.5.props" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 8.0.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -492,6 +492,8 @@
     <ClCompile Include="TrainingImageRenderWindow.cpp" />
     <ClCompile Include="Viewer2d.cpp" />
     <ClCompile Include="viewer3d.cpp" />
+    <CudaCompile Include="Algorithm\cudpp\Cuda2DArray.cu" />
+    <CudaCompile Include="Algorithm\cudpp\Cuda3DArray.cu" />
     <CudaCompile Include="Algorithm\cudpp\CudaBsrMatrix.cu" />
     <CudaCompile Include="Algorithm\cudpp\CudaDiagBlockMatrix.cu" />
     <CudaCompile Include="Algorithm\cudpp\GpuCholesky.cu" />
@@ -630,6 +632,8 @@
     <ClInclude Include="Algorithm\conv\Convolution_Helper.h" />
     <ClInclude Include="Algorithm\conv\ImageData.h" />
     <ClInclude Include="Algorithm\cudpp\CachedDeviceBuffer.h" />
+    <ClInclude Include="Algorithm\cudpp\Cuda2DArray.h" />
+    <ClInclude Include="Algorithm\cudpp\Cuda3DArray.h" />
     <ClInclude Include="Algorithm\cudpp\CudaBsrMatrix.h" />
     <ClInclude Include="Algorithm\cudpp\CudaDiagBlockMatrix.h" />
     <ClInclude Include="Algorithm\cudpp\cuda_utils.h" />
@@ -1177,7 +1181,7 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 7.5.targets" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 8.0.targets" />
   </ImportGroup>
   <ProjectExtensions>
     <VisualStudio>

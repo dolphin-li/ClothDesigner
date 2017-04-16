@@ -42,8 +42,7 @@ namespace ldp
 		texDescr.addressMode[2] = cudaAddressModeClamp;
 		texDescr.readMode = cudaReadModeElementType;
 		cudaTextureObject_t tex;
-		cudaSafeCall(cudaCreateTextureObject(&tex, &texRes, &texDescr, NULL),
-			"GpuSim, bindTexture 2");
+		cudaSafeCall(cudaCreateTextureObject(&tex, &texRes, &texDescr, NULL));
 		return tex;
 	}
 	cudaSurfaceObject_t GpuSim::createSurface(cudaArray_t ary)
@@ -53,8 +52,7 @@ namespace ldp
 		texRes.resType = cudaResourceTypeArray;
 		texRes.res.array.array = ary;
 		cudaSurfaceObject_t tex;
-		cudaSafeCall(cudaCreateSurfaceObject(&tex, &texRes),
-			"GpuSim, createSurface 2");
+		cudaSafeCall(cudaCreateSurfaceObject(&tex, &texRes));
 		return tex;
 	}
 #pragma endregion
@@ -109,12 +107,12 @@ namespace ldp
 	{
 		std::vector<cudaTextureObject_t> tmp;
 		for (const auto& idx : m_faces_idxMat_h)
-			tmp.push_back(m_stretchSamples_h[idx].getCudaTexture());
+			tmp.push_back(m_stretchSamples_h[idx].getCudaArray().getCudaTexture());
 		m_faces_texStretch_d.upload(tmp);
 
 		tmp.clear();
 		for (const auto& idx : m_faces_idxMat_h)
-			tmp.push_back(m_bendingData_h[idx].getCudaTexture());
+			tmp.push_back(m_bendingData_h[idx].getCudaArray().getCudaTexture());
 		m_faces_texBend_d.upload(tmp);
 	}
 
@@ -322,15 +320,28 @@ namespace ldp
 		for (auto& bd : m_bendingData_h)
 		{
 			bd.updateHostToDevice();
-			//dumpVec("D:/tmp/bendData.txt", bd.getCudaArray());
+
+			dumpBendDataArray("D:/tmp/bendData_h.txt", bd);
+			bd.updateDeviceToHost();
+			dumpBendDataArray("D:/tmp/bendData_d.txt", bd);
+			BendingData tmp;
+			bd.getCudaArray().copyTo(tmp.getCudaArray());
+			tmp.updateDeviceToHost();
+			dumpBendDataArray("D:/tmp/bendData_d1.txt", tmp);
+
 		} // end for m_bendingData_h
 		
 		for (auto& sp : m_stretchSamples_h)
 		{
 			sp.updateHostToDevice();
-			//dumpStretchSampleArray("D:/tmp/stretchSample_h.txt", sp);
-			//sp.updateDeviceToHost();
-			//dumpStretchSampleArray("D:/tmp/stretchSample_d.txt", sp);
+
+			dumpStretchSampleArray("D:/tmp/stretchSample_h.txt", sp);
+			sp.updateDeviceToHost();
+			dumpStretchSampleArray("D:/tmp/stretchSample_d.txt", sp);
+			StretchingSamples tmp;
+			sp.getCudaArray().copyTo(tmp.getCudaArray());
+			tmp.updateDeviceToHost();
+			dumpStretchSampleArray("D:/tmp/stretchSample_d1.txt", tmp);
 		} // end for m_stretchSamples_h
 	}
 
@@ -394,6 +405,21 @@ namespace ldp
 			{
 				for (int x = 0; x < A.cols(); x++)
 					fprintf(pFile, "%ef ", hA[y*A.cols()+x]);
+				fprintf(pFile, "\n");
+			}
+			fclose(pFile);
+			printf("saved: %s\n", name.c_str());
+		}
+	}
+	void GpuSim::dumpBendDataArray(std::string name, const BendingData& samples)
+	{
+		FILE* pFile = fopen(name.c_str(), "w");
+		if (pFile)
+		{
+			for (int y = 0; y < samples.rows(); y++)
+			{
+				for (int x = 0; x < samples.cols(); x++)
+					fprintf(pFile, "%ef ", samples(x, y));
 				fprintf(pFile, "\n");
 			}
 			fclose(pFile);
