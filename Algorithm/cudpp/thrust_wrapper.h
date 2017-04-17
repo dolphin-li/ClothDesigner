@@ -15,6 +15,7 @@ namespace thrust_wrapper
 	void sort_by_key(int* key_d, float4* value_d, int n);
 	void sort_by_key(float* key_d, int* value_d, int n);
 	void sort_by_key(int* key_d, int* value_d, int n);
+	void sort_by_key(size_t* key_d, int* value_d, int n);
 	void sort_by_key(int* key_d, float* value_d, int n);
 
 	void stable_sort_by_key(int* key_d, float4* value_d, int n);
@@ -27,6 +28,7 @@ namespace thrust_wrapper
 
 	size_t unique_by_key(int* key_d, float4* value_d, int n);
 	size_t unique(int* data, int n);
+	size_t unique(size_t* data, int n);
 
 	// the input value are counting iterators from @input_count_begin
 	size_t unique_counting_by_key_copy(const int* key_d, int input_count_begin, 

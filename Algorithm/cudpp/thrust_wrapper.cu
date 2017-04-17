@@ -220,6 +220,14 @@ namespace thrust_wrapper
 		thrust::sort_by_key(thrust::cuda::par(g_allocator), key_begin, key_end, points_begin);
 	}
 
+	void sort_by_key(size_t* key_d, int* value_d, int n)
+	{
+		thrust::device_ptr<size_t> key_begin(key_d);
+		thrust::device_ptr<size_t> key_end(key_d + n);
+		thrust::device_ptr<int> points_begin(value_d);
+		thrust::sort_by_key(thrust::cuda::par(g_allocator), key_begin, key_end, points_begin);
+	}
+
 	void sort_by_key(int* key_d, float* value_d, int n)
 	{
 		thrust::device_ptr<int> key_begin(key_d);
@@ -266,6 +274,14 @@ namespace thrust_wrapper
 	{
 		thrust::device_ptr<int> key_begin(data);
 		thrust::device_ptr<int> key_end(data + n);
+		auto ptr = thrust::unique(thrust::cuda::par(g_allocator), key_begin, key_end);
+		return ptr - key_begin;
+	}
+
+	size_t unique(size_t* data, int n)
+	{
+		thrust::device_ptr<size_t> key_begin(data);
+		thrust::device_ptr<size_t> key_end(data + n);
 		auto ptr = thrust::unique(thrust::cuda::par(g_allocator), key_begin, key_end);
 		return ptr - key_begin;
 	}

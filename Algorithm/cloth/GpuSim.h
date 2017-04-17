@@ -15,13 +15,13 @@ namespace ldp
 {
 	class ClothManager;
 	class LevelSet3D;		
-	__device__ __host__ inline int vertPair_to_idx(ldp::Int2 v, int n)
+	__device__ __host__ inline size_t vertPair_to_idx(ldp::Int2 v, int n)
 	{
-		return v[0] * n + v[1];
+		return size_t(v[0]) * size_t(n) + size_t(v[1]);
 	}
-	__device__ __host__ inline ldp::Int2 vertPair_from_idx(int idx, int n)
+	__device__ __host__ inline ldp::Int2 vertPair_from_idx(size_t idx, int n)
 	{
-		return ldp::Int2(idx / n, idx%n);
+		return ldp::Int2(int(idx / n), int(idx%n));
 	}
 	class GpuSim
 	{
@@ -42,6 +42,13 @@ namespace ldp
 		{
 			ldp::Int2 edge_idxWorld;
 			ldp::Int2 faceIdx;
+		};
+		struct SimParam
+		{
+			float dt = 0.f;	// time step
+
+
+			void setDefault();
 		};
 	public:
 		GpuSim();
@@ -68,6 +75,8 @@ namespace ldp
 		// simulatio parameter update; resulting in numerical updates
 		void updateNumeric();
 	protected:
+		void initParam();
+
 		void releaseMaterialMemory();
 		void initializeMaterialMemory();
 
@@ -78,10 +87,12 @@ namespace ldp
 
 	protected:
 		void setup_sparse_structure_from_cpu();
+		void bindTextures();
 	private:
 		ClothManager* m_clothManager = nullptr;
 		arcsim::ArcSimManager* m_arcSimManager = nullptr;
 		cusparseHandle_t m_cusparseHandle = nullptr;
+		SimParam m_simParam;
 
 		ldp::LevelSet3D* m_bodyLvSet_h = nullptr;
 		DeviceArray<float> m_bodyLvSet_d;
@@ -100,11 +111,17 @@ namespace ldp
 		std::vector<float> m_edgeThetaIdeals_h;					// the folding angles (in arc) on the edge
 		DeviceArray<float> m_edgeThetaIdeals_d;			
 
-		std::vector<int> m_faceEdge_vertIds_h;	
-		DeviceArray<int> m_faceEdge_vertIds_d;	// computing internal forces, the vertex index of each face/edge/bend
-		DeviceArray<int> m_faceEdge_order_d;	// the face/edge/bend filling order, beforScan_A[order]
-		DeviceArray<ldp::Mat3f> m_faceEdge_beforScan_A;
-		DeviceArray<ldp::Float3> m_faceEdge_beforScan_b;
+		DeviceArray<size_t> m_A_Ids_d;			// for sparse matrix, encode the (row, col) pairs, sorted
+		DeviceArray<size_t> m_A_Ids_d_unique;	// 
+		DeviceArray<int> m_A_Ids_start_d;		// the starting position of A_order
+		DeviceArray<int> m_A_order_d;			// the face/edge/bend filling order, beforScan_A[order]
+		DeviceArray<int> m_A_invOrder_d;
+		DeviceArray<ldp::Mat3f> m_beforScan_A;
+		DeviceArray<int> m_b_Ids_d;				// for rhs construction
+		DeviceArray<int> m_b_Ids_start_d;		// the starting position of b_order
+		DeviceArray<int> m_b_order_d;			// the face/edge/bend filling order, beforScan_b[order]
+		DeviceArray<int> m_b_invOrder_d;
+		DeviceArray<ldp::Float3> m_beforScan_b;
 		///////////////// solve for the simulation linear system: A*dv=b////////////////////////////////
 		std::shared_ptr<CudaBsrMatrix> m_A;
 		DeviceArray<ldp::Float3> m_b;							
@@ -113,7 +130,6 @@ namespace ldp
 		DeviceArray<ldp::Float3> m_x;							// position of current step	
 		DeviceArray<ldp::Float3> m_v;							// velocity of current step
 		DeviceArray<ldp::Float3> m_dv;							// velocity changed in this step
-		
 		//////////////////////// material related///////////////////////////////////////////////////////
 	public:
 		class StretchingData { 
@@ -212,8 +228,8 @@ namespace ldp
 		std::vector<StretchingSamples> m_stretchSamples_h;			
 		std::vector<BendingData> m_bendingData_h;
 	public:
-		static void vertPair_to_idx(const int* ids_v1, const int* ids_v2, int* ids, int nVerts, int nPairs);
-		static void vertPair_from_idx(int* ids_v1, int* ids_v2, const int* ids, int nVerts, int nPairs);
+		static void vertPair_to_idx(const int* ids_v1, const int* ids_v2, size_t* ids, int nVerts, int nPairs);
+		static void vertPair_from_idx(int* ids_v1, int* ids_v2, const size_t* ids, int nVerts, int nPairs);
 		static void dumpVec(std::string name, const DeviceArray<float>& A);
 		static void dumpVec(std::string name, const DeviceArray2D<float>& A);
 		static void dumpVec(std::string name, const DeviceArray<ldp::Float3>& A);

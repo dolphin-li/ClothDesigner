@@ -27,6 +27,9 @@ namespace ldp
 			throw std::exception(msg);
 		}
 	}
+
+#define NOT_IMPLEMENTED throw std::exception((std::string("NotImplemented[")+__FILE__+"]["\
+	+std::to_string(__LINE__)+"]").c_str())
 #pragma endregion
 
 	GpuSim::GpuSim()
@@ -41,22 +44,44 @@ namespace ldp
 		cusparseCheck(cusparseDestroy(m_cusparseHandle));
 	}
 
+	void GpuSim::SimParam::setDefault()
+	{
+		dt = 1.f / 200.f;
+	}
+
 	void GpuSim::init(ClothManager* clothManager)
 	{
 		release_assert(ldp::is_float<ClothManager::ValueType>::value);
 		m_arcSimManager = nullptr;
 		m_clothManager = clothManager;
+		NOT_IMPLEMENTED;
 	}
 
 	void GpuSim::init(arcsim::ArcSimManager* arcSimManager)
 	{
+		release_assert(ldp::is_float<ClothManager::ValueType>::value);
 		m_clothManager = nullptr;
 		m_arcSimManager = arcSimManager;
+		m_simParam.setDefault();
+		initParam();
 		initializeMaterialMemory();
 		updateMaterial();
 		updateTopology();
 		updateNumeric();
 		restart();
+	}
+
+	void GpuSim::initParam()
+	{
+		if (m_arcSimManager)
+		{
+			const auto* sim = m_arcSimManager->getSimulator();
+			m_simParam.dt = sim->frame_time / sim->frame_steps;
+		} // end if arc
+		else
+		{
+			NOT_IMPLEMENTED;
+		} // end else clothManager
 	}
 
 	void GpuSim::run_one_step()
@@ -67,9 +92,6 @@ namespace ldp
 	void GpuSim::restart()
 	{
 		m_x_init.copyTo(m_x);
-		m_v.create(m_x.size());
-		m_dv.create(m_x.size());
-		m_b.create(m_x.size());
 		cudaSafeCall(cudaMemset(m_v.ptr(), 0, m_v.sizeBytes()));
 		cudaSafeCall(cudaMemset(m_dv.ptr(), 0, m_dv.sizeBytes()));
 		cudaSafeCall(cudaMemset(m_b.ptr(), 0, m_b.sizeBytes()));
@@ -96,6 +118,12 @@ namespace ldp
 			updateTopology_clothManager();
 		else
 			throw std::exception("GpuSim, not initialized!");
+
+		m_x_init.copyTo(m_x);
+		m_v.create(m_x.size());
+		m_dv.create(m_x.size());
+		m_b.create(m_x.size());
+		bindTextures();
 	}
 
 	void GpuSim::linearSolve()
@@ -159,6 +187,7 @@ namespace ldp
 		} // end for iCloth
 		m_x_init.upload(tmp_x_init); 
 		m_texCoord_init.upload(tmp_texCoord_init);
+		m_faces_idxWorld_d.upload(m_faces_idxWorld_h);
 		m_faces_idxTex_d.upload(m_faces_idxTex_h);
 		m_edgeData_d.upload(m_edgeData_h.data(), m_edgeData_h.size());
 		m_edgeThetaIdeals_h.clear();
@@ -172,6 +201,7 @@ namespace ldp
 	void GpuSim::updateTopology_clothManager()
 	{		
 
+		NOT_IMPLEMENTED;
 	}
 
 	void GpuSim::setup_sparse_structure_from_cpu()
@@ -217,42 +247,74 @@ namespace ldp
 		const int nVerts = m_x_init.size();
 
 		// 1. collect face adjacents
-		m_faceEdge_vertIds_h.clear();
+		std::vector<size_t> A_Ids_h;
+		std::vector<int> A_Ids_start_h;
+		std::vector<int> b_Ids_h;
+		std::vector<int> b_Ids_start_h;
 		for (const auto& f : m_faces_idxWorld_h)
-		for (int k = 0; k < 3; k++)
 		{
-			m_faceEdge_vertIds_h.push_back(ldp::vertPair_to_idx(ldp::Int2(f[k], f[k]), nVerts));
-			m_faceEdge_vertIds_h.push_back(ldp::vertPair_to_idx(ldp::Int2(f[k], f[(k + 1) % 3]), nVerts));
-			m_faceEdge_vertIds_h.push_back(ldp::vertPair_to_idx(ldp::Int2(f[(k + 1) % 3], f[k]), nVerts));
+			A_Ids_start_h.push_back(A_Ids_h.size());
+			b_Ids_start_h.push_back(b_Ids_h.size());
+			for (int k = 0; k < 3; k++)
+			{
+				A_Ids_h.push_back(ldp::vertPair_to_idx(ldp::Int2(f[k], f[k]), nVerts));
+				A_Ids_h.push_back(ldp::vertPair_to_idx(ldp::Int2(f[k], f[(k + 1) % 3]), nVerts));
+				A_Ids_h.push_back(ldp::vertPair_to_idx(ldp::Int2(f[(k + 1) % 3], f[k]), nVerts));
+				b_Ids_h.push_back(f[k]);
+			}
 		}
 
 		// 2. collect edge adjacents
 		for (const auto& ed : m_edgeData_h)
-		if (ed.faceIdx[0] >= 0 && ed.faceIdx[1] >= 0)
 		{
-			const ldp::Int4& f1 = m_faces_idxWorld_h[ed.faceIdx[0]];
-			const ldp::Int4& f2 = m_faces_idxWorld_h[ed.faceIdx[1]];
-			int v[4] = { 0 };
-			v[0] = ed.edge_idxWorld[0];
-			v[1] = ed.edge_idxWorld[1];
-			v[2] = f1[0] + f1[1] + f1[2] - ed.edge_idxWorld[0] - ed.edge_idxWorld[1];
-			v[3] = f2[0] + f2[1] + f2[2] - ed.edge_idxWorld[0] - ed.edge_idxWorld[1];
-			for (int i = 0; i < 4; i++)
-			for (int j = 0; j < 4; j++)
-				m_faceEdge_vertIds_h.push_back(ldp::vertPair_to_idx(ldp::Int2(v[i], v[j]), nVerts));
-		} // end for edgeData
+			A_Ids_start_h.push_back(A_Ids_h.size());
+			b_Ids_start_h.push_back(b_Ids_h.size());
+			if (ed.faceIdx[0] >= 0 && ed.faceIdx[1] >= 0)
+			{
+				const ldp::Int4& f1 = m_faces_idxWorld_h[ed.faceIdx[0]];
+				const ldp::Int4& f2 = m_faces_idxWorld_h[ed.faceIdx[1]];
+				int v[4] = { 0 };
+				v[0] = ed.edge_idxWorld[0];
+				v[1] = ed.edge_idxWorld[1];
+				v[2] = f1[0] + f1[1] + f1[2] - ed.edge_idxWorld[0] - ed.edge_idxWorld[1];
+				v[3] = f2[0] + f2[1] + f2[2] - ed.edge_idxWorld[0] - ed.edge_idxWorld[1];
+				for (int i = 0; i < 4; i++)
+				{
+					for (int j = 0; j < 4; j++)
+						A_Ids_h.push_back(ldp::vertPair_to_idx(ldp::Int2(v[i], v[j]), nVerts));
+					b_Ids_h.push_back(v[i]);
+				}
+			} // end for edgeData
+		}
+		A_Ids_start_h.push_back(A_Ids_h.size());
+		b_Ids_start_h.push_back(b_Ids_h.size());
 
 		// 3. upload to GPU; make order array, then sort the orders by vertex-pair idx, then unique
-		m_faceEdge_vertIds_d.upload(m_faceEdge_vertIds_h);
-		m_faceEdge_order_d.create(m_faceEdge_vertIds_h.size());
-		thrust_wrapper::make_counting_array(m_faceEdge_order_d.ptr(), m_faceEdge_order_d.size());
-		thrust_wrapper::sort_by_key(m_faceEdge_vertIds_d.ptr(), m_faceEdge_order_d.ptr(), m_faceEdge_vertIds_d.size());
-		auto nUniqueNnz = thrust_wrapper::unique(m_faceEdge_vertIds_d.ptr(), m_faceEdge_vertIds_d.size());
+
+		// matrix A
+		m_A_Ids_d.upload(A_Ids_h);
+		m_A_Ids_start_d.upload(A_Ids_start_h);
+		m_A_order_d.create(A_Ids_h.size());
+		m_A_invOrder_d.create(A_Ids_h.size());
+		thrust_wrapper::make_counting_array(m_A_invOrder_d.ptr(), m_A_invOrder_d.size());
+		thrust_wrapper::sort_by_key(m_A_Ids_d.ptr(), m_A_invOrder_d.ptr(), A_Ids_h.size());
+		thrust_wrapper::sort_by_key(m_A_invOrder_d.ptr(), m_A_order_d.ptr(), A_Ids_h.size());
+		m_A_Ids_d.copyTo(m_A_Ids_d_unique);
+		auto nUniqueNnz = thrust_wrapper::unique(m_A_Ids_d_unique.ptr(), m_A_Ids_d_unique.size());
+
+		// rhs b
+		m_b_Ids_d.upload(b_Ids_h);
+		m_b_Ids_start_d.upload(b_Ids_start_h);
+		m_b_order_d.create(b_Ids_h.size());
+		m_b_invOrder_d.create(b_Ids_h.size());
+		thrust_wrapper::make_counting_array(m_b_invOrder_d.ptr(), m_b_invOrder_d.size());
+		thrust_wrapper::sort_by_key(m_b_Ids_d.ptr(), m_b_invOrder_d.ptr(), b_Ids_h.size());
+		thrust_wrapper::sort_by_key(m_b_invOrder_d.ptr(), m_b_order_d.ptr(), b_Ids_h.size());
 		
 		// 4. convert vertex-pair idx to coo array
 		CachedDeviceBuffer booRow(nUniqueNnz*sizeof(int));
 		CachedDeviceBuffer booCol(nUniqueNnz*sizeof(int));
-		vertPair_from_idx((int*)booRow.data(), (int*)booCol.data(), m_faceEdge_vertIds_d.ptr(), nVerts, nUniqueNnz);
+		vertPair_from_idx((int*)booRow.data(), (int*)booCol.data(), m_A_Ids_d_unique.ptr(), nVerts, nUniqueNnz);
 
 		// 5. build the sparse matrix via coo
 		m_A->resize(nVerts, nVerts, 3);
@@ -260,7 +322,7 @@ namespace ldp
 		cudaSafeCall(cudaMemcpy(m_A->bsrColIdx(), (const int*)booCol.data(),
 			nUniqueNnz*sizeof(int), cudaMemcpyDeviceToDevice));
 		cudaSafeCall(cudaMemset(m_A->value(), 0, m_A->nnz()*sizeof(float)));
-		//m_A->dump("D:/tmp/eigen_A_1.txt");
+		m_A->dump("D:/tmp/eigen_A_1.txt");
 #endif	
 	}
 
