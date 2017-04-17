@@ -123,6 +123,19 @@ namespace ldp
 			B(r, c) = A(r+row*3, c+col*3);
 		return B;
 	}
+
+	__device__ __host__ __forceinline__ Float3 get_subFloat3(FloatC a, int i)
+	{
+		return Float3(a[i * 3], a[i * 3 + 1], a[i * 3 + 2]);
+	}
+	__device__ __host__ __forceinline__ Mat3f get_subMat3f(MatCf A, int row, int col)
+	{
+		Mat3f B;
+		for (int r = 0; r < 3; r++)
+		for (int c = 0; c < 3; c++)
+			B(r, c) = A(r + row * 3, c + col * 3);
+		return B;
+	}
 	__device__ __host__ __forceinline__ float unwrap_angle(float theta, float theta_ref)
 	{
 		if (theta - theta_ref > M_PI)
@@ -436,7 +449,7 @@ namespace ldp
 
 	__device__ void computeBendForces(int iEdge, const GpuSim::EdgeData* edgeDatas,
 		int A_start, Mat3f* beforeScan_A,
-		int B_start, Float3* beforeScan_b, 
+		int b_start, Float3* beforeScan_b, 
 		const cudaTextureObject_t* t_bendDatas, 
 		const float* theta_refs, float dt)
 	{
@@ -488,6 +501,20 @@ namespace ldp
 		FloatC F = -dt*0.5f * ke*shape*(theta - theta_ref)*dtheta;
 		MatCf J = -dt*dt*0.5f*ke*shape*outer(dtheta, dtheta);
 		F -= J*vs;
+
+		// output to global matrix
+		for (int row = 0; row < 4; row++)
+		for (int col = 0; col < 4; col++)
+		{
+			int pos = texRead_A_order(A_start + row * 4 + col);
+			beforeScan_A[pos] = get_subMat3f(J, row, col);
+		} // end for row, col
+
+		for (int row = 0; row < 4; row++)
+		{
+			int pos = texRead_b_order(b_start + row);
+			beforeScan_b[pos] = get_subFloat3(F, row);
+		} // end for row
 	}
 
 	__global__ void computeNumeric_kernel(const GpuSim::EdgeData* edgeData, 
@@ -522,7 +549,7 @@ namespace ldp
 	{
 		const int nFaces = m_faces_idxWorld_d.size();
 		const int nEdges = m_edgeData_d.size();
-
+	
 		computeNumeric_kernel << <divUp(nFaces + nEdges, CTA_SIZE), CTA_SIZE >> >(
 			m_edgeData_d.ptr(), m_faces_texStretch_d.ptr(), m_faces_texBend_d.ptr(),
 			m_A_Ids_start_d.ptr(), m_beforScan_A.ptr(),
