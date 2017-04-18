@@ -38,11 +38,15 @@ namespace ldp
 		// faceIdx: abc, bad
 		// _idxWorld: index in world space
 		// _idxTex: index in tex space
-		struct EdgeData	//must be sizeof int4+int4
+		struct EdgeData
 		{
-			ldp::Int2 edge_idxWorld;
-			ldp::Int2 faceIdx;
+			ldp::Int4 edge_idxWorld;
 			ldp::Int2 edge_idxTex[2]; // two face side tex space index
+			ldp::Int2 faceIdx;
+			float length = 0.f;
+			float dihedral_ideal = 0.f;
+			float theta_initial = 0.f;
+			float theta_uv = 0.f;	// uv direction
 		};
 		struct FaceMaterailSpaceData // must be sizeof float4
 		{
@@ -50,13 +54,6 @@ namespace ldp
 			float mass = 0.f;
 			float __place_holder_1 = 0.f;
 			float __place_holder_2 = 0.f;
-		};
-		struct EdgeMaterailSpaceData // must be sizeof float4
-		{
-			float length = 0.f;
-			float reference_angle = 0.f;
-			float theta = 0.f;
-			float theta_ideal = 0.f;
 		};
 		struct NodeMaterailSpaceData // must be sizeof float4
 		{
@@ -128,14 +125,10 @@ namespace ldp
 		DeviceArray<cudaTextureObject_t> m_faces_texBend_d;		// cuda texture of bending
 		DeviceArray<FaceMaterailSpaceData> m_faces_materialSpace_d;
 		DeviceArray<NodeMaterailSpaceData> m_nodes_materialSpace_d;
-		DeviceArray<EdgeMaterailSpaceData> m_edges_materialSpace_d;
 		std::vector<EdgeData> m_edgeData_h;
 		DeviceArray<EdgeData> m_edgeData_d;
 
-		///////////////// precomputed data /////////////////////////////////////////////////////////////
-		std::vector<float> m_edgeThetaIdeals_h;					// the folding angles (in arc) on the edge
-		DeviceArray<float> m_edgeThetaIdeals_d;			
-
+		///////////////// precomputed data /////////////////////////////////////////////////////////////	
 		DeviceArray<size_t> m_A_Ids_d;			// for sparse matrix, encode the (row, col) pairs, sorted
 		DeviceArray<size_t> m_A_Ids_d_unique;
 		DeviceArray<int> m_A_Ids_d_unique_pos;	// the array position kept after unique

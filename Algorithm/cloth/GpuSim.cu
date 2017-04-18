@@ -225,22 +225,6 @@ namespace ldp
 		return Mat2f(t[1] - t[0], t[2] - t[0]).inv().trans()*
 			make_rows(Float3(-1, 1, 0), Float3(-1, 0, 1));
 	}
-	__device__ __host__ __forceinline__ float faceArea(const Float2 t[3])
-	{
-		return fabs(Float2(t[1]-t[0]).cross(t[2]-t[0])) * 0.5f;
-	}
-	__device__ __host__ __forceinline__ Float3 faceNormal(const Float3 t[3])
-	{
-		Float3 n = Float3(t[1] - t[0]).cross(t[2] - t[0]);
-		if (n.length() == 0.f)
-			return 0.f;
-		return n.normalizeLocal();
-	}
-	__device__ __host__ __forceinline__ float faceArea(const Float3 t[3])
-	{
-		return Float3(t[1] - t[0]).cross(t[2] - t[0]).length() * 0.5f;
-	}
-	
 	__device__ __host__ __forceinline__ Float3 get_subFloat3(Float9 a, int i)
 	{
 		return Float3(a[i*3], a[i*3+1], a[i*3+2]);
@@ -253,7 +237,6 @@ namespace ldp
 			B(r, c) = A(r+row*3, c+col*3);
 		return B;
 	}
-
 	__device__ __host__ __forceinline__ Float3 get_subFloat3(FloatC a, int i)
 	{
 		return Float3(a[i * 3], a[i * 3 + 1], a[i * 3 + 2]);
@@ -366,7 +349,6 @@ namespace ldp
 	texture<int, cudaTextureType1D, cudaReadModeElementType> gt_b_order;
 	texture<float4, cudaTextureType1D, cudaReadModeElementType> gt_faceMaterialData;
 	texture<float4, cudaTextureType1D, cudaReadModeElementType> gt_nodeMaterialData;
-	texture<float4, cudaTextureType1D, cudaReadModeElementType> gt_edgeMaterialData;
 	__device__ __forceinline__ Float3 texRead_x(int i)
 	{
 		return ldp::Float3(tex1Dfetch(gt_x, i * 3), 
@@ -414,16 +396,6 @@ namespace ldp
 		GpuSim::NodeMaterailSpaceData data;
 		data.area = v.x;
 		data.mass = v.y;
-		return data;
-	}
-	__device__ __forceinline__ GpuSim::EdgeMaterailSpaceData texRead_edgeMaterialData(int i)
-	{
-		float4 v = tex1Dfetch(gt_edgeMaterialData, i);
-		GpuSim::EdgeMaterailSpaceData data;
-		data.length = v.x;
-		data.reference_angle = v.y;
-		data.theta = v.z;
-		data.theta_ideal = v.w;
 		return data;
 	}
 	__device__ __forceinline__ Float4 texRead_strechSample(cudaTextureObject_t t, float x, float y, float z)
@@ -491,10 +463,6 @@ namespace ldp
 		cudaSafeCall(cudaBindTexture(&offset, &gt_nodeMaterialData, m_nodes_materialSpace_d.ptr(),
 			&desc_float4, m_nodes_materialSpace_d.size()*sizeof(float4)));
 		CHECK_ZERO(offset);
-
-		cudaSafeCall(cudaBindTexture(&offset, &gt_edgeMaterialData, m_edges_materialSpace_d.ptr(),
-			&desc_float4, m_edges_materialSpace_d.size()*sizeof(float4)));
-		CHECK_ZERO(offset);
 	}
 
 	__device__ __forceinline__ Float4 stretching_stiffness(const Mat2f &G, cudaTextureObject_t samples)
@@ -506,15 +474,14 @@ namespace ldp
 	}
 
 	__device__ __forceinline__ float bending_stiffness(Float3 a, Float3 b, 
-		Float2 ta, Float2 tb, float theta, float area,
-		cudaTextureObject_t bendData, float initial_theta)
+		GpuSim::EdgeData eData, float dihe_angle, float area,
+		cudaTextureObject_t bendDataTex)
 	{
 		// because samples are per 0.05 cm^-1 = 5 m^-1
-		const float value = theta*(a - b).length() / area * 0.5f*0.2f;
-		const Float2 du = tb - ta;
-		const float bias_angle = fabs((atan2f(du[1], du[0]) + initial_theta) * 4.f / M_PI);
+		const float value = dihe_angle*(a - b).length() / area * 0.5f*0.2f;
+		const float bias_angle = fabs((eData.theta_uv + eData.theta_initial) * 4.f / M_PI);
 #ifdef BEND_USE_LINEAR_TEX
-		float actual_ke = max(0.f, texRead_bendData(bendData, value + 0.5f, bias_angle + 0.5f));
+		float actual_ke = max(0.f, texRead_bendData(bendDataTex, value + 0.5f, bias_angle + 0.5f));
 #else
 		if (value > 4) 
 			value = 4;
@@ -576,6 +543,30 @@ namespace ldp
 		return unwrap_angle(theta, ref_theta);
 	}
 
+	__device__ __host__ __forceinline__ float faceArea(const Float2 t[3])
+	{
+		return fabs(Float2(t[1] - t[0]).cross(t[2] - t[0])) * 0.5f;
+	}
+	__device__ __host__ __forceinline__ Float3 faceNormal(const Float3 t[3])
+	{
+		Float3 n = Float3(t[1] - t[0]).cross(t[2] - t[0]);
+		if (n.length() == 0.f)
+			return 0.f;
+		return n.normalizeLocal();
+	}
+	__device__ __forceinline__ Float3 faceNormal(int iFace)
+	{
+		ldp::Int3 f = texRead_faces_idxWorld(iFace);
+		Float3 n = Float3(texRead_x(f[1]) - texRead_x(f[0])).cross(texRead_x(f[2]) - texRead_x(f[0]));
+		if (n.length() == 0.f)
+			return 0.f;
+		return n.normalizeLocal();
+	}
+	__device__ __host__ __forceinline__ float faceArea(const Float3 t[3])
+	{
+		return Float3(t[1] - t[0]).cross(t[2] - t[0]).length() * 0.5f;
+	}
+
 	__device__ void computeStretchForces(int iFace, 
 		int A_start, Mat3f* beforeScan_A,
 		int b_start, Float3* beforeScan_b,
@@ -587,7 +578,7 @@ namespace ldp
 			texRead_x(face_idxWorld[2]) };
 		const ldp::Float2 t[3] = { texRead_texCoord_init(face_idxTex[0]),
 			texRead_texCoord_init(face_idxTex[1]), texRead_texCoord_init(face_idxTex[2]) };
-		const float area = faceArea(t);
+		const float area = texRead_faceMaterialData(iFace).area;
 
 		// arcsim::stretching_force()---------------------------
 		const Mat32f F = derivative(x, t);
@@ -631,55 +622,29 @@ namespace ldp
 	__device__ void computeBendForces(int iEdge, const GpuSim::EdgeData* edgeDatas,
 		int A_start, Mat3f* beforeScan_A,
 		int b_start, Float3* beforeScan_b, 
-		const cudaTextureObject_t* t_bendDatas, 
-		const float* theta_refs, float dt)
+		const cudaTextureObject_t* t_bendDatas, float dt)
 	{
 		const GpuSim::EdgeData edgeData = edgeDatas[iEdge];
 		if (edgeData.faceIdx[0] < 0 || edgeData.faceIdx[1] < 0)
 			return;
-
-		const ldp::Int3 face_idxWorld[2] = {
-			texRead_faces_idxWorld(edgeData.faceIdx[0]),
-			texRead_faces_idxWorld(edgeData.faceIdx[1]),
-		};
-		const ldp::Int3 face_idxTex[2] = {
-			texRead_faces_idxTex(edgeData.faceIdx[0]),
-			texRead_faces_idxTex(edgeData.faceIdx[1]),
-		};		
-		const ldp::Float3 x[2][3] = { 
-			{ texRead_x(face_idxWorld[0][0]), texRead_x(face_idxWorld[0][1]), texRead_x(face_idxWorld[0][2]) },
-			{ texRead_x(face_idxWorld[1][0]), texRead_x(face_idxWorld[1][1]), texRead_x(face_idxWorld[1][2]) },
-		};
-		const ldp::Float2 t[2][3] = {
-			{ texRead_texCoord_init(face_idxTex[0][0]), texRead_texCoord_init(face_idxTex[0][1]),
-			texRead_texCoord_init(face_idxTex[0][2]) },
-			{ texRead_texCoord_init(face_idxTex[1][0]), texRead_texCoord_init(face_idxTex[1][1]),
-			texRead_texCoord_init(face_idxTex[1][2]) },
-		};
-		const ldp::Int4 eIds(edgeData.edge_idxWorld[0], edgeData.edge_idxWorld[1],
-			sum(face_idxWorld[0]) - edgeData.edge_idxWorld[0] - edgeData.edge_idxWorld[1],
-			sum(face_idxWorld[1]) - edgeData.edge_idxWorld[0] - edgeData.edge_idxWorld[1]
-			);
-		const ldp::Float3 ex[4] = { texRead_x(eIds[0]), texRead_x(eIds[1]), texRead_x(eIds[2]), texRead_x(eIds[3]) };
-		const ldp::Float2 et[2] = { texRead_texCoord_init(eIds[0]), texRead_texCoord_init(eIds[1])};
-		Float3 n0 = faceNormal(x[0]), n1 = faceNormal(x[1]);
-		const float area = faceArea(t[0]) + faceArea(t[0]);
-		const float theta_ref = theta_refs[iEdge];
-		const float theta = dihedral_angle(ex[0], ex[1], n0, n1, theta_ref);
+		const ldp::Float3 ex[4] = { texRead_x(edgeData.edge_idxWorld[0]), texRead_x(edgeData.edge_idxWorld[1]), 
+			texRead_x(edgeData.edge_idxWorld[2]), texRead_x(edgeData.edge_idxWorld[3]) };
+		Float3 n0 = faceNormal(edgeData.faceIdx[0]), n1 = faceNormal(edgeData.faceIdx[1]);
+		const float area = texRead_faceMaterialData(edgeData.faceIdx[0]).area 
+			+ texRead_faceMaterialData(edgeData.faceIdx[1]).area;
+		const float dihe_theta = dihedral_angle(ex[0], ex[1], n0, n1, edgeData.dihedral_ideal);
 		const float h0 = distance(ex[2], ex[0], ex[1]), h1 = distance(ex[3], ex[0], ex[1]);
 		const Float2 w_f0 = barycentric_weights(ex[2], ex[0], ex[1]);
 		const Float2 w_f1 = barycentric_weights(ex[3], ex[0], ex[1]);
 		const FloatC dtheta = make_Float12(-(w_f0[0] * n0 / h0 + w_f1[0] * n1 / h1),
 			-(w_f0[1] * n0 / h0 + w_f1[1] * n1 / h1), n0 / h0, n1 / h1);
-		float ke = min(bending_stiffness(
-			ex[0], ex[1], et[0], et[1], theta, area,
-			t_bendDatas[edgeData.faceIdx[0]], theta_ref),
-			bending_stiffness(ex[0], ex[1], et[0], et[1], theta, area,
-			t_bendDatas[edgeData.faceIdx[1]], theta_ref)
+		float ke = min(
+			bending_stiffness(ex[0], ex[1], edgeData, dihe_theta, area, t_bendDatas[edgeData.faceIdx[0]]),
+			bending_stiffness(ex[0], ex[1], edgeData, dihe_theta, area, t_bendDatas[edgeData.faceIdx[1]])
 			);
-		const float shape = (et[0]-et[1]).sqrLength() / (2.f * area);
+		const float shape = ldp::sqr(edgeData.length) / (2.f * area);
 		const FloatC vs = make_Float12(ex[0], ex[1], ex[2], ex[3]);
-		FloatC F = -dt*0.5f * ke*shape*(theta - theta_ref)*dtheta;
+		FloatC F = -dt*0.5f * ke*shape*(dihe_theta - edgeData.dihedral_ideal)*dtheta;
 		MatCf J = -dt*dt*0.5f*ke*shape*outer(dtheta, dtheta);
 		F -= J*vs;
 
@@ -727,7 +692,6 @@ namespace ldp
 		const cudaTextureObject_t* t_stretchSamples, const cudaTextureObject_t* t_bendDatas,
 		const int* A_starts, Mat3f* beforeScan_A, 
 		const int* b_starts, Float3* beforeScan_b,
-		const float* theta_refs,
 		int nFaces, int nEdges, float dt)
 	{
 		int thread_id = threadIdx.x + blockIdx.x * blockDim.x;
@@ -753,7 +717,7 @@ namespace ldp
 			const int A_start = A_starts[thread_id];
 			const int b_start = b_starts[thread_id];
 			computeBendForces(thread_id - nFaces, edgeData, A_start, beforeScan_A,
-				b_start, beforeScan_b, t_bendDatas, theta_refs, dt);
+				b_start, beforeScan_b, t_bendDatas, dt);
 		}
 	}
 
@@ -796,7 +760,6 @@ namespace ldp
 			m_edgeData_d.ptr(), m_faces_texStretch_d.ptr(), m_faces_texBend_d.ptr(),
 			m_A_Ids_start_d.ptr(), m_beforScan_A.ptr(),
 			m_b_Ids_start_d.ptr(), m_beforScan_b.ptr(),
-			m_edgeThetaIdeals_d.ptr(),
 			nFaces, nEdges, m_simParam.dt);
 		cudaSafeCall(cudaGetLastError());
 

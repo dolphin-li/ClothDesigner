@@ -145,23 +145,6 @@ namespace ldp
 			}
 		} // end for iFace
 		m_nodes_materialSpace_d.upload(nodeData);
-
-		// edge material related
-		std::vector<EdgeMaterailSpaceData> edgeMatData(m_edgeData_h.size());
-		for (size_t iEdge = 0; iEdge < m_edgeData_h.size(); iEdge++)
-		{
-			const auto& eIdData = m_edgeData_h[iEdge];
-			int fi = eIdData.faceIdx[0] >= 0 ? 0 : 1;
-			const auto& t0 = m_texCoord_init_h[eIdData.edge_idxTex[fi][0]];
-			const auto& t1 = m_texCoord_init_h[eIdData.edge_idxTex[fi][1]];
-			auto& eMatData = edgeMatData[iEdge];
-			eMatData.length = (t0 - t1).length();
-			eMatData.reference_angle = 0.f;
-			eMatData.theta_ideal = 0.f;
-			auto du = t1 - t0;
-			eMatData.theta = atan2f(du[1], du[0]);
-		} // end for iEdge
-		m_edges_materialSpace_d.upload(edgeMatData);
 	}
 
 	void GpuSim::updateTopology()
@@ -224,7 +207,8 @@ namespace ldp
 			for (const auto& e : cloth.mesh.edges)
 			{
 				EdgeData ed;
-				ed.edge_idxWorld = ldp::Int2(e->n[0]->index, e->n[1]->index) + node_index_begin;
+				ed.edge_idxWorld = ldp::Int4(e->n[0]->index + node_index_begin, 
+					e->n[1]->index + node_index_begin, -1, -1);
 				ed.faceIdx[0] = ed.faceIdx[1] = -1;
 				for (int k = 0; k < 2; k++)
 				if (e->adjf[k])
@@ -232,6 +216,11 @@ namespace ldp
 					ed.faceIdx[k] = e->adjf[k]->index + face_index_begin;
 					ed.edge_idxTex[k] = ldp::Int2(arcsim::edge_vert(e, k, 0)->index,
 						arcsim::edge_vert(e, k, 1)->index) + tex_index_begin;
+					ed.edge_idxWorld[k + 2] = arcsim::edge_opp_vert(e, k)->node->index + node_index_begin;			
+					auto t0 = arcsim::edge_vert(e, k, 0)->u;
+					auto t1 = arcsim::edge_vert(e, k, 1)->u;
+					ed.length = arcsim::norm(t1-t0);
+					ed.theta_uv = atan2f(t1[1]-t0[1], t1[0]-t0[0]);
 				}
 				m_edgeData_h.push_back(ed);
 			} // end for e
@@ -250,9 +239,6 @@ namespace ldp
 		m_faces_idxWorld_d.upload(m_faces_idxWorld_h);
 		m_faces_idxTex_d.upload(m_faces_idxTex_h);
 		m_edgeData_d.upload(m_edgeData_h.data(), m_edgeData_h.size());
-		m_edgeThetaIdeals_h.clear();
-		m_edgeThetaIdeals_h.resize(m_edgeData_h.size(), 0);
-		m_edgeThetaIdeals_d.upload(m_edgeThetaIdeals_h);
 
 		// build sparse matrix topology
 		setup_sparse_structure_from_cpu();
