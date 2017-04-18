@@ -38,10 +38,32 @@ namespace ldp
 		// faceIdx: abc, bad
 		// _idxWorld: index in world space
 		// _idxTex: index in tex space
-		struct EdgeData
+		struct EdgeData	//must be sizeof int4+int4
 		{
 			ldp::Int2 edge_idxWorld;
 			ldp::Int2 faceIdx;
+			ldp::Int2 edge_idxTex[2]; // two face side tex space index
+		};
+		struct FaceMaterailSpaceData // must be sizeof float4
+		{
+			float area = 0.f;
+			float mass = 0.f;
+			float __place_holder_1 = 0.f;
+			float __place_holder_2 = 0.f;
+		};
+		struct EdgeMaterailSpaceData // must be sizeof float4
+		{
+			float length = 0.f;
+			float reference_angle = 0.f;
+			float theta = 0.f;
+			float theta_ideal = 0.f;
+		};
+		struct NodeMaterailSpaceData // must be sizeof float4
+		{
+			float area = 0.f;
+			float mass = 0.f;
+			float __place_holder_1 = 0.f;
+			float __place_holder_2 = 0.f;
 		};
 		struct SimParam
 		{
@@ -104,6 +126,9 @@ namespace ldp
 		std::vector<int> m_faces_idxMat_h;						// material index of each face
 		DeviceArray<cudaTextureObject_t> m_faces_texStretch_d;	// cuda texture of stretching
 		DeviceArray<cudaTextureObject_t> m_faces_texBend_d;		// cuda texture of bending
+		DeviceArray<FaceMaterailSpaceData> m_faces_materialSpace_d;
+		DeviceArray<NodeMaterailSpaceData> m_nodes_materialSpace_d;
+		DeviceArray<EdgeMaterailSpaceData> m_edges_materialSpace_d;
 		std::vector<EdgeData> m_edgeData_h;
 		DeviceArray<EdgeData> m_edgeData_d;
 
@@ -127,9 +152,11 @@ namespace ldp
 		DeviceArray<ldp::Float3> m_beforScan_b;
 		///////////////// solve for the simulation linear system: A*dv=b////////////////////////////////
 		std::shared_ptr<CudaBsrMatrix> m_A;
-		DeviceArray<ldp::Float3> m_b;							
-		DeviceArray<ldp::Float2> m_texCoord_init;				// material (tex) space vertex texCoord		
-		DeviceArray<ldp::Float3> m_x_init;						// world space vertex position
+		DeviceArray<ldp::Float3> m_b;
+		std::vector<ldp::Float2> m_texCoord_init_h;				// material (tex) space vertex texCoord							
+		DeviceArray<ldp::Float2> m_texCoord_init_d;				// material (tex) space vertex texCoord	
+		std::vector<ldp::Float3> m_x_init_h;					// world space vertex position	
+		DeviceArray<ldp::Float3> m_x_init_d;					// world space vertex position
 		DeviceArray<ldp::Float3> m_x;							// position of current step	
 		DeviceArray<ldp::Float3> m_v;							// velocity of current step
 		DeviceArray<ldp::Float3> m_dv;							// velocity changed in this step
@@ -238,6 +265,7 @@ namespace ldp
 		};
 		std::vector<StretchingSamples> m_stretchSamples_h;			
 		std::vector<BendingData> m_bendingData_h;
+		std::vector<float> m_densityData_h;
 	public:
 		static void vertPair_to_idx(const int* ids_v1, const int* ids_v2, size_t* ids, int nVerts, int nPairs);
 		static void vertPair_from_idx(int* ids_v1, int* ids_v2, const size_t* ids, int nVerts, int nPairs);

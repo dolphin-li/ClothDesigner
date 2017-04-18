@@ -97,7 +97,7 @@ namespace ldp
 
 	void GpuSim::restart()
 	{
-		m_x_init.copyTo(m_x);
+		m_x_init_d.copyTo(m_x);
 		cudaSafeCall(cudaMemset(m_v.ptr(), 0, m_v.sizeBytes()));
 		cudaSafeCall(cudaMemset(m_dv.ptr(), 0, m_dv.sizeBytes()));
 		cudaSafeCall(cudaMemset(m_b.ptr(), 0, m_b.sizeBytes()));
@@ -105,15 +105,63 @@ namespace ldp
 
 	void GpuSim::updateMaterial()
 	{
+		// stretching forces
 		std::vector<cudaTextureObject_t> tmp;
 		for (const auto& idx : m_faces_idxMat_h)
 			tmp.push_back(m_stretchSamples_h[idx].getCudaArray().getCudaTexture());
 		m_faces_texStretch_d.upload(tmp);
 
+		// bending forces
 		tmp.clear();
 		for (const auto& idx : m_faces_idxMat_h)
 			tmp.push_back(m_bendingData_h[idx].getCudaArray().getCudaTexture());
 		m_faces_texBend_d.upload(tmp);
+		tmp.clear();
+
+		// face material related
+		std::vector<FaceMaterailSpaceData> faceData(m_faces_idxTex_h.size());
+		for (size_t iFace = 0; iFace < m_faces_idxTex_h.size(); iFace++)
+		{
+			const auto& f = m_faces_idxTex_h[iFace];
+			const auto& t = m_texCoord_init_h;
+			const auto& label = m_faces_idxMat_h[iFace];
+			FaceMaterailSpaceData& fData = faceData[iFace];
+			fData.area = fabs(Float2(t[f[1]] - t[f[0]]).cross(t[f[2]] - t[f[0]])) * 0.5f;
+			fData.mass = fData.area * m_densityData_h[label];
+		} // end for iFace
+		m_faces_materialSpace_d.upload(faceData);
+
+		// node material related
+		std::vector<NodeMaterailSpaceData> nodeData(m_x_init_h.size());
+		for (size_t iFace = 0; iFace < m_faces_idxTex_h.size(); iFace++)
+		{
+			const FaceMaterailSpaceData& fData = faceData[iFace];
+			const auto& f = m_faces_idxWorld_h[iFace];
+			for (int k = 0; k < 3; k++)
+			{
+				NodeMaterailSpaceData& nData = nodeData[f[k]];
+				nData.area += fData.area / 3.f;
+				nData.mass += fData.mass / 3.f;
+			}
+		} // end for iFace
+		m_nodes_materialSpace_d.upload(nodeData);
+
+		// edge material related
+		std::vector<EdgeMaterailSpaceData> edgeMatData(m_edgeData_h.size());
+		for (size_t iEdge = 0; iEdge < m_edgeData_h.size(); iEdge++)
+		{
+			const auto& eIdData = m_edgeData_h[iEdge];
+			int fi = eIdData.faceIdx[0] >= 0 ? 0 : 1;
+			const auto& t0 = m_texCoord_init_h[eIdData.edge_idxTex[fi][0]];
+			const auto& t1 = m_texCoord_init_h[eIdData.edge_idxTex[fi][1]];
+			auto& eMatData = edgeMatData[iEdge];
+			eMatData.length = (t0 - t1).length();
+			eMatData.reference_angle = 0.f;
+			eMatData.theta_ideal = 0.f;
+			auto du = t1 - t0;
+			eMatData.theta = atan2f(du[1], du[0]);
+		} // end for iEdge
+		m_edges_materialSpace_d.upload(edgeMatData);
 	}
 
 	void GpuSim::updateTopology()
@@ -125,11 +173,11 @@ namespace ldp
 		else
 			throw std::exception("GpuSim, not initialized!");
 
-		updateMaterial();
-		m_x_init.copyTo(m_x);
+		m_x_init_d.copyTo(m_x);
 		m_v.create(m_x.size());
 		m_dv.create(m_x.size());
 		m_b.create(m_x.size());
+		updateMaterial();
 		bindTextures();
 	}
 
@@ -155,12 +203,13 @@ namespace ldp
 		m_faces_idxTex_h.clear();
 		m_faces_idxMat_h.clear();
 		m_edgeData_h.clear();
-		std::vector<ldp::Float3> tmp_x_init;
-		std::vector<ldp::Float2> tmp_texCoord_init;
+		m_x_init_h.clear(); 
+		m_texCoord_init_h.clear();
 		auto sim = m_arcSimManager->getSimulator();
 		int node_index_begin = 0;
 		int tex_index_begin = 0;
 		int mat_index_begin = 0;
+		int face_index_begin = 0;
 		for (size_t iCloth = 0; iCloth < sim->cloths.size(); iCloth++)
 		{
 			const auto& cloth = sim->cloths[iCloth];
@@ -175,25 +224,29 @@ namespace ldp
 			for (const auto& e : cloth.mesh.edges)
 			{
 				EdgeData ed;
-				ed.edge_idxWorld[0] = e->n[0]->index + node_index_begin;
-				ed.edge_idxWorld[1] = e->n[1]->index + node_index_begin;
+				ed.edge_idxWorld = ldp::Int2(e->n[0]->index, e->n[1]->index) + node_index_begin;
 				ed.faceIdx[0] = ed.faceIdx[1] = -1;
-				if (e->adjf[0])
-					ed.faceIdx[0] = e->adjf[0]->index + tex_index_begin;
-				if (e->adjf[1])
-					ed.faceIdx[1] = e->adjf[1]->index + tex_index_begin;
+				for (int k = 0; k < 2; k++)
+				if (e->adjf[k])
+				{
+					ed.faceIdx[k] = e->adjf[k]->index + face_index_begin;
+					ed.edge_idxTex[k] = ldp::Int2(arcsim::edge_vert(e, k, 0)->index,
+						arcsim::edge_vert(e, k, 1)->index) + tex_index_begin;
+				}
 				m_edgeData_h.push_back(ed);
 			} // end for e
 			for (const auto& n : cloth.mesh.nodes)
-				tmp_x_init.push_back(convert(n->x0));
+				m_x_init_h.push_back(convert(n->x0));
 			for (const auto& v : cloth.mesh.verts)
-				tmp_texCoord_init.push_back(convert(v->u));
+				m_texCoord_init_h.push_back(convert(v->u));
 			node_index_begin += cloth.mesh.nodes.size();
 			tex_index_begin += cloth.mesh.verts.size();
 			mat_index_begin += cloth.materials.size();
+			face_index_begin += cloth.mesh.faces.size();
 		} // end for iCloth
-		m_x_init.upload(tmp_x_init); 
-		m_texCoord_init.upload(tmp_texCoord_init);
+
+		m_x_init_d.upload(m_x_init_h); 
+		m_texCoord_init_d.upload(m_texCoord_init_h);
 		m_faces_idxWorld_d.upload(m_faces_idxWorld_h);
 		m_faces_idxTex_d.upload(m_faces_idxTex_h);
 		m_edgeData_d.upload(m_edgeData_h.data(), m_edgeData_h.size());
@@ -235,7 +288,7 @@ namespace ldp
 		}
 
 		Eigen::SparseMatrix<float> A;
-		A.resize(m_x_init.size(), m_x_init.size());
+		A.resize(m_x_init_h.size(), m_x_init_h.size());
 		if (!cooSys.empty())
 			A.setFromTriplets(cooSys.begin(), cooSys.end());
 
@@ -251,7 +304,7 @@ namespace ldp
 		m_A->dump("D:/tmp/eigen_A.txt");
 #endif
 		// compute sparse structure via sorting---------------------------------
-		const int nVerts = m_x_init.size();
+		const int nVerts = m_x_init_h.size();
 
 		// 1. collect face adjacents
 		std::vector<size_t> A_Ids_h;
@@ -370,6 +423,7 @@ namespace ldp
 			for (const auto& cloth : m_arcSimManager->getSimulator()->cloths)
 			for (const auto& mat : cloth.materials)
 			{
+				m_densityData_h.push_back(mat->density);
 				m_stretchSamples_h.push_back(StretchingSamples());
 				for (int x = 0; x < StretchingSamples::SAMPLES; x++)
 				for (int y = 0; y < StretchingSamples::SAMPLES; y++)
@@ -439,6 +493,7 @@ namespace ldp
 	{
 		m_bendingData_h.clear();
 		m_stretchSamples_h.clear();
+		m_densityData_h.clear();
 	}
 
 	void GpuSim::dumpVec(std::string name, const DeviceArray<float>& A, int nTotal)

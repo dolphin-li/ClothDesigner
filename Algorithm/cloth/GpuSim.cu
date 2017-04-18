@@ -364,6 +364,9 @@ namespace ldp
 	texture<int4, cudaTextureType1D, cudaReadModeElementType> gt_faces_idxTex;
 	texture<int, cudaTextureType1D, cudaReadModeElementType> gt_A_order;
 	texture<int, cudaTextureType1D, cudaReadModeElementType> gt_b_order;
+	texture<float4, cudaTextureType1D, cudaReadModeElementType> gt_faceMaterialData;
+	texture<float4, cudaTextureType1D, cudaReadModeElementType> gt_nodeMaterialData;
+	texture<float4, cudaTextureType1D, cudaReadModeElementType> gt_edgeMaterialData;
 	__device__ __forceinline__ Float3 texRead_x(int i)
 	{
 		return ldp::Float3(tex1Dfetch(gt_x, i * 3), 
@@ -397,6 +400,32 @@ namespace ldp
 	{
 		return tex1Dfetch(gt_b_order, i);
 	}
+	__device__ __forceinline__ GpuSim::FaceMaterailSpaceData texRead_faceMaterialData(int i)
+	{
+		float4 v = tex1Dfetch(gt_faceMaterialData, i);
+		GpuSim::FaceMaterailSpaceData data;
+		data.area = v.x;
+		data.mass = v.y;
+		return data;
+	}
+	__device__ __forceinline__ GpuSim::NodeMaterailSpaceData texRead_nodeMaterialData(int i)
+	{
+		float4 v = tex1Dfetch(gt_nodeMaterialData, i);
+		GpuSim::NodeMaterailSpaceData data;
+		data.area = v.x;
+		data.mass = v.y;
+		return data;
+	}
+	__device__ __forceinline__ GpuSim::EdgeMaterailSpaceData texRead_edgeMaterialData(int i)
+	{
+		float4 v = tex1Dfetch(gt_edgeMaterialData, i);
+		GpuSim::EdgeMaterailSpaceData data;
+		data.length = v.x;
+		data.reference_angle = v.y;
+		data.theta = v.z;
+		data.theta_ideal = v.w;
+		return data;
+	}
 	__device__ __forceinline__ Float4 texRead_strechSample(cudaTextureObject_t t, float x, float y, float z)
 	{
 		float4 v = tex3D<float4>(t, x, y, z);
@@ -423,6 +452,7 @@ namespace ldp
 		size_t offset;
 		cudaChannelFormatDesc desc_float = cudaCreateChannelDesc<float>();
 		cudaChannelFormatDesc desc_float2 = cudaCreateChannelDesc<float2>();
+		cudaChannelFormatDesc desc_float4 = cudaCreateChannelDesc<float4>();
 		cudaChannelFormatDesc desc_int = cudaCreateChannelDesc<int>();
 		cudaChannelFormatDesc desc_int4 = cudaCreateChannelDesc<int4>();
 
@@ -430,12 +460,12 @@ namespace ldp
 			&desc_float, m_x.size()*sizeof(float3)));
 		CHECK_ZERO(offset);
 
-		cudaSafeCall(cudaBindTexture(&offset, &gt_x_init, m_x_init.ptr(),
-			&desc_float, m_x_init.size()*sizeof(float3)));
+		cudaSafeCall(cudaBindTexture(&offset, &gt_x_init, m_x_init_d.ptr(),
+			&desc_float, m_x_init_d.size()*sizeof(float3)));
 		CHECK_ZERO(offset);
 
-		cudaSafeCall(cudaBindTexture(&offset, &gt_texCoord_init, m_texCoord_init.ptr(), 
-			&desc_float2, m_texCoord_init.size()*sizeof(float2)));
+		cudaSafeCall(cudaBindTexture(&offset, &gt_texCoord_init, m_texCoord_init_d.ptr(), 
+			&desc_float2, m_texCoord_init_d.size()*sizeof(float2)));
 		CHECK_ZERO(offset);
 
 		cudaSafeCall(cudaBindTexture(&offset, &gt_faces_idxWorld, m_faces_idxWorld_d.ptr(),
@@ -452,6 +482,18 @@ namespace ldp
 
 		cudaSafeCall(cudaBindTexture(&offset, &gt_b_order, m_b_order_d.ptr(),
 			&desc_int, m_b_order_d.size()*sizeof(int)));
+		CHECK_ZERO(offset);
+
+		cudaSafeCall(cudaBindTexture(&offset, &gt_faceMaterialData, m_faces_materialSpace_d.ptr(),
+			&desc_float4, m_faces_materialSpace_d.size()*sizeof(float4)));
+		CHECK_ZERO(offset);
+
+		cudaSafeCall(cudaBindTexture(&offset, &gt_nodeMaterialData, m_nodes_materialSpace_d.ptr(),
+			&desc_float4, m_nodes_materialSpace_d.size()*sizeof(float4)));
+		CHECK_ZERO(offset);
+
+		cudaSafeCall(cudaBindTexture(&offset, &gt_edgeMaterialData, m_edges_materialSpace_d.ptr(),
+			&desc_float4, m_edges_materialSpace_d.size()*sizeof(float4)));
 		CHECK_ZERO(offset);
 	}
 
@@ -609,10 +651,10 @@ namespace ldp
 			{ texRead_x(face_idxWorld[1][0]), texRead_x(face_idxWorld[1][1]), texRead_x(face_idxWorld[1][2]) },
 		};
 		const ldp::Float2 t[2][3] = {
-			{ texRead_texCoord_init(face_idxWorld[0][0]), texRead_texCoord_init(face_idxWorld[0][1]), 
-			texRead_texCoord_init(face_idxWorld[0][2]) },
-			{ texRead_texCoord_init(face_idxWorld[1][0]), texRead_texCoord_init(face_idxWorld[1][1]), 
-			texRead_texCoord_init(face_idxWorld[1][2]) },
+			{ texRead_texCoord_init(face_idxTex[0][0]), texRead_texCoord_init(face_idxTex[0][1]),
+			texRead_texCoord_init(face_idxTex[0][2]) },
+			{ texRead_texCoord_init(face_idxTex[1][0]), texRead_texCoord_init(face_idxTex[1][1]),
+			texRead_texCoord_init(face_idxTex[1][2]) },
 		};
 		const ldp::Int4 eIds(edgeData.edge_idxWorld[0], edgeData.edge_idxWorld[1],
 			sum(face_idxWorld[0]) - edgeData.edge_idxWorld[0] - edgeData.edge_idxWorld[1],
@@ -715,6 +757,37 @@ namespace ldp
 		}
 	}
 
+	__global__ void compute_A_kernel(const int* A_unique_pos, const ldp::Mat3f* internelForce_beforeScan, 
+		const int* A_cooRow, const int* A_cooCol, ldp::Mat3f* A_values, float dt,
+		int nVerts, int nnzBlocks, int nItemsBeforeScan)
+	{
+		int thread_id = threadIdx.x + blockIdx.x * blockDim.x;
+		if (thread_id >= nnzBlocks)
+			return;
+		const int scan_begin = A_unique_pos[thread_id];
+		const int scan_end = (thread_id == nnzBlocks - 1) ? nItemsBeforeScan : A_unique_pos[thread_id + 1];
+
+		// compute A(row, col)
+		const int row = A_cooRow[thread_id];
+		const int col = A_cooCol[thread_id];
+		ldp::Mat3f sum;
+		sum.zeros();
+
+		// internal forces scan
+		for (int scan_i = scan_begin; scan_i < scan_end; scan_i++)
+			sum += internelForce_beforeScan[scan_i];
+		
+		// external forces and diag term
+		if (row == col)
+		{
+			const float mass = texRead_nodeMaterialData(row).mass;
+			sum += ldp::Mat3f().eye() * mass;
+		}
+
+		// write into A
+		A_values[thread_id] = sum;
+	}
+
 	void GpuSim::updateNumeric()
 	{
 		const int nFaces = m_faces_idxWorld_d.size();
@@ -729,6 +802,8 @@ namespace ldp
 
 		// scanning into the sparse matrix
 		// since we have unique positions, we can do scan similar with CSR-vector multiplication.
+		const int nVerts = m_x.size();
+		const int nnzBlocks = m_A->nnzBlocks();
 	}
 #pragma endregion
 }
