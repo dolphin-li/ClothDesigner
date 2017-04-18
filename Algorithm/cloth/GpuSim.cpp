@@ -7,6 +7,9 @@
 #include "arcsim\adaptiveCloth\dde.hpp"
 #include "cudpp\thrust_wrapper.h"
 #include "cudpp\CachedDeviceBuffer.h"
+
+#define DEBUG_DUMP
+#define LDP_DEBUG
 namespace ldp
 {
 #pragma region -- utils
@@ -65,9 +68,12 @@ namespace ldp
 		m_simParam.setDefault();
 		initParam();
 		initializeMaterialMemory();
-		updateMaterial();
 		updateTopology();
 		updateNumeric();
+#ifdef DEBUG_DUMP
+		dumpVec("D:/tmp/m_beforScan_A.txt", m_beforScan_A);
+		dumpVec("D:/tmp/m_beforScan_b.txt", m_beforScan_b);
+#endif
 		restart();
 	}
 
@@ -76,7 +82,7 @@ namespace ldp
 		if (m_arcSimManager)
 		{
 			const auto* sim = m_arcSimManager->getSimulator();
-			m_simParam.dt = sim->frame_time / sim->frame_steps;
+			m_simParam.dt = sim->step_time;
 		} // end if arc
 		else
 		{
@@ -119,6 +125,7 @@ namespace ldp
 		else
 			throw std::exception("GpuSim, not initialized!");
 
+		updateMaterial();
 		m_x_init.copyTo(m_x);
 		m_v.create(m_x.size());
 		m_dv.create(m_x.size());
@@ -206,7 +213,7 @@ namespace ldp
 
 	void GpuSim::setup_sparse_structure_from_cpu()
 	{
-#if 0
+#ifdef DEBUG_DUMP
 		// compute sparse structure via eigen
 		std::vector<Eigen::Triplet<float>> cooSys;
 		for (const auto& f : m_faces_idxWorld_h)
@@ -242,7 +249,7 @@ namespace ldp
 		cudaSafeCall(cudaMemset(m_A->value(), 0, m_A->nnz()*sizeof(float)));
 
 		m_A->dump("D:/tmp/eigen_A.txt");
-#else
+#endif
 		// compute sparse structure via sorting---------------------------------
 		const int nVerts = m_x_init.size();
 
@@ -297,10 +304,15 @@ namespace ldp
 		m_A_order_d.create(A_Ids_h.size());
 		m_A_invOrder_d.create(A_Ids_h.size());
 		thrust_wrapper::make_counting_array(m_A_invOrder_d.ptr(), m_A_invOrder_d.size());
-		thrust_wrapper::sort_by_key(m_A_Ids_d.ptr(), m_A_invOrder_d.ptr(), A_Ids_h.size());
-		thrust_wrapper::sort_by_key(m_A_invOrder_d.ptr(), m_A_order_d.ptr(), A_Ids_h.size());
+		thrust_wrapper::make_counting_array(m_A_order_d.ptr(), m_A_order_d.size());
+#ifdef LDP_DEBUG
+		// ldp debug here
+		//thrust_wrapper::sort_by_key(m_A_Ids_d.ptr(), m_A_invOrder_d.ptr(), A_Ids_h.size());
+		//thrust_wrapper::sort_by_key(m_A_invOrder_d.ptr(), m_A_order_d.ptr(), A_Ids_h.size());
+#endif
 		m_A_Ids_d.copyTo(m_A_Ids_d_unique);
 		auto nUniqueNnz = thrust_wrapper::unique(m_A_Ids_d_unique.ptr(), m_A_Ids_d_unique.size());
+		m_beforScan_A.create(m_A_order_d.size());
 
 		// rhs b
 		m_b_Ids_d.upload(b_Ids_h);
@@ -308,8 +320,12 @@ namespace ldp
 		m_b_order_d.create(b_Ids_h.size());
 		m_b_invOrder_d.create(b_Ids_h.size());
 		thrust_wrapper::make_counting_array(m_b_invOrder_d.ptr(), m_b_invOrder_d.size());
-		thrust_wrapper::sort_by_key(m_b_Ids_d.ptr(), m_b_invOrder_d.ptr(), b_Ids_h.size());
-		thrust_wrapper::sort_by_key(m_b_invOrder_d.ptr(), m_b_order_d.ptr(), b_Ids_h.size());
+		thrust_wrapper::make_counting_array(m_b_order_d.ptr(), m_b_order_d.size());
+#ifdef LDP_DEBUG
+		//thrust_wrapper::sort_by_key(m_b_Ids_d.ptr(), m_b_invOrder_d.ptr(), b_Ids_h.size());
+		//thrust_wrapper::sort_by_key(m_b_invOrder_d.ptr(), m_b_order_d.ptr(), b_Ids_h.size());
+#endif
+		m_beforScan_b.create(m_b_order_d.size());
 		
 		// 4. convert vertex-pair idx to coo array
 		CachedDeviceBuffer booRow(nUniqueNnz*sizeof(int));
@@ -322,8 +338,17 @@ namespace ldp
 		cudaSafeCall(cudaMemcpy(m_A->bsrColIdx(), (const int*)booCol.data(),
 			nUniqueNnz*sizeof(int), cudaMemcpyDeviceToDevice));
 		cudaSafeCall(cudaMemset(m_A->value(), 0, m_A->nnz()*sizeof(float)));
+
+#ifdef DEBUG_DUMP
 		m_A->dump("D:/tmp/eigen_A_1.txt");
-#endif	
+		dumpVec_pair("D:/tmp/m_A_Ids_d.txt", m_A_Ids_d, nVerts);
+		dumpVec_pair("D:/tmp/m_A_Ids_d_unique.txt", m_A_Ids_d_unique, nVerts, nUniqueNnz);
+		dumpVec("D:/tmp/m_A_order_d.txt", m_A_order_d);
+		dumpVec("D:/tmp/m_A_invOrder_d.txt", m_A_invOrder_d);
+		dumpVec("D:/tmp/m_b_Ids_d.txt", m_b_Ids_d);
+		dumpVec("D:/tmp/m_b_order_d.txt", m_b_order_d);
+		dumpVec("D:/tmp/m_b_invOrder_d.txt", m_b_invOrder_d);
+#endif
 	}
 
 	void GpuSim::initializeMaterialMemory()
@@ -389,44 +414,111 @@ namespace ldp
 		m_stretchSamples_h.clear();
 	}
 
-	void GpuSim::dumpVec(std::string name, const DeviceArray<float>& A)
+	void GpuSim::dumpVec(std::string name, const DeviceArray<float>& A, int nTotal)
 	{
 		std::vector<float> hA;
 		A.download(hA);
 
+		int n = A.size();
+		if (nTotal >= 0)
+			n = nTotal;
+
 		FILE* pFile = fopen(name.c_str(), "w");
 		if (pFile)
 		{
-			for (int y = 0; y < A.size(); y++)
+			for (int y = 0; y < n; y++)
 				fprintf(pFile, "%ef\n", hA[y]);
 			fclose(pFile);
 			printf("saved: %s\n", name.c_str());
 		}
 	}
-	void GpuSim::dumpVec(std::string name, const DeviceArray<ldp::Float2>& A)
+	void GpuSim::dumpVec(std::string name, const DeviceArray<ldp::Float2>& A, int nTotal)
 	{
 		std::vector<ldp::Float2> hA;
 		A.download(hA);
-
+		int n = A.size();
+		if (nTotal >= 0)
+			n = nTotal;
 		FILE* pFile = fopen(name.c_str(), "w");
 		if (pFile)
 		{
-			for (int y = 0; y < A.size(); y++)
+			for (int y = 0; y < n; y++)
 				fprintf(pFile, "%ef %ef\n", hA[y][0], hA[y][1]);
 			fclose(pFile);
 			printf("saved: %s\n", name.c_str());
 		}
 	}
-	void GpuSim::dumpVec(std::string name, const DeviceArray<ldp::Float3>& A)
+	void GpuSim::dumpVec(std::string name, const DeviceArray<int>& A, int nTotal)
 	{
-		std::vector<ldp::Float3> hA;
+		std::vector<int> hA;
 		A.download(hA);
-
+		int n = A.size();
+		if (nTotal >= 0)
+			n = nTotal;
 		FILE* pFile = fopen(name.c_str(), "w");
 		if (pFile)
 		{
-			for (int y = 0; y < A.size(); y++)
+			for (int y = 0; y < n; y++)
+				fprintf(pFile, "%d\n", hA[y]);
+			fclose(pFile);
+			printf("saved: %s\n", name.c_str());
+		}
+	}
+	void GpuSim::dumpVec_pair(std::string name, const DeviceArray<size_t>& A, int nVerts, int nTotal)
+	{
+		std::vector<size_t> hA;
+		A.download(hA);
+		int n = A.size();
+		if (nTotal >= 0)
+			n = nTotal;
+		FILE* pFile = fopen(name.c_str(), "w");
+		if (pFile)
+		{
+			for (int y = 0; y < n; y++)
+			{
+				Int2 v = ldp::vertPair_from_idx(hA[y], nVerts);
+				fprintf(pFile, "%d %d\n", v[0], v[1]);
+			}
+			fclose(pFile);
+			printf("saved: %s\n", name.c_str());
+		}
+	}
+	void GpuSim::dumpVec(std::string name, const DeviceArray<ldp::Float3>& A, int nTotal)
+	{
+		std::vector<ldp::Float3> hA;
+		A.download(hA);
+		int n = A.size();
+		if (nTotal >= 0)
+			n = nTotal;
+		FILE* pFile = fopen(name.c_str(), "w");
+		if (pFile)
+		{
+			for (int y = 0; y < n; y++)
 				fprintf(pFile, "%ef %ef %ef\n", hA[y][0], hA[y][1], hA[y][2]);
+			fclose(pFile);
+			printf("saved: %s\n", name.c_str());
+		}
+	}
+	void GpuSim::dumpVec(std::string name, const DeviceArray<ldp::Mat3f>& A, int nTotal)
+	{
+		std::vector<ldp::Mat3f> hA;
+		A.download(hA);
+		int n = A.size();
+		if (nTotal >= 0)
+			n = nTotal;
+		FILE* pFile = fopen(name.c_str(), "w");
+		if (pFile)
+		{
+			for (int y = 0; y < n; y++)
+			{
+				for (int r = 0; r < 3; r++)
+				{
+					for (int c = 0; c < 3; c++)
+						fprintf(pFile, "%ef ", hA[y](r, c));
+					fprintf(pFile, "\n");
+				}
+				fprintf(pFile, "\n");
+			}
 			fclose(pFile);
 			printf("saved: %s\n", name.c_str());
 		}

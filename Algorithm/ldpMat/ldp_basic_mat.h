@@ -101,7 +101,7 @@ public:
 		ldp_basic_mat<T, M, N> out;
 		for(size_t i=0; i<N; i++)
 			for(size_t j=0; j<M; j++)
-				out(i, j) = (*this)(j, i);
+				out(j, i) = (*this)(i, j);
 		return out;
 	}
 	__device__ __host__ ldp_basic_mat<T, N, M>& zeros()
@@ -126,7 +126,7 @@ public:
 	{
 		T sum = 0;
 		for (int y = 0; y < N; y++)
-		for (int x = 0; x < N; x++)
+		for (int x = 0; x < M; x++)
 			sum += (*this)(y, x) * (*this)(y, x);
 		return sqrt(sum);
 	}
@@ -675,8 +675,8 @@ public:
 		typename ldp_basic_mat<typename type_promote<T,E>::type, 2, K> out;	
 		for(size_t i=0; i<K; i++)
 		{
-			out(i, 0) = _data[0]*rhs(i,0) + _data[2]*rhs(i,1);
-			out(i, 1) = _data[1]*rhs(i,0) + _data[3]*rhs(i,1);
+			out(i, 0) = _data[0]*rhs(0, i) + _data[2]*rhs(1, i);
+			out(i, 1) = _data[1]*rhs(0, i) + _data[3]*rhs(1, i);
 		}
 		return out;
 	}

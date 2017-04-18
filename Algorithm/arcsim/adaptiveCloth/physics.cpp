@@ -35,6 +35,7 @@ using namespace std;
 
 namespace arcsim
 {
+#define LDP_DEBUG
 
 	static const bool verbose = false;
 
@@ -112,6 +113,37 @@ namespace arcsim
 			+ k[1] * (outer(fuu, fvv) + std::max(G(0, 0), 0.)*Dv.t()*Dv
 			+ outer(fvv, fuu) + std::max(G(1, 1), 0.)*Du.t()*Du)
 			+ 2.*k[3] * (outer(fuv, fuv));
+
+#ifdef LDP_DEBUG
+		static int flag = 0;
+		if (flag == 0)
+		{
+			flag = 1;
+			
+			std::ofstream file("D:/tmp/arcsim_var.txt");
+			file << "x[0]: " << std::endl << pos<s>(face->v[0]->node) << std::endl;
+			file << "x[1]: " << std::endl << pos<s>(face->v[1]->node) << std::endl;
+			file << "x[2]: " << std::endl << pos<s>(face->v[2]->node) << std::endl;
+			file << "t[0]: " << std::endl << face->v[0]->u << std::endl;
+			file << "t[1]: " << std::endl << face->v[1]->u << std::endl;
+			file << "t[2]: " << std::endl << face->v[2]->u << std::endl;
+			file << "Dm: " << std::endl << face->Dm << std::endl;
+			file << "invDm: " << std::endl << face->invDm << std::endl;
+			file << "F: " << std::endl << F << std::endl;
+			file << "G: " << std::endl << G << std::endl;
+			file << "k: " << std::endl << k << std::endl;
+			file << "wd: " << std::endl << weakening*face->damage << std::endl;
+			file << "D: " << std::endl << D << std::endl;
+			file << "Du: " << std::endl << Du << std::endl;
+			file << "Dv: " << std::endl << Dv << std::endl;
+			file << "fuu: " << std::endl << fuu << std::endl;
+			file << "fvv: " << std::endl << fvv << std::endl;
+			file << "fuv: " << std::endl << fuv << std::endl;
+			file << "grad_e: " << std::endl << grad_e << std::endl;
+			file << "hess_e: " << std::endl << hess_e << std::endl;
+			file.close();
+		}
+#endif
 		// ignoring G(0,1)*(Du.t()*Dv+Dv.t()*Du)/2. term
 		// because may not be positive definite
 		return make_pair(-face->a*hess_e, -face->a*grad_e);
@@ -285,6 +317,18 @@ namespace arcsim
 				add_submat(-dt*(dt + damping)*J, indices(n0, n1, n2), A);
 				add_subvec(dt*(F + (dt + damping)*J*vs), indices(n0, n1, n2), b);
 			}
+#ifdef LDP_DEBUG
+			static int flag = 0;
+			if (flag == 0)
+			{
+				flag = 1;
+
+				std::ofstream file("D:/tmp/arcsim_var_FJ.txt");
+				file << "F: " << std::endl << dt*(F + dt*J*vs) << std::endl;
+				file << "J: " << std::endl << -dt*dt*J << std::endl;
+				file.close();
+			}
+#endif
 		}
 		for (int e = 0; e < mesh.edges.size(); e++)
 		{

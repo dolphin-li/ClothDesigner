@@ -2,6 +2,7 @@
 #include "adaptiveCloth\conf.hpp"
 #include "adaptiveCloth\separateobs.hpp"
 #include "adaptiveCloth\io.hpp"
+#include "adaptiveCloth\physics.hpp"
 #include "ldputil.h"
 #include "Renderable\ObjMesh.h"
 #include "cloth\clothManager.h"
@@ -9,6 +10,7 @@
 #include "cloth\GpuSim.h"
 namespace arcsim
 {
+#define LDP_DEBUG
 	const static double g_num_edge_sample_angle_thre = 15 * ldp::PI_D / 180.;
 	const static double g_num_edge_sample_dist_thre = 0.01;
 
@@ -143,7 +145,18 @@ namespace arcsim
 		updateMesh();
 
 		//debug
+#ifdef LDP_DEBUG
 		m_gpuSim->init(this);
+		std::vector<Constraint*> cons;
+		for (int c = 0; c < m_sim->cloths.size(); c++)
+		{
+			int nn = m_sim->cloths[c].mesh.nodes.size();
+			std::vector<Vec3> fext(nn, Vec3(0));
+			std::vector<Mat3x3> Jext(nn, Mat3x3(0));
+			//add_external_forces(sim.cloths[c], sim.gravity, sim.wind, fext, Jext);
+			implicit_update(m_sim->cloths[c], fext, Jext, cons, m_sim->step_time, false);
+		}
+#endif
 	}
 
 

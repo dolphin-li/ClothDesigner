@@ -6,10 +6,13 @@
 #include <math.h>
 namespace ldp
 {
+
+#define LDP_DEBUG
+
 #pragma region --utils
 	enum{
-		CTA_SIZE = 512,
-		CTA_SIZE_X = 32,
+		CTA_SIZE = 256,
+		CTA_SIZE_X = 16,
 		CTA_SIZE_Y = 16
 	};
 
@@ -26,6 +29,80 @@ namespace ldp
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
+	template<int N, int M> __device__ __host__ void print(ldp_basic_mat<float, N, M> A, const char* msg = nullptr);
+	template<int N> __device__ __host__  void print(ldp_basic_vec<float, N> x, const char* msg = nullptr);
+	template<> __device__ __host__ void print(ldp_basic_mat<float, 2, 2> A, const char* msg)
+	{
+		printf("%s\n%f %f\n%f %f\n", msg, A(0, 0), A(0, 1), A(1, 0), A(1, 1));
+	}
+	template<> __device__ __host__ void print(ldp_basic_mat<float, 2, 3> A, const char* msg)
+	{
+		printf("%s\n%f %f %f\n%f %f %f\n", msg, A(0, 0), A(0, 1), A(0, 2), A(1, 0), A(1, 1), A(1, 2));
+	}
+	template<> __device__ __host__ void print(ldp_basic_mat<float, 3, 2> A, const char* msg)
+	{
+		printf("%s\n%f %f\n%f %f\n%f %f\n", msg, A(0, 0), A(0, 1), A(1, 0), A(1, 1), A(2, 0), A(2, 1));
+	}
+	template<> __device__ __host__ void print(ldp_basic_mat<float, 3, 1> A, const char* msg)
+	{
+		printf("%s\n%f\n%f\n%f\n", msg, A(0, 0), A(1, 0), A(2, 0));
+	}
+	template<> __device__ __host__ void print(ldp_basic_mat<float, 3, 3> A, const char* msg)
+	{
+		printf("%s\n%f %f %f\n%f %f %f\n%f %f %f\n", msg, A(0, 0), A(0, 1), A(0, 2),
+			A(1, 0), A(1, 1), A(1, 2), A(2, 0), A(2, 1), A(2, 2));
+	}
+	template<> __device__ __host__ void print(ldp_basic_mat<float, 3, 9> A, const char* msg)
+	{
+		printf("%s\n%f %f %f %f %f %f %f %f %f\n%f %f %f %f %f %f %f %f %f\n%f %f %f %f %f %f %f %f %f\n", 
+			msg,
+			   A(0, 0), A(0, 1), A(0, 2), A(0, 3), A(0, 4), A(0, 5), A(0, 6), A(0, 7), A(0, 8),
+			   A(1, 0), A(1, 1), A(1, 2), A(1, 3), A(1, 4), A(1, 5), A(1, 6), A(1, 7), A(1, 8),
+			   A(2, 0), A(2, 1), A(2, 2), A(2, 3), A(2, 4), A(2, 5), A(2, 6), A(2, 7), A(2, 8)
+			   );
+	}
+	template<> __device__ __host__ void print(ldp_basic_mat<float, 9, 9> A, const char* msg)
+	{
+		printf("%s\n%f %f %f %f %f %f %f %f %f\n%f %f %f %f %f %f %f %f %f\n%f %f %f %f %f %f %f %f %f\n",
+			msg,
+			A(0, 0), A(0, 1), A(0, 2), A(0, 3), A(0, 4), A(0, 5), A(0, 6), A(0, 7), A(0, 8),
+			A(1, 0), A(1, 1), A(1, 2), A(1, 3), A(1, 4), A(1, 5), A(1, 6), A(1, 7), A(1, 8),
+			A(2, 0), A(2, 1), A(2, 2), A(2, 3), A(2, 4), A(2, 5), A(2, 6), A(2, 7), A(2, 8)
+			);
+		printf("%f %f %f %f %f %f %f %f %f\n%f %f %f %f %f %f %f %f %f\n%f %f %f %f %f %f %f %f %f\n",
+			A(3, 0), A(3, 1), A(3, 2), A(3, 3), A(3, 4), A(3, 5), A(3, 6), A(3, 7), A(3, 8),
+			A(4, 0), A(4, 1), A(4, 2), A(4, 3), A(4, 4), A(4, 5), A(4, 6), A(4, 7), A(4, 8),
+			A(5, 0), A(5, 1), A(5, 2), A(5, 3), A(5, 4), A(5, 5), A(5, 6), A(5, 7), A(5, 8)
+			);
+		printf("%f %f %f %f %f %f %f %f %f\n%f %f %f %f %f %f %f %f %f\n%f %f %f %f %f %f %f %f %f\n",
+			A(6, 0), A(6, 1), A(6, 2), A(6, 3), A(6, 4), A(6, 5), A(6, 6), A(6, 7), A(6, 8),
+			A(7, 0), A(7, 1), A(7, 2), A(7, 3), A(7, 4), A(7, 5), A(7, 6), A(7, 7), A(7, 8),
+			A(8, 0), A(8, 1), A(8, 2), A(8, 3), A(8, 4), A(8, 5), A(8, 6), A(8, 7), A(8, 8)
+			);
+	}
+	template<> __device__ __host__ void print(ldp_basic_vec<float, 2> x, const char* msg)
+	{
+		printf("%s\n%f %f\n", msg, x[0], x[1]);
+	}
+	template<> __device__ __host__ void print(ldp_basic_vec<float, 3> x, const char* msg)
+	{
+		printf("%s\n%f %f %f\n", msg, x[0], x[1], x[2]);
+	}
+	template<> __device__ __host__ void print(ldp_basic_vec<float, 4> x, const char* msg)
+	{
+		printf("%s\n%f %f %f %f\n", msg, x[0], x[1], x[2], x[3]);
+	}
+	template<> __device__ __host__ void print(ldp_basic_vec<float, 9> x, const char* msg)
+	{
+		printf("%s\n%f %f %f %f %f %f %f %f %f\n", msg,
+			x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7], x[8]);
+	}
+	template<> __device__ __host__ void print(ldp_basic_vec<float, 12> x, const char* msg)
+	{
+		printf("%s\n%f %f %f %f % %f %f %f %f %f %f %f\n", msg,
+			x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7], x[8], x[9], x[10], x[11]);
+	}
+#define printVal(A) print(A, #A)
 
 	template<int N, int M>
 	__device__ __host__ __forceinline__ ldp_basic_vec<float, M> mat_getRow(ldp_basic_mat<float, N, M> A, int row)
@@ -62,7 +139,16 @@ namespace ldp
 		return s;
 	}
 
-
+	__device__ __host__ __forceinline__ Mat23f make_rows(Float3 a, Float3 b)
+	{
+		Mat23f C;
+		for (int k = 0; k < 3; k++)
+		{
+			C(0, k) = a[k];
+			C(1, k) = b[k];
+		}
+		return C;
+	}
 	__device__ __host__ __forceinline__ Float9 make_Float9(Float3 a, Float3 b, Float3 c)
 	{
 		Float9 d;
@@ -92,8 +178,8 @@ namespace ldp
 	}
 	__device__ __host__ __forceinline__ Mat23f derivative(const Float2 t[3])
 	{
-		return Mat2f(t[1] - t[0], t[2] - t[0]).inv()*
-			Mat32f(Mat31f(Float3(-1, 1, 0)), Mat31f(Float3(-1, 0, 1))).trans();
+		return Mat2f(t[1] - t[0], t[2] - t[0]).inv().trans()*
+			make_rows(Float3(-1, 1, 0), Float3(-1, 0, 1));
 	}
 	__device__ __host__ __forceinline__ float faceArea(const Float2 t[3])
 	{
@@ -325,7 +411,6 @@ namespace ldp
 		CHECK_ZERO(offset);
 	}
 
-
 	__device__ __forceinline__ Float4 stretching_stiffness(const Mat2f &G, cudaTextureObject_t samples)
 	{
 		float a = (G(0, 0) + 0.25f)*GpuSim::StretchingSamples::SAMPLES;
@@ -376,11 +461,7 @@ namespace ldp
 		Mat39f C;
 		C.zeros();
 		for (int k = 0; k < 3; k++)
-		{
-			C(k, k) = A(iRow, k);
-			C(k, k + 3) = A(iRow, k);
-			C(k, k + 6) = A(iRow, k);
-		}
+			C(0, k * 3) = C(1, k * 3 + 1) = C(2, k * 3 + 2) = A(iRow, k);
 		return C;
 	}
 
@@ -432,7 +513,7 @@ namespace ldp
 		hess_e = (dt*dt*area) * hess_e;
 		grad_e = -area * dt * grad_e + hess_e*vs;
 
-		// output to global matrix
+		//// output to global matrix
 		for (int row = 0; row < 3; row++)
 		for (int col = 0; col < 3; col++)
 		{
@@ -529,6 +610,9 @@ namespace ldp
 		// compute stretching forces here
 		if (thread_id < nFaces)
 		{
+#ifdef LDP_DEBUG
+			return;
+#endif
 			const int A_start = A_starts[thread_id];
 			const int b_start = b_starts[thread_id];
 			const ldp::Int3 face_idxWorld = texRead_faces_idxWorld(thread_id);
@@ -549,7 +633,6 @@ namespace ldp
 	{
 		const int nFaces = m_faces_idxWorld_d.size();
 		const int nEdges = m_edgeData_d.size();
-	
 		computeNumeric_kernel << <divUp(nFaces + nEdges, CTA_SIZE), CTA_SIZE >> >(
 			m_edgeData_d.ptr(), m_faces_texStretch_d.ptr(), m_faces_texBend_d.ptr(),
 			m_A_Ids_start_d.ptr(), m_beforScan_A.ptr(),

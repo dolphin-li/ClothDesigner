@@ -230,10 +230,13 @@ namespace ldp
 	public:
 		static void vertPair_to_idx(const int* ids_v1, const int* ids_v2, size_t* ids, int nVerts, int nPairs);
 		static void vertPair_from_idx(int* ids_v1, int* ids_v2, const size_t* ids, int nVerts, int nPairs);
-		static void dumpVec(std::string name, const DeviceArray<float>& A);
 		static void dumpVec(std::string name, const DeviceArray2D<float>& A);
-		static void dumpVec(std::string name, const DeviceArray<ldp::Float3>& A);
-		static void dumpVec(std::string name, const DeviceArray<ldp::Float2>& A);
+		static void dumpVec(std::string name, const DeviceArray<float>& A, int nTotal=-1);
+		static void dumpVec(std::string name, const DeviceArray<ldp::Float3>& A, int nTotal = -1);
+		static void dumpVec(std::string name, const DeviceArray<ldp::Mat3f>& A, int nTotal = -1);
+		static void dumpVec(std::string name, const DeviceArray<ldp::Float2>& A, int nTotal = -1);
+		static void dumpVec(std::string name, const DeviceArray<int>& A, int nTotal = -1);
+		static void dumpVec_pair(std::string name, const DeviceArray<size_t>& A, int nVerts, int nTotal = -1);
 		static void dumpStretchSampleArray(std::string name, const StretchingSamples& samples);
 		static void dumpBendDataArray(std::string name, const BendingData& samples);
 	};
