@@ -642,7 +642,7 @@ namespace ldp
 			bending_stiffness(ex[0], ex[1], edgeData, dihe_theta, area, t_bendDatas[edgeData.faceIdx[0]]),
 			bending_stiffness(ex[0], ex[1], edgeData, dihe_theta, area, t_bendDatas[edgeData.faceIdx[1]])
 			);
-		const float shape = ldp::sqr(edgeData.length) / (2.f * area);
+		const float shape = edgeData.length_sqr / (2.f * area);
 		const FloatC vs = make_Float12(ex[0], ex[1], ex[2], ex[3]);
 		FloatC F = -dt*0.5f * ke*shape*(dihe_theta - edgeData.dihedral_ideal)*dtheta;
 		MatCf J = -dt*dt*0.5f*ke*shape*outer(dtheta, dtheta);

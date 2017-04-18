@@ -43,7 +43,7 @@ namespace ldp
 			ldp::Int4 edge_idxWorld;
 			ldp::Int2 edge_idxTex[2]; // two face side tex space index
 			ldp::Int2 faceIdx;
-			float length = 0.f;
+			float length_sqr = 0.f;
 			float dihedral_ideal = 0.f;
 			float theta_initial = 0.f;
 			float theta_uv = 0.f;	// uv direction

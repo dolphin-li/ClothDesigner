@@ -221,7 +221,7 @@ namespace ldp
 					ed.edge_idxWorld[k + 2] = arcsim::edge_opp_vert(e, k)->node->index + node_index_begin;			
 					auto t0 = arcsim::edge_vert(e, k, 0)->u;
 					auto t1 = arcsim::edge_vert(e, k, 1)->u;
-					ed.length = arcsim::norm(t1-t0);
+					ed.length_sqr = arcsim::norm2(t1-t0);
 					ed.theta_uv = atan2f(t1[1]-t0[1], t1[0]-t0[0]);
 				}
 				m_edgeData_h.push_back(ed);
