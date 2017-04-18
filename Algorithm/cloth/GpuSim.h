@@ -65,7 +65,7 @@ namespace ldp
 		struct SimParam
 		{
 			float dt = 0.f;	// time step
-
+			Float3 gravity;
 
 			void setDefault();
 		};

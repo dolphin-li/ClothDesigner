@@ -15,7 +15,7 @@ namespace ldp
 		CTA_SIZE_X = 16,
 		CTA_SIZE_Y = 16
 	};
-
+	__constant__ float g_gpusim_gravity[3] = { 0, -9.8, 0 };
 #define CHECK_ZERO(a){if(a)printf("!!!error: %s=%d\n", #a, a);}
 
 	typedef ldp_basic_vec<float, 1> Float1;
@@ -721,15 +721,15 @@ namespace ldp
 		}
 	}
 
-	__global__ void compute_A_kernel(const int* A_unique_pos, const ldp::Mat3f* internelForce_beforeScan, 
-		const int* A_cooRow, const int* A_cooCol, ldp::Mat3f* A_values, float dt,
-		int nVerts, int nnzBlocks, int nItemsBeforeScan)
+	__global__ void compute_A_kernel(const int* A_unique_pos, const Mat3f* A_beforeScan, 
+		const int* A_cooRow, const int* A_cooCol, Mat3f* A_values, 
+		int nVerts, int nnzBlocks, int nA_beforScan)
 	{
 		int thread_id = threadIdx.x + blockIdx.x * blockDim.x;
 		if (thread_id >= nnzBlocks)
 			return;
 		const int scan_begin = A_unique_pos[thread_id];
-		const int scan_end = (thread_id == nnzBlocks - 1) ? nItemsBeforeScan : A_unique_pos[thread_id + 1];
+		const int scan_end = (thread_id == nnzBlocks - 1) ? nA_beforScan : A_unique_pos[thread_id + 1];
 
 		// compute A(row, col)
 		const int row = A_cooRow[thread_id];
@@ -739,7 +739,7 @@ namespace ldp
 
 		// internal forces scan
 		for (int scan_i = scan_begin; scan_i < scan_end; scan_i++)
-			sum += internelForce_beforeScan[scan_i];
+			sum += A_beforeScan[scan_i];
 		
 		// external forces and diag term
 		if (row == col)
@@ -752,8 +752,35 @@ namespace ldp
 		A_values[thread_id] = sum;
 	}
 
+	__global__ void compute_b_kernel(const int* b_unique_pos, const Float3* b_beforeScan,
+		Float3* b_values, float dt, int nVerts, int nb_beforScan)
+	{
+		int thread_id = threadIdx.x + blockIdx.x * blockDim.x;
+		if (thread_id >= nVerts)
+			return;
+		const int scan_begin = b_unique_pos[thread_id];
+		const int scan_end = (thread_id == nVerts - 1) ? nb_beforScan : b_unique_pos[thread_id + 1];
+
+		Float3 sum = 0.f;
+
+		// internal forces scan
+		for (int scan_i = scan_begin; scan_i < scan_end; scan_i++)
+			sum += b_beforeScan[scan_i];
+
+		// external forces and diag term
+		const float mass = texRead_nodeMaterialData(thread_id).mass;
+		sum += Float3(g_gpusim_gravity[0], g_gpusim_gravity[1], g_gpusim_gravity[2]) * mass * dt;
+
+		// write into A
+		b_values[thread_id] = sum;
+	}
+
 	void GpuSim::updateNumeric()
 	{
+		// ldp hack here: make the gravity not important when we are stitching.
+		Float3 gravity = m_simParam.gravity;// *powf(1 - std::max(0.f, std::min(1.f, m_curStitchRatio)), 2);
+		cudaMemcpyToSymbol(g_gpusim_gravity, gravity.ptr(), 3 * sizeof(float));
+
 		const int nFaces = m_faces_idxWorld_d.size();
 		const int nEdges = m_edgeData_d.size();
 		computeNumeric_kernel << <divUp(nFaces + nEdges, CTA_SIZE), CTA_SIZE >> >(
@@ -767,6 +794,18 @@ namespace ldp
 		// since we have unique positions, we can do scan similar with CSR-vector multiplication.
 		const int nVerts = m_x.size();
 		const int nnzBlocks = m_A->nnzBlocks();
+		const int nA_beforScan = m_beforScan_A.size();
+		const int nb_beforScan = m_beforScan_b.size();
+		compute_A_kernel << <divUp(nnzBlocks, CTA_SIZE), CTA_SIZE >> >(
+			m_A_Ids_d_unique_pos.ptr(), m_beforScan_A.ptr(), m_A->bsrRowPtr_coo(), m_A->bsrColIdx(),
+			(Mat3f*)m_A->value(), nVerts, nnzBlocks, nA_beforScan
+			);
+		cudaSafeCall(cudaGetLastError());
+		compute_b_kernel << <divUp(nVerts, CTA_SIZE), CTA_SIZE >> >(
+			m_b_Ids_d_unique_pos.ptr(), m_beforScan_b.ptr(),
+			(Float3*)m_b.ptr(), m_simParam.dt, nVerts, nA_beforScan
+			);
+		cudaSafeCall(cudaGetLastError());
 	}
 #pragma endregion
 }

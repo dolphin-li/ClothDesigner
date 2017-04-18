@@ -50,6 +50,7 @@ namespace ldp
 	void GpuSim::SimParam::setDefault()
 	{
 		dt = 1.f / 200.f;
+		gravity = Float3(0.f, 0.f, -9.8f);
 	}
 
 	void GpuSim::init(ClothManager* clothManager)
@@ -73,6 +74,7 @@ namespace ldp
 #ifdef DEBUG_DUMP
 		dumpVec("D:/tmp/m_beforScan_A.txt", m_beforScan_A);
 		dumpVec("D:/tmp/m_beforScan_b.txt", m_beforScan_b);
+		m_A->dump("D:/tmp/m_A.txt");
 #endif
 		restart();
 	}
