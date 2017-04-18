@@ -112,12 +112,15 @@ namespace ldp
 		DeviceArray<float> m_edgeThetaIdeals_d;			
 
 		DeviceArray<size_t> m_A_Ids_d;			// for sparse matrix, encode the (row, col) pairs, sorted
-		DeviceArray<size_t> m_A_Ids_d_unique;	// 
+		DeviceArray<size_t> m_A_Ids_d_unique;
+		DeviceArray<int> m_A_Ids_d_unique_pos;	// the array position kept after unique
 		DeviceArray<int> m_A_Ids_start_d;		// the starting position of A_order
 		DeviceArray<int> m_A_order_d;			// the face/edge/bend filling order, beforScan_A[order]
 		DeviceArray<int> m_A_invOrder_d;
 		DeviceArray<ldp::Mat3f> m_beforScan_A;
 		DeviceArray<int> m_b_Ids_d;				// for rhs construction
+		DeviceArray<int> m_b_Ids_d_unique;
+		DeviceArray<int> m_b_Ids_d_unique_pos;
 		DeviceArray<int> m_b_Ids_start_d;		// the starting position of b_order
 		DeviceArray<int> m_b_order_d;			// the face/edge/bend filling order, beforScan_b[order]
 		DeviceArray<int> m_b_invOrder_d;
@@ -191,15 +194,23 @@ namespace ldp
 			std::vector<ldp::Float4> m_data;
 			Cuda3DArray<float4> m_ary;
 		};
+		
+#define BEND_USE_LINEAR_TEX
 		class BendingData {
 		public:
 			enum {
 				DIMS = 3,
-				POINTS = 5
+#ifdef BEND_USE_LINEAR_TEX
+				POINTS = 9,
+				FilterMode = cudaFilterModeLinear,
+#else
+				POINTS = 5,
+				FilterMode = cudaFilterModePoint,
+#endif
 			};
 			BendingData(){
 				m_data.resize(rows()*cols());
-				m_ary.create(make_int2(rows(), cols()), cudaFilterModePoint);
+				m_ary.create(make_int2(cols(), rows()), (cudaTextureFilterMode)FilterMode);
 			}
 			~BendingData(){
 				m_ary.release();
@@ -219,7 +230,7 @@ namespace ldp
 			const Cuda2DArray<float>& getCudaArray()const{ return m_ary; }
 			Cuda2DArray<float>& getCudaArray(){ return m_ary; }
 
-			void updateHostToDevice(){ m_ary.fromHost(data(), m_ary.size(), cudaFilterModePoint); }
+			void updateHostToDevice(){ m_ary.fromHost(data(), m_ary.size(), (cudaTextureFilterMode)FilterMode); }
 			void updateDeviceToHost(){ m_ary.toHost(data()); }
 		protected:
 			std::vector<float> m_data;

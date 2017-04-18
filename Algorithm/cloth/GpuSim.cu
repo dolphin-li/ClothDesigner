@@ -18,17 +18,23 @@ namespace ldp
 
 #define CHECK_ZERO(a){if(a)printf("!!!error: %s=%d\n", #a, a);}
 
+	typedef ldp_basic_vec<float, 1> Float1;
 	typedef ldp_basic_vec<float, 9> Float9;
 	typedef ldp_basic_vec<float, 12> FloatC;
 	typedef ldp_basic_mat_sqr<float, 9> Mat9f;
 	typedef ldp_basic_mat_sqr<float, 12> MatCf;
 	typedef ldp_basic_mat<float, 3, 2> Mat32f;
+	typedef ldp_basic_mat<float, 5, 3> Mat53f;
 	typedef ldp_basic_mat<float, 3, 9> Mat39f;
 	typedef ldp_basic_mat<float, 2, 3> Mat23f;
 	typedef ldp_basic_mat_col<float, 3> Mat31f;
 #ifndef M_PI
-#define M_PI 3.14159265358979323846
+#define M_PI 3.14159265358979323846f
 #endif
+	__device__ __host__ void print(float a, const char* msg = nullptr)
+	{
+		printf("%s: %f\n", msg, a);
+	}
 	template<int N, int M> __device__ __host__ void print(ldp_basic_mat<float, N, M> A, const char* msg = nullptr);
 	template<int N> __device__ __host__  void print(ldp_basic_vec<float, N> x, const char* msg = nullptr);
 	template<> __device__ __host__ void print(ldp_basic_mat<float, 2, 2> A, const char* msg)
@@ -38,6 +44,16 @@ namespace ldp
 	template<> __device__ __host__ void print(ldp_basic_mat<float, 2, 3> A, const char* msg)
 	{
 		printf("%s\n%f %f %f\n%f %f %f\n", msg, A(0, 0), A(0, 1), A(0, 2), A(1, 0), A(1, 1), A(1, 2));
+	}
+	template<> __device__ __host__ void print(ldp_basic_mat<float, 5, 3> A, const char* msg)
+	{
+		printf("%s\n%f %f %f\n%f %f %f\n%f %f %f\n%f %f %f\n%f %f %f\n", msg, 
+			A(0, 0), A(0, 1), A(0, 2), 
+			A(1, 0), A(1, 1), A(1, 2),
+			A(2, 0), A(2, 1), A(2, 2),
+			A(3, 0), A(3, 1), A(3, 2),
+			A(4, 0), A(4, 1), A(4, 2)
+			);
 	}
 	template<> __device__ __host__ void print(ldp_basic_mat<float, 3, 2> A, const char* msg)
 	{
@@ -80,17 +96,45 @@ namespace ldp
 			A(8, 0), A(8, 1), A(8, 2), A(8, 3), A(8, 4), A(8, 5), A(8, 6), A(8, 7), A(8, 8)
 			);
 	}
+	template<> __device__ __host__ void print(ldp_basic_mat<float, 12, 12> A, const char* msg)
+	{
+		printf("%s\n%f %f %f %f %f %f %f %f %f %f %f %f\n%f %f %f %f %f %f %f %f %f %f %f %f\n%f %f %f %f %f %f %f %f %f %f %f %f\n",
+			msg,
+			A(0, 0), A(0, 1), A(0, 2), A(0, 3), A(0, 4), A(0, 5), A(0, 6), A(0, 7), A(0, 8), A(0, 9), A(0, 10), A(0, 11),
+			A(1, 0), A(1, 1), A(1, 2), A(1, 3), A(1, 4), A(1, 5), A(1, 6), A(1, 7), A(1, 8), A(1, 9), A(1, 10), A(1, 11),
+			A(2, 0), A(2, 1), A(2, 2), A(2, 3), A(2, 4), A(2, 5), A(2, 6), A(2, 7), A(2, 8), A(2, 9), A(2, 10), A(2, 11)
+			);
+		printf("%f %f %f %f %f %f %f %f %f %f %f %f\n%f %f %f %f %f %f %f %f %f %f %f %f\n%f %f %f %f %f %f %f %f %f %f %f %f\n",
+			A(3, 0), A(3, 1), A(3, 2), A(3, 3), A(3, 4), A(3, 5), A(3, 6), A(3, 7), A(3, 8), A(3, 9), A(3, 10), A(3, 11),
+			A(4, 0), A(4, 1), A(4, 2), A(4, 3), A(4, 4), A(4, 5), A(4, 6), A(4, 7), A(4, 8), A(4, 9), A(4, 10), A(4, 11),
+			A(5, 0), A(5, 1), A(5, 2), A(5, 3), A(5, 4), A(5, 5), A(5, 6), A(5, 7), A(5, 8), A(5, 9), A(5, 10), A(5, 11)
+			);
+		printf("%f %f %f %f %f %f %f %f %f %f %f %f\n%f %f %f %f %f %f %f %f %f %f %f %f\n%f %f %f %f %f %f %f %f %f %f %f %f\n",
+			A(6, 0), A(6, 1), A(6, 2), A(6, 3), A(6, 4), A(6, 5), A(6, 6), A(6, 7), A(6, 8), A(6, 9), A(6, 10), A(6, 11),
+			A(7, 0), A(7, 1), A(7, 2), A(7, 3), A(7, 4), A(7, 5), A(7, 6), A(7, 7), A(7, 8), A(7, 9), A(7, 10), A(7, 11),
+			A(8, 0), A(8, 1), A(8, 2), A(8, 3), A(8, 4), A(8, 5), A(8, 6), A(8, 7), A(8, 8), A(8, 9), A(8, 10), A(8, 11)
+			);
+		printf("%f %f %f %f %f %f %f %f %f %f %f %f\n%f %f %f %f %f %f %f %f %f %f %f %f\n%f %f %f %f %f %f %f %f %f %f %f %f\n",
+			A(9, 0), A(9, 1), A(9, 2), A(9, 3), A(9, 4), A(9, 5), A(9, 6), A(9, 7), A(9, 8), A(9, 9), A(9, 10), A(9, 11),
+			A(10, 0), A(10, 1), A(10, 2), A(10, 3), A(10, 4), A(10, 5), A(10, 6), A(10, 7), A(10, 8), A(10, 9), A(10, 10), A(10, 11),
+			A(11, 0), A(11, 1), A(11, 2), A(11, 3), A(11, 4), A(11, 5), A(11, 6), A(11, 7), A(11, 8), A(11, 9), A(11, 10), A(11, 11)
+			);
+	}
+	template<> __device__ __host__ void print(ldp_basic_vec<float, 1> A, const char* msg)
+	{
+		printf("%s: %f\n", msg, A[0]);
+	}
 	template<> __device__ __host__ void print(ldp_basic_vec<float, 2> x, const char* msg)
 	{
-		printf("%s\n%f %f\n", msg, x[0], x[1]);
+		printf("%s: %f %f\n", msg, x[0], x[1]);
 	}
 	template<> __device__ __host__ void print(ldp_basic_vec<float, 3> x, const char* msg)
 	{
-		printf("%s\n%f %f %f\n", msg, x[0], x[1], x[2]);
+		printf("%s: %f %f %f\n", msg, x[0], x[1], x[2]);
 	}
 	template<> __device__ __host__ void print(ldp_basic_vec<float, 4> x, const char* msg)
 	{
-		printf("%s\n%f %f %f %f\n", msg, x[0], x[1], x[2], x[3]);
+		printf("%s: %f %f %f %f\n", msg, x[0], x[1], x[2], x[3]);
 	}
 	template<> __device__ __host__ void print(ldp_basic_vec<float, 9> x, const char* msg)
 	{
@@ -99,7 +143,7 @@ namespace ldp
 	}
 	template<> __device__ __host__ void print(ldp_basic_vec<float, 12> x, const char* msg)
 	{
-		printf("%s\n%f %f %f %f % %f %f %f %f %f %f %f\n", msg,
+		printf("%s\n%f %f %f %f %f %f %f %f %f %f %f %f\n", msg,
 			x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7], x[8], x[9], x[10], x[11]);
 	}
 #define printVal(A) print(A, #A)
@@ -163,11 +207,11 @@ namespace ldp
 	__device__ __host__ __forceinline__ FloatC make_Float12(Float3 a, Float3 b, Float3 c, Float3 d)
 	{
 		FloatC v;
-		for (int k = 0; k < 4; k++)
+		for (int k = 0; k < 3; k++)
 		{
 			v[k] = a[k];
 			v[3 + k] = b[k];
-			d[6 + k] = c[k];
+			v[6 + k] = c[k];
 			v[9 + k] = d[k];
 		}
 		return v;
@@ -424,7 +468,12 @@ namespace ldp
 		cudaTextureObject_t bendData, float initial_theta)
 	{
 		// because samples are per 0.05 cm^-1 = 5 m^-1
-		float value = theta*(a - b).length() / area * 0.5f*0.2f; 
+		const float value = theta*(a - b).length() / area * 0.5f*0.2f;
+		const Float2 du = tb - ta;
+		const float bias_angle = fabs((atan2f(du[1], du[0]) + initial_theta) * 4.f / M_PI);
+#ifdef BEND_USE_LINEAR_TEX
+		float actual_ke = max(0.f, texRead_bendData(bendData, value + 0.5f, bias_angle + 0.5f));
+#else
 		if (value > 4) 
 			value = 4;
 		int value_i = (int)value;
@@ -433,11 +482,6 @@ namespace ldp
 		if (value_i>3)   
 			value_i = 3;
 		value -= value_i;
-
-		const Float2 du = tb - ta;
-		float bias_angle = (atan2f(du[1], du[0]) + initial_theta) * 4.f / M_PI;
-		if (bias_angle<0)        
-			bias_angle = -bias_angle;
 		if (bias_angle>4)        
 			bias_angle = 8 - bias_angle;
 		if (bias_angle > 2)        
@@ -453,6 +497,20 @@ namespace ldp
 			+ texRead_bendData(bendData, value_i, bias_id + 1) * (1 - bias_angle)*(value)
 			+texRead_bendData(bendData, value_i + 1, bias_id + 1) * (bias_angle)*(value);
 		if (actual_ke < 0) actual_ke = 0;
+#endif
+
+#ifdef LDP_DEBUG1
+		printVal(value);
+		printVal(du);
+		printVal(initial_theta);
+		printVal(bias_angle);
+		printVal(actual_ke);
+		Mat53f A;
+		for (int y = 0; y < 5; y++)
+		for (int x = 0; x < 3; x++)
+			A(y, x) = texRead_bendData(bendData, x+0.5, y+0.5);
+		printVal(A*1e6f);
+#endif
 		return actual_ke;
 	}
 
@@ -571,13 +629,13 @@ namespace ldp
 		const Float2 w_f1 = barycentric_weights(ex[3], ex[0], ex[1]);
 		const FloatC dtheta = make_Float12(-(w_f0[0] * n0 / h0 + w_f1[0] * n1 / h1),
 			-(w_f0[1] * n0 / h0 + w_f1[1] * n1 / h1), n0 / h0, n1 / h1);
-		const float ke = min(bending_stiffness(
+		float ke = min(bending_stiffness(
 			ex[0], ex[1], et[0], et[1], theta, area,
 			t_bendDatas[edgeData.faceIdx[0]], theta_ref),
 			bending_stiffness(ex[0], ex[1], et[0], et[1], theta, area,
 			t_bendDatas[edgeData.faceIdx[1]], theta_ref)
 			);
-		const float shape = (ex[0]-ex[1]).sqrLength() / (2.f * area);
+		const float shape = (et[0]-et[1]).sqrLength() / (2.f * area);
 		const FloatC vs = make_Float12(ex[0], ex[1], ex[2], ex[3]);
 		FloatC F = -dt*0.5f * ke*shape*(theta - theta_ref)*dtheta;
 		MatCf J = -dt*dt*0.5f*ke*shape*outer(dtheta, dtheta);
@@ -596,6 +654,31 @@ namespace ldp
 			int pos = texRead_b_order(b_start + row);
 			beforeScan_b[pos] = get_subFloat3(F, row);
 		} // end for row
+
+#ifdef LDP_DEBUG1
+		printVal(ex[0]);
+		printVal(ex[1]);
+		printVal(ex[2]);
+		printVal(ex[3]);
+		printVal(theta);
+		printVal(theta_ref);
+		printVal(area);
+		printVal(h0);
+		printVal(h1);
+		printVal(n0);
+		printVal(n1);
+		printVal(w_f0);
+		printVal(w_f1);
+		printVal(dtheta);
+		const float ke1 = 2.475e-005f;
+		const float theta1 = 1e6f;
+		F = -dt*0.5f * ke1*shape*(theta1 - theta_ref)*dtheta;
+		J = -dt*dt*0.5f*ke1*shape*outer(dtheta, dtheta);
+		F -= J*vs;
+		printVal(ke);
+		printVal(shape);
+		printVal(F);
+#endif
 	}
 
 	__global__ void computeNumeric_kernel(const GpuSim::EdgeData* edgeData, 
@@ -610,7 +693,7 @@ namespace ldp
 		// compute stretching forces here
 		if (thread_id < nFaces)
 		{
-#ifdef LDP_DEBUG
+#ifdef LDP_DEBUG1
 			return;
 #endif
 			const int A_start = A_starts[thread_id];
@@ -622,6 +705,9 @@ namespace ldp
 		// compute bending forces here
 		else if (thread_id < nFaces + nEdges)
 		{
+#ifdef LDP_DEBUG1
+			return;
+#endif
 			const int A_start = A_starts[thread_id];
 			const int b_start = b_starts[thread_id];
 			computeBendForces(thread_id - nFaces, edgeData, A_start, beforeScan_A,
@@ -640,6 +726,9 @@ namespace ldp
 			m_edgeThetaIdeals_d.ptr(),
 			nFaces, nEdges, m_simParam.dt);
 		cudaSafeCall(cudaGetLastError());
+
+		// scanning into the sparse matrix
+		// since we have unique positions, we can do scan similar with CSR-vector multiplication.
 	}
 #pragma endregion
 }

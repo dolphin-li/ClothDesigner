@@ -66,6 +66,7 @@ public:
 	{
 		create(size, mode);
 		m_data.upload(host, m_size.x * sizeof(T), m_size.y, m_size.x);
+		createTexture();
 	}
 	void toHost(T* host)const
 	{
@@ -104,10 +105,8 @@ public:
 		{
 			m_data.copyTo(rhs.data());
 			if (rhs.m_filterMode != m_filterMode)
-			{
 				rhs.m_filterMode = m_filterMode;
-				rhs.createTexture();
-			}
+			rhs.createTexture();
 		}
 	}
 protected:

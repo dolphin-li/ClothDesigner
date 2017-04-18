@@ -303,15 +303,16 @@ namespace ldp
 		m_A_Ids_start_d.upload(A_Ids_start_h);
 		m_A_order_d.create(A_Ids_h.size());
 		m_A_invOrder_d.create(A_Ids_h.size());
+		m_A_Ids_d_unique_pos.create(A_Ids_h.size());
 		thrust_wrapper::make_counting_array(m_A_invOrder_d.ptr(), m_A_invOrder_d.size());
 		thrust_wrapper::make_counting_array(m_A_order_d.ptr(), m_A_order_d.size());
-#ifdef LDP_DEBUG
-		// ldp debug here
-		//thrust_wrapper::sort_by_key(m_A_Ids_d.ptr(), m_A_invOrder_d.ptr(), A_Ids_h.size());
-		//thrust_wrapper::sort_by_key(m_A_invOrder_d.ptr(), m_A_order_d.ptr(), A_Ids_h.size());
-#endif
+		thrust_wrapper::make_counting_array(m_A_Ids_d_unique_pos.ptr(), m_A_Ids_d_unique_pos.size());
+		thrust_wrapper::sort_by_key(m_A_Ids_d.ptr(), m_A_invOrder_d.ptr(), A_Ids_h.size());
+		thrust_wrapper::sort_by_key(m_A_invOrder_d.ptr(), m_A_order_d.ptr(), A_Ids_h.size());
+
 		m_A_Ids_d.copyTo(m_A_Ids_d_unique);
-		auto nUniqueNnz = thrust_wrapper::unique(m_A_Ids_d_unique.ptr(), m_A_Ids_d_unique.size());
+		auto nUniqueNnz = thrust_wrapper::unique_by_key(m_A_Ids_d_unique.ptr(), 
+			m_A_Ids_d_unique_pos.ptr(), m_A_Ids_d_unique.size());
 		m_beforScan_A.create(m_A_order_d.size());
 
 		// rhs b
@@ -319,13 +320,18 @@ namespace ldp
 		m_b_Ids_start_d.upload(b_Ids_start_h);
 		m_b_order_d.create(b_Ids_h.size());
 		m_b_invOrder_d.create(b_Ids_h.size());
+		m_b_Ids_d_unique_pos.create(b_Ids_h.size());
 		thrust_wrapper::make_counting_array(m_b_invOrder_d.ptr(), m_b_invOrder_d.size());
 		thrust_wrapper::make_counting_array(m_b_order_d.ptr(), m_b_order_d.size());
-#ifdef LDP_DEBUG
-		//thrust_wrapper::sort_by_key(m_b_Ids_d.ptr(), m_b_invOrder_d.ptr(), b_Ids_h.size());
-		//thrust_wrapper::sort_by_key(m_b_invOrder_d.ptr(), m_b_order_d.ptr(), b_Ids_h.size());
-#endif
+		thrust_wrapper::make_counting_array(m_b_Ids_d_unique_pos.ptr(), m_b_Ids_d_unique_pos.size());
+		thrust_wrapper::sort_by_key(m_b_Ids_d.ptr(), m_b_invOrder_d.ptr(), b_Ids_h.size());
+		thrust_wrapper::sort_by_key(m_b_invOrder_d.ptr(), m_b_order_d.ptr(), b_Ids_h.size());
+
+		m_b_Ids_d.copyTo(m_b_Ids_d_unique);
+		auto nUniqueb = thrust_wrapper::unique_by_key(m_b_Ids_d_unique.ptr(),
+			m_b_Ids_d_unique_pos.ptr(), m_b_Ids_d_unique.size());
 		m_beforScan_b.create(m_b_order_d.size());
+		release_assert(nUniqueb == nVerts);
 		
 		// 4. convert vertex-pair idx to coo array
 		CachedDeviceBuffer booRow(nUniqueNnz*sizeof(int));
@@ -343,9 +349,12 @@ namespace ldp
 		m_A->dump("D:/tmp/eigen_A_1.txt");
 		dumpVec_pair("D:/tmp/m_A_Ids_d.txt", m_A_Ids_d, nVerts);
 		dumpVec_pair("D:/tmp/m_A_Ids_d_unique.txt", m_A_Ids_d_unique, nVerts, nUniqueNnz);
+		dumpVec("D:/tmp/m_A_Ids_d_unique_pos.txt", m_A_Ids_d_unique_pos, nUniqueNnz);
 		dumpVec("D:/tmp/m_A_order_d.txt", m_A_order_d);
 		dumpVec("D:/tmp/m_A_invOrder_d.txt", m_A_invOrder_d);
 		dumpVec("D:/tmp/m_b_Ids_d.txt", m_b_Ids_d);
+		dumpVec("D:/tmp/m_b_Ids_d_unique.txt", m_b_Ids_d_unique, nUniqueb);
+		dumpVec("D:/tmp/m_b_Ids_d_unique_pos.txt", m_b_Ids_d_unique_pos, nUniqueb);
 		dumpVec("D:/tmp/m_b_order_d.txt", m_b_order_d);
 		dumpVec("D:/tmp/m_b_invOrder_d.txt", m_b_invOrder_d);
 #endif
@@ -369,8 +378,22 @@ namespace ldp
 				m_bendingData_h.push_back(BendingData());
 				auto& bdata = m_bendingData_h.back();
 				for (int x = 0; x < bdata.cols(); x++)
+#ifdef BEND_USE_LINEAR_TEX
+				{
+					bdata(x, 0) = mat->bending.d[x][0];
+					bdata(x, 1) = mat->bending.d[x][1];
+					bdata(x, 2) = mat->bending.d[x][2];
+					bdata(x, 3) = mat->bending.d[x][1];
+					bdata(x, 4) = mat->bending.d[x][0];
+					bdata(x, 5) = mat->bending.d[x][1];
+					bdata(x, 6) = mat->bending.d[x][2];
+					bdata(x, 7) = mat->bending.d[x][1];
+					bdata(x, 8) = mat->bending.d[x][0];
+				}
+#else
 				for (int y = 0; y < bdata.rows(); y++)
 					bdata(x, y) = mat->bending.d[x][y];
+#endif
 			} // end for mat, cloth
 			
 		} // end if arcSim
@@ -384,13 +407,15 @@ namespace ldp
 		{
 			bd.updateHostToDevice();
 
-			//dumpBendDataArray("D:/tmp/bendData_h.txt", bd);
-			//bd.updateDeviceToHost();
-			//dumpBendDataArray("D:/tmp/bendData_d.txt", bd);
-			//BendingData tmp;
-			//bd.getCudaArray().copyTo(tmp.getCudaArray());
-			//tmp.updateDeviceToHost();
-			//dumpBendDataArray("D:/tmp/bendData_d1.txt", tmp);
+#ifdef DEBUG_DUMP
+			dumpBendDataArray("D:/tmp/bendData_h.txt", bd);
+			bd.updateDeviceToHost();
+			dumpBendDataArray("D:/tmp/bendData_d.txt", bd);
+			BendingData tmp;
+			bd.getCudaArray().copyTo(tmp.getCudaArray());
+			tmp.updateDeviceToHost();
+			dumpBendDataArray("D:/tmp/bendData_d1.txt", tmp);
+#endif
 
 		} // end for m_bendingData_h
 		
@@ -398,13 +423,15 @@ namespace ldp
 		{
 			sp.updateHostToDevice();
 
-			//dumpStretchSampleArray("D:/tmp/stretchSample_h.txt", sp);
-			//sp.updateDeviceToHost();
-			//dumpStretchSampleArray("D:/tmp/stretchSample_d.txt", sp);
-			//StretchingSamples tmp;
-			//sp.getCudaArray().copyTo(tmp.getCudaArray());
-			//tmp.updateDeviceToHost();
-			//dumpStretchSampleArray("D:/tmp/stretchSample_d1.txt", tmp);
+#ifdef DEBUG_DUMP
+			dumpStretchSampleArray("D:/tmp/stretchSample_h.txt", sp);
+			sp.updateDeviceToHost();
+			dumpStretchSampleArray("D:/tmp/stretchSample_d.txt", sp);
+			StretchingSamples tmp;
+			sp.getCudaArray().copyTo(tmp.getCudaArray());
+			tmp.updateDeviceToHost();
+			dumpStretchSampleArray("D:/tmp/stretchSample_d1.txt", tmp);
+#endif
 		} // end for m_stretchSamples_h
 	}
 

@@ -252,12 +252,20 @@ namespace thrust_wrapper
 		thrust::exclusive_scan(thrust::cuda::par(g_allocator), in_begin, in_end, out_begin);
 	}
 
-	void inclusive_scan_by_key(int* key_d, float4* value_d, float4* dst_d, int n)
+	void inclusive_scan_by_key(const int* key_d, const float4* value_d, float4* dst_d, int n)
 	{
-		thrust::device_ptr<int> key_begin(key_d);
-		thrust::device_ptr<int> key_end(key_d + n);
-		thrust::device_ptr<float4> points_begin(value_d);
+		thrust::device_ptr<int> key_begin((int*)key_d);
+		thrust::device_ptr<int> key_end((int*)key_d + n);
+		thrust::device_ptr<float4> points_begin((float4*)value_d);
 		thrust::device_ptr<float4> dst_begin(dst_d);
+		thrust::inclusive_scan_by_key(thrust::cuda::par(g_allocator), key_begin, key_end, points_begin, dst_begin);
+	}
+	void inclusive_scan_by_key(const int* key_d, const float3* value_d, float3* dst_d, int n)
+	{
+		thrust::device_ptr<int> key_begin((int*)key_d);
+		thrust::device_ptr<int> key_end((int*)key_d + n);
+		thrust::device_ptr<float3> points_begin((float3*)value_d);
+		thrust::device_ptr<float3> dst_begin(dst_d);
 		thrust::inclusive_scan_by_key(thrust::cuda::par(g_allocator), key_begin, key_end, points_begin, dst_begin);
 	}
 
@@ -266,6 +274,24 @@ namespace thrust_wrapper
 		thrust::device_ptr<int> key_begin(key_d);
 		thrust::device_ptr<int> key_end(key_d + n);
 		thrust::device_ptr<float4> points_begin(value_d);
+		auto ptr = thrust::unique_by_key(thrust::cuda::par(g_allocator), key_begin, key_end, points_begin);
+		return ptr.first - key_begin;
+	}
+
+	size_t unique_by_key(int* key_d, int* value_d, int n)
+	{
+		thrust::device_ptr<int> key_begin(key_d);
+		thrust::device_ptr<int> key_end(key_d + n);
+		thrust::device_ptr<int> points_begin(value_d);
+		auto ptr = thrust::unique_by_key(thrust::cuda::par(g_allocator), key_begin, key_end, points_begin);
+		return ptr.first - key_begin;
+	}
+
+	size_t unique_by_key(size_t* key_d, int* value_d, int n)
+	{
+		thrust::device_ptr<size_t> key_begin(key_d);
+		thrust::device_ptr<size_t> key_end(key_d + n);
+		thrust::device_ptr<int> points_begin(value_d);
 		auto ptr = thrust::unique_by_key(thrust::cuda::par(g_allocator), key_begin, key_end, points_begin);
 		return ptr.first - key_begin;
 	}

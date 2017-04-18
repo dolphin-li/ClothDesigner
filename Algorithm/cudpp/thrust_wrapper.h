@@ -4,7 +4,6 @@
 #include <driver_functions.h>
 #include <vector_functions.h>
 #include <cuda_fp16.h>
-
 namespace thrust_wrapper
 {
 	char* cached_allocate(size_t bytes);
@@ -24,9 +23,12 @@ namespace thrust_wrapper
 	void exclusive_scan(const int* in, int* out, int n);
 	void exclusive_scan(const unsigned int* in, unsigned int* out, int n);
 
-	void inclusive_scan_by_key(int* key_d, float4* value_d, float4* dst_d, int n);
+	void inclusive_scan_by_key(const int* key_d, const float4* value_d, float4* dst_d, int n);
+	void inclusive_scan_by_key(const int* key_d, const float3* value_d, float3* dst_d, int n);
 
 	size_t unique_by_key(int* key_d, float4* value_d, int n);
+	size_t unique_by_key(int* key_d, int* value_d, int n);
+	size_t unique_by_key(size_t* key_d, int* value_d, int n);
 	size_t unique(int* data, int n);
 	size_t unique(size_t* data, int n);
 

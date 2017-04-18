@@ -35,7 +35,7 @@ using namespace std;
 
 namespace arcsim
 {
-#define LDP_DEBUG
+//#define LDP_DEBUG
 
 	static const bool verbose = false;
 
@@ -214,6 +214,35 @@ namespace arcsim
 			(*arcsim::materials)[face1->label]->weakening);
 		ke *= 1 / (1 + weakening*edge->damage);
 		double shape = sq(edge->l) / (2 * a);
+
+#ifdef LDP_DEBUG
+		static int flag = 0;
+		if (flag == 0)
+		{
+			flag = 1;
+
+			std::ofstream file("D:/tmp/arcsim_varBend.txt");
+			file << "x[0]: " << std::endl << x0 << std::endl;
+			file << "x[1]: " << std::endl << x1 << std::endl;
+			file << "x[2]: " << std::endl << x2 << std::endl;
+			file << "x[3]: " << std::endl << x3 << std::endl;
+			file << "theta: " << std::endl << theta << std::endl;
+			file << "theta_ideal: " << std::endl << edge->theta_ideal << std::endl;
+			file << "area: " << std::endl << a << std::endl;
+			file << "h0: " << std::endl << h0 << std::endl;
+			file << "h1: " << std::endl << h1 << std::endl;
+			file << "n0: " << std::endl << n0 << std::endl;
+			file << "n1: " << std::endl << n1 << std::endl;
+			file << "w_f0: " << std::endl << w_f0 << std::endl;
+			file << "w_f1: " << std::endl << w_f1 << std::endl;
+			file << "dtheta: " << std::endl << dtheta << std::endl;
+			file << "ke: " << std::endl << ke << std::endl;
+			file << "shape: " << std::endl << shape << std::endl;
+			file.close();
+			ke = 2.475e-005f;
+			theta = 1e6f;
+		}
+#endif
 		return make_pair(-ke*shape*outer(dtheta, dtheta) / 2.,
 			-ke*shape*(theta - edge->theta_ideal)*dtheta / 2.);
 	}
@@ -322,7 +351,6 @@ namespace arcsim
 			if (flag == 0)
 			{
 				flag = 1;
-
 				std::ofstream file("D:/tmp/arcsim_var_FJ.txt");
 				file << "F: " << std::endl << dt*(F + dt*J*vs) << std::endl;
 				file << "J: " << std::endl << -dt*dt*J << std::endl;
@@ -355,6 +383,18 @@ namespace arcsim
 				add_submat(-dt*(dt + damping)*J, indices(n0, n1, n2, n3), A);
 				add_subvec(dt*(F + (dt + damping)*J*vs), indices(n0, n1, n2, n3), b);
 			}
+#ifdef LDP_DEBUG
+			static int flag = 0;
+			if (flag == 0)
+			{
+				flag = 1;
+
+				std::ofstream file("D:/tmp/arcsim_varBend_FJ.txt");
+				file << "F: " << std::endl << dt*(F + dt*J*vs) << std::endl;
+				file << "J: " << std::endl << -dt*dt*J << std::endl;
+				file.close();
+			}
+#endif
 		}
 	}
 	template void add_internal_forces<PS>(const Cloth&, SpMat<Mat3x3>&,
