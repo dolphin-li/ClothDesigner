@@ -661,7 +661,7 @@ namespace ldp
 		const FloatC vs = make_Float12(velocity[edgeData.edge_idxWorld[0]], velocity[edgeData.edge_idxWorld[1]], 
 			velocity[edgeData.edge_idxWorld[2]], velocity[edgeData.edge_idxWorld[3]]);
 		FloatC F = -dt*0.5f * ke*shape*(dihe_theta - edgeData.dihedral_ideal)*dtheta;
-		MatCf J = -dt*dt*0.5f*ke*shape*outer(dtheta, dtheta);
+		MatCf J = dt*dt*0.5f*ke*shape*outer(dtheta, dtheta);
 		F -= J*vs;
 
 		// output to global matrix
@@ -679,28 +679,26 @@ namespace ldp
 		} // end for row
 
 #ifdef LDP_DEBUG1
-		printVal(ex[0]);
-		printVal(ex[1]);
-		printVal(ex[2]);
-		printVal(ex[3]);
-		printVal(theta);
-		printVal(theta_ref);
-		printVal(area);
-		printVal(h0);
-		printVal(h1);
-		printVal(n0);
-		printVal(n1);
-		printVal(w_f0);
-		printVal(w_f1);
-		printVal(dtheta);
-		const float ke1 = 2.475e-005f;
-		const float theta1 = 1e6f;
-		F = -dt*0.5f * ke1*shape*(theta1 - theta_ref)*dtheta;
-		J = -dt*dt*0.5f*ke1*shape*outer(dtheta, dtheta);
-		F -= J*vs;
-		printVal(ke);
-		printVal(shape);
-		printVal(F);
+		if (iEdge == 1)
+		{
+			printVal(ex[0]);
+			printVal(ex[1]);
+			printVal(ex[2]);
+			printVal(ex[3]);
+			printVal(dihe_theta);
+			printVal(edgeData.dihedral_ideal);
+			printVal(area);
+			printVal(h0);
+			printVal(h1);
+			printVal(n0);
+			printVal(n1);
+			printVal(w_f0);
+			printVal(w_f1);
+			printVal(dtheta);
+			printVal(ke);
+			printVal(shape);
+			printVal(F);
+		}
 #endif
 	}
 
@@ -794,6 +792,9 @@ namespace ldp
 
 	void GpuSim::updateNumeric()
 	{
+		cudaSafeCall(cudaMemset(m_beforScan_A.ptr(), m_beforScan_A.sizeBytes(), 0));
+		cudaSafeCall(cudaMemset(m_beforScan_b.ptr(), m_beforScan_b.sizeBytes(), 0));
+
 		// ldp hack here: make the gravity not important when we are stitching.
 		const Float3 gravity = m_simParam.gravity;// *powf(1 - std::max(0.f, std::min(1.f, m_curStitchRatio)), 2);
 		const int nFaces = m_faces_idxWorld_d.size();
@@ -819,7 +820,7 @@ namespace ldp
 		cudaSafeCall(cudaGetLastError());
 		compute_b_kernel << <divUp(nVerts, CTA_SIZE), CTA_SIZE >> >(
 			m_b_Ids_d_unique_pos.ptr(), m_beforScan_b.ptr(),
-			(Float3*)m_b.ptr(), m_simParam.dt, gravity, nVerts, nA_beforScan
+			(Float3*)m_b.ptr(), m_simParam.dt, gravity, nVerts, nb_beforScan
 			);
 		cudaSafeCall(cudaGetLastError());
 	}

@@ -459,13 +459,16 @@ namespace arcsim
 				add_subvec(dt*(F + (dt + damping)*J*vs), indices(n0, n1, n2), b);
 			}
 #ifdef LDP_DEBUG
-			dump_v3("D:/tmp/arcsim_beforscan_b_stre.txt", dt*(F + dt*J*vs));
-			dump_v3("D:/tmp/arcsim_beforscan_A_stre.txt", -dt*dt*J);
+			dump_v3("D:/tmp/arcsim_beforscan_b.txt", dt*(F + dt*J*vs));
+			dump_v3("D:/tmp/arcsim_beforscan_A.txt", -dt*dt*J);
 #endif
 		}
 
 		for (int e = 0; e < mesh.edges.size(); e++)
 		{
+#ifdef LDP_DEBUG1
+			continue;
+#endif
 			const Edge *edge = mesh.edges[e];
 			if (!edge->adjf[0] || !edge->adjf[1])
 				continue;
@@ -610,7 +613,7 @@ namespace arcsim
 		}
 		add_internal_forces<WS>(cloth, A, b, dt);
 #ifdef LDP_DEBUG
-		dumpAsDense("D:/tmp/arcsim_A.txt", A);
+		dump("D:/tmp/arcsim_A.txt", A);
 		dump("D:/tmp/arcsim_b.txt", b);
 #endif
 		add_constraint_forces(cloth, cons, A, b, dt);

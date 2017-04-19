@@ -74,7 +74,7 @@ namespace ldp
 #ifdef DEBUG_DUMP
 		dumpVec("D:/tmp/m_beforScan_A.txt", m_beforScan_A);
 		dumpVec("D:/tmp/m_beforScan_b.txt", m_beforScan_b);
-		m_A->dumpAsDense("D:/tmp/m_A.txt");
+		m_A->dump("D:/tmp/m_A.txt");
 		dumpVec("D:/tmp/m_b.txt", m_b);
 #endif
 		restart();
