@@ -728,7 +728,7 @@ namespace ldp
 		// compute bending forces here
 		else if (thread_id < nFaces + nEdges)
 		{
-#ifdef LDP_DEBUG
+#ifdef LDP_DEBUG1
 			return;
 #endif
 			const int A_start = A_starts[thread_id];

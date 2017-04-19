@@ -227,7 +227,7 @@ namespace arcsim
 			+ outer(fvv, fuu) + std::max(G(1, 1), 0.)*Du.t()*Du)
 			+ 2.*k[3] * (outer(fuv, fuv));
 
-#ifdef LDP_DEBUG
+#ifdef LDP_DEBUG1
 		static int flag = 0;
 		if (flag++ == 0)
 		{
@@ -326,7 +326,7 @@ namespace arcsim
 		ke *= 1 / (1 + weakening*edge->damage);
 		double shape = sq(edge->l) / (2 * a);
 
-#ifdef LDP_DEBUG
+#ifdef LDP_DEBUG1
 		static int flag = 0;
 		if (flag == 0)
 		{
@@ -350,8 +350,6 @@ namespace arcsim
 			file << "ke: " << std::endl << ke << std::endl;
 			file << "shape: " << std::endl << shape << std::endl;
 			file.close();
-			ke = 2.475e-005f;
-			theta = 1e6f;
 		}
 #endif
 		return make_pair(-ke*shape*outer(dtheta, dtheta) / 2.,
@@ -439,6 +437,9 @@ namespace arcsim
 		arcsim::materials = &cloth.materials;
 		for (int f = 0; f < mesh.faces.size(); f++)
 		{
+#ifdef LDP_DEBUG1
+			continue;
+#endif
 			const Face* face = mesh.faces[f];
 			const Node *n0 = face->v[0]->node, *n1 = face->v[1]->node,
 				*n2 = face->v[2]->node;
@@ -462,9 +463,6 @@ namespace arcsim
 			dump_v3("D:/tmp/arcsim_beforscan_A_stre.txt", -dt*dt*J);
 #endif
 		}
-#ifdef LDP_DEBUG
-		return;
-#endif
 
 		for (int e = 0; e < mesh.edges.size(); e++)
 		{
