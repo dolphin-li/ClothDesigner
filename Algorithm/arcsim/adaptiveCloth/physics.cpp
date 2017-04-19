@@ -35,7 +35,7 @@ using namespace std;
 
 namespace arcsim
 {
-//#define LDP_DEBUG
+#define LDP_DEBUG
 
 	static const bool verbose = false;
 
@@ -48,6 +48,119 @@ namespace arcsim
 	typedef Mat<3, 4> Mat3x4;
 	typedef Mat<4, 9> Mat4x9;
 	typedef Vec<9> Vec9;
+
+
+	void dump(std::string name, const SpMat<Mat3x3>& A)
+	{
+		FILE* pFile = fopen(name.c_str(), "w");
+		if (pFile)
+		{
+			const int nRows = A.m, nCols = A.n;
+			for (int br = 0; br < nRows; br++)
+			{
+				const SpVec<Mat3x3> rA = A.rows[br];
+				for (size_t bic = 0; bic < rA.indices.size(); bic++)
+				{
+					int bc = rA.indices[bic];
+					const Mat3x3& val = rA.entries[bic];
+					for (int r = 0; r < 3; r++)
+					for (int c = 0; c < 3; c++)
+						fprintf(pFile, "%d %d %ef\n", br*3 + r, bc*3 + c, val(r, c));
+				}
+				// if an empty row, fill diag with zero
+				// this is for the convinience when exporting to matlab
+				if (rA.indices.size() == 0 && nCols == nRows)
+				for (int r = 0; r < 3; r++)
+					fprintf(pFile, "%d %d %ef\n", br*3 + r, br*3 + r, 0);
+			}
+			fclose(pFile);
+		}
+	}
+
+	void dumpAsDense(std::string name, const SpMat<Mat3x3>& A)
+	{
+		const int nRows = A.m, nCols = A.n;
+		const int nTotalRow = A.m * 3, nTotalCol = A.n * 3;
+		std::vector<float> D(nTotalRow*nTotalCol, 0.f);
+		for (int br = 0; br < nRows; br++)
+		{
+			const SpVec<Mat3x3> rA = A.rows[br];
+			for (size_t bic = 0; bic < rA.indices.size(); bic++)
+			{
+				int bc = rA.indices[bic];
+				const Mat3x3& val = rA.entries[bic];
+				for (int r = 0; r < 3; r++)
+				for (int c = 0; c < 3; c++)
+					D[(br * 3 + r)*nTotalCol + bc * 3 + c] = val(r, c);
+			}
+		}
+
+		FILE* pFile = fopen(name.c_str(), "w");
+		if (pFile)
+		{
+			for (int r = 0; r < nTotalRow; r++)
+			{
+				for (int c = 0; c < nTotalCol; c++)
+					fprintf(pFile, "%ef ", D[r*nTotalCol + c]);
+				fprintf(pFile, "\n");
+			}
+			fclose(pFile);
+		}
+	}
+
+	void dump(std::string name, const vector<Vec3>& b)
+	{
+		FILE* pFile = fopen(name.c_str(), "w");
+		if (pFile)
+		{
+			for (size_t i = 0; i < b.size(); i++)
+			{
+				fprintf(pFile, "%ef %ef %ef\n", b[i][0], b[i][1], b[i][2]);
+			} // i
+		}
+		fclose(pFile);
+	}
+
+	template<int N>
+	void dump_v3(std::string name, const Vec<N>& b)
+	{
+		static int flag = 0;
+		FILE* pFile = nullptr;
+		if (flag++ == 0)
+			pFile = fopen(name.c_str(), "w");
+		else
+			pFile = fopen(name.c_str(), "a");
+
+		const int N_3 = N / 3;
+		for (int i = 0; i < N_3; i++)
+			fprintf(pFile, "%ef %ef %ef\n", b[i * 3], b[i * 3 + 1], b[i * 3 + 2]);
+
+		fclose(pFile);
+	}
+	template<int N>
+	void dump_v3(std::string name, const Mat<N, N>& A)
+	{
+		const int N_3 = N / 3;
+		static int flag = 0;
+		FILE* pFile = nullptr;
+		if (flag++ == 0)
+			pFile = fopen(name.c_str(), "w");
+		else
+			pFile = fopen(name.c_str(), "a");
+
+		for (int r = 0; r < N_3; r++)
+		{
+			for (int c = 0; c < N_3; c++)
+			{
+				for (int rr = 0; rr < 3; rr++)
+					fprintf(pFile, "%ef %ef %ef\n", A(r * 3 + rr, c * 3),
+					A(r * 3 + rr, c * 3 + 1), A(r * 3 + rr, c * 3 + 2));
+				fprintf(pFile, "\n");
+			}
+		}
+
+		fclose(pFile);
+	}
 
 	// A kronecker B = [a11 B, a12 B, ..., a1n B;
 	//                  a21 B, a22 B, ..., a2n B;
@@ -116,10 +229,8 @@ namespace arcsim
 
 #ifdef LDP_DEBUG
 		static int flag = 0;
-		if (flag == 0)
+		if (flag++ == 0)
 		{
-			flag = 1;
-			
 			std::ofstream file("D:/tmp/arcsim_var.txt");
 			file << "x[0]: " << std::endl << pos<s>(face->v[0]->node) << std::endl;
 			file << "x[1]: " << std::endl << pos<s>(face->v[1]->node) << std::endl;
@@ -347,17 +458,14 @@ namespace arcsim
 				add_subvec(dt*(F + (dt + damping)*J*vs), indices(n0, n1, n2), b);
 			}
 #ifdef LDP_DEBUG
-			static int flag = 0;
-			if (flag == 0)
-			{
-				flag = 1;
-				std::ofstream file("D:/tmp/arcsim_var_FJ.txt");
-				file << "F: " << std::endl << dt*(F + dt*J*vs) << std::endl;
-				file << "J: " << std::endl << -dt*dt*J << std::endl;
-				file.close();
-			}
+			dump_v3("D:/tmp/arcsim_beforscan_b_stre.txt", dt*(F + dt*J*vs));
+			dump_v3("D:/tmp/arcsim_beforscan_A_stre.txt", -dt*dt*J);
 #endif
 		}
+#ifdef LDP_DEBUG
+		return;
+#endif
+
 		for (int e = 0; e < mesh.edges.size(); e++)
 		{
 			const Edge *edge = mesh.edges[e];
@@ -384,16 +492,8 @@ namespace arcsim
 				add_subvec(dt*(F + (dt + damping)*J*vs), indices(n0, n1, n2, n3), b);
 			}
 #ifdef LDP_DEBUG
-			static int flag = 0;
-			if (flag == 0)
-			{
-				flag = 1;
-
-				std::ofstream file("D:/tmp/arcsim_varBend_FJ.txt");
-				file << "F: " << std::endl << dt*(F + dt*J*vs) << std::endl;
-				file << "J: " << std::endl << -dt*dt*J << std::endl;
-				file.close();
-			}
+			dump_v3("D:/tmp/arcsim_beforscan_b.txt", dt*(F + dt*J*vs));
+			dump_v3("D:/tmp/arcsim_beforscan_A.txt", -dt*dt*J);
 #endif
 		}
 	}
@@ -511,6 +611,10 @@ namespace arcsim
 			b[n] += dt*fext[n];
 		}
 		add_internal_forces<WS>(cloth, A, b, dt);
+#ifdef LDP_DEBUG
+		dumpAsDense("D:/tmp/arcsim_A.txt", A);
+		dump("D:/tmp/arcsim_b.txt", b);
+#endif
 		add_constraint_forces(cloth, cons, A, b, dt);
 		add_friction_forces(cloth, cons, A, b, dt);
 

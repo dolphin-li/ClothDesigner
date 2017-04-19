@@ -179,6 +179,7 @@ public:
 	void transposeValueTo(CudaBsrMatrix& rhs)const;
 
 	void dump(std::string name)const;
+	void dumpAsDense(std::string name)const;
 protected:
 	static void fill_increment_1_n(int* data, int n);
 	void transpose_fill_values_by_blockId(const int* blockIds, const CudaBsrMatrix& t);

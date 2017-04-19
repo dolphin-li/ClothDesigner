@@ -74,7 +74,8 @@ namespace ldp
 #ifdef DEBUG_DUMP
 		dumpVec("D:/tmp/m_beforScan_A.txt", m_beforScan_A);
 		dumpVec("D:/tmp/m_beforScan_b.txt", m_beforScan_b);
-		m_A->dump("D:/tmp/m_A.txt");
+		m_A->dumpAsDense("D:/tmp/m_A.txt");
+		dumpVec("D:/tmp/m_b.txt", m_b);
 #endif
 		restart();
 	}
@@ -85,6 +86,7 @@ namespace ldp
 		{
 			const auto* sim = m_arcSimManager->getSimulator();
 			m_simParam.dt = sim->step_time;
+			m_simParam.gravity = convert(sim->gravity);
 		} // end if arc
 		else
 		{
@@ -128,7 +130,7 @@ namespace ldp
 			const auto& t = m_texCoord_init_h;
 			const auto& label = m_faces_idxMat_h[iFace];
 			FaceMaterailSpaceData& fData = faceData[iFace];
-			fData.area = fabs(Float2(t[f[1]] - t[f[0]]).cross(t[f[2]] - t[f[0]])) * 0.5f;
+			fData.area = fabs(Float2(t[f[1]] - t[f[0]]).cross(t[f[2]] - t[f[0]])) / 2;
 			fData.mass = fData.area * m_densityData_h[label];
 		} // end for iFace
 		m_faces_materialSpace_d.upload(faceData);
@@ -162,6 +164,9 @@ namespace ldp
 		m_v.create(m_x.size());
 		m_dv.create(m_x.size());
 		m_b.create(m_x.size());
+		cudaSafeCall(cudaMemset(m_v.ptr(), 0, m_v.sizeBytes()));
+		cudaSafeCall(cudaMemset(m_dv.ptr(), 0, m_dv.sizeBytes()));
+		cudaSafeCall(cudaMemset(m_b.ptr(), 0, m_b.sizeBytes()));
 		updateMaterial();
 		bindTextures();
 	}
@@ -303,12 +308,11 @@ namespace ldp
 		{
 			A_Ids_start_h.push_back(A_Ids_h.size());
 			b_Ids_start_h.push_back(b_Ids_h.size());
-			for (int k = 0; k < 3; k++)
+			for (int r = 0; r < 3; r++)
 			{
-				A_Ids_h.push_back(ldp::vertPair_to_idx(ldp::Int2(f[k], f[k]), nVerts));
-				A_Ids_h.push_back(ldp::vertPair_to_idx(ldp::Int2(f[k], f[(k + 1) % 3]), nVerts));
-				A_Ids_h.push_back(ldp::vertPair_to_idx(ldp::Int2(f[(k + 1) % 3], f[k]), nVerts));
-				b_Ids_h.push_back(f[k]);
+				for (int c = 0; c < 3; c++)
+					A_Ids_h.push_back(ldp::vertPair_to_idx(ldp::Int2(f[r], f[c]), nVerts));
+				b_Ids_h.push_back(f[r]);
 			}
 		}
 
@@ -321,16 +325,12 @@ namespace ldp
 			{
 				const ldp::Int4& f1 = m_faces_idxWorld_h[ed.faceIdx[0]];
 				const ldp::Int4& f2 = m_faces_idxWorld_h[ed.faceIdx[1]];
-				int v[4] = { 0 };
-				v[0] = ed.edge_idxWorld[0];
-				v[1] = ed.edge_idxWorld[1];
-				v[2] = f1[0] + f1[1] + f1[2] - ed.edge_idxWorld[0] - ed.edge_idxWorld[1];
-				v[3] = f2[0] + f2[1] + f2[2] - ed.edge_idxWorld[0] - ed.edge_idxWorld[1];
-				for (int i = 0; i < 4; i++)
+				for (int r = 0; r < 4; r++)
 				{
-					for (int j = 0; j < 4; j++)
-						A_Ids_h.push_back(ldp::vertPair_to_idx(ldp::Int2(v[i], v[j]), nVerts));
-					b_Ids_h.push_back(v[i]);
+					for (int c = 0; c < 4; c++)
+						A_Ids_h.push_back(ldp::vertPair_to_idx(ldp::Int2(
+						ed.edge_idxWorld[r], ed.edge_idxWorld[c]), nVerts));
+					b_Ids_h.push_back(ed.edge_idxWorld[r]);
 				}
 			} // end for edgeData
 		}

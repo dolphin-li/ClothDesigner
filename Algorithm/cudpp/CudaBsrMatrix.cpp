@@ -269,6 +269,48 @@ void CudaBsrMatrix::AAt_blockDiags(CudaDiagBlockMatrix& C, bool lowerInsteadOfFu
 	range().AAt_blockDiags(C, lowerInsteadOfFull, alpha, beta);
 }
 
+void CudaBsrMatrix::dumpAsDense(std::string name)const
+{
+	std::vector<int> bhr, bhc;
+	std::vector<float> hv;
+	m_bsrRowPtr.download(bhr);
+	m_bsrColIdx.download(bhc);
+	if (!isSymbolic())
+		m_values.download(hv);
+
+	std::vector<float> D(rows()*cols(), 0.f);
+	for (int br = 0; br < m_blocksInRow; br++)
+	{
+		int rowbegin = br*m_rowsPerBlock;
+		int bcb = bhr[br], bce = bhr[br + 1];
+		for (int bic = bcb; bic < bce; bic++)
+		{
+			int colbegin = bhc[bic] * m_colsPerBlock;
+			int valbegin = bic * m_colsPerBlock * m_rowsPerBlock;
+			for (int r = 0; r < m_rowsPerBlock; r++)
+			for (int c = 0; c < m_colsPerBlock; c++)
+			{
+				if (!isSymbolic())
+					D[(rowbegin + r)*cols() + colbegin + c] = hv[valbegin++];
+				else
+					D[(rowbegin + r)*cols() + colbegin + c] = 1.f;
+			}
+		}
+	}
+
+	FILE* pFile = fopen(name.c_str(), "w");
+	if (pFile)
+	{
+		for (int r = 0; r < rows(); r++)
+		{
+			for (int c = 0; c < cols(); c++)
+				fprintf(pFile, "%ef ", D[r*cols() + c]);
+			fprintf(pFile, "\n");
+		} // r
+	}
+	fclose(pFile);
+}
+
 void CudaBsrMatrix::dump(std::string name)const
 {
 	std::vector<int> bhr, bhc;

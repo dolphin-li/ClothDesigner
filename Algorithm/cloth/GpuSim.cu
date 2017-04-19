@@ -15,7 +15,6 @@ namespace ldp
 		CTA_SIZE_X = 16,
 		CTA_SIZE_Y = 16
 	};
-	__constant__ float g_gpusim_gravity[3] = { 0, -9.8, 0 };
 #define CHECK_ZERO(a){if(a)printf("!!!error: %s=%d\n", #a, a);}
 
 	typedef ldp_basic_vec<float, 1> Float1;
@@ -570,6 +569,7 @@ namespace ldp
 	__device__ void computeStretchForces(int iFace, 
 		int A_start, Mat3f* beforeScan_A,
 		int b_start, Float3* beforeScan_b,
+		const Float3* velocity,
 		const cudaTextureObject_t* t_stretchSamples, float dt)
 	{
 		const ldp::Int3 face_idxWorld = texRead_faces_idxWorld(iFace);
@@ -600,9 +600,22 @@ namespace ldp
 			+ outer(fvv, fuu) + max(G(1, 1), 0.f)*Du.trans()*Du)
 			+ 2.*k[3] * (outer(fuv, fuv));
 
-		const Float9 vs = make_Float9(x[0], x[1], x[2]);
+#ifdef LDP_DEBUG1
+		if (iFace == 0)
+		{
+			printVal(k);
+			printVal(G);
+			printVal(fuu);
+			printVal(fvv);
+			printVal(fuv);
+			printVal(grad_e);
+			printVal(-area * dt * grad_e);
+		}
+#endif
+		const Float9 vs = make_Float9(velocity[face_idxWorld[0]], 
+			velocity[face_idxWorld[1]], velocity[face_idxWorld[2]]);
 		hess_e = (dt*dt*area) * hess_e;
-		grad_e = -area * dt * grad_e + hess_e*vs;
+		grad_e = -area * dt * grad_e - hess_e*vs;
 
 		//// output to global matrix
 		for (int row = 0; row < 3; row++)
@@ -617,11 +630,13 @@ namespace ldp
 			int pos = texRead_b_order(b_start + row);
 			beforeScan_b[pos] = get_subFloat3(grad_e, row);
 		} // end for row
+
 	}
 
 	__device__ void computeBendForces(int iEdge, const GpuSim::EdgeData* edgeDatas,
 		int A_start, Mat3f* beforeScan_A,
 		int b_start, Float3* beforeScan_b, 
+		const Float3* velocity,
 		const cudaTextureObject_t* t_bendDatas, float dt)
 	{
 		const GpuSim::EdgeData edgeData = edgeDatas[iEdge];
@@ -643,7 +658,8 @@ namespace ldp
 			bending_stiffness(ex[0], ex[1], edgeData, dihe_theta, area, t_bendDatas[edgeData.faceIdx[1]])
 			);
 		const float shape = edgeData.length_sqr / (2.f * area);
-		const FloatC vs = make_Float12(ex[0], ex[1], ex[2], ex[3]);
+		const FloatC vs = make_Float12(velocity[edgeData.edge_idxWorld[0]], velocity[edgeData.edge_idxWorld[1]], 
+			velocity[edgeData.edge_idxWorld[2]], velocity[edgeData.edge_idxWorld[3]]);
 		FloatC F = -dt*0.5f * ke*shape*(dihe_theta - edgeData.dihedral_ideal)*dtheta;
 		MatCf J = -dt*dt*0.5f*ke*shape*outer(dtheta, dtheta);
 		F -= J*vs;
@@ -692,6 +708,7 @@ namespace ldp
 		const cudaTextureObject_t* t_stretchSamples, const cudaTextureObject_t* t_bendDatas,
 		const int* A_starts, Mat3f* beforeScan_A, 
 		const int* b_starts, Float3* beforeScan_b,
+		const Float3* velocity,
 		int nFaces, int nEdges, float dt)
 	{
 		int thread_id = threadIdx.x + blockIdx.x * blockDim.x;
@@ -706,18 +723,18 @@ namespace ldp
 			const int b_start = b_starts[thread_id];
 			const ldp::Int3 face_idxWorld = texRead_faces_idxWorld(thread_id);
 			computeStretchForces(thread_id, A_start, beforeScan_A, 
-				b_start, beforeScan_b, t_stretchSamples, dt);
+				b_start, beforeScan_b, velocity, t_stretchSamples, dt);
 		} // end if nFaces_numAb
 		// compute bending forces here
 		else if (thread_id < nFaces + nEdges)
 		{
-#ifdef LDP_DEBUG1
+#ifdef LDP_DEBUG
 			return;
 #endif
 			const int A_start = A_starts[thread_id];
 			const int b_start = b_starts[thread_id];
 			computeBendForces(thread_id - nFaces, edgeData, A_start, beforeScan_A,
-				b_start, beforeScan_b, t_bendDatas, dt);
+				b_start, beforeScan_b, velocity, t_bendDatas, dt);
 		}
 	}
 
@@ -748,12 +765,12 @@ namespace ldp
 			sum += ldp::Mat3f().eye() * mass;
 		}
 
-		// write into A
-		A_values[thread_id] = sum;
+		// write into A, note that A is row majored while Mat3f is col majored
+		A_values[thread_id] = sum.trans();
 	}
 
 	__global__ void compute_b_kernel(const int* b_unique_pos, const Float3* b_beforeScan,
-		Float3* b_values, float dt, int nVerts, int nb_beforScan)
+		Float3* b_values, const float dt, const Float3 gravity, const int nVerts, const int nb_beforScan)
 	{
 		int thread_id = threadIdx.x + blockIdx.x * blockDim.x;
 		if (thread_id >= nVerts)
@@ -769,7 +786,7 @@ namespace ldp
 
 		// external forces and diag term
 		const float mass = texRead_nodeMaterialData(thread_id).mass;
-		sum += Float3(g_gpusim_gravity[0], g_gpusim_gravity[1], g_gpusim_gravity[2]) * mass * dt;
+		sum += gravity * mass * dt;
 
 		// write into A
 		b_values[thread_id] = sum;
@@ -778,15 +795,14 @@ namespace ldp
 	void GpuSim::updateNumeric()
 	{
 		// ldp hack here: make the gravity not important when we are stitching.
-		Float3 gravity = m_simParam.gravity;// *powf(1 - std::max(0.f, std::min(1.f, m_curStitchRatio)), 2);
-		cudaMemcpyToSymbol(g_gpusim_gravity, gravity.ptr(), 3 * sizeof(float));
-
+		const Float3 gravity = m_simParam.gravity;// *powf(1 - std::max(0.f, std::min(1.f, m_curStitchRatio)), 2);
 		const int nFaces = m_faces_idxWorld_d.size();
 		const int nEdges = m_edgeData_d.size();
 		computeNumeric_kernel << <divUp(nFaces + nEdges, CTA_SIZE), CTA_SIZE >> >(
 			m_edgeData_d.ptr(), m_faces_texStretch_d.ptr(), m_faces_texBend_d.ptr(),
 			m_A_Ids_start_d.ptr(), m_beforScan_A.ptr(),
 			m_b_Ids_start_d.ptr(), m_beforScan_b.ptr(),
+			m_v.ptr(),
 			nFaces, nEdges, m_simParam.dt);
 		cudaSafeCall(cudaGetLastError());
 
@@ -803,7 +819,7 @@ namespace ldp
 		cudaSafeCall(cudaGetLastError());
 		compute_b_kernel << <divUp(nVerts, CTA_SIZE), CTA_SIZE >> >(
 			m_b_Ids_d_unique_pos.ptr(), m_beforScan_b.ptr(),
-			(Float3*)m_b.ptr(), m_simParam.dt, nVerts, nA_beforScan
+			(Float3*)m_b.ptr(), m_simParam.dt, gravity, nVerts, nA_beforScan
 			);
 		cudaSafeCall(cudaGetLastError());
 	}

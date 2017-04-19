@@ -153,7 +153,8 @@ namespace arcsim
 			int nn = m_sim->cloths[c].mesh.nodes.size();
 			std::vector<Vec3> fext(nn, Vec3(0));
 			std::vector<Mat3x3> Jext(nn, Mat3x3(0));
-			//add_external_forces(sim.cloths[c], sim.gravity, sim.wind, fext, Jext);
+			std::cout << "garvity: " << m_sim->gravity << std::endl;
+			add_external_forces(m_sim->cloths[c], m_sim->gravity, m_sim->wind, fext, Jext);
 			implicit_update(m_sim->cloths[c], fext, Jext, cons, m_sim->step_time, false);
 		}
 #endif
