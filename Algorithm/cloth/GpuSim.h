@@ -11,6 +11,7 @@ namespace arcsim
 	class ArcSimManager;
 }
 
+class ObjMesh;
 namespace ldp
 {
 	class ClothManager;
@@ -64,8 +65,18 @@ namespace ldp
 		};
 		struct SimParam
 		{
-			float dt = 0.f;	// time step
+			float dt = 0.f;				// time step
 			Float3 gravity;
+			int outer_iter = 0;			// iteration of collision detections
+			int inner_iter = 0;			// iteration of Jacobi/CG/Chebshev solvers
+			float rho = 0.f;			// for chebshev acceleration
+			float under_relax = 0.f;	// jacobi relax
+			float control_mag = 0.f;	// for user control
+			float stitch_ratio = 0.f;	// for stitching edges length reduction
+			int lap_damping_iter = 0;
+			float air_damping = 0.f;
+			float strecth_mult = 0.f;
+			float bend_mult = 0.f;
 
 			void setDefault();
 		};
@@ -81,6 +92,8 @@ namespace ldp
 
 		// perform simulation for one time-step
 		void run_one_step();
+
+		void clothToObjMesh(ObjMesh& mesh);
 
 		// reset cloths to the initial state
 		void restart();
@@ -103,7 +116,11 @@ namespace ldp
 		void updateTopology_clothManager();
 
 		void linearSolve();
+		void collisionSolve();
+		void userControlSolve();
 
+		void linearSolve_jacobiUpdate();
+		void linearSolve_chebshevUpdate(float omega);
 	protected:
 		void setup_sparse_structure_from_cpu();
 		void bindTextures();
@@ -144,15 +161,18 @@ namespace ldp
 		DeviceArray<int> m_b_invOrder_d;
 		DeviceArray<ldp::Float3> m_beforScan_b;
 		///////////////// solve for the simulation linear system: A*dv=b////////////////////////////////
-		std::shared_ptr<CudaBsrMatrix> m_A;
-		DeviceArray<ldp::Float3> m_b;
+		std::shared_ptr<CudaBsrMatrix> m_A_d;
+		DeviceArray<ldp::Float3> m_b_d;
 		std::vector<ldp::Float2> m_texCoord_init_h;				// material (tex) space vertex texCoord							
 		DeviceArray<ldp::Float2> m_texCoord_init_d;				// material (tex) space vertex texCoord	
 		std::vector<ldp::Float3> m_x_init_h;					// world space vertex position	
 		DeviceArray<ldp::Float3> m_x_init_d;					// world space vertex position
-		DeviceArray<ldp::Float3> m_x;							// position of current step	
-		DeviceArray<ldp::Float3> m_v;							// velocity of current step
-		DeviceArray<ldp::Float3> m_dv;							// velocity changed in this step
+		std::vector<ldp::Float3> m_x_h;							// position of current step	
+		DeviceArray<ldp::Float3> m_x_d;							// position of current step	
+		DeviceArray<ldp::Float3> m_last_x_d;					// position of current step	
+		DeviceArray<ldp::Float3> m_v_d;							// velocity of current step
+		DeviceArray<ldp::Float3> m_last_v_d;					// position of current step	
+		DeviceArray<ldp::Float3> m_dv_d;						// velocity changed in this step
 		//////////////////////// material related///////////////////////////////////////////////////////
 	public:
 		class StretchingData { 

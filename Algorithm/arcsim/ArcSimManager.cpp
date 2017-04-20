@@ -10,7 +10,7 @@
 #include "cloth\GpuSim.h"
 namespace arcsim
 {
-#define LDP_DEBUG
+#define LDP_DEBUG_USE_GPUSIM
 	const static double g_num_edge_sample_angle_thre = 15 * ldp::PI_D / 180.;
 	const static double g_num_edge_sample_dist_thre = 0.01;
 
@@ -144,8 +144,7 @@ namespace arcsim
 		m_needUpdateMesh = true;
 		updateMesh();
 
-		//debug
-#ifdef LDP_DEBUG
+#ifdef LDP_DEBUG_USE_GPUSIM
 		m_gpuSim->init(this);
 		std::vector<Constraint*> cons;
 		for (int c = 0; c < m_sim->cloths.size(); c++)
@@ -194,6 +193,7 @@ namespace arcsim
 	{
 		if (m_sim == nullptr)
 			throw std::exception("ArcSimManager::reset: nullptr exception");
+
 		// prepare for simulation
 		prepare(*m_sim);
 		m_timeStamp->Stamp("prepared");

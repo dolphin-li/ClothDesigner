@@ -8,8 +8,8 @@
 #include "cudpp\thrust_wrapper.h"
 #include "cudpp\CachedDeviceBuffer.h"
 
-#define DEBUG_DUMP
-#define LDP_DEBUG
+//#define DEBUG_DUMP
+//#define LDP_DEBUG
 namespace ldp
 {
 #pragma region -- utils
@@ -38,7 +38,7 @@ namespace ldp
 	GpuSim::GpuSim()
 	{
 		cusparseCheck(cusparseCreate(&m_cusparseHandle), "GpuSim: create cusparse handel");
-		m_A.reset(new CudaBsrMatrix(m_cusparseHandle));
+		m_A_d.reset(new CudaBsrMatrix(m_cusparseHandle));
 	}
 
 	GpuSim::~GpuSim()
@@ -71,11 +71,12 @@ namespace ldp
 		initializeMaterialMemory();
 		updateTopology();
 		updateNumeric();
+
 #ifdef DEBUG_DUMP
 		dumpVec("D:/tmp/m_beforScan_A.txt", m_beforScan_A);
 		dumpVec("D:/tmp/m_beforScan_b.txt", m_beforScan_b);
 		m_A->dump("D:/tmp/m_A.txt");
-		dumpVec("D:/tmp/m_b.txt", m_b);
+		dumpVec("D:/tmp/m_b.txt", m_b_d);
 #endif
 		restart();
 	}
@@ -87,6 +88,16 @@ namespace ldp
 			const auto* sim = m_arcSimManager->getSimulator();
 			m_simParam.dt = sim->step_time;
 			m_simParam.gravity = convert(sim->gravity);
+			m_simParam.outer_iter = 8;
+			m_simParam.inner_iter = 40;
+			m_simParam.rho = 0.996f;
+			m_simParam.under_relax = 0.5f;
+			m_simParam.control_mag = 400.f;
+			m_simParam.stitch_ratio = 5.f;
+			m_simParam.lap_damping_iter = 4;
+			m_simParam.air_damping = 0.999f;
+			m_simParam.strecth_mult = 1.f;
+			m_simParam.bend_mult = 1.f;
 		} // end if arc
 		else
 		{
@@ -96,15 +107,49 @@ namespace ldp
 
 	void GpuSim::run_one_step()
 	{
+		updateNumeric();
 
+		for (int oiter = 0; oiter < m_simParam.outer_iter; oiter++)
+		{
+			m_x_d.copyTo(m_last_x_d);
+			m_v_d.copyTo(m_last_v_d);
+			// laplacian damping?
+			// air damping?
+			linearSolve();
+			collisionSolve();
+			userControlSolve();
+			m_x_d.download(m_x_h);
+		} // end for oiter
+	}
+
+	void GpuSim::clothToObjMesh(ObjMesh& mesh)
+	{
+		mesh.clear();
+		mesh.vertex_list = m_x_h;
+		mesh.vertex_texture_list = m_texCoord_init_h;
+		for (size_t iFace = 0; iFace < m_faces_idxWorld_h.size(); iFace++)
+		{
+			ObjMesh::obj_face f;
+			f.vertex_count = 3;
+			for (int k = 0; k < 3; k++)
+			{
+				f.vertex_index[k] = m_faces_idxWorld_h[iFace][k];
+				f.texture_index[k] = m_faces_idxTex_h[iFace][k];
+			}
+			f.material_index = -1;
+			mesh.face_list.push_back(f);
+		} // end for iFace
+		mesh.updateNormals();
+		mesh.updateBoundingBox();
 	}
 
 	void GpuSim::restart()
 	{
-		m_x_init_d.copyTo(m_x);
-		cudaSafeCall(cudaMemset(m_v.ptr(), 0, m_v.sizeBytes()));
-		cudaSafeCall(cudaMemset(m_dv.ptr(), 0, m_dv.sizeBytes()));
-		cudaSafeCall(cudaMemset(m_b.ptr(), 0, m_b.sizeBytes()));
+		m_x_h = m_x_init_h;
+		m_x_init_d.copyTo(m_x_d);
+		cudaSafeCall(cudaMemset(m_v_d.ptr(), 0, m_v_d.sizeBytes()));
+		cudaSafeCall(cudaMemset(m_dv_d.ptr(), 0, m_dv_d.sizeBytes()));
+		cudaSafeCall(cudaMemset(m_b_d.ptr(), 0, m_b_d.sizeBytes()));
 	}
 
 	void GpuSim::updateMaterial()
@@ -160,20 +205,18 @@ namespace ldp
 		else
 			throw std::exception("GpuSim, not initialized!");
 
-		m_x_init_d.copyTo(m_x);
-		m_v.create(m_x.size());
-		m_dv.create(m_x.size());
-		m_b.create(m_x.size());
-		cudaSafeCall(cudaMemset(m_v.ptr(), 0, m_v.sizeBytes()));
-		cudaSafeCall(cudaMemset(m_dv.ptr(), 0, m_dv.sizeBytes()));
-		cudaSafeCall(cudaMemset(m_b.ptr(), 0, m_b.sizeBytes()));
+		m_x_init_d.copyTo(m_x_d);
+		m_x_h = m_x_init_h;
+		m_last_x_d.create(m_x_d.size());
+		m_v_d.create(m_x_d.size());
+		m_last_v_d.create(m_v_d.size());
+		m_dv_d.create(m_x_d.size());
+		m_b_d.create(m_x_d.size());
+		cudaSafeCall(cudaMemset(m_v_d.ptr(), 0, m_v_d.sizeBytes()));
+		cudaSafeCall(cudaMemset(m_dv_d.ptr(), 0, m_dv_d.sizeBytes()));
+		cudaSafeCall(cudaMemset(m_b_d.ptr(), 0, m_b_d.sizeBytes()));
 		updateMaterial();
 		bindTextures();
-	}
-
-	void GpuSim::linearSolve()
-	{
-
 	}
 
 	void GpuSim::updateTopology_arcSim()
@@ -285,16 +328,16 @@ namespace ldp
 		if (!cooSys.empty())
 			A.setFromTriplets(cooSys.begin(), cooSys.end());
 
-		m_A->resize(A.rows(), A.cols(), 3);
-		m_A->beginConstructRowPtr();
-		cudaSafeCall(cudaMemcpy(m_A->bsrRowPtr(), A.outerIndexPtr(),
+		m_A_d->resize(A.rows(), A.cols(), 3);
+		m_A_d->beginConstructRowPtr();
+		cudaSafeCall(cudaMemcpy(m_A_d->bsrRowPtr(), A.outerIndexPtr(),
 			(1+A.outerSize())*sizeof(int), cudaMemcpyHostToDevice));
-		m_A->endConstructRowPtr();
-		cudaSafeCall(cudaMemcpy(m_A->bsrColIdx(), A.innerIndexPtr(),
+		m_A_d->endConstructRowPtr();
+		cudaSafeCall(cudaMemcpy(m_A_d->bsrColIdx(), A.innerIndexPtr(),
 			A.nonZeros()*sizeof(float), cudaMemcpyHostToDevice));
-		cudaSafeCall(cudaMemset(m_A->value(), 0, m_A->nnz()*sizeof(float)));
+		cudaSafeCall(cudaMemset(m_A_d->value(), 0, m_A_d->nnz()*sizeof(float)));
 
-		m_A->dump("D:/tmp/eigen_A.txt");
+		m_A_d->dump("D:/tmp/eigen_A.txt");
 #endif
 		// compute sparse structure via sorting---------------------------------
 		const int nVerts = m_x_init_h.size();
@@ -386,11 +429,11 @@ namespace ldp
 		vertPair_from_idx((int*)booRow.data(), (int*)booCol.data(), m_A_Ids_d_unique.ptr(), nVerts, nUniqueNnz);
 
 		// 5. build the sparse matrix via coo
-		m_A->resize(nVerts, nVerts, 3);
-		m_A->setRowFromBooRowPtr((const int*)booRow.data(), nUniqueNnz);
-		cudaSafeCall(cudaMemcpy(m_A->bsrColIdx(), (const int*)booCol.data(),
+		m_A_d->resize(nVerts, nVerts, 3);
+		m_A_d->setRowFromBooRowPtr((const int*)booRow.data(), nUniqueNnz);
+		cudaSafeCall(cudaMemcpy(m_A_d->bsrColIdx(), (const int*)booCol.data(),
 			nUniqueNnz*sizeof(int), cudaMemcpyDeviceToDevice));
-		cudaSafeCall(cudaMemset(m_A->value(), 0, m_A->nnz()*sizeof(float)));
+		cudaSafeCall(cudaMemset(m_A_d->value(), 0, m_A_d->nnz()*sizeof(float)));
 
 #ifdef DEBUG_DUMP
 		m_A->dump("D:/tmp/eigen_A_1.txt");

@@ -129,7 +129,7 @@ namespace arcsim
 		return stiffness;
 	}
 
-#define LDP_DEBUG
+//#define LDP_DEBUG
 	double bending_stiffness(const Edge *edge, int side,
 		const BendingData &data, double initial_angle)
 	{
@@ -155,7 +155,7 @@ namespace arcsim
 			+ data.d[bias_id][value_i + 1] * (1 - bias_angle)*(value)
 			+data.d[bias_id + 1][value_i + 1] * (bias_angle)*(value);
 		if (actual_ke < 0) actual_ke = 0;
-#ifdef LDP_DEBUG1		
+#ifdef LDP_DEBUG		
 		static int flag = 0;
 		if (flag == 0)
 		{

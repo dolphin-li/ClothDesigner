@@ -7,7 +7,7 @@
 namespace ldp
 {
 
-#define LDP_DEBUG
+//#define LDP_DEBUG
 
 #pragma region --utils
 	enum{
@@ -427,8 +427,8 @@ namespace ldp
 		cudaChannelFormatDesc desc_int = cudaCreateChannelDesc<int>();
 		cudaChannelFormatDesc desc_int4 = cudaCreateChannelDesc<int4>();
 
-		cudaSafeCall(cudaBindTexture(&offset, &gt_x, m_x.ptr(), 
-			&desc_float, m_x.size()*sizeof(float3)));
+		cudaSafeCall(cudaBindTexture(&offset, &gt_x, m_x_d.ptr(),
+			&desc_float, m_x_d.size()*sizeof(float3)));
 		CHECK_ZERO(offset);
 
 		cudaSafeCall(cudaBindTexture(&offset, &gt_x_init, m_x_init_d.ptr(),
@@ -811,26 +811,75 @@ namespace ldp
 			m_edgeData_d.ptr(), m_faces_texStretch_d.ptr(), m_faces_texBend_d.ptr(),
 			m_A_Ids_start_d.ptr(), m_beforScan_A.ptr(),
 			m_b_Ids_start_d.ptr(), m_beforScan_b.ptr(),
-			m_v.ptr(),
+			m_v_d.ptr(),
 			nFaces, nEdges, m_simParam.dt);
 		cudaSafeCall(cudaGetLastError());
 
 		// scanning into the sparse matrix
 		// since we have unique positions, we can do scan similar with CSR-vector multiplication.
-		const int nVerts = m_x.size();
-		const int nnzBlocks = m_A->nnzBlocks();
+		const int nVerts = m_x_d.size();
+		const int nnzBlocks = m_A_d->nnzBlocks();
 		const int nA_beforScan = m_beforScan_A.size();
 		const int nb_beforScan = m_beforScan_b.size();
 		compute_A_kernel << <divUp(nnzBlocks, CTA_SIZE), CTA_SIZE >> >(
-			m_A_Ids_d_unique_pos.ptr(), m_beforScan_A.ptr(), m_A->bsrRowPtr_coo(), m_A->bsrColIdx(),
-			(Mat3f*)m_A->value(), nVerts, nnzBlocks, nA_beforScan
+			m_A_Ids_d_unique_pos.ptr(), m_beforScan_A.ptr(), m_A_d->bsrRowPtr_coo(), m_A_d->bsrColIdx(),
+			(Mat3f*)m_A_d->value(), nVerts, nnzBlocks, nA_beforScan
 			);
 		cudaSafeCall(cudaGetLastError());
 		compute_b_kernel << <divUp(nVerts, CTA_SIZE), CTA_SIZE >> >(
 			m_b_Ids_d_unique_pos.ptr(), m_beforScan_b.ptr(),
-			(Float3*)m_b.ptr(), m_simParam.dt, gravity, nVerts, nb_beforScan
+			(Float3*)m_b_d.ptr(), m_simParam.dt, gravity, nVerts, nb_beforScan
 			);
 		cudaSafeCall(cudaGetLastError());
+	}
+#pragma endregion
+
+#pragma region --linear solve
+	void GpuSim::linearSolve_jacobiUpdate()
+	{
+
+	}
+
+	void GpuSim::linearSolve_chebshevUpdate(float omega)
+	{
+
+	}
+
+	void GpuSim::linearSolve()
+	{
+		//m_dev_X.copyTo(m_dev_prev_X);
+		float omega = 0.f;
+		for (int iter = 0; iter<m_simParam.inner_iter; iter++)
+		{
+			linearSolve_jacobiUpdate();
+
+			// chebshev param
+			if (iter <= 5)
+				omega = 1;
+			else if (iter == 6)
+				omega = 2 / (2 - ldp::sqr(m_simParam.rho));
+			else
+				omega = 4 / (4 - ldp::sqr(m_simParam.rho)*omega);
+
+			linearSolve_chebshevUpdate(omega);
+
+			//m_dev_X.swap(m_dev_prev_X);
+			//m_dev_X.swap(m_dev_next_X);
+		} // end for iter
+	}
+#pragma endregion
+
+#pragma region --collision solve
+	void GpuSim::collisionSolve()
+	{
+
+	}
+#pragma endregion
+
+#pragma region --user control solve
+	void GpuSim::userControlSolve()
+	{
+
 	}
 #pragma endregion
 }

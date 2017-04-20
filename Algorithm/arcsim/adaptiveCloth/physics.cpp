@@ -35,7 +35,7 @@ using namespace std;
 
 namespace arcsim
 {
-#define LDP_DEBUG
+//#define LDP_DEBUG
 
 	static const bool verbose = false;
 

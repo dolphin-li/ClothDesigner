@@ -155,7 +155,9 @@ namespace arcsim
 			update_obstacles(sim, false);
 
 		// collect constraints
-		vector<Constraint*> cons = get_constraints(sim, true);
+		vector<Constraint*> cons;// = get_constraints(sim, true);
+		if (sim.enabled[collision])
+			cons = get_constraints(sim, true);
 
 		// physical simulation
 		physics_step(sim, cons);
