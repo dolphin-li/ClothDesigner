@@ -169,10 +169,12 @@ namespace ldp
 		DeviceArray<ldp::Float3> m_x_init_d;					// world space vertex position
 		std::vector<ldp::Float3> m_x_h;							// position of current step	
 		DeviceArray<ldp::Float3> m_x_d;							// position of current step	
-		DeviceArray<ldp::Float3> m_last_x_d;					// position of current step	
+		DeviceArray<ldp::Float3> m_last_x_d;					// position of last step	
 		DeviceArray<ldp::Float3> m_v_d;							// velocity of current step
-		DeviceArray<ldp::Float3> m_last_v_d;					// position of current step	
+		DeviceArray<ldp::Float3> m_last_v_d;					// velocity of last step	
 		DeviceArray<ldp::Float3> m_dv_d;						// velocity changed in this step
+		DeviceArray<ldp::Float3> m_dv_tmpPrev_d;				// acceleration of current step, chebshev prev iter	
+		DeviceArray<ldp::Float3> m_dv_tmpNext_d;				// acceleration of current step, chebshev next iter
 		//////////////////////// material related///////////////////////////////////////////////////////
 	public:
 		class StretchingData { 

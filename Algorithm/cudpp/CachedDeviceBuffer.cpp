@@ -49,7 +49,7 @@ void CachedDeviceBuffer::swap(CachedDeviceBuffer& rhs)
 	std::swap(m_refcount, rhs.m_refcount);
 }
 
-void CachedDeviceBuffer::copyTo(CachedDeviceBuffer& rhs)
+void CachedDeviceBuffer::copyTo(CachedDeviceBuffer& rhs)const
 {
 	if (empty())
 		rhs.release();

@@ -113,6 +113,7 @@ namespace ldp
 		{
 			m_x_d.copyTo(m_last_x_d);
 			m_v_d.copyTo(m_last_v_d);
+			cudaSafeCall(cudaMemset(m_dv_d.ptr(), 0, m_dv_d.sizeBytes()));
 			// laplacian damping?
 			// air damping?
 			linearSolve();
@@ -205,8 +206,10 @@ namespace ldp
 		else
 			throw std::exception("GpuSim, not initialized!");
 
-		m_x_init_d.copyTo(m_x_d);
 		m_x_h = m_x_init_h;
+		m_x_init_d.copyTo(m_x_d);
+		m_dv_tmpPrev_d.create(m_x_d.size());
+		m_dv_tmpNext_d.create(m_x_d.size());
 		m_last_x_d.create(m_x_d.size());
 		m_v_d.create(m_x_d.size());
 		m_last_v_d.create(m_v_d.size());

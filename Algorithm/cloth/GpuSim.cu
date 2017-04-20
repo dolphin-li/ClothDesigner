@@ -840,14 +840,32 @@ namespace ldp
 
 	}
 
+	__global__ void linearSolve_chebshevUpdate_Kernel(const Float3* prev_X, const Float3* X,
+		Float3* next_X, float omega, int nverts, float under_relax)
+	{
+		int i = blockDim.x * blockIdx.x + threadIdx.x;
+		if (i >= nverts)	return;
+
+		Float3 xi = X[i];
+		Float3 nxi = next_X[i];
+		Float3 pxi = prev_X[i];
+		nxi = (nxi - xi) * under_relax + xi;
+		nxi = omega * (nxi - pxi) + pxi;
+		next_X[i] = nxi;
+	}
+
 	void GpuSim::linearSolve_chebshevUpdate(float omega)
 	{
-
+		linearSolve_chebshevUpdate_Kernel << <divUp(m_x_d.size(), CTA_SIZE), CTA_SIZE >> >(
+			m_dv_tmpPrev_d.ptr(), m_dv_d.ptr(), m_dv_tmpNext_d.ptr(),
+			omega, m_dv_d.size(), m_simParam.under_relax);
+		cudaSafeCall(cudaGetLastError());
 	}
 
 	void GpuSim::linearSolve()
 	{
-		//m_dev_X.copyTo(m_dev_prev_X);
+		m_dv_d.copyTo(m_dv_tmpPrev_d);
+		
 		float omega = 0.f;
 		for (int iter = 0; iter<m_simParam.inner_iter; iter++)
 		{
@@ -863,8 +881,8 @@ namespace ldp
 
 			linearSolve_chebshevUpdate(omega);
 
-			//m_dev_X.swap(m_dev_prev_X);
-			//m_dev_X.swap(m_dev_next_X);
+			m_dv_d.swap(m_dv_tmpPrev_d);
+			m_dv_d.swap(m_dv_tmpNext_d);
 		} // end for iter
 	}
 #pragma endregion
