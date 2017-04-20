@@ -141,9 +141,6 @@ namespace arcsim
 
 		prepare(*m_sim);
 
-		m_needUpdateMesh = true;
-		updateMesh();
-
 #ifdef LDP_DEBUG_USE_GPUSIM
 		m_gpuSim->init(this);
 		std::vector<Constraint*> cons;
@@ -157,6 +154,10 @@ namespace arcsim
 			implicit_update(m_sim->cloths[c], fext, Jext, cons, m_sim->step_time, false);
 		}
 #endif
+
+
+		m_needUpdateMesh = true;
+		updateMesh();
 	}
 
 
@@ -196,6 +197,10 @@ namespace arcsim
 
 		// prepare for simulation
 		prepare(*m_sim);
+
+#ifdef LDP_DEBUG_USE_GPUSIM
+		m_gpuSim->restart();
+#else
 		m_timeStamp->Stamp("prepared");
 		if (m_sim->enabled[Simulation::Separation])
 		{
@@ -207,6 +212,7 @@ namespace arcsim
 			relax_initial_state(*m_sim);
 			m_timeStamp->Stamp("initial state relaxed\n");
 		}
+#endif
 		m_needUpdateMesh = true;
 		updateMesh();
 		m_timeStamp->Stamp("obj mesh updated");
@@ -297,7 +303,12 @@ namespace arcsim
 		m_threadMutex->lock();
 
 		convertToObj(m_sim->obstacle_meshes, *m_bodyMesh);
+
+#ifdef LDP_DEBUG_USE_GPUSIM
+		m_gpuSim->clothToObjMesh(*m_clothMesh);
+#else
 		convertToObj(m_sim->cloth_meshes, *m_clothMesh);
+#endif
 
 		// add a different material to better render clothes
 		ObjMesh::obj_material material = ObjMesh::default_material;
@@ -340,10 +351,11 @@ namespace arcsim
 		Simulation* sim = threadData->getSimulator();
 		while (sim->time < sim->end_time)
 		{
+#ifdef LDP_DEBUG_USE_GPUSIM
+			threadData->m_gpuSim->run_one_step();
+			threadData->m_timeStamp->Stamp("gpuFps: %.1f\n", threadData->m_gpuSim->getFps());
+#else
 			advance_step(*sim);
-			threadData->m_threadMutex->lock();
-			threadData->m_needUpdateMesh = true;
-			threadData->m_threadMutex->unlock();
 			threadData->m_timeStamp->Stamp("%.3f/%.1f, pr=%.3f, ps=%.3f, co=%.3f, sl=%.3f, pl=%.3f",
 				sim->time, sim->end_time,
 				sim->timers[Simulation::Proximity].last,
@@ -351,6 +363,10 @@ namespace arcsim
 				sim->timers[Simulation::Collision].last,
 				sim->timers[Simulation::StrainLimiting].last,
 				sim->timers[Simulation::Plasticity].last);
+#endif
+			threadData->m_threadMutex->lock();
+			threadData->m_needUpdateMesh = true;
+			threadData->m_threadMutex->unlock();
 			if (!threadData->m_thread_running)
 				break;
 		} // end while sim->time

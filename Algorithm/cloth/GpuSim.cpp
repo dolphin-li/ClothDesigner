@@ -88,8 +88,8 @@ namespace ldp
 			const auto* sim = m_arcSimManager->getSimulator();
 			m_simParam.dt = sim->step_time;
 			m_simParam.gravity = convert(sim->gravity);
-			m_simParam.outer_iter = 8;
-			m_simParam.inner_iter = 40;
+			m_simParam.outer_iter = 1;
+			m_simParam.inner_iter = 400;
 			m_simParam.rho = 0.996f;
 			m_simParam.under_relax = 0.5f;
 			m_simParam.control_mag = 400.f;
@@ -107,6 +107,8 @@ namespace ldp
 
 	void GpuSim::run_one_step()
 	{
+		gtime_t t_start = gtime_now();
+
 		updateNumeric();
 
 		for (int oiter = 0; oiter < m_simParam.outer_iter; oiter++)
@@ -122,6 +124,9 @@ namespace ldp
 			update_x_v_by_dv();
 			m_x_d.download(m_x_h);
 		} // end for oiter
+
+		gtime_t t_end = gtime_now();
+		m_fps = 1.f / gtime_seconds(t_start, t_end);
 	}
 
 	void GpuSim::clothToObjMesh(ObjMesh& mesh)

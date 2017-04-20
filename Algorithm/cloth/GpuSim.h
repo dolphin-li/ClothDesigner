@@ -93,6 +93,8 @@ namespace ldp
 		// perform simulation for one time-step
 		void run_one_step();
 
+		float getFps()const{ return m_fps; }
+
 		void clothToObjMesh(ObjMesh& mesh);
 
 		// reset cloths to the initial state
@@ -130,6 +132,7 @@ namespace ldp
 		arcsim::ArcSimManager* m_arcSimManager = nullptr;
 		cusparseHandle_t m_cusparseHandle = nullptr;
 		SimParam m_simParam;
+		float m_fps = 0.f;
 
 		ldp::LevelSet3D* m_bodyLvSet_h = nullptr;
 		DeviceArray<float> m_bodyLvSet_d;

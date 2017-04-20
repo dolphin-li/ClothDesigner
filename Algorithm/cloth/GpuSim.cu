@@ -836,7 +836,7 @@ namespace ldp
 
 #pragma region --linear solve
 
-#define USE_BLOCKWISE_LINEAR_ITERATION
+//#define USE_BLOCKWISE_LINEAR_ITERATION
 
 	__device__ __forceinline__ float fetch_float(cudaTextureObject_t A, int i)
 	{
