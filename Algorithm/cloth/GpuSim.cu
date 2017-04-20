@@ -480,9 +480,10 @@ namespace ldp
 		float value = dihe_angle*sqrt(eData.length_sqr[side]) / area * 0.5f*0.2f;
 		float bias_angle = fabs((eData.theta_uv[side] + eData.theta_initial) * 4.f / M_PI);
 #ifdef BEND_USE_LINEAR_TEX
-		float actual_ke = max(0.f, texRead_bendData(t_bendDataTex[eData.faceIdx[side]], 
-			bias_angle + 0.5f, value + 0.5f));
+		float actual_ke = texRead_bendData(t_bendDataTex[eData.faceIdx[side]], 
+			bias_angle + 0.5f, value + 0.5f);
 #else
+		const cudaTextureObject_t bendDataTex = t_bendDataTex[eData.faceIdx[side]];
 		if (value > 4) 
 			value = 4;
 		int value_i = (int)value;
@@ -505,7 +506,6 @@ namespace ldp
 			+ texRead_bendData(bendDataTex, bias_id + 1, value_i) * (bias_angle)*(1 - value)
 			+ texRead_bendData(bendDataTex, bias_id, value_i + 1) * (1 - bias_angle)*(value)
 			+texRead_bendData(bendDataTex, bias_id + 1, value_i + 1) * (bias_angle)*(value);
-		if (actual_ke < 0) actual_ke = 0;
 #endif
 
 #ifdef LDP_DEBUG1
@@ -516,6 +516,7 @@ namespace ldp
 		printVal(bias_id);
 		printVal(actual_ke*1e6f);
 #endif
+		if (actual_ke < 0) actual_ke = 0;
 		return actual_ke;
 	}
 
@@ -671,7 +672,6 @@ namespace ldp
 		FloatC F = -dt*0.5f * ke*shape*(dihe_theta - edgeData.dihedral_ideal)*dtheta;
 		MatCf J = dt*dt*0.5f*ke*shape*outer(dtheta, dtheta);
 		F -= J*vs;
-
 		// output to global matrix
 		for (int row = 0; row < 4; row++)
 		for (int col = 0; col < 4; col++)
@@ -952,29 +952,6 @@ namespace ldp
 		cudaSafeCall(cudaGetLastError());
 	}
 
-	void GpuSim::linearSolve()
-	{
-		m_dv_d.copyTo(m_dv_tmpPrev_d);
-		
-		float omega = 0.f;
-		for (int iter = 0; iter<m_simParam.inner_iter; iter++)
-		{
-			linearSolve_jacobiUpdate();
-
-			// chebshev param
-			if (iter <= 5)
-				omega = 1;
-			else if (iter == 6)
-				omega = 2 / (2 - ldp::sqr(m_simParam.rho));
-			else
-				omega = 4 / (4 - ldp::sqr(m_simParam.rho)*omega);
-
-			linearSolve_chebshevUpdate(omega);
-
-			m_dv_d.swap(m_dv_tmpPrev_d);
-			m_dv_d.swap(m_dv_tmpNext_d);
-		} // end for iter
-	}
 #pragma endregion
 
 #pragma region --collision solve
@@ -997,13 +974,13 @@ namespace ldp
 	{
 		const int i = blockDim.x * blockIdx.x + threadIdx.x;
 		if (i >= nverts)	return;
-		v[i] += dt * dv[i];
+		v[i] += dv[i];
 		x[i] += dt * v[i];
 	}
 
 	void GpuSim::update_x_v_by_dv()
 	{
-		// v += dt*dv; x += dt*v;
+		// v += dv; x += dt*v;
 		update_x_v_by_dv_kernel << <divUp(m_x_d.size(), CTA_SIZE), CTA_SIZE >> >
 			(m_dv_d.ptr(), m_v_d.ptr(), m_x_d.ptr(), m_simParam.dt, m_dv_d.size());
 		cudaSafeCall(cudaGetLastError());

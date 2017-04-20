@@ -94,6 +94,7 @@ namespace ldp
 		void run_one_step();
 
 		float getFps()const{ return m_fps; }
+		float getStepTime()const{ return m_simParam.dt; }
 
 		void clothToObjMesh(ObjMesh& mesh);
 
@@ -247,7 +248,7 @@ namespace ldp
 			enum {
 				POINTS = 5,
 #ifdef BEND_USE_LINEAR_TEX
-				DIMS = 8,
+				DIMS = 9,
 				FilterMode = cudaFilterModeLinear,
 #else
 				DIMS = 3,

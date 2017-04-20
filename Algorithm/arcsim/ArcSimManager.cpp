@@ -149,7 +149,6 @@ namespace arcsim
 			int nn = m_sim->cloths[c].mesh.nodes.size();
 			std::vector<Vec3> fext(nn, Vec3(0));
 			std::vector<Mat3x3> Jext(nn, Mat3x3(0));
-			std::cout << "garvity: " << m_sim->gravity << std::endl;
 			add_external_forces(m_sim->cloths[c], m_sim->gravity, m_sim->wind, fext, Jext);
 			implicit_update(m_sim->cloths[c], fext, Jext, cons, m_sim->step_time, false);
 		}
@@ -159,8 +158,7 @@ namespace arcsim
 		m_needUpdateMesh = true;
 		updateMesh();
 	}
-
-
+	
 	void ArcSimManager::loadFromClothManager(ldp::ClothManager* clothManager)
 	{
 		m_timeStamp->Reset();
@@ -353,7 +351,9 @@ namespace arcsim
 		{
 #ifdef LDP_DEBUG_USE_GPUSIM
 			threadData->m_gpuSim->run_one_step();
-			threadData->m_timeStamp->Stamp("gpuFps: %.1f\n", threadData->m_gpuSim->getFps());
+			sim->time += sim->step_time;
+			threadData->m_timeStamp->Stamp("%.3f/%.1f, fps=%.1f\n", sim->time, 
+				sim->end_time, threadData->m_gpuSim->getFps());
 #else
 			advance_step(*sim);
 			threadData->m_timeStamp->Stamp("%.3f/%.1f, pr=%.3f, ps=%.3f, co=%.3f, sl=%.3f, pl=%.3f",

@@ -8,11 +8,65 @@
 #include "cudpp\thrust_wrapper.h"
 #include "cudpp\CachedDeviceBuffer.h"
 
+#include <eigen\Dense>
+#include <eigen\Sparse>
+
 //#define DEBUG_DUMP
 //#define LDP_DEBUG
 namespace ldp
 {
 #pragma region -- utils
+
+	typedef double egreal;
+	typedef Eigen::Triplet<egreal> Triplet;
+	typedef Eigen::SparseMatrix<egreal> SpMat;
+	typedef Eigen::Matrix<egreal, -1, 1> EgVec;
+
+	static void dump(std::string name, const SpMat& A)
+	{
+		FILE* pFile = fopen(name.c_str(), "w");
+		if (pFile)
+		{
+			for (int col = 0; col < A.cols(); col++)
+			{
+				int cb = A.outerIndexPtr()[col];
+				int ce = A.outerIndexPtr()[col + 1];
+				for (int c = cb; c < ce; c++)
+				{
+					int row = A.innerIndexPtr()[c];
+					egreal val = A.valuePtr()[c];
+					printf("%d %d %ef\n", row, col, val);
+				}
+			}
+		}
+		fclose(pFile);
+	}
+
+	static void cudaSpMat_to_EigenMat(const CudaBsrMatrix& cA, SpMat& A)
+	{
+		DeviceArray<int> csrRows_d, csrCols_d;
+		DeviceArray<float> csrVals_d;
+		cA.toCsr(csrRows_d, csrCols_d, csrVals_d);
+		std::vector<int> csrRows, csrCols;
+		std::vector<float> csrVals;
+		csrRows_d.download(csrRows);
+		csrCols_d.download(csrCols);
+		csrVals_d.download(csrVals);
+
+		std::vector<Triplet> cooSys;
+		for (int r = 0; r + 1 < csrRows.size(); r++)
+		{
+			for (int pos = csrRows[r]; pos < csrRows[r + 1]; pos++)
+			{
+				int c = csrCols[pos];
+				float val = csrVals[pos];
+				cooSys.push_back(Triplet(r, c, val));
+			}
+		}
+		A.resize(cA.rows(), cA.cols());
+		A.setFromTriplets(cooSys.begin(), cooSys.end());	
+	}
+
 	template<class T, int n>
 	inline ldp::ldp_basic_vec<T, n> convert(arcsim::Vec<n, T> v)
 	{
@@ -33,6 +87,8 @@ namespace ldp
 
 #define NOT_IMPLEMENTED throw std::exception((std::string("NotImplemented[")+__FILE__+"]["\
 	+std::to_string(__LINE__)+"]").c_str())
+
+	
 #pragma endregion
 
 	GpuSim::GpuSim()
@@ -77,6 +133,9 @@ namespace ldp
 		dumpVec("D:/tmp/m_beforScan_b.txt", m_beforScan_b);
 		m_A->dump("D:/tmp/m_A.txt");
 		dumpVec("D:/tmp/m_b.txt", m_b_d);
+		SpMat A;
+		cudaSpMat_to_EigenMat(*m_A_d, A);
+		ldp::dump("D:/tmp/m_A_eigen.txt", A);
 #endif
 		restart();
 	}
@@ -535,6 +594,53 @@ namespace ldp
 		m_bendingData_h.clear();
 		m_stretchSamples_h.clear();
 		m_densityData_h.clear();
+	}
+
+	void GpuSim::linearSolve()
+	{
+#if 0
+		m_dv_d.copyTo(m_dv_tmpPrev_d);
+
+		float omega = 0.f;
+		for (int iter = 0; iter<m_simParam.inner_iter; iter++)
+		{
+			linearSolve_jacobiUpdate();
+
+			// chebshev param
+			if (iter <= 5)
+				omega = 1;
+			else if (iter == 6)
+				omega = 2 / (2 - ldp::sqr(m_simParam.rho));
+			else
+				omega = 4 / (4 - ldp::sqr(m_simParam.rho)*omega);
+
+			linearSolve_chebshevUpdate(omega);
+
+			m_dv_d.swap(m_dv_tmpPrev_d);
+			m_dv_d.swap(m_dv_tmpNext_d);
+		} // end for iter
+#else
+		SpMat A;
+		cudaSpMat_to_EigenMat(*m_A_d, A);
+		Eigen::SimplicialCholesky<SpMat> solver(A);
+		
+		std::vector<ldp::Float3> bvec;
+		m_b_d.download(bvec);
+
+		EgVec b(bvec.size() * 3);
+		for (int i = 0; i < bvec.size(); i++)
+		for (int k = 0; k < 3; k++)
+			b[i * 3 + k] = bvec[i][k];
+		
+		EgVec dv = solver.solve(b);
+
+		std::vector<ldp::Float3> dvvec(dv.size() / 3);
+		for (int i = 0; i < dvvec.size(); i++)
+		for (int k = 0; k < 3; k++)
+			dvvec[i][k] = dv[i * 3 + k];
+
+		m_dv_d.upload(dvvec);
+#endif
 	}
 
 	void GpuSim::dumpVec(std::string name, const DeviceArray<float>& A, int nTotal)
