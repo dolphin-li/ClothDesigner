@@ -226,8 +226,8 @@ namespace ldp
 					ed.edge_idxWorld[k + 2] = arcsim::edge_opp_vert(e, k)->node->index + node_index_begin;			
 					auto t0 = arcsim::edge_vert(e, k, 0)->u;
 					auto t1 = arcsim::edge_vert(e, k, 1)->u;
-					ed.length_sqr = arcsim::norm2(t1-t0);
-					ed.theta_uv = atan2f(t1[1]-t0[1], t1[0]-t0[0]);
+					ed.length_sqr[k] = arcsim::norm2(t1-t0);
+					ed.theta_uv[k] = atan2f(t1[1]-t0[1], t1[0]-t0[0]);
 				}
 				m_edgeData_h.push_back(ed);
 			} // end for e
@@ -341,6 +341,9 @@ namespace ldp
 
 		// matrix A
 		m_A_Ids_d.upload(A_Ids_h);
+#ifdef DEBUG_DUMP
+		dumpVec_pair("D:/tmp/m_A_Ids_d_inOrder.txt", m_A_Ids_d, nVerts);
+#endif
 		m_A_Ids_start_d.upload(A_Ids_start_h);
 		m_A_order_d.create(A_Ids_h.size());
 		m_A_invOrder_d.create(A_Ids_h.size());
@@ -358,6 +361,9 @@ namespace ldp
 
 		// rhs b
 		m_b_Ids_d.upload(b_Ids_h);
+#ifdef DEBUG_DUMP
+		dumpVec("D:/tmp/m_b_Ids_d_inOrder.txt", m_b_Ids_d);
+#endif
 		m_b_Ids_start_d.upload(b_Ids_start_h);
 		m_b_order_d.create(b_Ids_h.size());
 		m_b_invOrder_d.create(b_Ids_h.size());

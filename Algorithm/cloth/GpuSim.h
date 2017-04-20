@@ -43,10 +43,10 @@ namespace ldp
 			ldp::Int4 edge_idxWorld;
 			ldp::Int2 edge_idxTex[2]; // two face side tex space index
 			ldp::Int2 faceIdx;
-			float length_sqr = 0.f;
+			ldp::Float2 length_sqr;
+			ldp::Float2 theta_uv;	// uv direction
 			float dihedral_ideal = 0.f;
 			float theta_initial = 0.f;
-			float theta_uv = 0.f;	// uv direction
 		};
 		struct FaceMaterailSpaceData // must be sizeof float4
 		{
@@ -181,7 +181,7 @@ namespace ldp
 		class StretchingSamples {
 		public:
 			enum{
-				SAMPLES = 40,
+				SAMPLES = 30,
 				SAMPLES2 = SAMPLES*SAMPLES,
 			};
 			StretchingSamples(){

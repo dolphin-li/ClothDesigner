@@ -474,13 +474,14 @@ namespace ldp
 
 	__device__ __forceinline__ float bending_stiffness(
 		GpuSim::EdgeData eData, float dihe_angle, float area,
-		cudaTextureObject_t bendDataTex)
+		const cudaTextureObject_t* t_bendDataTex, int side)
 	{
 		// because samples are per 0.05 cm^-1 = 5 m^-1
-		float value = dihe_angle*sqrt(eData.length_sqr) / area * 0.5f*0.2f;
-		float bias_angle = fabs((eData.theta_uv + eData.theta_initial) * 4.f / M_PI);
+		float value = dihe_angle*sqrt(eData.length_sqr[side]) / area * 0.5f*0.2f;
+		float bias_angle = fabs((eData.theta_uv[side] + eData.theta_initial) * 4.f / M_PI);
 #ifdef BEND_USE_LINEAR_TEX
-		float actual_ke = max(0.f, texRead_bendData(bendDataTex, bias_angle + 0.5f, value + 0.5f));
+		float actual_ke = max(0.f, texRead_bendData(t_bendDataTex[eData.faceIdx[side]], 
+			bias_angle + 0.5f, value + 0.5f));
 #else
 		if (value > 4) 
 			value = 4;
@@ -599,6 +600,14 @@ namespace ldp
 #ifdef LDP_DEBUG1
 		if (iFace == 0)
 		{
+			printVal(x[0]);
+			printVal(x[1]);
+			printVal(x[2]);
+			printVal(t[0]);
+			printVal(t[1]);
+			printVal(t[2]);
+			printVal(D);
+			printVal(F);
 			printVal(k);
 			printVal(G);
 			printVal(fuu);
@@ -606,6 +615,8 @@ namespace ldp
 			printVal(fuv);
 			printVal(grad_e);
 			printVal(-area * dt * grad_e);
+			//printVal(hess_e - hess_e.trans());
+			printVal((dt*dt*area)*hess_e);
 		}
 #endif
 		const Float9 vs = make_Float9(velocity[face_idxWorld[0]], 
@@ -650,10 +661,11 @@ namespace ldp
 		const FloatC dtheta = make_Float12(-(w_f0[0] * n0 / h0 + w_f1[0] * n1 / h1),
 			-(w_f0[1] * n0 / h0 + w_f1[1] * n1 / h1), n0 / h0, n1 / h1);
 		float ke = min(
-			bending_stiffness(edgeData, dihe_theta, area, t_bendDatas[edgeData.faceIdx[0]]),
-			bending_stiffness(edgeData, dihe_theta, area, t_bendDatas[edgeData.faceIdx[1]])
+			bending_stiffness(edgeData, dihe_theta, area, t_bendDatas, 0),
+			bending_stiffness(edgeData, dihe_theta, area, t_bendDatas, 1)
 			);
-		const float shape = edgeData.length_sqr / (2.f * area);
+		const float len = 0.5f * (sqrt(edgeData.length_sqr[0]) + sqrt(edgeData.length_sqr[1]));
+		const float shape = ldp::sqr(len) / (2.f * area);
 		const FloatC vs = make_Float12(velocity[edgeData.edge_idxWorld[0]], velocity[edgeData.edge_idxWorld[1]], 
 			velocity[edgeData.edge_idxWorld[2]], velocity[edgeData.edge_idxWorld[3]]);
 		FloatC F = -dt*0.5f * ke*shape*(dihe_theta - edgeData.dihedral_ideal)*dtheta;
@@ -788,8 +800,8 @@ namespace ldp
 
 	void GpuSim::updateNumeric()
 	{
-		cudaSafeCall(cudaMemset(m_beforScan_A.ptr(), m_beforScan_A.sizeBytes(), 0));
-		cudaSafeCall(cudaMemset(m_beforScan_b.ptr(), m_beforScan_b.sizeBytes(), 0));
+		cudaSafeCall(cudaMemset(m_beforScan_A.ptr(), 0, m_beforScan_A.sizeBytes()));
+		cudaSafeCall(cudaMemset(m_beforScan_b.ptr(), 0, m_beforScan_b.sizeBytes()));
 
 		// ldp hack here: make the gravity not important when we are stitching.
 		const Float3 gravity = m_simParam.gravity;// *powf(1 - std::max(0.f, std::min(1.f, m_curStitchRatio)), 2);
