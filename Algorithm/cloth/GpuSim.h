@@ -219,12 +219,12 @@ namespace ldp
 		class BendingData {
 		public:
 			enum {
-				DIMS = 3,
+				POINTS = 5,
 #ifdef BEND_USE_LINEAR_TEX
-				POINTS = 9,
+				DIMS = 8,
 				FilterMode = cudaFilterModeLinear,
 #else
-				POINTS = 5,
+				DIMS = 3,
 				FilterMode = cudaFilterModePoint,
 #endif
 			};

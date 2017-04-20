@@ -458,7 +458,7 @@ namespace arcsim
 				add_submat(-dt*(dt + damping)*J, indices(n0, n1, n2), A);
 				add_subvec(dt*(F + (dt + damping)*J*vs), indices(n0, n1, n2), b);
 			}
-#ifdef LDP_DEBUG
+#ifdef LDP_DEBUG1
 			dump_v3("D:/tmp/arcsim_beforscan_b.txt", dt*(F + dt*J*vs));
 			dump_v3("D:/tmp/arcsim_beforscan_A.txt", -dt*dt*J);
 #endif
@@ -492,7 +492,7 @@ namespace arcsim
 				add_submat(-dt*(dt + damping)*J, indices(n0, n1, n2, n3), A);
 				add_subvec(dt*(F + (dt + damping)*J*vs), indices(n0, n1, n2, n3), b);
 			}
-#ifdef LDP_DEBUG
+#ifdef LDP_DEBUG1
 			dump_v3("D:/tmp/arcsim_beforscan_b.txt", dt*(F + dt*J*vs));
 			dump_v3("D:/tmp/arcsim_beforscan_A.txt", -dt*dt*J);
 #endif

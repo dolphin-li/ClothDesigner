@@ -420,22 +420,17 @@ namespace ldp
 				m_bendingData_h.push_back(BendingData());
 				auto& bdata = m_bendingData_h.back();
 				for (int x = 0; x < bdata.cols(); x++)
-#ifdef BEND_USE_LINEAR_TEX
 				{
-					bdata(x, 0) = mat->bending.d[x][0];
-					bdata(x, 1) = mat->bending.d[x][1];
-					bdata(x, 2) = mat->bending.d[x][2];
-					bdata(x, 3) = mat->bending.d[x][1];
-					bdata(x, 4) = mat->bending.d[x][0];
-					bdata(x, 5) = mat->bending.d[x][1];
-					bdata(x, 6) = mat->bending.d[x][2];
-					bdata(x, 7) = mat->bending.d[x][1];
-					bdata(x, 8) = mat->bending.d[x][0];
-				}
-#else
-				for (int y = 0; y < bdata.rows(); y++)
-					bdata(x, y) = mat->bending.d[x][y];
+					int wrap_x = x;
+#ifdef BEND_USE_LINEAR_TEX		
+					if (wrap_x>4)
+						wrap_x = 8 - wrap_x;
+					if (wrap_x > 2)
+						wrap_x = 4 - wrap_x;
 #endif
+					for (int y = 0; y < bdata.rows(); y++)
+						bdata(x, y) = mat->bending.d[wrap_x][y];
+				}
 			} // end for mat, cloth
 			
 		} // end if arcSim

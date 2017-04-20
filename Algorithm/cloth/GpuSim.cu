@@ -472,15 +472,15 @@ namespace ldp
 		return texRead_strechSample(samples, a, b, c);
 	}
 
-	__device__ __forceinline__ float bending_stiffness(Float3 a, Float3 b, 
+	__device__ __forceinline__ float bending_stiffness(
 		GpuSim::EdgeData eData, float dihe_angle, float area,
 		cudaTextureObject_t bendDataTex)
 	{
 		// because samples are per 0.05 cm^-1 = 5 m^-1
-		const float value = dihe_angle*(a - b).length() / area * 0.5f*0.2f;
-		const float bias_angle = fabs((eData.theta_uv + eData.theta_initial) * 4.f / M_PI);
+		float value = dihe_angle*sqrt(eData.length_sqr) / area * 0.5f*0.2f;
+		float bias_angle = fabs((eData.theta_uv + eData.theta_initial) * 4.f / M_PI);
 #ifdef BEND_USE_LINEAR_TEX
-		float actual_ke = max(0.f, texRead_bendData(bendDataTex, value + 0.5f, bias_angle + 0.5f));
+		float actual_ke = max(0.f, texRead_bendData(bendDataTex, bias_angle + 0.5f, value + 0.5f));
 #else
 		if (value > 4) 
 			value = 4;
@@ -500,24 +500,20 @@ namespace ldp
 		if (bias_id>1)   
 			bias_id = 1;
 		bias_angle -= bias_id;
-		float actual_ke = texRead_bendData(bendData, value_i, bias_id) * (1 - bias_angle)*(1 - value)
-			+ texRead_bendData(bendData + 1, value_i, bias_id) * (bias_angle)*(1 - value)
-			+ texRead_bendData(bendData, value_i, bias_id + 1) * (1 - bias_angle)*(value)
-			+texRead_bendData(bendData, value_i + 1, bias_id + 1) * (bias_angle)*(value);
+		float actual_ke = texRead_bendData(bendDataTex, bias_id, value_i) * (1 - bias_angle)*(1 - value)
+			+ texRead_bendData(bendDataTex, bias_id + 1, value_i) * (bias_angle)*(1 - value)
+			+ texRead_bendData(bendDataTex, bias_id, value_i + 1) * (1 - bias_angle)*(value)
+			+texRead_bendData(bendDataTex, bias_id + 1, value_i + 1) * (bias_angle)*(value);
 		if (actual_ke < 0) actual_ke = 0;
 #endif
 
 #ifdef LDP_DEBUG1
-		printVal(value);
-		printVal(du);
-		printVal(initial_theta);
-		printVal(bias_angle);
-		printVal(actual_ke);
-		Mat53f A;
-		for (int y = 0; y < 5; y++)
-		for (int x = 0; x < 3; x++)
-			A(y, x) = texRead_bendData(bendData, x+0.5, y+0.5);
-		printVal(A*1e6f);
+		printVal(value*1e6f);
+		printVal(value_i);
+		printVal(eData.theta_uv);
+		printVal(bias_angle*1e6f);
+		printVal(bias_id);
+		printVal(actual_ke*1e6f);
 #endif
 		return actual_ke;
 	}
@@ -654,8 +650,8 @@ namespace ldp
 		const FloatC dtheta = make_Float12(-(w_f0[0] * n0 / h0 + w_f1[0] * n1 / h1),
 			-(w_f0[1] * n0 / h0 + w_f1[1] * n1 / h1), n0 / h0, n1 / h1);
 		float ke = min(
-			bending_stiffness(ex[0], ex[1], edgeData, dihe_theta, area, t_bendDatas[edgeData.faceIdx[0]]),
-			bending_stiffness(ex[0], ex[1], edgeData, dihe_theta, area, t_bendDatas[edgeData.faceIdx[1]])
+			bending_stiffness(edgeData, dihe_theta, area, t_bendDatas[edgeData.faceIdx[0]]),
+			bending_stiffness(edgeData, dihe_theta, area, t_bendDatas[edgeData.faceIdx[1]])
 			);
 		const float shape = edgeData.length_sqr / (2.f * area);
 		const FloatC vs = make_Float12(velocity[edgeData.edge_idxWorld[0]], velocity[edgeData.edge_idxWorld[1]], 

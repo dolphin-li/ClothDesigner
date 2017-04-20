@@ -128,7 +128,6 @@ protected:
 		texDescr.filterMode = m_filterMode;
 		texDescr.addressMode[0] = cudaAddressModeClamp;
 		texDescr.addressMode[1] = cudaAddressModeClamp;
-		texDescr.addressMode[2] = cudaAddressModeClamp;
 		texDescr.readMode = cudaReadModeElementType;
 		cudaSafeCall(cudaCreateTextureObject(&m_tex, &texRes, &texDescr, NULL));
 	}
