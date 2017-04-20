@@ -887,7 +887,7 @@ public:
 	/**
 	* Matrix Determinant
 	* */
-	T det()const
+	__device__ __host__ T det()const
 	{
 		return 		_data[0]*(_data[4]*_data[8] - _data[7]*_data[5]) 
 				-	_data[3]*(_data[1]*_data[8] - _data[7]*_data[2])

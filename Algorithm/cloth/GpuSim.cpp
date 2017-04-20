@@ -119,6 +119,7 @@ namespace ldp
 			linearSolve();
 			collisionSolve();
 			userControlSolve();
+			update_x_v_by_dv();
 			m_x_d.download(m_x_h);
 		} // end for oiter
 	}

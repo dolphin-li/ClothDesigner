@@ -835,20 +835,110 @@ namespace ldp
 #pragma endregion
 
 #pragma region --linear solve
+
+#define USE_BLOCKWISE_LINEAR_ITERATION
+
+	__device__ __forceinline__ float fetch_float(cudaTextureObject_t A, int i)
+	{
+		float val = 0.f;
+		tex1Dfetch(&val, A, i);
+		return val;
+	}
+	__device__ __forceinline__ int fetch_int(cudaTextureObject_t A, int i)
+	{
+		int val = 0;
+		tex1Dfetch(&val, A, i);
+		return val;
+	}
+	__device__ __forceinline__ Mat3f fetch_Mat3f(cudaTextureObject_t A, int i)
+	{
+		Mat3f B;
+		for (int r = 0; r < 3; r++)
+		for (int c = 0; c < 3; c++)
+			tex1Dfetch(&B(r, c), A, i + c + r*3);
+		return B;
+	}
+
+	__global__ void linearSolve_jacobiUpdate_kernel(cudaTextureObject_t bsrRowPtr,
+		cudaTextureObject_t bsrColIdx, cudaTextureObject_t bsrValue,
+		const float* x_prev, const float* bValue, float* x, int nRow)
+	{
+		const int iRow = threadIdx.x + blockIdx.x * blockDim.x;
+		if (iRow >= nRow)
+			return;
+		
+		const int iBlockRow = iRow / 3;
+		const int rowShift = iRow - iBlockRow * 3;
+		const int blockColPosBegin = fetch_int(bsrRowPtr, iBlockRow);
+		const int blockColPosEnd = fetch_int(bsrRowPtr, iBlockRow + 1);
+
+		float sum = bValue[iRow];
+		float diag = 0.f;
+		for (int bIdx = blockColPosBegin; bIdx < blockColPosEnd; ++bIdx)
+		{
+			const int iBlockCol = fetch_int(bsrColIdx, bIdx);
+			int valIdx = (bIdx * 3 + rowShift) * 3;
+			for (int c = 0; c < 3; c++)
+			{
+				const float val = fetch_float(bsrValue, valIdx + c);
+				if (iBlockCol * 3 + c == iRow)
+					diag = val;
+				else
+					sum -= x_prev[iBlockCol * 3 + c] * val;
+			}
+		}
+		x[iRow] = sum / diag;
+	}
+
+	__global__ void linearSolve_jacobiUpdate_blockWise_kernel(cudaTextureObject_t bsrRowPtr,
+		cudaTextureObject_t bsrColIdx, cudaTextureObject_t bsrValue,
+		const ldp::Float3* x_prev, const ldp::Float3* bValue, ldp::Float3* x, int nBlockRows)
+	{
+		int iBlockRow = threadIdx.x + blockIdx.x * blockDim.x;
+		if (iBlockRow >= nBlockRows)
+			return;
+
+		const int blockColPosBegin = fetch_int(bsrRowPtr, iBlockRow);
+		const int blockColPosEnd = fetch_int(bsrRowPtr, iBlockRow + 1);
+
+		Float3 sum = bValue[iBlockRow];
+		Mat3f diag = 0.f;
+		for (int bIdx = blockColPosBegin; bIdx < blockColPosEnd; ++bIdx)
+		{
+			const int iBlockCol = fetch_int(bsrColIdx, bIdx);
+			Mat3f val = fetch_Mat3f(bsrValue, bIdx * 9);
+			if (iBlockCol == iBlockRow)
+				diag = val;
+			else
+				sum -= val * x_prev[iBlockCol];
+		}
+		x[iBlockRow] = diag.inv() * sum;
+	}
+
 	void GpuSim::linearSolve_jacobiUpdate()
 	{
-
+#ifdef USE_BLOCKWISE_LINEAR_ITERATION
+		linearSolve_jacobiUpdate_blockWise_kernel << <divUp(m_A_d->blocksInRow(), CTA_SIZE), CTA_SIZE >> >(
+			m_A_d->bsrRowPtrTexture(), m_A_d->bsrColIdxTexture(), m_A_d->valueTexture(),
+			m_b_d.ptr(), m_dv_tmpPrev_d.ptr(), m_dv_d.ptr(), m_A_d->blocksInRow());
+#else
+		linearSolve_jacobiUpdate_kernel << <divUp(m_A_d->rows(), CTA_SIZE), CTA_SIZE >> >(
+			m_A_d->bsrRowPtrTexture(), m_A_d->bsrColIdxTexture(), m_A_d->valueTexture(),
+			(const float*)m_b_d.ptr(), (const float*)m_dv_tmpPrev_d.ptr(), 
+			(float*)m_dv_d.ptr(), m_A_d->rows());
+#endif
+		cudaSafeCall(cudaGetLastError());
 	}
 
 	__global__ void linearSolve_chebshevUpdate_Kernel(const Float3* prev_X, const Float3* X,
 		Float3* next_X, float omega, int nverts, float under_relax)
 	{
-		int i = blockDim.x * blockIdx.x + threadIdx.x;
+		const int i = blockDim.x * blockIdx.x + threadIdx.x;
 		if (i >= nverts)	return;
 
-		Float3 xi = X[i];
+		const Float3 xi = X[i];
 		Float3 nxi = next_X[i];
-		Float3 pxi = prev_X[i];
+		const Float3 pxi = prev_X[i];
 		nxi = (nxi - xi) * under_relax + xi;
 		nxi = omega * (nxi - pxi) + pxi;
 		next_X[i] = nxi;
@@ -898,6 +988,25 @@ namespace ldp
 	void GpuSim::userControlSolve()
 	{
 
+	}
+#pragma endregion
+
+#pragma region --update x, v by dv
+	__global__ void update_x_v_by_dv_kernel(const Float3* dv, Float3* v, Float3* x,
+		float dt, int nverts)
+	{
+		const int i = blockDim.x * blockIdx.x + threadIdx.x;
+		if (i >= nverts)	return;
+		v[i] += dt * dv[i];
+		x[i] += dt * v[i];
+	}
+
+	void GpuSim::update_x_v_by_dv()
+	{
+		// v += dt*dv; x += dt*v;
+		update_x_v_by_dv_kernel << <divUp(m_x_d.size(), CTA_SIZE), CTA_SIZE >> >
+			(m_dv_d.ptr(), m_v_d.ptr(), m_x_d.ptr(), m_simParam.dt, m_dv_d.size());
+		cudaSafeCall(cudaGetLastError());
 	}
 #pragma endregion
 }

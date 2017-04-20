@@ -121,6 +121,7 @@ namespace ldp
 
 		void linearSolve_jacobiUpdate();
 		void linearSolve_chebshevUpdate(float omega);
+		void update_x_v_by_dv();
 	protected:
 		void setup_sparse_structure_from_cpu();
 		void bindTextures();
