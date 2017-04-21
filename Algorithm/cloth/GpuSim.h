@@ -279,7 +279,7 @@ namespace ldp
 		std::vector<BendingData> m_bendingData_h;
 		std::vector<float> m_densityData_h;
 	public:
-		static void vecMul(int n, const float* a_d, const float* b_d, 
+		static void pcg_vecMul(int n, const float* a_d, const float* b_d, 
 			float* c_d, float alpha = 1.f, float beta = 0.f); // c=alpha * a * b + beta
 		static void vertPair_to_idx(const int* ids_v1, const int* ids_v2, size_t* ids, int nVerts, int nPairs);
 		static void vertPair_from_idx(int* ids_v1, int* ids_v2, const size_t* ids, int nVerts, int nPairs);

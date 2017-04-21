@@ -162,7 +162,7 @@ namespace ldp
 			m_simParam.gravity = convert(sim->gravity);
 			m_simParam.outer_iter = 1;
 			m_simParam.inner_iter = 400;
-			m_simParam.pcg_tol = 1e-5f;
+			m_simParam.pcg_tol = 1e-2f;
 			m_simParam.control_mag = 400.f;
 			m_simParam.stitch_ratio = 5.f;
 			m_simParam.lap_damping_iter = 4;
@@ -649,9 +649,14 @@ namespace ldp
 		CachedDeviceArray<float> Ap(nVal);
 		CachedDeviceArray<float> invD(nVal);
 
+		// x = 0
+		cudaSafeCall(cudaMemset(m_dv_d.ptr(), 0, m_dv_d.sizeBytes()));
+
 		// norm b
 		float norm_b = 0.f;
 		cublasSnrm2_v2(m_cublasHandle, nVal, (float*)m_b_d.ptr(), 1, &norm_b);
+		if (norm_b == 0.f)
+			return;
 
 		// invD = inv(diag(A))
 		m_A_d->diag(invD.data(), true);
@@ -660,16 +665,44 @@ namespace ldp
 		cudaSafeCall(cudaMemcpy(r.data(), m_b_d.ptr(), r.bytes(), cudaMemcpyDeviceToDevice));
 		m_A_d->Mv((float*)m_dv_d.ptr(), r.data(), -1.f, 1.f);
 
-		// z = invD * r
-		vecMul(nVal, invD.data(), r.data(), z.data());
-
-		// p = z
-		z.copyTo(p);
-
 		int iter = 0;
 		float err = 0.f;
+		float rz = 0.f, rz_old = 0.f, pAp = 0.f, alpha = 0.f, beta = 0.f;
 		for (iter = 0; iter<m_simParam.inner_iter; iter++)
 		{
+			// z = invD * r
+			pcg_vecMul(nVal, invD.data(), r.data(), z.data());
+
+			// rz = r'*z
+			rz_old = rz;
+			cublasSdot_v2(m_cublasHandle, nVal, r.data(), 1, z.data(), 1, &rz);
+	
+			// update p
+			if (iter == 0)
+				z.copyTo(p);	// p = z
+			else
+			{
+				if (rz_old == 0)
+					break;
+				beta = rz / rz_old;
+
+				// p = z+beta*p
+				cublasSscal_v2(m_cublasHandle, nVal, &beta, p.data(), 1);
+				cublasSaxpy_v2(m_cublasHandle, nVal, &const_one, z.data(), 1, p.data(), 1);
+			}
+
+			// Ap = A*p, pAp = p'*Ap, alpha = rz / pAp
+			m_A_d->Mv(p.data(), Ap.data());
+			cublasSdot_v2(m_cublasHandle, nVal, p.data(), 1, Ap.data(), 1, &pAp);
+			if (pAp == 0)
+				break;
+			alpha = rz / pAp;
+
+			// x = x + alpha*p, r = r - alpha*Ap
+			cublasSaxpy_v2(m_cublasHandle, nVal, &alpha, p.data(), 1, (float*)m_dv_d.ptr(), 1);
+			const float neg_alpha = -alpha;
+			cublasSaxpy_v2(m_cublasHandle, nVal, &neg_alpha, Ap.data(), 1, r.data(), 1);
+
 			// each several iterations, we check the convergence
 			if (iter % 10 == 0)
 			{
@@ -684,35 +717,6 @@ namespace ldp
 				if (err < m_simParam.pcg_tol)
 					break;
 			}
-
-			// Ap
-			m_A_d->Mv(p.data(), Ap.data());
-
-			// alpha = r'z/(p'Ap)
-			float rz = 0.f;
-			cublasSdot_v2(m_cublasHandle, nVal, r.data(), 1, z.data(), 1, &rz);
-			float pAp = 0.f;
-			cublasSdot_v2(m_cublasHandle, nVal, p.data(), 1, Ap.data(), 1, &pAp);
-			const float alpha = rz/pAp;
-
-			// x = x + alpha*p
-			cublasSaxpy_v2(m_cublasHandle, nVal, &alpha, p.data(), 1, (float*)m_dv_d.ptr(), 1);
-
-			// r = r - alpha*Ap
-			const float neg_alpha = -alpha;
-			cublasSaxpy_v2(m_cublasHandle, nVal, &neg_alpha, Ap.data(), 1, r.data(), 1);
-			
-			// z = invD * r
-			vecMul(nVal, invD.data(), r.data(), z.data());
-
-			// beta = z'r/rz
-			float new_rz = 0.f;
-			cublasSdot_v2(m_cublasHandle, nVal, r.data(), 1, z.data(), 1, &new_rz);
-			const float beta = new_rz / rz;
-
-			// p = z + beta*p
-			cublasSscal_v2(m_cublasHandle, nVal, &beta, p.data(), 1);
-			cublasSaxpy_v2(m_cublasHandle, nVal, &const_one, z.data(), 1, p.data(), 1);
 		} // end for iter
 
 		printf("pcg, iter %d, err %ef\n", iter, err);

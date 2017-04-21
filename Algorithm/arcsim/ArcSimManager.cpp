@@ -196,6 +196,8 @@ namespace arcsim
 		// prepare for simulation
 		prepare(*m_sim);
 
+		m_sim->time = 0;
+
 #ifdef LDP_DEBUG_USE_GPUSIM
 		m_gpuSim->restart();
 #else

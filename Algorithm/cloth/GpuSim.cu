@@ -896,8 +896,10 @@ namespace ldp
 		printf("n0: v=%ef %ef, dv=%ef %ef\n", sum_v[0], sum_v[2], sum_dv[0], sum_dv[2]);
 #endif
 	}
+#pragma endregion
 
-	__global__ void vecMul_kernel(int n, const float* a_d, const float* b_d, float* c_d,
+#pragma region --pcg
+	__global__ void pcg_vecMul_kernel(int n, const float* a_d, const float* b_d, float* c_d,
 		float alpha, float beta)
 	{
 		const int i = blockDim.x * blockIdx.x + threadIdx.x;
@@ -905,9 +907,9 @@ namespace ldp
 		c_d[i] = alpha * a_d[i] * b_d[i] + beta;
 	}
 
-	void GpuSim::vecMul(int n, const float* a_d, const float* b_d, float* c_d, float alpha, float beta)
+	void GpuSim::pcg_vecMul(int n, const float* a_d, const float* b_d, float* c_d, float alpha, float beta)
 	{
-		vecMul_kernel << <divUp(n, CTA_SIZE), CTA_SIZE >> >(n, a_d, b_d, c_d, alpha, beta);
+		pcg_vecMul_kernel << <divUp(n, CTA_SIZE), CTA_SIZE >> >(n, a_d, b_d, c_d, alpha, beta);
 		cudaSafeCall(cudaGetLastError());
 	}
 #pragma endregion
