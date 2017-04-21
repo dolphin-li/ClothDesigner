@@ -46,6 +46,13 @@ __device__ float trilinear_Value(const float* phi, const float x, const float y,
 			(1-a)*(  b)*(  c)*phi[INDEX(i,j+1,k+1)]+a*(  b)*(  c)*phi[INDEX(i+1,j+1,k+1)];
 }
 
+#ifdef __CUDACC__
+__device__ __forceinline__ float trilinear_Value(cudaTextureObject_t phi, float x, float y, float z)
+{
+	return tex3D<float>(phi, x, y, z);
+}
+#endif
+
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Gradient
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -55,6 +62,15 @@ __device__ void Gradient(const float* phi, const float x, const float y, const f
 	gy=(trilinear_Value(phi, x, y+1, z, size_yz, size_z)-trilinear_Value(phi, x, y-1, z, size_yz, size_z))*0.5;
 	gz=(trilinear_Value(phi, x, y, z+1, size_yz, size_z)-trilinear_Value(phi, x, y, z-1, size_yz, size_z))*0.5;
 }
+
+#ifdef __CUDACC__
+__device__ __forceinline__ void Gradient(cudaTextureObject_t phi, float x, float y, float z, float &gx, float &gy, float &gz)
+{
+	gx = (trilinear_Value(phi, x + 1, y, z) - trilinear_Value(phi, x - 1, y, z))*0.5;
+	gy = (trilinear_Value(phi, x, y + 1, z) - trilinear_Value(phi, x, y - 1, z))*0.5;
+	gz = (trilinear_Value(phi, x, y, z + 1) - trilinear_Value(phi, x, y, z - 1))*0.5;
+}
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Level_Set_Projection
@@ -83,6 +99,29 @@ __device__ float Level_Set_Projection(const float* phi, float &x, float &y, floa
 	return ret;
 }
 
+#ifdef __CUDACC__
+__device__ float Level_Set_Projection(cudaTextureObject_t phi, float &x, float &y, float &z, float goal)
+{	
+	float vp = 0.f;
+	float gx = 0.f, gy = 0.f, gz = 0.f;
+	float ret = 9999999;
+	for (int loop = 0; loop<4; loop++)
+	{
+		vp = trilinear_Value(phi, x, y, z);
+		if (loop == 0)				ret = vp - goal;
+		if (vp>goal && loop == 0)	return ret;
+		if (fabs(vp - goal)<0.001) return ret;
+
+		Gradient(phi, x, y, z, gx, gy, gz);
+		float factor = CLAMP(vp - goal, -1.f, 1.f) / sqrtf(gx*gx + gy*gy + gz*gz);
+		x = x - gx*factor;
+		y = y - gy*factor;
+		z = z - gz*factor;
+	}
+	return ret;
+}
+#endif
+
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Level_Set_Depth
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -100,6 +139,19 @@ __device__ void Level_Set_Gradient(const float* phi, float x, float y, float z, 
 	if(x<2 || y<2 || z<2 || x>size_x-3 || y>size_y-3 || z>size_z-3)	return;
 	Gradient(phi, x, y, z, gx, gy, gz, size_yz, size_z);
 }
+
+#ifdef __CUDACC__
+__device__ __forceinline__ float Level_Set_Depth(cudaTextureObject_t phi, float x, float y, float z, float goal)
+{
+	return trilinear_Value(phi, x, y, z)-goal;
+}
+
+__device__ __forceinline__ void Level_Set_Gradient(cudaTextureObject_t phi, float x, float y, float z, float &gx, float &gy, float &gz)
+{
+	gx = gy = gz = 0;
+	Gradient(phi, x, y, z, gx, gy, gz);
+}
+#endif
 
 #else					//CPU version
 

@@ -3,6 +3,7 @@
 #include <device_functions.h>
 #include <driver_functions.h>
 #include <vector_functions.h>
+#include <channel_descriptor.h>
 #include <surface_types.h>
 #include "cuda_utils.h"
 #include <intrin.h>
@@ -20,7 +21,7 @@ namespace Cuda3DArray_Internal
 	void copy_h2d(cudaSurfaceObject_t ary, int3 size, const float4* data);
 }
 
-template<class T>
+template<class ValueType>
 class Cuda3DArray
 {
 public:
@@ -42,7 +43,7 @@ public:
 			return;
 		m_size = size;
 		cudaExtent ext = make_cudaExtent(m_size.x, m_size.y, m_size.z);
-		cudaChannelFormatDesc desc = cudaCreateChannelDesc<T>();
+		cudaChannelFormatDesc desc = cudaCreateChannelDesc<ValueType>();
 		cudaSafeCall(cudaMalloc3DArray(&m_data, &desc, ext));
 		createTexture();
 		createSurface();
@@ -75,12 +76,12 @@ public:
 	bool empty()const{ return !m_data; }
 	cudaTextureObject_t getCudaTexture()const{ return m_tex; }
 	cudaSurfaceObject_t getSurface()const{ return m_surf; }
-	void fromHost(const T* host, int3 size)
+	void fromHost(const ValueType* host, int3 size)
 	{
 		create(size);
 		Cuda3DArray_Internal::copy_h2d(m_surf, m_size, host);
 	}
-	void toHost(T* host)const
+	void toHost(ValueType* host)const
 	{
 		Cuda3DArray_Internal::copy_d2h(m_surf, m_size, host);
 	}

@@ -135,6 +135,19 @@ namespace arcsim
 
 			ObjMesh mesh;
 			arcMesh2objMesh(m_sim->obstacles[i].base_mesh, mesh);
+			const int TARGET_SIZE = 256;
+			mesh.updateBoundingBox();
+			auto bmin = mesh.boundingBox[0];
+			auto bmax = mesh.boundingBox[1];
+			auto brag = bmax - bmin;
+			bmin -= 0.2f * brag;
+			bmax += 0.2f * brag;
+			brag = bmax - bmin;
+			const float step = powf(brag[0]*brag[1]*brag[2], 1.f/3.f) / 256.f;
+			ldp::Int3 res = brag / step;
+			ldp::Float3 start = bmin;
+			printf("body levelset: %d %d %d\n", res[0], res[1], res[2]);
+			m_sim->obstacles[i].base_objLevelSet->create(res, start, step);
 			m_sim->obstacles[i].base_objLevelSet->fromMesh(mesh);
 		}
 		m_timeStamp->Stamp("json loaded");

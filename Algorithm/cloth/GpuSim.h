@@ -135,7 +135,7 @@ namespace ldp
 		float m_fps = 0.f;
 
 		ldp::LevelSet3D* m_bodyLvSet_h = nullptr;
-		DeviceArray<float> m_bodyLvSet_d;
+		Cuda3DArray<float> m_bodyLvSet_d;
 
 		std::vector<ldp::Int4> m_faces_idxWorld_h;				// triangle face with 1 paded int
 		DeviceArray<ldp::Int4> m_faces_idxWorld_d;

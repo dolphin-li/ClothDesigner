@@ -304,7 +304,13 @@ namespace ldp
 		if (m_arcSimManager->getSimulator()->obstacles.size() >= 1)
 		{
 			m_bodyLvSet_h = m_arcSimManager->getSimulator()->obstacles[0].base_objLevelSet.get();
-			m_bodyLvSet_d.upload(m_bodyLvSet_h->value(), m_bodyLvSet_h->sizeXYZ());
+			auto sz = m_bodyLvSet_h->size();
+			std::vector<float> transposeLv(m_bodyLvSet_h->sizeXYZ(), 0.f);
+			for (int z = 0; z < sz[2]; z++)
+			for (int y = 0; y < sz[1]; y++)
+			for (int x = 0; x < sz[0]; x++)
+				transposeLv[x + y*sz[0] + z*sz[0] * sz[1]] = m_bodyLvSet_h->value(x, y, z)[0];
+			m_bodyLvSet_d.fromHost(transposeLv.data(), make_int3(sz[0], sz[1], sz[2]));
 			if (m_arcSimManager->getSimulator()->obstacles.size() > 1)
 				printf("warning: more than one obstacles given, only 1 used!\n");
 		}

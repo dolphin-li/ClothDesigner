@@ -8,6 +8,7 @@
 #include <set>
 #include "definations.h"
 #include "graph\AbstractGraphObject.h"
+#include "cudpp\Cuda3DArray.h"
 #ifndef __CUDACC__
 #include <eigen\Dense>
 #include <eigen\Sparse>
@@ -115,7 +116,7 @@ namespace ldp
 		void setBodyMeshTransform(const TransformInfo& info);
 		const LevelSet3D* bodyLevelSet()const { return m_bodyLvSet.get(); }
 		LevelSet3D* bodyLevelSet() { return m_bodyLvSet.get(); }
-		const ValueType* bodyLevelSetDevicePtr()const{ return m_dev_phi.ptr(); }
+		const Cuda3DArray<ValueType>& bodyLevelSetDevice()const{ return m_dev_phi; }
 		SmplManager* bodySmplManager() { return m_smplBody; }
 		const SmplManager* bodySmplManager()const { return m_smplBody; }
 		void updateSmplBody();
@@ -262,7 +263,7 @@ namespace ldp
 		DeviceArray<ValueType> m_dev_all_VW;		// off-diagnal values
 		DeviceArray<ValueType> m_dev_all_VC;		// diagnal values
 		DeviceArray<ValueType> m_dev_new_VC;		// diagnal values 
-		DeviceArray<ValueType> m_dev_phi;			// level set values
+		Cuda3DArray<ValueType> m_dev_phi;						// level set values
 		DeviceArray<int> m_dev_stitch_VV;
 		DeviceArray<int> m_dev_stitch_VV_num;
 		DeviceArray<ValueType> m_dev_stitch_VW;
