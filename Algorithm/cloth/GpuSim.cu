@@ -848,101 +848,6 @@ namespace ldp
 
 #pragma region --linear solve
 
-//#define USE_BLOCKWISE_LINEAR_ITERATION
-
-	__global__ void linearSolve_jacobiUpdate_kernel(cudaTextureObject_t bsrRowPtr,
-		cudaTextureObject_t bsrColIdx, cudaTextureObject_t bsrValue,
-		const float* x_prev, const float* bValue, float* x, int nRow)
-	{
-		const int iRow = threadIdx.x + blockIdx.x * blockDim.x;
-		if (iRow >= nRow)
-			return;
-		
-		const int iBlockRow = iRow / 3;
-		const int rowShift = iRow - iBlockRow * 3;
-		const int blockColPosBegin = fetch_int(bsrRowPtr, iBlockRow);
-		const int blockColPosEnd = fetch_int(bsrRowPtr, iBlockRow + 1);
-
-		float sum = bValue[iRow];
-		float diag = 0.f;
-		for (int bIdx = blockColPosBegin; bIdx < blockColPosEnd; ++bIdx)
-		{
-			const int iBlockCol = fetch_int(bsrColIdx, bIdx);
-			int valIdx = (bIdx * 3 + rowShift) * 3;
-			for (int c = 0; c < 3; c++)
-			{
-				const float val = fetch_float(bsrValue, valIdx + c);
-				if (iBlockCol * 3 + c == iRow)
-					diag = val;
-				else
-					sum -= x_prev[iBlockCol * 3 + c] * val;
-			}
-		}
-		x[iRow] = sum / diag;
-	}
-
-	__global__ void linearSolve_jacobiUpdate_blockWise_kernel(cudaTextureObject_t bsrRowPtr,
-		cudaTextureObject_t bsrColIdx, cudaTextureObject_t bsrValue,
-		const ldp::Float3* x_prev, const ldp::Float3* bValue, ldp::Float3* x, int nBlockRows)
-	{
-		int iBlockRow = threadIdx.x + blockIdx.x * blockDim.x;
-		if (iBlockRow >= nBlockRows)
-			return;
-
-		const int blockColPosBegin = fetch_int(bsrRowPtr, iBlockRow);
-		const int blockColPosEnd = fetch_int(bsrRowPtr, iBlockRow + 1);
-
-		Float3 sum = bValue[iBlockRow];
-		Mat3f diag = 0.f;
-		for (int bIdx = blockColPosBegin; bIdx < blockColPosEnd; ++bIdx)
-		{
-			const int iBlockCol = fetch_int(bsrColIdx, bIdx);
-			Mat3f val = fetch_Mat3f(bsrValue, bIdx * 9);
-			if (iBlockCol == iBlockRow)
-				diag = val;
-			else
-				sum -= val * x_prev[iBlockCol];
-		}
-		x[iBlockRow] = diag.inv() * sum;
-	}
-
-	void GpuSim::linearSolve_jacobiUpdate()
-	{
-#ifdef USE_BLOCKWISE_LINEAR_ITERATION
-		linearSolve_jacobiUpdate_blockWise_kernel << <divUp(m_A_d->blocksInRow(), CTA_SIZE), CTA_SIZE >> >(
-			m_A_d->bsrRowPtrTexture(), m_A_d->bsrColIdxTexture(), m_A_d->valueTexture(),
-			m_b_d.ptr(), m_dv_tmpPrev_d.ptr(), m_dv_d.ptr(), m_A_d->blocksInRow());
-#else
-		linearSolve_jacobiUpdate_kernel << <divUp(m_A_d->rows(), CTA_SIZE), CTA_SIZE >> >(
-			m_A_d->bsrRowPtrTexture(), m_A_d->bsrColIdxTexture(), m_A_d->valueTexture(),
-			(const float*)m_b_d.ptr(), (const float*)m_dv_tmpPrev_d.ptr(), 
-			(float*)m_dv_d.ptr(), m_A_d->rows());
-#endif
-		cudaSafeCall(cudaGetLastError());
-	}
-
-	__global__ void linearSolve_chebshevUpdate_Kernel(const Float3* prev_X, const Float3* X,
-		Float3* next_X, float omega, int nverts, float under_relax)
-	{
-		const int i = blockDim.x * blockIdx.x + threadIdx.x;
-		if (i >= nverts)	return;
-
-		const Float3 xi = X[i];
-		Float3 nxi = next_X[i];
-		const Float3 pxi = prev_X[i];
-		nxi = (nxi - xi) * under_relax + xi;
-		nxi = omega * (nxi - pxi) + pxi;
-		next_X[i] = nxi;
-	}
-
-	void GpuSim::linearSolve_chebshevUpdate(float omega)
-	{
-		linearSolve_chebshevUpdate_Kernel << <divUp(m_x_d.size(), CTA_SIZE), CTA_SIZE >> >(
-			m_dv_tmpPrev_d.ptr(), m_dv_d.ptr(), m_dv_tmpNext_d.ptr(),
-			omega, m_dv_d.size(), m_simParam.under_relax);
-		cudaSafeCall(cudaGetLastError());
-	}
-
 #pragma endregion
 
 #pragma region --collision solve
@@ -990,6 +895,20 @@ namespace ldp
 		sum_dv /= v.size();
 		printf("n0: v=%ef %ef, dv=%ef %ef\n", sum_v[0], sum_v[2], sum_dv[0], sum_dv[2]);
 #endif
+	}
+
+	__global__ void vecMul_kernel(int n, const float* a_d, const float* b_d, float* c_d,
+		float alpha, float beta)
+	{
+		const int i = blockDim.x * blockIdx.x + threadIdx.x;
+		if (i >= n)	return;
+		c_d[i] = alpha * a_d[i] * b_d[i] + beta;
+	}
+
+	void GpuSim::vecMul(int n, const float* a_d, const float* b_d, float* c_d, float alpha, float beta)
+	{
+		vecMul_kernel << <divUp(n, CTA_SIZE), CTA_SIZE >> >(n, a_d, b_d, c_d, alpha, beta);
+		cudaSafeCall(cudaGetLastError());
 	}
 #pragma endregion
 }

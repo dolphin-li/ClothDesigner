@@ -140,6 +140,8 @@ public:
 	CudaBsrMatrix& operator = (const CudaBsrMatrix& rhs);
 	void setValue(const float* val_d);
 
+	void diag(float* diagVal_d, bool inv=false)const;
+
 	// return alpha * this + beta
 	CudaBsrMatrix& axpy(float alpha, float beta = 0.f);
 

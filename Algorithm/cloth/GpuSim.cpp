@@ -11,6 +11,8 @@
 #include <eigen\Dense>
 #include <eigen\Sparse>
 
+//#define SOLVE_USE_EIGEN
+
 //#define DEBUG_DUMP
 //#define LDP_DEBUG
 namespace ldp
@@ -84,6 +86,14 @@ namespace ldp
 			throw std::exception(msg);
 		}
 	}
+	static void cublasCheck(cublasStatus_t st, const char* msg = nullptr)
+	{
+		if (CUBLAS_STATUS_SUCCESS != st)
+		{
+			printf("cublas error[%d]: %s", st, msg);
+			throw std::exception(msg);
+		}
+	}
 
 #define NOT_IMPLEMENTED throw std::exception((std::string("NotImplemented[")+__FILE__+"]["\
 	+std::to_string(__LINE__)+"]").c_str())
@@ -94,6 +104,7 @@ namespace ldp
 	GpuSim::GpuSim()
 	{
 		cusparseCheck(cusparseCreate(&m_cusparseHandle), "GpuSim: create cusparse handel");
+		cublasCheck(cublasCreate_v2(&m_cublasHandle));
 		m_A_d.reset(new CudaBsrMatrix(m_cusparseHandle));
 		m_vert_FaceList_d.reset(new CudaBsrMatrix(m_cusparseHandle, true));
 	}
@@ -102,12 +113,14 @@ namespace ldp
 	{
 		releaseMaterialMemory();
 		cusparseCheck(cusparseDestroy(m_cusparseHandle));
+		cublasCheck(cublasDestroy_v2(m_cublasHandle));
 	}
 
 	void GpuSim::SimParam::setDefault()
 	{
 		dt = 1.f / 200.f;
 		gravity = Float3(0.f, 0.f, -9.8f);
+		pcg_tol = 1e-6f;
 	}
 
 	void GpuSim::init(ClothManager* clothManager)
@@ -149,8 +162,7 @@ namespace ldp
 			m_simParam.gravity = convert(sim->gravity);
 			m_simParam.outer_iter = 1;
 			m_simParam.inner_iter = 400;
-			m_simParam.rho = 0.996f;
-			m_simParam.under_relax = 0.5f;
+			m_simParam.pcg_tol = 1e-5f;
 			m_simParam.control_mag = 400.f;
 			m_simParam.stitch_ratio = 5.f;
 			m_simParam.lap_damping_iter = 4;
@@ -276,8 +288,6 @@ namespace ldp
 
 		m_x_h = m_x_init_h;
 		m_x_init_d.copyTo(m_x_d);
-		m_dv_tmpPrev_d.create(m_x_d.size());
-		m_dv_tmpNext_d.create(m_x_d.size());
 		m_last_x_d.create(m_x_d.size());
 		m_v_d.create(m_x_d.size());
 		m_last_v_d.create(m_v_d.size());
@@ -627,27 +637,86 @@ namespace ldp
 
 	void GpuSim::linearSolve()
 	{
-#if 0
-		m_dv_d.copyTo(m_dv_tmpPrev_d);
+#ifndef SOLVE_USE_EIGEN
+		const int nPoint = m_x_d.size();
+		const int nVal = nPoint * 3;
+		const float const_one = 1.f;
+		const float const_one_neg = -1.f;
+		const float const_zero = 0.f;
+		CachedDeviceArray<float> r(nVal);
+		CachedDeviceArray<float> z(nVal);
+		CachedDeviceArray<float> p(nVal);
+		CachedDeviceArray<float> Ap(nVal);
+		CachedDeviceArray<float> invD(nVal);
 
-		float omega = 0.f;
-		for (int iter = 0; iter<m_simParam.inner_iter; iter++)
+		// norm b
+		float norm_b = 0.f;
+		cublasSnrm2_v2(m_cublasHandle, nVal, (float*)m_b_d.ptr(), 1, &norm_b);
+
+		// invD = inv(diag(A))
+		m_A_d->diag(invD.data(), true);
+
+		// r = b-Ax
+		cudaSafeCall(cudaMemcpy(r.data(), m_b_d.ptr(), r.bytes(), cudaMemcpyDeviceToDevice));
+		m_A_d->Mv((float*)m_dv_d.ptr(), r.data(), -1.f, 1.f);
+
+		// z = invD * r
+		vecMul(nVal, invD.data(), r.data(), z.data());
+
+		// p = z
+		z.copyTo(p);
+
+		int iter = 0;
+		float err = 0.f;
+		for (iter = 0; iter<m_simParam.inner_iter; iter++)
 		{
-			linearSolve_jacobiUpdate();
+			// each several iterations, we check the convergence
+			if (iter % 10 == 0)
+			{
+				// Ap = b - A*x
+				cudaSafeCall(cudaMemcpy(Ap.data(), m_b_d.ptr(), Ap.bytes(), cudaMemcpyDeviceToDevice));
+				m_A_d->Mv((const float*)m_dv_d.ptr(), Ap.data(), -1.f, 1.f);
 
-			// chebshev param
-			if (iter <= 5)
-				omega = 1;
-			else if (iter == 6)
-				omega = 2 / (2 - ldp::sqr(m_simParam.rho));
-			else
-				omega = 4 / (4 - ldp::sqr(m_simParam.rho)*omega);
+				float norm_bAx = 0.f;
+				cublasSnrm2_v2(m_cublasHandle, nVal, Ap.data(), 1, &norm_bAx);
 
-			linearSolve_chebshevUpdate(omega);
+				err = norm_bAx / (norm_b + 1e-15f);
+				if (err < m_simParam.pcg_tol)
+					break;
+			}
 
-			m_dv_d.swap(m_dv_tmpPrev_d);
-			m_dv_d.swap(m_dv_tmpNext_d);
+			// Ap
+			m_A_d->Mv(p.data(), Ap.data());
+
+			// alpha = r'z/(p'Ap)
+			float rz = 0.f;
+			cublasSdot_v2(m_cublasHandle, nVal, r.data(), 1, z.data(), 1, &rz);
+			float pAp = 0.f;
+			cublasSdot_v2(m_cublasHandle, nVal, p.data(), 1, Ap.data(), 1, &pAp);
+			const float alpha = rz/pAp;
+
+			// x = x + alpha*p
+			cublasSaxpy_v2(m_cublasHandle, nVal, &alpha, p.data(), 1, (float*)m_dv_d.ptr(), 1);
+
+			// r = r - alpha*Ap
+			const float neg_alpha = -alpha;
+			cublasSaxpy_v2(m_cublasHandle, nVal, &neg_alpha, Ap.data(), 1, r.data(), 1);
+			
+			// z = invD * r
+			vecMul(nVal, invD.data(), r.data(), z.data());
+
+			// beta = z'r/rz
+			float new_rz = 0.f;
+			cublasSdot_v2(m_cublasHandle, nVal, r.data(), 1, z.data(), 1, &new_rz);
+			const float beta = new_rz / rz;
+
+			// p = z + beta*p
+			cublasSscal_v2(m_cublasHandle, nVal, &beta, p.data(), 1);
+			cublasSaxpy_v2(m_cublasHandle, nVal, &const_one, z.data(), 1, p.data(), 1);
 		} // end for iter
+
+		printf("pcg, iter %d, err %ef\n", iter, err);
+
 #else
 		SpMat A;
 		cudaSpMat_to_EigenMat(*m_A_d, A);

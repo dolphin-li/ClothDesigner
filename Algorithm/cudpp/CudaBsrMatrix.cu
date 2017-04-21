@@ -532,6 +532,39 @@ __global__ void CudaBsrMatrix_toCsr_structure_val(
 	}
 }
 
+template<int colsPerBlock>
+__global__ void CudaBsrMatrix_diag(
+	cudaTextureObject_t bsrRowPtr,
+	cudaTextureObject_t bsrColIdx,
+	cudaTextureObject_t bsrValue,
+	float* diagVal, int n, 
+	int rowsPerBlock, bool inv)
+{
+	const int iRow = threadIdx.x + blockIdx.x * blockDim.x;
+	if (iRow >= n)
+		return;
+
+	int iBlockRow = iRow / rowsPerBlock;
+	int rowShift = iRow - iBlockRow * rowsPerBlock;
+	int blockColPosBegin = 0;
+	tex1Dfetch(&blockColPosBegin, bsrRowPtr, iBlockRow);
+	int blockColPosEnd = 0;
+	tex1Dfetch(&blockColPosEnd, bsrRowPtr, iBlockRow + 1);
+
+	float val = 0.f;
+	for (int bIdx = blockColPosBegin; bIdx < blockColPosEnd; ++bIdx)
+	{
+		int iBlockCol = 0;
+		tex1Dfetch(&iBlockCol, bsrColIdx, bIdx);
+		iBlockCol *= colsPerBlock;
+		int valIdx = (bIdx * rowsPerBlock + rowShift) * colsPerBlock;
+		for (int c = 0; c < colsPerBlock; c++)
+		if (iRow == iBlockCol + c)
+			tex1Dfetch(&val, bsrValue, valIdx + c);
+	}
+	diagVal[iRow] = inv ? 1.f/val : val;
+}
+
 void CudaBsrMatrix::fill_increment_1_n(int* data, int n)
 {
 	if (n == 0)
@@ -923,5 +956,46 @@ void CudaBsrMatrix::toCsr_value(CudaBsrMatrix& B)const
 		bsrRowPtrTexture(), valueTexture(),
 		B.bsrRowPtr_coo(), B.bsrRowPtr(), B.value(),
 		rowsPerBlock(), colsPerBlock(), nnz());
+	cudaSafeCall(cudaGetLastError());
+}
+
+void CudaBsrMatrix::diag(float* diagVal_d, bool inv)const
+{
+	if (rows() == 0 || cols() == 0)
+		return;
+	if (isSymbolic())
+		throw std::exception("CudaBsrMatrix::Mv(): symbolic matrix cannot touch values");
+	const int n = std::min(rows(), cols());
+	switch (colsPerBlock())
+	{
+	case 0:
+		break;
+	case 1:
+		CudaBsrMatrix_diag<1> << <divUp(rows(), CTA_SIZE), CTA_SIZE >> >(
+			bsrRowPtrTexture(), bsrColIdxTexture(), valueTexture(), diagVal_d, n, rowsPerBlock(), inv);
+		break;
+	case 2:
+		CudaBsrMatrix_diag<2> << <divUp(rows(), CTA_SIZE), CTA_SIZE >> >(
+			bsrRowPtrTexture(), bsrColIdxTexture(), valueTexture(), diagVal_d, n, rowsPerBlock(), inv);
+		break;
+	case 3:
+		CudaBsrMatrix_diag<3> << <divUp(rows(), CTA_SIZE), CTA_SIZE >> >(
+			bsrRowPtrTexture(), bsrColIdxTexture(), valueTexture(), diagVal_d, n, rowsPerBlock(), inv);
+		break;
+	case 4:
+		CudaBsrMatrix_diag<4> << <divUp(rows(), CTA_SIZE), CTA_SIZE >> >(
+			bsrRowPtrTexture(), bsrColIdxTexture(), valueTexture(), diagVal_d, n, rowsPerBlock(), inv);
+		break;
+	case 5:
+		CudaBsrMatrix_diag<5> << <divUp(rows(), CTA_SIZE), CTA_SIZE >> >(
+			bsrRowPtrTexture(), bsrColIdxTexture(), valueTexture(), diagVal_d, n, rowsPerBlock(), inv);
+		break;
+	case 6:
+		CudaBsrMatrix_diag<6> << <divUp(rows(), CTA_SIZE), CTA_SIZE >> >(
+			bsrRowPtrTexture(), bsrColIdxTexture(), valueTexture(), diagVal_d, n, rowsPerBlock(), inv);
+		break;
+	default:
+		throw std::exception("non-supported block size!");
+	}
 	cudaSafeCall(cudaGetLastError());
 }

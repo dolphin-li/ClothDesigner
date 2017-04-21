@@ -6,6 +6,7 @@
 #include "ldpMat\ldp_basic_mat.h"
 #include "cudpp\Cuda3DArray.h"
 #include "cudpp\Cuda2DArray.h"
+#include <cublas.h>
 namespace arcsim
 {
 	class ArcSimManager;
@@ -69,8 +70,7 @@ namespace ldp
 			Float3 gravity;
 			int outer_iter = 0;			// iteration of collision detections
 			int inner_iter = 0;			// iteration of Jacobi/CG/Chebshev solvers
-			float rho = 0.f;			// for chebshev acceleration
-			float under_relax = 0.f;	// jacobi relax
+			float pcg_tol = 0.f;		// tolerance of pcg method
 			float control_mag = 0.f;	// for user control
 			float stitch_ratio = 0.f;	// for stitching edges length reduction
 			int lap_damping_iter = 0;
@@ -122,8 +122,6 @@ namespace ldp
 		void collisionSolve();
 		void userControlSolve();
 
-		void linearSolve_jacobiUpdate();
-		void linearSolve_chebshevUpdate(float omega);
 		void update_x_v_by_dv();
 	protected:
 		void setup_sparse_structure_from_cpu();
@@ -132,6 +130,7 @@ namespace ldp
 		ClothManager* m_clothManager = nullptr;
 		arcsim::ArcSimManager* m_arcSimManager = nullptr;
 		cusparseHandle_t m_cusparseHandle = nullptr;
+		cublasHandle_t m_cublasHandle = nullptr;
 		SimParam m_simParam;
 		float m_fps = 0.f;
 
@@ -179,8 +178,6 @@ namespace ldp
 		DeviceArray<ldp::Float3> m_v_d;							// velocity of current step
 		DeviceArray<ldp::Float3> m_last_v_d;					// velocity of last step	
 		DeviceArray<ldp::Float3> m_dv_d;						// velocity changed in this step
-		DeviceArray<ldp::Float3> m_dv_tmpPrev_d;				// acceleration of current step, chebshev prev iter	
-		DeviceArray<ldp::Float3> m_dv_tmpNext_d;				// acceleration of current step, chebshev next iter
 		//////////////////////// material related///////////////////////////////////////////////////////
 	public:
 		class StretchingData { 
@@ -282,6 +279,8 @@ namespace ldp
 		std::vector<BendingData> m_bendingData_h;
 		std::vector<float> m_densityData_h;
 	public:
+		static void vecMul(int n, const float* a_d, const float* b_d, 
+			float* c_d, float alpha = 1.f, float beta = 0.f); // c=alpha * a * b + beta
 		static void vertPair_to_idx(const int* ids_v1, const int* ids_v2, size_t* ids, int nVerts, int nPairs);
 		static void vertPair_from_idx(int* ids_v1, int* ids_v2, const size_t* ids, int nVerts, int nPairs);
 		static void dumpVec(std::string name, const DeviceArray2D<float>& A);
