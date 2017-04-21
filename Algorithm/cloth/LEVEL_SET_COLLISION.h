@@ -36,7 +36,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 // trilinear_Value
 ///////////////////////////////////////////////////////////////////////////////////////////
-__device__ float trilinear_Value(const float* phi, const float x, const float y, const float z, const int size_yz, const int size_z)
+__device__ inline float trilinear_Value(const float* phi, const float x, const float y, const float z, const int size_yz, const int size_z)
 {
 	int  i=(int)(x), j=(int)(y), k=(int)(z);
 	float a=x-i, b=y-j, c=z-k;
@@ -56,7 +56,7 @@ __device__ __forceinline__ float trilinear_Value(cudaTextureObject_t phi, float 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Gradient
 ///////////////////////////////////////////////////////////////////////////////////////////
-__device__ void Gradient(const float* phi, const float x, const float y, const float z, float &gx, float &gy, float &gz, const int size_yz, const int size_z)
+__device__ inline void Gradient(const float* phi, const float x, const float y, const float z, float &gx, float &gy, float &gz, const int size_yz, const int size_z)
 {
 	gx=(trilinear_Value(phi, x+1, y, z, size_yz, size_z)-trilinear_Value(phi, x-1, y, z, size_yz, size_z))*0.5;
 	gy=(trilinear_Value(phi, x, y+1, z, size_yz, size_z)-trilinear_Value(phi, x, y-1, z, size_yz, size_z))*0.5;
@@ -75,7 +75,7 @@ __device__ __forceinline__ void Gradient(cudaTextureObject_t phi, float x, float
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Level_Set_Projection
 ///////////////////////////////////////////////////////////////////////////////////////////
-__device__ float Level_Set_Projection(const float* phi, float &x, float &y, float &z, const float goal, const int size_x, const int size_y, const int size_z, const int size_yz)
+__device__ inline float Level_Set_Projection(const float* phi, float &x, float &y, float &z, const float goal, const int size_x, const int size_y, const int size_z, const int size_yz)
 {	
 	float vp;
 	float gx, gy, gz;
@@ -91,7 +91,7 @@ __device__ float Level_Set_Projection(const float* phi, float &x, float &y, floa
 		if(fabs(vp-goal)<0.001) return ret;		
 			
 		Gradient(phi, x, y, z, gx, gy, gz, size_yz, size_z);
-		float factor=CLAMP(vp-goal, -1, 1)/sqrtf(gx*gx+gy*gy+gz*gz);
+		float factor=max(-1.f, min(1.f, vp-goal))/sqrtf(gx*gx+gy*gy+gz*gz);
 		x=x-gx*factor;
 		y=y-gy*factor;
 		z=z-gz*factor;
@@ -100,7 +100,7 @@ __device__ float Level_Set_Projection(const float* phi, float &x, float &y, floa
 }
 
 #ifdef __CUDACC__
-__device__ float Level_Set_Projection(cudaTextureObject_t phi, float &x, float &y, float &z, float goal)
+__device__ inline float Level_Set_Projection(cudaTextureObject_t phi, float &x, float &y, float &z, float goal)
 {	
 	float vp = 0.f;
 	float gx = 0.f, gy = 0.f, gz = 0.f;
@@ -113,7 +113,7 @@ __device__ float Level_Set_Projection(cudaTextureObject_t phi, float &x, float &
 		if (fabs(vp - goal)<0.001) return ret;
 
 		Gradient(phi, x, y, z, gx, gy, gz);
-		float factor = CLAMP(vp - goal, -1.f, 1.f) / sqrtf(gx*gx + gy*gy + gz*gz);
+		float factor = max(-1.f, min(1.f, vp-goal)) / sqrtf(gx*gx + gy*gy + gz*gz);
 		x = x - gx*factor;
 		y = y - gy*factor;
 		z = z - gz*factor;
@@ -125,13 +125,13 @@ __device__ float Level_Set_Projection(cudaTextureObject_t phi, float &x, float &
 ///////////////////////////////////////////////////////////////////////////////////////////
 // Level_Set_Depth
 ///////////////////////////////////////////////////////////////////////////////////////////
-__device__ float Level_Set_Depth(const float* phi, float x, float y, float z, const float goal, const int size_x, const int size_y, const int size_z, const int size_yz)
+__device__ inline float Level_Set_Depth(const float* phi, float x, float y, float z, const float goal, const int size_x, const int size_y, const int size_z, const int size_yz)
 {
 	if(x<2 || y<2 || z<2 || x>size_x-3 || y>size_y-3 || z>size_z-3)	return 9999999;
 	return trilinear_Value(phi, x, y, z, size_yz, size_z)-goal;
 }
 
-__device__ void Level_Set_Gradient(const float* phi, float x, float y, float z, float &gx, float &gy, float &gz, const int size_x, const int size_y, const int size_z, const int size_yz)
+__device__ inline void Level_Set_Gradient(const float* phi, float x, float y, float z, float &gx, float &gy, float &gz, const int size_x, const int size_y, const int size_z, const int size_yz)
 {
 	gx=0;
 	gy=0;

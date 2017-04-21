@@ -3,6 +3,7 @@
 #include "ldpMat\ldp_basic_mat.h"
 #include "cudpp\thrust_wrapper.h"
 #include "cudpp\CachedDeviceBuffer.h"
+#include "LEVEL_SET_COLLISION.h"
 #include <math.h>
 namespace ldp
 {
@@ -360,7 +361,7 @@ namespace ldp
 	}
 #pragma endregion
 
-#pragma region --update numeric
+#pragma region --texture bind
 	texture<float, cudaTextureType1D, cudaReadModeElementType> gt_x;
 	texture<float, cudaTextureType1D, cudaReadModeElementType> gt_x_init;
 	texture<float2, cudaTextureType1D, cudaReadModeElementType> gt_texCoord_init;
@@ -372,7 +373,7 @@ namespace ldp
 	texture<float4, cudaTextureType1D, cudaReadModeElementType> gt_nodeMaterialData;
 	__device__ __forceinline__ Float3 texRead_x(int i)
 	{
-		return ldp::Float3(tex1Dfetch(gt_x, i * 3), 
+		return ldp::Float3(tex1Dfetch(gt_x, i * 3),
 			tex1Dfetch(gt_x, i * 3 + 1), tex1Dfetch(gt_x, i * 3 + 2));
 	}
 	__device__ __forceinline__ Float3 texRead_x_init(int i)
@@ -428,33 +429,6 @@ namespace ldp
 	{
 		return tex2D<float>(t, x, y);
 	}
-	__device__ __forceinline__ float distance(const Float3 &x, const Float3 &a, const Float3 &b)
-	{
-		Float3 e = b - a;
-		Float3 xp = e*e.dot(x - a) / e.dot(e);
-		return max((x - a - xp).length(), 1e-3f*e.length());
-	}
-	__device__ __forceinline__ Float2 barycentric_weights(Float3 x, Float3 a, Float3 b)
-	{
-		double t = (b-a).dot(x - a) / (b-a).sqrLength();
-		return Float2(1 - t, t);
-	}
-	__device__ __forceinline__ Float3 faceNormal_withLength(int iFace)
-	{
-		ldp::Int3 f = texRead_faces_idxWorld(iFace);
-		return Float3(texRead_x(f[1]) - texRead_x(f[0])).cross(texRead_x(f[2]) - texRead_x(f[0]));
-	}
-	__device__ __forceinline__ Float3 faceNormal(int iFace)
-	{
-		Float3 n = faceNormal_withLength(iFace);
-		if (n.length() == 0.f)
-			return 0.f;
-		return n.normalizeLocal();
-	}
-	__device__ __forceinline__ float faceArea(int iFace)
-	{
-		return texRead_faceMaterialData(iFace).area;
-	}
 
 	void GpuSim::bindTextures()
 	{
@@ -473,7 +447,7 @@ namespace ldp
 			&desc_float, m_x_init_d.size()*sizeof(float3)));
 		CHECK_ZERO(offset);
 
-		cudaSafeCall(cudaBindTexture(&offset, &gt_texCoord_init, m_texCoord_init_d.ptr(), 
+		cudaSafeCall(cudaBindTexture(&offset, &gt_texCoord_init, m_texCoord_init_d.ptr(),
 			&desc_float2, m_texCoord_init_d.size()*sizeof(float2)));
 		CHECK_ZERO(offset);
 
@@ -501,6 +475,71 @@ namespace ldp
 			&desc_float4, m_nodes_materialSpace_d.size()*sizeof(float4)));
 		CHECK_ZERO(offset);
 	}
+#pragma endregion
+
+#pragma region --constraints
+	struct NodeCon
+	{
+		cudaTextureObject_t levelSetTex = 0;
+		int node_id = 0;
+		float mu = 0.f; // friction
+		float stiff = 0.f;
+		__device__ inline float value()
+		{
+
+		}
+		__device__ inline Float3 gradient()
+		{
+
+		}
+		__device__ inline Mat3f project()
+		{
+
+		}
+		__device__ inline float energy(float value)
+		{
+
+		}
+		__device__ inline float energy_grad(float value)
+		{
+
+		}
+		__device__ inline float energy_hess(float value)
+		{
+
+		}
+		__device__ inline Float3 friction(double dt, Mat3f &jac)
+		{
+
+		}
+	};
+#pragma endregion
+
+#pragma region --update numeric
+	__device__ __forceinline__ float distance(const Float3 &x, const Float3 &a, const Float3 &b)
+	{
+		Float3 e = b - a;
+		Float3 xp = e*e.dot(x - a) / e.dot(e);
+		return max((x - a - xp).length(), 1e-3f*e.length());
+	}
+	__device__ __forceinline__ Float2 barycentric_weights(Float3 x, Float3 a, Float3 b)
+	{
+		double t = (b-a).dot(x - a) / (b-a).sqrLength();
+		return Float2(1 - t, t);
+	}
+	__device__ __forceinline__ Float3 faceNormal(int iFace)
+	{
+		ldp::Int3 f = texRead_faces_idxWorld(iFace);
+		Float3 n = Float3(texRead_x(f[1]) - texRead_x(f[0])).cross(texRead_x(f[2]) - texRead_x(f[0]));
+		if (n.length() == 0.f)
+			return 0.f;
+		return n.normalizeLocal();
+	}
+	__device__ __forceinline__ float faceArea(int iFace)
+	{
+		return texRead_faceMaterialData(iFace).area;
+	}
+
 
 	__device__ __forceinline__ Float4 stretching_stiffness(const Mat2f &G, cudaTextureObject_t samples)
 	{
@@ -510,8 +549,7 @@ namespace ldp
 		return texRead_strechSample(samples, a, b, c);
 	}
 
-	__device__ __forceinline__ float bending_stiffness(
-		GpuSim::EdgeData eData, float dihe_angle, float area,
+	__device__ __forceinline__ float bending_stiffness(GpuSim::EdgeData eData, float dihe_angle, float area,
 		const cudaTextureObject_t* t_bendDataTex, int side)
 	{
 		// because samples are per 0.05 cm^-1 = 5 m^-1
@@ -541,8 +579,7 @@ namespace ldp
 		return C;
 	}
 
-	__device__ __host__ __forceinline__  float dihedral_angle(
-		Float3 a, Float3 b, Float3 n0, Float3 n1, float ref_theta)
+	__device__ __host__ __forceinline__  float dihedral_angle(Float3 a, Float3 b, Float3 n0, Float3 n1, float ref_theta)
 	{
 		if ((a - b).length() == 0.f || n0.length() == 0.f || n1.length() == 0.f)
 			return 0.f;
@@ -553,10 +590,8 @@ namespace ldp
 		return unwrap_angle(theta, ref_theta);
 	}
 
-	__device__ void computeStretchForces(int iFace, 
-		int A_start, Mat3f* beforeScan_A,
-		int b_start, Float3* beforeScan_b,
-		const Float3* velocity,
+	__device__ void computeStretchForces(int iFace, int A_start, Mat3f* beforeScan_A,
+		int b_start, Float3* beforeScan_b, const Float3* velocity,
 		const cudaTextureObject_t* t_stretchSamples, float dt)
 	{
 		const ldp::Int3 face_idxWorld = texRead_faces_idxWorld(iFace);
@@ -631,10 +666,8 @@ namespace ldp
 	}
 
 	__device__ void computeBendForces(int iEdge, const GpuSim::EdgeData* edgeDatas,
-		int A_start, Mat3f* beforeScan_A,
-		int b_start, Float3* beforeScan_b, 
-		const Float3* velocity,
-		const cudaTextureObject_t* t_bendDatas, float dt)
+		int A_start, Mat3f* beforeScan_A, int b_start, Float3* beforeScan_b, 
+		const Float3* velocity, const cudaTextureObject_t* t_bendDatas, float dt)
 	{
 		const GpuSim::EdgeData edgeData = edgeDatas[iEdge];
 		if (edgeData.faceIdx[0] < 0 || edgeData.faceIdx[1] < 0)
@@ -701,10 +734,8 @@ namespace ldp
 
 	__global__ void computeNumeric_kernel(const GpuSim::EdgeData* edgeData, 
 		const cudaTextureObject_t* t_stretchSamples, const cudaTextureObject_t* t_bendDatas,
-		const int* A_starts, Mat3f* beforeScan_A, 
-		const int* b_starts, Float3* beforeScan_b,
-		const Float3* velocity,
-		int nFaces, int nEdges, float dt)
+		const int* A_starts, Mat3f* beforeScan_A, const int* b_starts, Float3* beforeScan_b,
+		const Float3* velocity, int nFaces, int nEdges, float dt)
 	{
 		int thread_id = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -844,10 +875,6 @@ namespace ldp
 		dumpVec("D:/tmp/m_b.txt", m_b_d);
 #endif
 	}
-#pragma endregion
-
-#pragma region --linear solve
-
 #pragma endregion
 
 #pragma region --collision solve

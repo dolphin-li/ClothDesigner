@@ -77,6 +77,10 @@ namespace ldp
 			float air_damping = 0.f;
 			float strecth_mult = 0.f;
 			float bend_mult = 0.f;
+			float handle_stiffness = 0.f;
+			float collision_stiffness = 0.f;
+			float repulsion_thickness = 0.f;
+			float projection_thickness = 0.f;
 
 			void setDefault();
 		};

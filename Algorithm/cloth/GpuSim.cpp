@@ -122,6 +122,11 @@ namespace ldp
 		dt = 1.f / 200.f;
 		gravity = Float3(0.f, 0.f, -9.8f);
 		pcg_tol = 1e-6f;
+
+		handle_stiffness = 1e3f;
+		collision_stiffness = 1e5f;
+		repulsion_thickness = 1e-3f;
+		projection_thickness = 1e-4f;
 	}
 
 	void GpuSim::init(ClothManager* clothManager)
