@@ -64,12 +64,12 @@ public:
 	size_t size()const{ return bytes() / elem_size; }
 	void fromHost(const std::vector<T>& data)
 	{
-		upload(data.data(), data.size());
+		fromHost(data.data(), data.size());
 	}
 	void toHost(std::vector<T>& data) const
 	{
 		data.resize(size());
-		download(data.data());
+		toHost(data.data());
 	}
 	void swap(CachedDeviceArray& other_arg)
 	{

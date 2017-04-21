@@ -35,7 +35,7 @@ using namespace std;
 
 namespace arcsim
 {
-//#define LDP_DEBUG
+#define LDP_DEBUG
 
 	static const bool verbose = false;
 
@@ -457,6 +457,7 @@ namespace arcsim
 				double damping = (*arcsim::materials)[face->label]->damping;
 				add_submat(-dt*(dt + damping)*J, indices(n0, n1, n2), A);
 				add_subvec(dt*(F + (dt + damping)*J*vs), indices(n0, n1, n2), b);
+				//printf("dumping: %ef\n", damping);
 			}
 #ifdef LDP_DEBUG1
 			dump_v3("D:/tmp/arcsim_beforscan_b.txt", dt*(F + dt*J*vs));
@@ -491,6 +492,7 @@ namespace arcsim
 					(*arcsim::materials)[edge->adjf[1]->label]->damping) / 2.;
 				add_submat(-dt*(dt + damping)*J, indices(n0, n1, n2, n3), A);
 				add_subvec(dt*(F + (dt + damping)*J*vs), indices(n0, n1, n2, n3), b);
+				//printf("dumping1: %ef\n", damping);
 			}
 #ifdef LDP_DEBUG1
 			dump_v3("D:/tmp/arcsim_beforscan_b.txt", dt*(F + dt*J*vs));
@@ -620,14 +622,26 @@ namespace arcsim
 		add_friction_forces(cloth, cons, A, b, dt);
 
 		vector<Vec3> dv = taucs_linear_solve(A, b);
+#ifdef LDP_DEBUG1
+		Vec3 sum_dv(0), sum_v(0);
+#endif
 		for (int n = 0; n < mesh.nodes.size(); n++)
 		{
 			Node *node = mesh.nodes[n];
 			node->v += dv[n];
+#ifdef LDP_DEBUG1
+			sum_dv += dv[n];
+			sum_v += node->v;
+#endif
 			if (update_positions)
 				node->x += node->v*dt;
 			node->acceleration = dv[n] / dt;
 		}
+#ifdef LDP_DEBUG1
+		sum_v /= (double)mesh.nodes.size();
+		sum_dv /= (double)mesh.nodes.size();
+		printf("n0: v=%ef %ef, dv=%ef %ef\n", sum_v[0], sum_v[2], sum_dv[0], sum_dv[2]);
+#endif
 		project_outside(cloth.mesh, cons);
 		compute_ws_data(mesh);
 	}
@@ -639,6 +653,7 @@ namespace arcsim
 		Vec3 vrel = wind.velocity - vface;
 		double vn = dot(face->n, vrel);
 		Vec3 vt = vrel - vn*face->n;
+
 		return wind.density*face->a*abs(vn)*vn*face->n + wind.drag*face->a*vt;
 	}
 

@@ -11,7 +11,7 @@
 #include <eigen\Dense>
 #include <eigen\Sparse>
 
-//#define DEBUG_DUMP
+#define DEBUG_DUMP
 //#define LDP_DEBUG
 namespace ldp
 {
@@ -35,7 +35,7 @@ namespace ldp
 				{
 					int row = A.innerIndexPtr()[c];
 					egreal val = A.valuePtr()[c];
-					printf("%d %d %ef\n", row, col, val);
+					fprintf(pFile, "%d %d %ef\n", row, col, val);
 				}
 			}
 		}
@@ -95,6 +95,7 @@ namespace ldp
 	{
 		cusparseCheck(cusparseCreate(&m_cusparseHandle), "GpuSim: create cusparse handel");
 		m_A_d.reset(new CudaBsrMatrix(m_cusparseHandle));
+		m_vert_FaceList_d.reset(new CudaBsrMatrix(m_cusparseHandle, true));
 	}
 
 	GpuSim::~GpuSim()
@@ -127,11 +128,10 @@ namespace ldp
 		initializeMaterialMemory();
 		updateTopology();
 		updateNumeric();
-
 #ifdef DEBUG_DUMP
 		dumpVec("D:/tmp/m_beforScan_A.txt", m_beforScan_A);
 		dumpVec("D:/tmp/m_beforScan_b.txt", m_beforScan_b);
-		m_A->dump("D:/tmp/m_A.txt");
+		m_A_d->dump("D:/tmp/m_A.txt");
 		dumpVec("D:/tmp/m_b.txt", m_b_d);
 		SpMat A;
 		cudaSpMat_to_EigenMat(*m_A_d, A);
@@ -168,6 +168,7 @@ namespace ldp
 	{
 		gtime_t t_start = gtime_now();
 
+		bindTextures();
 		updateNumeric();
 
 		for (int oiter = 0; oiter < m_simParam.outer_iter; oiter++)
@@ -213,7 +214,9 @@ namespace ldp
 	{
 		m_x_h = m_x_init_h;
 		m_x_init_d.copyTo(m_x_d);
+		m_x_d.copyTo(m_last_x_d);
 		cudaSafeCall(cudaMemset(m_v_d.ptr(), 0, m_v_d.sizeBytes()));
+		m_v_d.copyTo(m_last_v_d);
 		cudaSafeCall(cudaMemset(m_dv_d.ptr(), 0, m_dv_d.sizeBytes()));
 		cudaSafeCall(cudaMemset(m_b_d.ptr(), 0, m_b_d.sizeBytes()));
 	}
@@ -409,6 +412,36 @@ namespace ldp
 #endif
 		// compute sparse structure via sorting---------------------------------
 		const int nVerts = m_x_init_h.size();
+		const int nFaces = m_faces_idxWorld_h.size();
+
+		// 0. collect one-ring face list of each vertex
+		if (nVerts > 0 && nFaces > 0)
+		{
+			std::vector<Int2> vert_face_pair_h;
+			for (size_t i = 0; i < m_faces_idxWorld_h.size(); i++)
+			for (int k = 0; k < 3; k++)
+				vert_face_pair_h.push_back(Int2(m_faces_idxWorld_h[i][k], i));
+			std::sort(vert_face_pair_h.begin(), vert_face_pair_h.end());
+			vert_face_pair_h.resize(std::unique(vert_face_pair_h.begin(),
+				vert_face_pair_h.end()) - vert_face_pair_h.begin());
+			std::vector<int> vert_face_pair_v_h(vert_face_pair_h.size(), 0);
+			std::vector<int> vert_face_pair_f_h(vert_face_pair_h.size(), 0);
+			for (size_t i = 0; i < vert_face_pair_h.size(); i++)
+			{
+				vert_face_pair_v_h[i] = vert_face_pair_h[i][0];
+				vert_face_pair_f_h[i] = vert_face_pair_h[i][1];
+			}
+			CachedDeviceArray<int> vert_face_pair_v_d;
+			vert_face_pair_v_d.fromHost(vert_face_pair_v_h);
+			m_vert_FaceList_d->resize(nVerts, nFaces, 1);
+			m_vert_FaceList_d->setRowFromBooRowPtr(vert_face_pair_v_d.data(), vert_face_pair_v_d.size());
+			cudaSafeCall(cudaMemcpy(m_vert_FaceList_d->bsrColIdx(), (const int*)vert_face_pair_f_h.data(),
+				vert_face_pair_f_h.size()*sizeof(int), cudaMemcpyHostToDevice));
+			cudaSafeCall(cudaThreadSynchronize());
+#ifdef DEBUG_DUMP
+			m_vert_FaceList_d->dump("D:/tmp/vertFace.txt");
+#endif
+		} // end collect one-ring face list of each vertex
 
 		// 1. collect face adjacents
 		std::vector<size_t> A_Ids_h;
@@ -443,8 +476,8 @@ namespace ldp
 						ed.edge_idxWorld[r], ed.edge_idxWorld[c]), nVerts));
 					b_Ids_h.push_back(ed.edge_idxWorld[r]);
 				}
-			} // end for edgeData
-		}
+			}
+		} // end for edgeData
 		A_Ids_start_h.push_back(A_Ids_h.size());
 		b_Ids_start_h.push_back(b_Ids_h.size());
 
@@ -492,19 +525,17 @@ namespace ldp
 		release_assert(nUniqueb == nVerts);
 		
 		// 4. convert vertex-pair idx to coo array
-		CachedDeviceBuffer booRow(nUniqueNnz*sizeof(int));
-		CachedDeviceBuffer booCol(nUniqueNnz*sizeof(int));
-		vertPair_from_idx((int*)booRow.data(), (int*)booCol.data(), m_A_Ids_d_unique.ptr(), nVerts, nUniqueNnz);
+		CachedDeviceArray<int> booRow(nUniqueNnz), booCol(nUniqueNnz);
+		vertPair_from_idx(booRow.data(), booCol.data(), m_A_Ids_d_unique.ptr(), nVerts, nUniqueNnz);
 
 		// 5. build the sparse matrix via coo
 		m_A_d->resize(nVerts, nVerts, 3);
-		m_A_d->setRowFromBooRowPtr((const int*)booRow.data(), nUniqueNnz);
-		cudaSafeCall(cudaMemcpy(m_A_d->bsrColIdx(), (const int*)booCol.data(),
-			nUniqueNnz*sizeof(int), cudaMemcpyDeviceToDevice));
+		m_A_d->setRowFromBooRowPtr(booRow.data(), nUniqueNnz);
+		cudaSafeCall(cudaMemcpy(m_A_d->bsrColIdx(), booCol.data(), nUniqueNnz*sizeof(int), cudaMemcpyDeviceToDevice));
 		cudaSafeCall(cudaMemset(m_A_d->value(), 0, m_A_d->nnz()*sizeof(float)));
 
 #ifdef DEBUG_DUMP
-		m_A->dump("D:/tmp/eigen_A_1.txt");
+		m_A_d->dump("D:/tmp/eigen_A_1.txt");
 		dumpVec_pair("D:/tmp/m_A_Ids_d.txt", m_A_Ids_d, nVerts);
 		dumpVec_pair("D:/tmp/m_A_Ids_d_unique.txt", m_A_Ids_d_unique, nVerts, nUniqueNnz);
 		dumpVec("D:/tmp/m_A_Ids_d_unique_pos.txt", m_A_Ids_d_unique_pos, nUniqueNnz);

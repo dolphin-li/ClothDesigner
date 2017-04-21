@@ -149,6 +149,7 @@ namespace ldp
 		DeviceArray<NodeMaterailSpaceData> m_nodes_materialSpace_d;
 		std::vector<EdgeData> m_edgeData_h;
 		DeviceArray<EdgeData> m_edgeData_d;
+		std::shared_ptr<CudaBsrMatrix> m_vert_FaceList_d;
 
 		///////////////// precomputed data /////////////////////////////////////////////////////////////	
 		DeviceArray<size_t> m_A_Ids_d;			// for sparse matrix, encode the (row, col) pairs, sorted

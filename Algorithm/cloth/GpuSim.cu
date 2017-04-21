@@ -7,7 +7,8 @@
 namespace ldp
 {
 
-//#define LDP_DEBUG
+//#define DEBUG_DUMP
+#define LDP_DEBUG
 
 #pragma region --utils
 	enum{
@@ -303,6 +304,27 @@ namespace ldp
 		return tex;
 	}
 
+
+	__device__ __forceinline__ float fetch_float(cudaTextureObject_t A, int i)
+	{
+		float val = 0.f;
+		tex1Dfetch(&val, A, i);
+		return val;
+	}
+	__device__ __forceinline__ int fetch_int(cudaTextureObject_t A, int i)
+	{
+		int val = 0;
+		tex1Dfetch(&val, A, i);
+		return val;
+	}
+	__device__ __forceinline__ Mat3f fetch_Mat3f(cudaTextureObject_t A, int i)
+	{
+		Mat3f B;
+		for (int r = 0; r < 3; r++)
+		for (int c = 0; c < 3; c++)
+			tex1Dfetch(&B(r, c), A, i + c + r * 3);
+		return B;
+	}
 #pragma endregion
 
 #pragma region -- vert pair <--> idx
@@ -563,6 +585,10 @@ namespace ldp
 	{
 		return Float3(t[1] - t[0]).cross(t[2] - t[0]).length() * 0.5f;
 	}
+	__device__ __forceinline__ float faceArea(int iFace)
+	{
+		return texRead_faceMaterialData(iFace).area;
+	}
 
 	__device__ void computeStretchForces(int iFace, 
 		int A_start, Mat3f* beforeScan_A,
@@ -776,23 +802,36 @@ namespace ldp
 	}
 
 	__global__ void compute_b_kernel(const int* b_unique_pos, const Float3* b_beforeScan,
-		Float3* b_values, const float dt, const Float3 gravity, const int nVerts, const int nb_beforScan)
+		Float3* b_values, const float dt, const Float3 gravity, const int nVerts, const int nb_beforScan,
+		const Float3* velocity, cudaTextureObject_t v_f_rowPtrTex, cudaTextureObject_t v_f_colTex)
 	{
 		int thread_id = threadIdx.x + blockIdx.x * blockDim.x;
 		if (thread_id >= nVerts)
 			return;
-		const int scan_begin = b_unique_pos[thread_id];
-		const int scan_end = (thread_id == nVerts - 1) ? nb_beforScan : b_unique_pos[thread_id + 1];
 
 		Float3 sum = 0.f;
 
 		// internal forces scan
+		const int scan_begin = b_unique_pos[thread_id];
+		const int scan_end = (thread_id == nVerts - 1) ? nb_beforScan : b_unique_pos[thread_id + 1];
 		for (int scan_i = scan_begin; scan_i < scan_end; scan_i++)
 			sum += b_beforeScan[scan_i];
 
-		// external forces and diag term
+		// gravity forces and diag term
 		const float mass = texRead_nodeMaterialData(thread_id).mass;
 		sum += gravity * mass * dt;
+
+		// wind forces
+		const int fpos_begin = fetch_int(v_f_rowPtrTex, thread_id);
+		const int fpos_end = fetch_int(v_f_rowPtrTex, thread_id + 1);
+		for (int fpos = fpos_begin; fpos < fpos_end; ++fpos)
+		{
+			const int fid = fetch_int(v_f_colTex, fpos);
+			const Int3 f = texRead_faces_idxWorld(fid);
+			const Float3 vrel = -(velocity[f[0]] + velocity[f[1]] + velocity[f[2]]) / 3.;
+			const float vn = faceNormal(fid).dot(vrel);
+			sum += dt * faceArea(fid)*abs(vn)*vn / 3.f * faceNormal(fid);
+		} // end for fid
 
 		// write into A
 		b_values[thread_id] = sum;
@@ -828,36 +867,20 @@ namespace ldp
 		cudaSafeCall(cudaGetLastError());
 		compute_b_kernel << <divUp(nVerts, CTA_SIZE), CTA_SIZE >> >(
 			m_b_Ids_d_unique_pos.ptr(), m_beforScan_b.ptr(),
-			(Float3*)m_b_d.ptr(), m_simParam.dt, gravity, nVerts, nb_beforScan
+			(Float3*)m_b_d.ptr(), m_simParam.dt, gravity, nVerts, nb_beforScan,
+			m_v_d.ptr(), m_vert_FaceList_d->bsrRowPtrTexture(), m_vert_FaceList_d->bsrColIdxTexture()
 			);
 		cudaSafeCall(cudaGetLastError());
+#ifdef DEBUG_DUMP
+		m_A_d->dump("D:/tmp/m_A.txt");
+		dumpVec("D:/tmp/m_b.txt", m_b_d);
+#endif
 	}
 #pragma endregion
 
 #pragma region --linear solve
 
 //#define USE_BLOCKWISE_LINEAR_ITERATION
-
-	__device__ __forceinline__ float fetch_float(cudaTextureObject_t A, int i)
-	{
-		float val = 0.f;
-		tex1Dfetch(&val, A, i);
-		return val;
-	}
-	__device__ __forceinline__ int fetch_int(cudaTextureObject_t A, int i)
-	{
-		int val = 0;
-		tex1Dfetch(&val, A, i);
-		return val;
-	}
-	__device__ __forceinline__ Mat3f fetch_Mat3f(cudaTextureObject_t A, int i)
-	{
-		Mat3f B;
-		for (int r = 0; r < 3; r++)
-		for (int c = 0; c < 3; c++)
-			tex1Dfetch(&B(r, c), A, i + c + r*3);
-		return B;
-	}
 
 	__global__ void linearSolve_jacobiUpdate_kernel(cudaTextureObject_t bsrRowPtr,
 		cudaTextureObject_t bsrColIdx, cudaTextureObject_t bsrValue,
@@ -984,6 +1007,21 @@ namespace ldp
 		update_x_v_by_dv_kernel << <divUp(m_x_d.size(), CTA_SIZE), CTA_SIZE >> >
 			(m_dv_d.ptr(), m_v_d.ptr(), m_x_d.ptr(), m_simParam.dt, m_dv_d.size());
 		cudaSafeCall(cudaGetLastError());
+
+#ifdef LDP_DEBUG1
+		std::vector<ldp::Float3> v, dv;
+		m_v_d.download(v);
+		m_dv_d.download(dv);
+
+		Float3 sum_v = 0.f, sum_dv = 0.f;
+		for (const auto& vv : v)
+			sum_v += vv;
+		for (const auto& vv : dv)
+			sum_dv += vv;
+		sum_v /= v.size();
+		sum_dv /= v.size();
+		printf("n0: v=%ef %ef, dv=%ef %ef\n", sum_v[0], sum_v[2], sum_dv[0], sum_dv[2]);
+#endif
 	}
 #pragma endregion
 }
