@@ -921,28 +921,53 @@ namespace ldp
 		r_d[i] -= alpha * Ap_d[i];
 	}
 
-	void GpuSim::pcg_vecMul(int n, const float* a_d, const float* b_d, float* c_d, float alpha, float beta)
+	__global__ void pcg_extractInvDiagBlock_kernel(int n, Mat3f* diag, 
+		cudaTextureObject_t A_RowTex, cudaTextureObject_t A_colTex, const Mat3f* A_val)
+	{
+		const int r = blockDim.x * blockIdx.x + threadIdx.x;
+		if (r >= n)	return;
+		const int rb = fetch_int(A_RowTex, r);
+		const int re = fetch_int(A_RowTex, r + 1);
+		Mat3f D;
+		for (int pos = rb; pos < re; pos++)
+		{
+			const int c = fetch_int(A_colTex, pos);
+			if (r == c)
+				D = A_val[pos];
+		}
+		diag[r] = D.inv();
+	}
+
+	void GpuSim::pcg_vecMul(int n, const float* a_d, const float* b_d, float* c_d, float alpha, float beta)const
 	{
 		pcg_vecMul_kernel << <divUp(n, CTA_SIZE), CTA_SIZE >> >(n, a_d, b_d, c_d, alpha, beta);
 		cudaSafeCall(cudaGetLastError());
 	}
 
-	void GpuSim::pcg_update_p(int n, const float* z_d, float* p_d, float beta)
+	void GpuSim::pcg_update_p(int n, const float* z_d, float* p_d, float beta)const
 	{
 		pcg_update_p_kernel << <divUp(n, CTA_SIZE), CTA_SIZE >> >(n, z_d, p_d, beta);
 		cudaSafeCall(cudaGetLastError());
 	}
-	void GpuSim::pcg_update_x_r(int n, const float* p_d, const float* Ap_d, float* x_d, float* r_d, float alpha)
+	
+	void GpuSim::pcg_update_x_r(int n, const float* p_d, const float* Ap_d, float* x_d, float* r_d, float alpha)const
 	{
 		pcg_update_x_r_kernel << <divUp(n, CTA_SIZE), CTA_SIZE >> >(n, p_d, Ap_d, x_d, r_d, alpha);
 		cudaSafeCall(cudaGetLastError());
 	}
 
-	float GpuSim::pcg_dot(int n, const float* a_d, const float* b_d)
+	float GpuSim::pcg_dot(int n, const float* a_d, const float* b_d)const
 	{
 		float s = 0.f;
 		cublasSdot_v2(m_cublasHandle, n, a_d, 1, b_d, 1, &s);
 		return s;
+	}
+
+	void GpuSim::pcg_extractInvDiagBlock(const CudaBsrMatrix& A, CudaDiagBlockMatrix& invD)
+	{
+		pcg_extractInvDiagBlock_kernel << <divUp(A.rows(), CTA_SIZE), CTA_SIZE >> >(
+			A.rows(), (Mat3f*)invD.value(), A.bsrRowPtrTexture(), A.bsrColIdxTexture(), (const Mat3f*)A.value());
+		cudaSafeCall(cudaGetLastError());
 	}
 #pragma endregion
 }

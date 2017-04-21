@@ -68,6 +68,9 @@ public:
 	// vec_out = alpha * Lower(this) * vec_in + beta;
 	void Lv(const float* vec_in, float* vec_out, float alpha = 1.f, float beta = 0.f);
 
+	// vec_out = alpha * this * vec_in + beta;
+	void Mv(const float* vec_in, float* vec_out, float alpha = 1.f, float beta = 0.f);
+
 	// vec_out = alpha * Lower(this)^t * vec_in + beta;
 	void Ltv(const float* vec_in, float* vec_out, float alpha = 1.f, float beta = 0.f);
 

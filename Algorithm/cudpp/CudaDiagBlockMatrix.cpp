@@ -18,7 +18,7 @@ void CudaDiagBlockMatrix::clear()
 	m_blockSize = 0;
 	m_numBlocks = 0;
 	if (m_tex)
-		cudaSafeCall(cudaDestroyTextureObject(m_tex), "CudaDiagBlockMatrix::clear(), destroy tex");
+		cudaSafeCall(cudaDestroyTextureObject(m_tex));
 	m_tex = 0;
 	m_values.release();
 }
@@ -27,7 +27,7 @@ template<class T>
 static void bindLinearTex(T* ptr, int sizeBytes, cudaTextureObject_t& old)
 {
 	if (old)
-		cudaSafeCall(cudaDestroyTextureObject(old), "CudaBsrMatrix::bindTexture::Destory");
+		cudaSafeCall(cudaDestroyTextureObject(old));
 	cudaResourceDesc texRes;
 	memset(&texRes, 0, sizeof(cudaResourceDesc));
 	texRes.resType = cudaResourceTypeLinear;
@@ -42,8 +42,7 @@ static void bindLinearTex(T* ptr, int sizeBytes, cudaTextureObject_t& old)
 	texDescr.addressMode[1] = cudaAddressModeClamp;
 	texDescr.addressMode[2] = cudaAddressModeClamp;
 	texDescr.readMode = cudaReadModeElementType;
-	cudaSafeCall(cudaCreateTextureObject(&old, &texRes, &texDescr, NULL),
-		"CudaBsrMatrix::bindTexture");
+	cudaSafeCall(cudaCreateTextureObject(&old, &texRes, &texDescr, NULL));
 }
 
 void CudaDiagBlockMatrix::resize(int numBlocks, int blockSize)
@@ -84,14 +83,12 @@ void CudaDiagBlockMatrix::LtL(CudaDiagBlockMatrix& result)const
 CudaDiagBlockMatrix& CudaDiagBlockMatrix::operator = (const CudaDiagBlockMatrix& rhs)
 {
 	resize(rhs.numBlocks(), rhs.blockSize());
-	cudaSafeCall(cudaMemcpy(value(), rhs.value(), nnz()*sizeof(float),
-		cudaMemcpyDeviceToDevice), "CudaDiagBlockMatrix::operator = rhs");
+	cudaSafeCall(cudaMemcpy(value(), rhs.value(), nnz()*sizeof(float), cudaMemcpyDeviceToDevice));
 	return *this;
 }
 
 void CudaDiagBlockMatrix::setValue(const float* val_d)
 {
-	cudaSafeCall(cudaMemcpy(value(), val_d, nnz()*sizeof(float),
-		cudaMemcpyDeviceToDevice), "CudaDiagBlockMatrix::setValue");
+	cudaSafeCall(cudaMemcpy(value(), val_d, nnz()*sizeof(float), cudaMemcpyDeviceToDevice));
 }
 

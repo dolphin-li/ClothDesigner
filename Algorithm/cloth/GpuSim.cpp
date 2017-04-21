@@ -106,6 +106,7 @@ namespace ldp
 		cusparseCheck(cusparseCreate(&m_cusparseHandle), "GpuSim: create cusparse handel");
 		cublasCheck(cublasCreate_v2(&m_cublasHandle));
 		m_A_d.reset(new CudaBsrMatrix(m_cusparseHandle));
+		m_A_diag_d.reset(new CudaDiagBlockMatrix());
 		m_vert_FaceList_d.reset(new CudaBsrMatrix(m_cusparseHandle, true));
 	}
 
@@ -160,7 +161,7 @@ namespace ldp
 			const auto* sim = m_arcSimManager->getSimulator();
 			m_simParam.dt = sim->step_time;
 			m_simParam.gravity = convert(sim->gravity);
-			m_simParam.pcg_iter = 100;
+			m_simParam.pcg_iter = 400;
 			m_simParam.pcg_tol = 1e-2f;
 			m_simParam.control_mag = 400.f;
 			m_simParam.stitch_ratio = 5.f;
@@ -281,6 +282,7 @@ namespace ldp
 		else
 			throw std::exception("GpuSim, not initialized!");
 
+		m_A_diag_d->resize(m_A_d->blocksInRow(), m_A_d->rowsPerBlock());
 		m_x_h = m_x_init_h;
 		m_x_init_d.copyTo(m_x_d);
 		m_last_x_d.create(m_x_d.size());
@@ -658,7 +660,7 @@ namespace ldp
 			return;
 
 		// invD = inv(diag(A))
-		m_A_d->diag(invD.data(), true);
+		pcg_extractInvDiagBlock(*m_A_d, *m_A_diag_d);
 
 		// r = b-Ax
 		cudaSafeCall(cudaMemcpy(r.data(), m_b_d.ptr(), r.bytes(), cudaMemcpyDeviceToDevice));
@@ -670,7 +672,7 @@ namespace ldp
 		for (iter = 0; iter<m_simParam.pcg_iter; iter++)
 		{
 			// z = invD * r
-			pcg_vecMul(nVal, invD.data(), r.data(), z.data());
+			m_A_diag_d->Mv(r.data(), z.data());
 
 			// rz = r'*z
 			rz_old = rz;
@@ -708,7 +710,7 @@ namespace ldp
 			}
 		} // end for iter
 
-		//printf("pcg, iter %d, err %ef\n", iter, err);
+		printf("pcg, iter %d, err %ef\n", iter, err);
 
 #else
 		SpMat A;

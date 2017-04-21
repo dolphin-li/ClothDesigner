@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <memory>
+#include "cudpp\CudaDiagBlockMatrix.h"
 #include "cudpp\CudaBsrMatrix.h"
 #include "ldpMat\ldp_basic_mat.h"
 #include "cudpp\Cuda3DArray.h"
@@ -166,6 +167,7 @@ namespace ldp
 		DeviceArray<ldp::Float3> m_beforScan_b;
 		///////////////// solve for the simulation linear system: A*dv=b////////////////////////////////
 		std::shared_ptr<CudaBsrMatrix> m_A_d;
+		std::shared_ptr<CudaDiagBlockMatrix> m_A_diag_d;
 		DeviceArray<ldp::Float3> m_b_d;
 		std::vector<ldp::Float2> m_texCoord_init_h;				// material (tex) space vertex texCoord							
 		DeviceArray<ldp::Float2> m_texCoord_init_d;				// material (tex) space vertex texCoord	
@@ -278,11 +280,12 @@ namespace ldp
 		std::vector<BendingData> m_bendingData_h;
 		std::vector<float> m_densityData_h;
 	public:
-		static void pcg_vecMul(int n, const float* a_d, const float* b_d, 
-			float* c_d, float alpha = 1.f, float beta = 0.f); // c=alpha * a * b + beta
-		static void pcg_update_p(int n, const float* z_d, float* p_d, float beta);
-		static void pcg_update_x_r(int n, const float* p_d, const float* Ap_d, float* x_d, float* r_d, float alpha);
-		float pcg_dot(int n, const float* a_d, const float* b_d);
+		void pcg_vecMul(int n, const float* a_d, const float* b_d, 
+			float* c_d, float alpha = 1.f, float beta = 0.f)const; // c=alpha * a * b + beta
+		void pcg_update_p(int n, const float* z_d, float* p_d, float beta)const;
+		void pcg_update_x_r(int n, const float* p_d, const float* Ap_d, float* x_d, float* r_d, float alpha)const;
+		float pcg_dot(int n, const float* a_d, const float* b_d)const;
+		void pcg_extractInvDiagBlock(const CudaBsrMatrix& A, CudaDiagBlockMatrix& invD);
 		static void vertPair_to_idx(const int* ids_v1, const int* ids_v2, size_t* ids, int nVerts, int nPairs);
 		static void vertPair_from_idx(int* ids_v1, int* ids_v2, const size_t* ids, int nVerts, int nPairs);
 		static void dumpVec(std::string name, const DeviceArray2D<float>& A);

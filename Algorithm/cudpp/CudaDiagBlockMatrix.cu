@@ -51,6 +51,30 @@ __global__ void CudaDiagBlockMatrix_Lv_kernel(
 	vec_out[iRow] = alpha * sum + beta * vec_out[iRow];
 }
 
+// vec_out = alpha * this * vec_in + beta * vec_out
+__global__ void CudaDiagBlockMatrix_Mv_kernel(
+	cudaTextureObject_t tex,
+	float* vec_out, const float* vec_in,
+	int nRows, int nodePerRow, float alpha, float beta)
+{
+	int iRow = threadIdx.x + blockIdx.x*blockDim.x;
+	if (iRow >= nRows)
+		return;
+	int iNode = iRow / nodePerRow;
+	int rshift = iRow - iNode * nodePerRow;
+	int iPos = iRow * nodePerRow + rshift;
+
+	float sum = 0.f;
+	for (int k = -rshift; k < nodePerRow - rshift; k++)
+	{
+		float val = 0.f;
+		tex1Dfetch(&val, tex, iPos + k);
+		sum += val * vec_in[iRow + k];
+	}
+
+	vec_out[iRow] = alpha * sum + beta * vec_out[iRow];
+}
+
 // vec_out = alpha * Ltinv * vec_in + beta * vec_out
 __global__ void CudaDiagBlockMatrix_Ltv_kernel(
 	cudaTextureObject_t tex,
@@ -152,6 +176,16 @@ void CudaDiagBlockMatrix::Ltv(const float* vec_in, float* vec_out, float alpha, 
 	if (rows() == 0)
 		return;
 	CudaDiagBlockMatrix_Ltv_kernel << <divUp(rows(), CTA_SIZE), CTA_SIZE >> >(
+		m_tex, vec_out, vec_in, rows(), blockSize(), alpha, beta);
+	cudaSafeCall(cudaGetLastError());
+}
+
+// vec_out = alpha * this * vec_in + beta;
+void CudaDiagBlockMatrix::Mv(const float* vec_in, float* vec_out, float alpha, float beta)
+{
+	if (rows() == 0)
+		return;
+	CudaDiagBlockMatrix_Mv_kernel << <divUp(rows(), CTA_SIZE), CTA_SIZE >> >(
 		m_tex, vec_out, vec_in, rows(), blockSize(), alpha, beta);
 	cudaSafeCall(cudaGetLastError());
 }
