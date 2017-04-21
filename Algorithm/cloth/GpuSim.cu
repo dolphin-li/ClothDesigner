@@ -515,45 +515,19 @@ namespace ldp
 		const cudaTextureObject_t* t_bendDataTex, int side)
 	{
 		// because samples are per 0.05 cm^-1 = 5 m^-1
-		float value = dihe_angle*sqrt(eData.length_sqr[side]) / area * 0.5f*0.2f;
+		const float len = 0.5f * (sqrt(eData.length_sqr[0]) + sqrt(eData.length_sqr[1]));
+		float value = min(4.f, dihe_angle*len / area * 0.5f*0.2f);
 		float bias_angle = fabs((eData.theta_uv[side] + eData.theta_initial) * 4.f / M_PI);
-#ifdef BEND_USE_LINEAR_TEX
-		float actual_ke = texRead_bendData(t_bendDataTex[eData.faceIdx[side]], 
-			bias_angle + 0.5f, value + 0.5f);
-#else
+
 		const cudaTextureObject_t bendDataTex = t_bendDataTex[eData.faceIdx[side]];
-		if (value > 4) 
-			value = 4;
-		int value_i = (int)value;
-		if (value_i<0)   
-			value_i = 0;
-		if (value_i>3)   
-			value_i = 3;
+		int value_i = min(3, max(0, (int)value));
 		value -= value_i;
-		if (bias_angle>4)        
-			bias_angle = 8 - bias_angle;
-		if (bias_angle > 2)        
-			bias_angle = 4 - bias_angle;
-		int bias_id = (int)bias_angle;
-		if (bias_id<0)   
-			bias_id = 0;
-		if (bias_id>1)   
-			bias_id = 1;
+		const int bias_id = (int)bias_angle;
 		bias_angle -= bias_id;
 		float actual_ke = texRead_bendData(bendDataTex, bias_id, value_i) * (1 - bias_angle)*(1 - value)
 			+ texRead_bendData(bendDataTex, bias_id + 1, value_i) * (bias_angle)*(1 - value)
 			+ texRead_bendData(bendDataTex, bias_id, value_i + 1) * (1 - bias_angle)*(value)
 			+texRead_bendData(bendDataTex, bias_id + 1, value_i + 1) * (bias_angle)*(value);
-#endif
-
-#ifdef LDP_DEBUG1
-		printVal(value*1e6f);
-		printVal(value_i);
-		printVal(eData.theta_uv);
-		printVal(bias_angle*1e6f);
-		printVal(bias_id);
-		printVal(actual_ke*1e6f);
-#endif
 		if (actual_ke < 0) actual_ke = 0;
 		return actual_ke;
 	}

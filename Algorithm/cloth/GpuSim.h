@@ -243,18 +243,12 @@ namespace ldp
 			Cuda3DArray<float4> m_ary;
 		};
 		
-#define BEND_USE_LINEAR_TEX
 		class BendingData {
 		public:
 			enum {
 				POINTS = 5,
-#ifdef BEND_USE_LINEAR_TEX
 				DIMS = 9,
-				FilterMode = cudaFilterModeLinear,
-#else
-				DIMS = 3,
 				FilterMode = cudaFilterModePoint,
-#endif
 			};
 			BendingData(){
 				m_data.resize(rows()*cols());

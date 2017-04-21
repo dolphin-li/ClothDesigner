@@ -569,13 +569,11 @@ namespace ldp
 				auto& bdata = m_bendingData_h.back();
 				for (int x = 0; x < bdata.cols(); x++)
 				{
-					int wrap_x = x;
-#ifdef BEND_USE_LINEAR_TEX		
+					int wrap_x = x;	
 					if (wrap_x>4)
 						wrap_x = 8 - wrap_x;
 					if (wrap_x > 2)
 						wrap_x = 4 - wrap_x;
-#endif
 					for (int y = 0; y < bdata.rows(); y++)
 						bdata(x, y) = mat->bending.d[wrap_x][y];
 				}

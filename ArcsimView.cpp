@@ -215,7 +215,7 @@ void ArcsimView::paintGL()
 	if (g_dataholder.m_arcsim_show_texcoord)
 	{
 		glPushAttrib(GL_ALL_ATTRIB_BITS);
-		glViewport(0, 0, width() / 2, height() / 2);
+		glViewport(0, 0, width() / 4, height() / 4);
 		auto cloth = m_arcsimManager->getClothMesh();
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
