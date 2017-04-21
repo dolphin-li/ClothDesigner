@@ -710,7 +710,7 @@ namespace ldp
 			}
 		} // end for iter
 
-		printf("pcg, iter %d, err %ef\n", iter, err);
+		//printf("pcg, iter %d, err %ef\n", iter, err);
 
 #else
 		SpMat A;
