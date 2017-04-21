@@ -11,7 +11,7 @@
 #include <eigen\Dense>
 #include <eigen\Sparse>
 
-#define DEBUG_DUMP
+//#define DEBUG_DUMP
 //#define LDP_DEBUG
 namespace ldp
 {

@@ -8,7 +8,7 @@ namespace ldp
 {
 
 //#define DEBUG_DUMP
-#define LDP_DEBUG
+//#define LDP_DEBUG
 
 #pragma region --utils
 	enum{
@@ -439,6 +439,22 @@ namespace ldp
 		double t = (b-a).dot(x - a) / (b-a).sqrLength();
 		return Float2(1 - t, t);
 	}
+	__device__ __forceinline__ Float3 faceNormal_withLength(int iFace)
+	{
+		ldp::Int3 f = texRead_faces_idxWorld(iFace);
+		return Float3(texRead_x(f[1]) - texRead_x(f[0])).cross(texRead_x(f[2]) - texRead_x(f[0]));
+	}
+	__device__ __forceinline__ Float3 faceNormal(int iFace)
+	{
+		Float3 n = faceNormal_withLength(iFace);
+		if (n.length() == 0.f)
+			return 0.f;
+		return n.normalizeLocal();
+	}
+	__device__ __forceinline__ float faceArea(int iFace)
+	{
+		return texRead_faceMaterialData(iFace).area;
+	}
 
 	void GpuSim::bindTextures()
 	{
@@ -556,38 +572,11 @@ namespace ldp
 	{
 		if ((a - b).length() == 0.f || n0.length() == 0.f || n1.length() == 0.f)
 			return 0.f;
-		Float3 e = (a - b).normalize();
-		double cosine = n0.dot(n1), sine = e.dot(n0.cross(n1));
-		double theta = atan2(sine, cosine);
+		const Float3 e = (a - b).normalize();
+		const float cosine = n0.dot(n1);
+		const float sine = e.dot(n0.cross(n1));
+		const float theta = atan2(sine, cosine);
 		return unwrap_angle(theta, ref_theta);
-	}
-
-	__device__ __host__ __forceinline__ float faceArea(const Float2 t[3])
-	{
-		return fabs(Float2(t[1] - t[0]).cross(t[2] - t[0])) * 0.5f;
-	}
-	__device__ __host__ __forceinline__ Float3 faceNormal(const Float3 t[3])
-	{
-		Float3 n = Float3(t[1] - t[0]).cross(t[2] - t[0]);
-		if (n.length() == 0.f)
-			return 0.f;
-		return n.normalizeLocal();
-	}
-	__device__ __forceinline__ Float3 faceNormal(int iFace)
-	{
-		ldp::Int3 f = texRead_faces_idxWorld(iFace);
-		Float3 n = Float3(texRead_x(f[1]) - texRead_x(f[0])).cross(texRead_x(f[2]) - texRead_x(f[0]));
-		if (n.length() == 0.f)
-			return 0.f;
-		return n.normalizeLocal();
-	}
-	__device__ __host__ __forceinline__ float faceArea(const Float3 t[3])
-	{
-		return Float3(t[1] - t[0]).cross(t[2] - t[0]).length() * 0.5f;
-	}
-	__device__ __forceinline__ float faceArea(int iFace)
-	{
-		return texRead_faceMaterialData(iFace).area;
 	}
 
 	__device__ void computeStretchForces(int iFace, 
@@ -687,7 +676,7 @@ namespace ldp
 		const Float2 w_f1 = barycentric_weights(ex[3], ex[0], ex[1]);
 		const FloatC dtheta = make_Float12(-(w_f0[0] * n0 / h0 + w_f1[0] * n1 / h1),
 			-(w_f0[1] * n0 / h0 + w_f1[1] * n1 / h1), n0 / h0, n1 / h1);
-		float ke = min(
+		const float ke = min(
 			bending_stiffness(edgeData, dihe_theta, area, t_bendDatas, 0),
 			bending_stiffness(edgeData, dihe_theta, area, t_bendDatas, 1)
 			);
@@ -841,6 +830,11 @@ namespace ldp
 	{
 		cudaSafeCall(cudaMemset(m_beforScan_A.ptr(), 0, m_beforScan_A.sizeBytes()));
 		cudaSafeCall(cudaMemset(m_beforScan_b.ptr(), 0, m_beforScan_b.sizeBytes()));
+
+#ifdef LDP_DEBUG1
+		std::vector<Float3> tmpv(m_v_d.size(), Float3(1,2,3));
+		m_v_d.upload(tmpv);
+#endif
 
 		// ldp hack here: make the gravity not important when we are stitching.
 		const Float3 gravity = m_simParam.gravity;// *powf(1 - std::max(0.f, std::min(1.f, m_curStitchRatio)), 2);

@@ -35,7 +35,7 @@ using namespace std;
 
 namespace arcsim
 {
-#define LDP_DEBUG
+//#define LDP_DEBUG
 
 	static const bool verbose = false;
 
@@ -321,11 +321,11 @@ namespace arcsim
 			&bend1 = (*arcsim::materials)[face1->label]->bending;
 		double ke = std::min(bending_stiffness(edge, 0, bend0),
 			bending_stiffness(edge, 1, bend1));
+
 		double weakening = std::max((*arcsim::materials)[face0->label]->weakening,
 			(*arcsim::materials)[face1->label]->weakening);
 		ke *= 1 / (1 + weakening*edge->damage);
 		double shape = sq(edge->l) / (2 * a);
-
 #ifdef LDP_DEBUG1
 		static int flag = 0;
 		if (flag == 0)

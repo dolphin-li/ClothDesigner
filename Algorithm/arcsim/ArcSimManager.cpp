@@ -352,17 +352,17 @@ namespace arcsim
 #ifdef LDP_DEBUG_USE_GPUSIM
 			threadData->m_gpuSim->run_one_step();
 			sim->time += sim->step_time;
-			//threadData->m_timeStamp->Stamp("%.3f/%.1f, fps=%.1f\n", sim->time, 
-			//	sim->end_time, threadData->m_gpuSim->getFps());
+			threadData->m_timeStamp->Stamp("%.3f/%.1f, fps=%.1f\n", sim->time, 
+				sim->end_time, threadData->m_gpuSim->getFps());
 #else
 			advance_step(*sim);
-			//threadData->m_timeStamp->Stamp("%.3f/%.1f, pr=%.3f, ps=%.3f, co=%.3f, sl=%.3f, pl=%.3f",
-			//	sim->time, sim->end_time,
-			//	sim->timers[Simulation::Proximity].last,
-			//	sim->timers[Simulation::Physics].last,
-			//	sim->timers[Simulation::Collision].last,
-			//	sim->timers[Simulation::StrainLimiting].last,
-			//	sim->timers[Simulation::Plasticity].last);
+			threadData->m_timeStamp->Stamp("%.3f/%.1f, pr=%.3f, ps=%.3f, co=%.3f, sl=%.3f, pl=%.3f",
+				sim->time, sim->end_time,
+				sim->timers[Simulation::Proximity].last,
+				sim->timers[Simulation::Physics].last,
+				sim->timers[Simulation::Collision].last,
+				sim->timers[Simulation::StrainLimiting].last,
+				sim->timers[Simulation::Plasticity].last);
 #endif
 			threadData->m_threadMutex->lock();
 			threadData->m_needUpdateMesh = true;

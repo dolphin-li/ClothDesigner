@@ -280,9 +280,11 @@ namespace arcsim
 			return 0;
 		Vec3 e = normalize(pos<s>(edge->n[0]) - pos<s>(edge->n[1]));
 		if (norm2(e) == 0) return 0;
-		Vec3 n0 = nor<s>(edge->adjf[0]), n1 = nor<s>(edge->adjf[1]);
+		Vec3 n0 = nor<s>(edge->adjf[0]);
+		Vec3 n1 = nor<s>(edge->adjf[1]);
 		if (norm2(n0) == 0 || norm2(n1) == 0) return 0;
-		double cosine = dot(n0, n1), sine = dot(e, cross(n0, n1));
+		double cosine = dot(n0, n1);
+		double sine = dot(e, cross(n0, n1));
 		double theta = atan2(sine, cosine);
 		return unwrap_angle(theta, edge->reference_angle);
 	}
