@@ -56,4 +56,7 @@ namespace thrust_wrapper
 	void assign(int* ptr_d, int value, int n);
 	void assign(float* ptr_d, float value, int n);
 	void assign(float4* ptr_d, float4 value, int n);
+
+	// dot(a,b)
+	float dot(int n, const float* a, const float* b);
 }

@@ -22,6 +22,7 @@
 #include <thrust/sort.h>
 #include <thrust/pair.h>
 #include <thrust/extrema.h>
+#include <thrust/inner_product.h>
 #include <map>
 #include <algorithm>
 #include "thrust_wrapper.h"
@@ -420,4 +421,13 @@ namespace thrust_wrapper
 		thrust::fill(thrust::cuda::par(g_allocator), data_begin, data_end, value);
 	}
 
+
+	float dot(int n, const float* a, const float* b)
+	{
+		thrust::device_ptr<float> a_begin((float*)a);
+		thrust::device_ptr<float> a_end((float*)a + n);
+		thrust::device_ptr<float> b_begin((float*)b);
+		thrust::device_ptr<float> b_end((float*)b + n);
+		return thrust::inner_product(thrust::cuda::par(g_allocator), a_begin, a_end, b_begin, 0.f);
+	}
 }

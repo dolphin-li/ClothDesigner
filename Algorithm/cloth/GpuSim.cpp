@@ -160,8 +160,7 @@ namespace ldp
 			const auto* sim = m_arcSimManager->getSimulator();
 			m_simParam.dt = sim->step_time;
 			m_simParam.gravity = convert(sim->gravity);
-			m_simParam.outer_iter = 1;
-			m_simParam.inner_iter = 400;
+			m_simParam.pcg_iter = 100;
 			m_simParam.pcg_tol = 1e-2f;
 			m_simParam.control_mag = 400.f;
 			m_simParam.stitch_ratio = 5.f;
@@ -183,19 +182,15 @@ namespace ldp
 		bindTextures();
 		updateNumeric();
 
-		for (int oiter = 0; oiter < m_simParam.outer_iter; oiter++)
-		{
-			m_x_d.copyTo(m_last_x_d);
-			m_v_d.copyTo(m_last_v_d);
-			cudaSafeCall(cudaMemset(m_dv_d.ptr(), 0, m_dv_d.sizeBytes()));
-			// laplacian damping?
-			// air damping?
-			linearSolve();
-			collisionSolve();
-			userControlSolve();
-			update_x_v_by_dv();
-			m_x_d.download(m_x_h);
-		} // end for oiter
+		m_x_d.copyTo(m_last_x_d);
+		m_v_d.copyTo(m_last_v_d);
+		cudaSafeCall(cudaMemset(m_dv_d.ptr(), 0, m_dv_d.sizeBytes()));
+		// laplacian damping?
+		linearSolve();
+		collisionSolve();
+		userControlSolve();
+		update_x_v_by_dv();
+		m_x_d.download(m_x_h);
 
 		gtime_t t_end = gtime_now();
 		m_fps = 1.f / gtime_seconds(t_start, t_end);
@@ -648,9 +643,13 @@ namespace ldp
 		CachedDeviceArray<float> p(nVal);
 		CachedDeviceArray<float> Ap(nVal);
 		CachedDeviceArray<float> invD(nVal);
+		std::vector<float> tmp1, tmp2;
+		tmp1.resize(nVal);
+		tmp2.resize(nVal);
 
 		// x = 0
 		cudaSafeCall(cudaMemset(m_dv_d.ptr(), 0, m_dv_d.sizeBytes()));
+		cudaSafeCall(cudaMemset(p.data(), 0, p.bytes()));
 
 		// norm b
 		float norm_b = 0.f;
@@ -664,44 +663,34 @@ namespace ldp
 		// r = b-Ax
 		cudaSafeCall(cudaMemcpy(r.data(), m_b_d.ptr(), r.bytes(), cudaMemcpyDeviceToDevice));
 		m_A_d->Mv((float*)m_dv_d.ptr(), r.data(), -1.f, 1.f);
-
+		
 		int iter = 0;
 		float err = 0.f;
 		float rz = 0.f, rz_old = 0.f, pAp = 0.f, alpha = 0.f, beta = 0.f;
-		for (iter = 0; iter<m_simParam.inner_iter; iter++)
+		for (iter = 0; iter<m_simParam.pcg_iter; iter++)
 		{
 			// z = invD * r
 			pcg_vecMul(nVal, invD.data(), r.data(), z.data());
 
 			// rz = r'*z
 			rz_old = rz;
-			cublasSdot_v2(m_cublasHandle, nVal, r.data(), 1, z.data(), 1, &rz);
-	
-			// update p
-			if (iter == 0)
-				z.copyTo(p);	// p = z
-			else
-			{
-				if (rz_old == 0)
-					break;
-				beta = rz / rz_old;
+			rz = pcg_dot(nVal, r.data(), z.data());
+			beta = iter == 0 ? 0.f : rz / rz_old;
+			if (isinf(beta))
+				break;
 
-				// p = z+beta*p
-				cublasSscal_v2(m_cublasHandle, nVal, &beta, p.data(), 1);
-				cublasSaxpy_v2(m_cublasHandle, nVal, &const_one, z.data(), 1, p.data(), 1);
-			}
+			// p = z+beta*p
+			pcg_update_p(nVal, z.data(), p.data(), beta);
 
 			// Ap = A*p, pAp = p'*Ap, alpha = rz / pAp
 			m_A_d->Mv(p.data(), Ap.data());
-			cublasSdot_v2(m_cublasHandle, nVal, p.data(), 1, Ap.data(), 1, &pAp);
-			if (pAp == 0)
-				break;
+			pAp = pcg_dot(nVal, p.data(), Ap.data());
 			alpha = rz / pAp;
+			if (isinf(alpha))
+				break;
 
 			// x = x + alpha*p, r = r - alpha*Ap
-			cublasSaxpy_v2(m_cublasHandle, nVal, &alpha, p.data(), 1, (float*)m_dv_d.ptr(), 1);
-			const float neg_alpha = -alpha;
-			cublasSaxpy_v2(m_cublasHandle, nVal, &neg_alpha, Ap.data(), 1, r.data(), 1);
+			pcg_update_x_r(nVal, p.data(), Ap.data(), (float*)m_dv_d.ptr(), r.data(), alpha);
 
 			// each several iterations, we check the convergence
 			if (iter % 10 == 0)
@@ -719,7 +708,7 @@ namespace ldp
 			}
 		} // end for iter
 
-		printf("pcg, iter %d, err %ef\n", iter, err);
+		//printf("pcg, iter %d, err %ef\n", iter, err);
 
 #else
 		SpMat A;

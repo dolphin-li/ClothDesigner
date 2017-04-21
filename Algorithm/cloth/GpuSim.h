@@ -68,8 +68,7 @@ namespace ldp
 		{
 			float dt = 0.f;				// time step
 			Float3 gravity;
-			int outer_iter = 0;			// iteration of collision detections
-			int inner_iter = 0;			// iteration of Jacobi/CG/Chebshev solvers
+			int pcg_iter = 0;			// iteration of pcg solvers
 			float pcg_tol = 0.f;		// tolerance of pcg method
 			float control_mag = 0.f;	// for user control
 			float stitch_ratio = 0.f;	// for stitching edges length reduction
@@ -281,6 +280,9 @@ namespace ldp
 	public:
 		static void pcg_vecMul(int n, const float* a_d, const float* b_d, 
 			float* c_d, float alpha = 1.f, float beta = 0.f); // c=alpha * a * b + beta
+		static void pcg_update_p(int n, const float* z_d, float* p_d, float beta);
+		static void pcg_update_x_r(int n, const float* p_d, const float* Ap_d, float* x_d, float* r_d, float alpha);
+		float pcg_dot(int n, const float* a_d, const float* b_d);
 		static void vertPair_to_idx(const int* ids_v1, const int* ids_v2, size_t* ids, int nVerts, int nPairs);
 		static void vertPair_from_idx(int* ids_v1, int* ids_v2, const size_t* ids, int nVerts, int nPairs);
 		static void dumpVec(std::string name, const DeviceArray2D<float>& A);
