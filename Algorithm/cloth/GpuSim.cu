@@ -9,6 +9,7 @@
 namespace ldp
 {
 
+//#define USE_ONE_RING_EDGE_FOR_LEVELSET_COLLISION
 //#define DEBUG_DUMP
 #define LDP_DEBUG
 
@@ -365,6 +366,7 @@ namespace ldp
 #pragma region --texture bind
 	texture<float, cudaTextureType1D, cudaReadModeElementType> gt_x;
 	texture<float, cudaTextureType1D, cudaReadModeElementType> gt_x_init;
+	texture<float, cudaTextureType1D, cudaReadModeElementType> gt_v;
 	texture<float2, cudaTextureType1D, cudaReadModeElementType> gt_texCoord_init;
 	texture<int4, cudaTextureType1D, cudaReadModeElementType> gt_faces_idxWorld;
 	texture<int4, cudaTextureType1D, cudaReadModeElementType> gt_faces_idxTex;
@@ -381,6 +383,11 @@ namespace ldp
 	{
 		return ldp::Float3(tex1Dfetch(gt_x_init, i * 3),
 			tex1Dfetch(gt_x_init, i * 3 + 1), tex1Dfetch(gt_x_init, i * 3 + 2));
+	}
+	__device__ __forceinline__ Float3 texRead_v(int i)
+	{
+		return ldp::Float3(tex1Dfetch(gt_v, i * 3),
+			tex1Dfetch(gt_v, i * 3 + 1), tex1Dfetch(gt_v, i * 3 + 2));
 	}
 	__device__ __forceinline__ Float2 texRead_texCoord_init(int i)
 	{
@@ -446,6 +453,10 @@ namespace ldp
 
 		cudaSafeCall(cudaBindTexture(&offset, &gt_x_init, m_x_init_d.ptr(),
 			&desc_float, m_x_init_d.size()*sizeof(float3)));
+		CHECK_ZERO(offset);
+
+		cudaSafeCall(cudaBindTexture(&offset, &gt_v, m_v_d.ptr(),
+			&desc_float, m_v_d.size()*sizeof(float3)));
 		CHECK_ZERO(offset);
 
 		cudaSafeCall(cudaBindTexture(&offset, &gt_texCoord_init, m_texCoord_init_d.ptr(),
@@ -800,15 +811,69 @@ namespace ldp
 
 	__global__ void add_LevelSet_constrain_kernel(const NodeCon con,
 		const cudaTextureObject_t A_rowTex, const cudaTextureObject_t A_colTex,
-		Mat3f* A_values, Float3* b_values, const Float3* positions, const Float3* velocity,
-		const float dt, const int nVerts)
+		Mat3f* A_values, Float3* b_values, const float dt, const int nVerts)
 	{
 		int iVert = threadIdx.x + blockIdx.x * blockDim.x;
 		if (iVert >= nVerts)
 			return;
+		const int rb = fetch_int(A_rowTex, iVert);
+		const int re = fetch_int(A_rowTex, iVert + 1);
 
-		const Float3 x = positions[iVert];
-		const Float3 v = velocity[iVert];
+#ifdef USE_ONE_RING_EDGE_FOR_LEVELSET_COLLISION
+		enum{SAMPLE_N = 10};
+		float sumW = 0.f;
+		Mat3f thisA = 0.f;
+		Float3 thisb = 0.f;
+		const Float3 x = texRead_x(iVert);
+		const Float3 v = texRead_v(iVert);
+		GpuSim::NodeMaterailSpaceData xData = texRead_nodeMaterialData(iVert);
+		for(int pos = rb; pos < re; pos++)
+		{
+			int iVert1 = fetch_int(A_colTex, pos);
+			const Float3 x1 = texRead_x(iVert1);
+			const Float3 v1 = texRead_v(iVert1);
+			GpuSim::NodeMaterailSpaceData xData1 = texRead_nodeMaterialData(iVert1);
+
+			float minValue = FLT_MAX;
+			float minW = 0.f;
+			for (int k = 0; k < SAMPLE_N; k++)
+			{
+				const float w = 1.f - float(k) / (SAMPLE_N - 1);
+				float val = con.value(w*x + (1 - w)*x1);
+				if (val < minValue)
+				{
+					minValue = val;
+					minW = w;
+				}
+			}
+			if (con.violation(minValue) == 0.f) continue;
+
+			const Float3 xm = minW*x + (1 - minW)*x1;
+			const Float3 vm = minW*v + (1 - minW)*v1;
+			const float area = minW*xData.area + (1 - minW)*xData1.area;
+			const float mass = minW*xData.mass + (1 - minW)*xData1.mass;
+			const float g = con.energy_grad(minValue, area);
+			const float h = con.energy_hess(minValue, area);
+			const Float3 grad = con.gradient(xm);
+			const float v_dot_grad = vm.dot(grad);
+
+			Mat3f fric_jac;
+			Float3 fric_force = con.friction(xm, vm, mass, area, dt, fric_jac);
+
+			minW *= (x1 - x).length();
+			thisA += minW*dt*dt*h*outer(grad, grad) - minW*dt * fric_jac;
+			thisb += -minW*dt*(g + dt*h*v_dot_grad)*grad + minW*dt * fric_force;
+			sumW += minW;
+		} // end for pos
+
+		if(sumW != 0.f)
+		{
+			thisA *= 1.f / sumW;
+			thisb *= 1.f / sumW;
+		}
+#else
+		const Float3 x = texRead_x(iVert);
+		const Float3 v = texRead_v(iVert);
 		GpuSim::NodeMaterailSpaceData xData = texRead_nodeMaterialData(iVert);
 		const float value = con.value(x);
 		const float g = con.energy_grad(value, xData.area);
@@ -821,10 +886,9 @@ namespace ldp
 
 		const Mat3f thisA = dt*dt*h*outer(grad, grad) - dt * fric_jac;
 		const Float3 thisb = -dt*(g + dt*h*v_dot_grad)*grad + dt * fric_force;
+#endif
 
 		// write into A
-		const int rb = fetch_int(A_rowTex, iVert);
-		const int re = fetch_int(A_rowTex, iVert + 1);
 		for (int pos = rb; pos < re; pos++)
 		{
 			const int col = fetch_int(A_colTex, pos);
@@ -880,7 +944,7 @@ namespace ldp
 		con.friction_stiffness = m_simParam.friction_stiffness;
 		add_LevelSet_constrain_kernel << <divUp(nVerts, CTA_SIZE), CTA_SIZE >> >(
 			con, m_A_d->bsrRowPtrTexture(), m_A_d->bsrColIdxTexture(), (Mat3f*)m_A_d->value(), 
-			m_b_d.ptr(), m_x_d.ptr(), m_v_d.ptr(), m_simParam.dt, nVerts
+			m_b_d.ptr(), m_simParam.dt, nVerts
 			);
 		cudaSafeCall(cudaGetLastError());
 	}

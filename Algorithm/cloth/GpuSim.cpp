@@ -125,7 +125,7 @@ namespace ldp
 
 		handle_stiffness = 1e3f;
 		collision_stiffness = 1e6f;
-		friction_stiffness = 1e0f;
+		friction_stiffness = 1;
 		repulsion_thickness = 5e-3f;
 		projection_thickness = 1e-4f;
 	}

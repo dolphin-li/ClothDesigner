@@ -940,6 +940,9 @@
     <ClCompile Include="Algorithm\cudpp\device_memory.cpp">
       <Filter>algorithm\cudpp</Filter>
     </ClCompile>
+    <ClCompile Include="Algorithm\cudpp\GpuKdTree.cpp">
+      <Filter>algorithm\cudpp</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">
@@ -1583,6 +1586,9 @@
     <ClInclude Include="Algorithm\cudpp\Cuda2DArray.h">
       <Filter>algorithm\cudpp</Filter>
     </ClInclude>
+    <ClInclude Include="Algorithm\cudpp\GpuKdTree.h">
+      <Filter>algorithm\cudpp</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="qdarkstyle\rc\up_arrow_disabled.png">
@@ -1752,6 +1758,9 @@
       <Filter>algorithm\cudpp</Filter>
     </CudaCompile>
     <CudaCompile Include="Algorithm\cudpp\Cuda2DArray.cu">
+      <Filter>algorithm\cudpp</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Algorithm\cudpp\GpuKdTree.cu">
       <Filter>algorithm\cudpp</Filter>
     </CudaCompile>
   </ItemGroup>

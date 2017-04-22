@@ -248,6 +248,7 @@
     <ClCompile Include="Algorithm\cudpp\CudaBsrMatrix.cpp" />
     <ClCompile Include="Algorithm\cudpp\CudaDiagBlockMatrix.cpp" />
     <ClCompile Include="Algorithm\cudpp\device_memory.cpp" />
+    <ClCompile Include="Algorithm\cudpp\GpuKdTree.cpp" />
     <ClCompile Include="Algorithm\cudpp\moderngpu\src\mgpuutil.cpp" />
     <ClCompile Include="Algorithm\cudpp\moderngpu\src\mmio.cpp" />
     <ClCompile Include="Algorithm\cudpp\moderngpu\src\sparsematrix.cpp" />
@@ -497,6 +498,7 @@
     <CudaCompile Include="Algorithm\cudpp\CudaBsrMatrix.cu" />
     <CudaCompile Include="Algorithm\cudpp\CudaDiagBlockMatrix.cu" />
     <CudaCompile Include="Algorithm\cudpp\GpuCholesky.cu" />
+    <CudaCompile Include="Algorithm\cudpp\GpuKdTree.cu" />
     <CudaCompile Include="Algorithm\cudpp\ModerGpuWrapper.cu" />
     <CudaCompile Include="Algorithm\cudpp\moderngpu\src\mgpucontext.cu" />
     <CudaCompile Include="Algorithm\cudpp\thrust_wrapper.cu" />
@@ -641,6 +643,7 @@
     <ClInclude Include="Algorithm\cudpp\device_memory.h" />
     <ClInclude Include="Algorithm\cudpp\device_utils.h" />
     <ClInclude Include="Algorithm\cudpp\GpuCholeSky.h" />
+    <ClInclude Include="Algorithm\cudpp\GpuKdTree.h" />
     <ClInclude Include="Algorithm\cudpp\helper_math.h" />
     <ClInclude Include="Algorithm\cudpp\kernel_containers.h" />
     <ClInclude Include="Algorithm\cudpp\ModerGpuWrapper.h" />
