@@ -376,7 +376,8 @@ namespace arcsim
 				sim->end_time, threadData->m_gpuSim->getFps(), threadData->m_gpuSim->getSolverInfo().c_str());
 #else
 			advance_step(*sim);
-			sprintf_s(info, "%.3f/%.1f, pr=%.3f, ps=%.3f, co=%.3f, sl=%.3f, pl=%.3f",
+			sprintf_s((char*)info.c_str(), info.size(), 
+				"%.3f/%.1f, pr=%.3f, ps=%.3f, co=%.3f, sl=%.3f, pl=%.3f",
 				sim->time, sim->end_time,
 				sim->timers[Simulation::Proximity].last,
 				sim->timers[Simulation::Physics].last,

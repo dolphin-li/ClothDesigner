@@ -79,6 +79,7 @@ namespace ldp
 			float bend_mult = 0.f;
 			float handle_stiffness = 0.f;
 			float collision_stiffness = 0.f;
+			float friction_stiffness = 0.f;
 			float repulsion_thickness = 0.f;
 			float projection_thickness = 0.f;
 
@@ -128,6 +129,7 @@ namespace ldp
 		void userControlSolve();
 
 		void update_x_v_by_dv();
+		void project_outside();
 	protected:
 		void setup_sparse_structure_from_cpu();
 		void bindTextures();

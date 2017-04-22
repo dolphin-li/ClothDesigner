@@ -481,7 +481,7 @@ namespace ldp
 #pragma region --constraints
 	struct NodeCon
 	{
-		float mu = 0.f; // friction
+		float friction_stiffness = 0.f;
 		float collision_stiffness = 0.f;
 		float repulsion_thickness = 0.f;
 		float projection_thickness = 0.f;
@@ -492,7 +492,7 @@ namespace ldp
 		__device__ inline float value(Float3 p)const
 		{
 			const Float3 t = (p - lvStart) / lvStep;
-			return Level_Set_Depth(lvTex, t[0], t[1], t[2], repulsion_thickness*lvStep);
+			return Level_Set_Depth(lvTex, t[0], t[1], t[2], repulsion_thickness/lvStep)*lvStep;
 		}
 		__device__ inline Float3 gradient(Float3 p)const
 		{
@@ -527,8 +527,8 @@ namespace ldp
 			const Float3 n = -gradient(p);
 			const Mat3f T = Mat3f().eye() - outer(n, n);
 			const Float3 Tv = T*velocity;
-			const float f_by_v = min(mu*fn / Tv.length(), mass / dt);		
-			jac = f_by_v*T;
+			const float f_by_v = velocity.length() == 0.f ? 0.f : min(friction_stiffness*fn / Tv.length(), mass / dt);
+			jac = -f_by_v*T;
 			return jac*velocity;
 		}
 	};
@@ -610,7 +610,7 @@ namespace ldp
 
 	__device__ void computeStretchForces(int iFace, int A_start, Mat3f* beforeScan_A,
 		int b_start, Float3* beforeScan_b, const Float3* velocity,
-		const cudaTextureObject_t* t_stretchSamples, float dt)
+		const cudaTextureObject_t* t_stretchSamples, float dt, float stretchMult)
 	{
 		const ldp::Int3 face_idxWorld = texRead_faces_idxWorld(iFace);
 		const ldp::Int3 face_idxTex = texRead_faces_idxTex(iFace);
@@ -623,7 +623,7 @@ namespace ldp
 		// arcsim::stretching_force()---------------------------
 		const Mat32f F = derivative(x, t);
 		const Mat2f G = (F.trans()*F - Mat2f().eye()) * 0.5f;
-		const Float4 k = stretching_stiffness(G, t_stretchSamples[iFace]);
+		const Float4 k = stretching_stiffness(G, t_stretchSamples[iFace]) * stretchMult;
 		const Mat23f D = derivative(t);
 		const Mat39f Du = kronecker_eye_row(D, 0);
 		const Mat39f Dv = kronecker_eye_row(D, 1);
@@ -663,7 +663,7 @@ namespace ldp
 
 	__device__ void computeBendForces(int iEdge, const GpuSim::EdgeData* edgeDatas,
 		int A_start, Mat3f* beforeScan_A, int b_start, Float3* beforeScan_b, 
-		const Float3* velocity, const cudaTextureObject_t* t_bendDatas, float dt)
+		const Float3* velocity, const cudaTextureObject_t* t_bendDatas, float dt, float bendMult)
 	{
 		const GpuSim::EdgeData edgeData = edgeDatas[iEdge];
 		if (edgeData.faceIdx[0] < 0 || edgeData.faceIdx[1] < 0)
@@ -682,7 +682,7 @@ namespace ldp
 		const float ke = min(
 			bending_stiffness(edgeData, dihe_theta, area, t_bendDatas, 0),
 			bending_stiffness(edgeData, dihe_theta, area, t_bendDatas, 1)
-			);
+			) * bendMult;
 		const float len = 0.5f * (sqrt(edgeData.length_sqr[0]) + sqrt(edgeData.length_sqr[1]));
 		const float shape = ldp::sqr(len) / (2.f * area);
 		const FloatC vs = make_Float12(velocity[edgeData.edge_idxWorld[0]], velocity[edgeData.edge_idxWorld[1]], 
@@ -708,7 +708,7 @@ namespace ldp
 	__global__ void computeNumeric_kernel(const GpuSim::EdgeData* edgeData, 
 		const cudaTextureObject_t* t_stretchSamples, const cudaTextureObject_t* t_bendDatas,
 		const int* A_starts, Mat3f* beforeScan_A, const int* b_starts, Float3* beforeScan_b,
-		const Float3* velocity, int nFaces, int nEdges, float dt)
+		const Float3* velocity, int nFaces, int nEdges, float dt, float stretchMult, float bendMult)
 	{
 		int thread_id = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -719,7 +719,7 @@ namespace ldp
 			const int b_start = b_starts[thread_id];
 			const ldp::Int3 face_idxWorld = texRead_faces_idxWorld(thread_id);
 			computeStretchForces(thread_id, A_start, beforeScan_A, 
-				b_start, beforeScan_b, velocity, t_stretchSamples, dt);
+				b_start, beforeScan_b, velocity, t_stretchSamples, dt, stretchMult);
 		} // end if nFaces_numAb
 		// compute bending forces here
 		else if (thread_id < nFaces + nEdges)
@@ -727,7 +727,7 @@ namespace ldp
 			const int A_start = A_starts[thread_id];
 			const int b_start = b_starts[thread_id];
 			computeBendForces(thread_id - nFaces, edgeData, A_start, beforeScan_A,
-				b_start, beforeScan_b, velocity, t_bendDatas, dt);
+				b_start, beforeScan_b, velocity, t_bendDatas, dt, bendMult);
 		}
 	}
 
@@ -816,26 +816,11 @@ namespace ldp
 		const Float3 grad = con.gradient(x);
 		const float v_dot_grad = v.dot(grad);
 
-		const Mat3f thisA = dt*dt*h*outer(grad, grad);
-		const Float3 thisb = -dt*(g + dt*h*v_dot_grad)*grad;
+		Mat3f fric_jac;
+		Float3 fric_force = con.friction(x, v, xData.mass, xData.area, dt, fric_jac);
 
-#ifdef LDP_DEBUG1
-		if(iVert == 2)
-		{
-			printVal(iVert);
-			printVal(x);
-			printVal(v);
-			printVal(xData.area);
-			printVal(value);
-			printVal(g);
-			printVal(h);
-			printVal(grad);
-			printVal(v_dot_grad);
-			printVal(thisA);
-			printVal(thisb);
-		}
-#endif
-		return;
+		const Mat3f thisA = dt*dt*h*outer(grad, grad) - dt * fric_jac;
+		const Float3 thisb = -dt*(g + dt*h*v_dot_grad)*grad + dt * fric_force;
 
 		// write into A
 		const int rb = fetch_int(A_rowTex, iVert);
@@ -862,10 +847,8 @@ namespace ldp
 		const int nEdges = m_edgeData_d.size();
 		computeNumeric_kernel << <divUp(nFaces + nEdges, CTA_SIZE), CTA_SIZE >> >(
 			m_edgeData_d.ptr(), m_faces_texStretch_d.ptr(), m_faces_texBend_d.ptr(),
-			m_A_Ids_start_d.ptr(), m_beforScan_A.ptr(),
-			m_b_Ids_start_d.ptr(), m_beforScan_b.ptr(),
-			m_v_d.ptr(),
-			nFaces, nEdges, m_simParam.dt);
+			m_A_Ids_start_d.ptr(), m_beforScan_A.ptr(), m_b_Ids_start_d.ptr(), m_beforScan_b.ptr(),
+			m_v_d.ptr(), nFaces, nEdges, m_simParam.dt, m_simParam.strecth_mult, m_simParam.bend_mult);
 		cudaSafeCall(cudaGetLastError());
 
 		// scanning into the sparse matrix
@@ -894,6 +877,7 @@ namespace ldp
 		con.projection_thickness = m_simParam.projection_thickness;
 		con.repulsion_thickness = m_simParam.repulsion_thickness;
 		con.collision_stiffness = m_simParam.collision_stiffness;
+		con.friction_stiffness = m_simParam.friction_stiffness;
 		add_LevelSet_constrain_kernel << <divUp(nVerts, CTA_SIZE), CTA_SIZE >> >(
 			con, m_A_d->bsrRowPtrTexture(), m_A_d->bsrColIdxTexture(), (Mat3f*)m_A_d->value(), 
 			m_b_d.ptr(), m_x_d.ptr(), m_v_d.ptr(), m_simParam.dt, nVerts
@@ -903,9 +887,38 @@ namespace ldp
 #pragma endregion
 
 #pragma region --collision solve
+	__global__ void project_outside_kernel(const NodeCon con,
+		Float3* positions, const int nVerts)
+	{
+		int iVert = threadIdx.x + blockIdx.x * blockDim.x;
+		if (iVert >= nVerts)
+			return;
+
+		Float3 x = positions[iVert];
+		x += con.project(x);
+		positions[iVert] = x;
+	}
+
+
+	void GpuSim::project_outside()
+	{
+		NodeCon con;
+		con.lvTex = m_bodyLvSet_d.getCudaTexture();
+		con.lvStep = m_bodyLvSet_h->getStep();
+		con.lvStart = m_bodyLvSet_h->getStartPos();
+		con.projection_thickness = m_simParam.projection_thickness;
+		con.repulsion_thickness = m_simParam.repulsion_thickness;
+		con.collision_stiffness = m_simParam.collision_stiffness;
+		con.friction_stiffness = m_simParam.friction_stiffness;
+		project_outside_kernel << <divUp(m_x_d.size(), CTA_SIZE), CTA_SIZE >> >(
+			con, m_x_d.ptr(), m_x_d.size()
+			);
+		cudaSafeCall(cudaGetLastError());
+	}
+
 	void GpuSim::collisionSolve()
 	{
-
+		project_outside();
 	}
 #pragma endregion
 
