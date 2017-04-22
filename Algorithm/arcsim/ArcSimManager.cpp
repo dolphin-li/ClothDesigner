@@ -156,15 +156,15 @@ namespace arcsim
 
 #ifdef LDP_DEBUG_USE_GPUSIM
 		m_gpuSim->init(this);
-		std::vector<Constraint*> cons;
-		for (int c = 0; c < m_sim->cloths.size(); c++)
-		{
-			int nn = m_sim->cloths[c].mesh.nodes.size();
-			std::vector<Vec3> fext(nn, Vec3(0));
-			std::vector<Mat3x3> Jext(nn, Mat3x3(0));
-			add_external_forces(m_sim->cloths[c], m_sim->gravity, m_sim->wind, fext, Jext);
-			implicit_update(m_sim->cloths[c], fext, Jext, cons, m_sim->step_time, false);
-		}
+		//std::vector<Constraint*> cons;
+		//for (int c = 0; c < m_sim->cloths.size(); c++)
+		//{
+		//	int nn = m_sim->cloths[c].mesh.nodes.size();
+		//	std::vector<Vec3> fext(nn, Vec3(0));
+		//	std::vector<Mat3x3> Jext(nn, Mat3x3(0));
+		//	add_external_forces(m_sim->cloths[c], m_sim->gravity, m_sim->wind, fext, Jext);
+		//	implicit_update(m_sim->cloths[c], fext, Jext, cons, m_sim->step_time, false);
+		//}
 #endif
 
 
