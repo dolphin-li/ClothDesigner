@@ -5,6 +5,7 @@
 #include "cudpp\CachedDeviceBuffer.h"
 #include "LEVEL_SET_COLLISION.h"
 #include <math.h>
+#include "LevelSet3D.h"
 namespace ldp
 {
 
@@ -480,37 +481,55 @@ namespace ldp
 #pragma region --constraints
 	struct NodeCon
 	{
-		cudaTextureObject_t levelSetTex = 0;
-		int node_id = 0;
 		float mu = 0.f; // friction
-		float stiff = 0.f;
-		__device__ inline float value()
+		float collision_stiffness = 0.f;
+		float repulsion_thickness = 0.f;
+		float projection_thickness = 0.f;
+		float lvStep = 0.f;
+		Float3 lvStart = 0.f;
+		cudaTextureObject_t lvTex = 0;
+		__device__ inline float violation(const float value)const { return max(-value, 0.f); }
+		__device__ inline float value(Float3 p)const
 		{
-
+			const Float3 t = (p - lvStart) / lvStep;
+			return Level_Set_Depth(lvTex, t[0], t[1], t[2], repulsion_thickness*lvStep);
 		}
-		__device__ inline Float3 gradient()
+		__device__ inline Float3 gradient(Float3 p)const
 		{
-
+			const Float3 t = (p - lvStart) / lvStep;
+			Float3 g;
+			Level_Set_Gradient(lvTex, t[0], t[1], t[2], g[0], g[1], g[2]);
+			return g;
 		}
-		__device__ inline Mat3f project()
+		__device__ inline Float3 project(const Float3 p)const
 		{
-
+			const float d = value(p) + repulsion_thickness - projection_thickness;
+			return gradient(p) * violation(d);
 		}
-		__device__ inline float energy(float value)
+		__device__ inline float energy(const float value, const float area)const
 		{
-
+			const float v = violation(value);
+			return area * collision_stiffness*v*v*v / repulsion_thickness / 6.f;
 		}
-		__device__ inline float energy_grad(float value)
+		__device__ inline float energy_grad(const float value, const float area)const
 		{
-
+			const float v = violation(value);
+			return -area * collision_stiffness*v*v / repulsion_thickness / 2.f;
 		}
-		__device__ inline float energy_hess(float value)
+		__device__ inline float energy_hess(const float value, const float area)const
 		{
-
+			return area * collision_stiffness*violation(value) / repulsion_thickness;
 		}
-		__device__ inline Float3 friction(double dt, Mat3f &jac)
+		__device__ inline Float3 friction(const Float3 p, const Float3 velocity, 
+			const float mass, const float area, const float dt, Mat3f &jac)const
 		{
-
+			const float fn = abs(energy_grad(value(p), area));
+			const Float3 n = -gradient(p);
+			const Mat3f T = Mat3f().eye() - outer(n, n);
+			const Float3 Tv = T*velocity;
+			const float f_by_v = min(mu*fn / Tv.length(), mass / dt);		
+			jac = f_by_v*T;
+			return jac*velocity;
 		}
 	};
 #pragma endregion
@@ -539,7 +558,6 @@ namespace ldp
 	{
 		return texRead_faceMaterialData(iFace).area;
 	}
-
 
 	__device__ __forceinline__ Float4 stretching_stiffness(const Mat2f &G, cudaTextureObject_t samples)
 	{
@@ -622,28 +640,6 @@ namespace ldp
 			+ outer(fvv, fuu) + max(G(1, 1), 0.f)*Du.trans()*Du)
 			+ 2.*k[3] * (outer(fuv, fuv));
 
-#ifdef LDP_DEBUG1
-		if (iFace == 0)
-		{
-			printVal(x[0]);
-			printVal(x[1]);
-			printVal(x[2]);
-			printVal(t[0]);
-			printVal(t[1]);
-			printVal(t[2]);
-			printVal(D);
-			printVal(F);
-			printVal(k);
-			printVal(G);
-			printVal(fuu);
-			printVal(fvv);
-			printVal(fuv);
-			printVal(grad_e);
-			printVal(-area * dt * grad_e);
-			//printVal(hess_e - hess_e.trans());
-			printVal((dt*dt*area)*hess_e);
-		}
-#endif
 		const Float9 vs = make_Float9(velocity[face_idxWorld[0]], 
 			velocity[face_idxWorld[1]], velocity[face_idxWorld[2]]);
 		hess_e = (dt*dt*area) * hess_e;
@@ -707,29 +703,6 @@ namespace ldp
 			int pos = texRead_b_order(b_start + row);
 			beforeScan_b[pos] = get_subFloat3(F, row);
 		} // end for row
-
-#ifdef LDP_DEBUG1
-		if (iEdge == 1)
-		{
-			printVal(ex[0]);
-			printVal(ex[1]);
-			printVal(ex[2]);
-			printVal(ex[3]);
-			printVal(dihe_theta);
-			printVal(edgeData.dihedral_ideal);
-			printVal(area);
-			printVal(h0);
-			printVal(h1);
-			printVal(n0);
-			printVal(n1);
-			printVal(w_f0);
-			printVal(w_f1);
-			printVal(dtheta);
-			printVal(ke);
-			printVal(shape);
-			printVal(F);
-		}
-#endif
 	}
 
 	__global__ void computeNumeric_kernel(const GpuSim::EdgeData* edgeData, 
@@ -742,9 +715,6 @@ namespace ldp
 		// compute stretching forces here
 		if (thread_id < nFaces)
 		{
-#ifdef LDP_DEBUG1
-			return;
-#endif
 			const int A_start = A_starts[thread_id];
 			const int b_start = b_starts[thread_id];
 			const ldp::Int3 face_idxWorld = texRead_faces_idxWorld(thread_id);
@@ -754,9 +724,6 @@ namespace ldp
 		// compute bending forces here
 		else if (thread_id < nFaces + nEdges)
 		{
-#ifdef LDP_DEBUG1
-			return;
-#endif
 			const int A_start = A_starts[thread_id];
 			const int b_start = b_starts[thread_id];
 			computeBendForces(thread_id - nFaces, edgeData, A_start, beforeScan_A,
@@ -827,19 +794,49 @@ namespace ldp
 			sum += dt * faceArea(fid)*abs(vn)*vn / 3.f * faceNormal(fid);
 		} // end for fid
 
-		// write into A
+		// write into b
 		b_values[thread_id] = sum;
+	}
+
+	__global__ void add_LevelSet_constrain_kernel(const NodeCon con, 
+		const cudaTextureObject_t A_rowTex, const cudaTextureObject_t A_colTex, 
+		Mat3f* A_values, Float3* b_values, const Float3* positions, const Float3* velocity, 
+		const float dt, const int nVerts)
+	{
+		int iVert = threadIdx.x + blockIdx.x * blockDim.x;
+		if (iVert >= nVerts)
+			return;
+
+		const Float3 x = positions[iVert];
+		const Float3 v = velocity[iVert];
+		GpuSim::NodeMaterailSpaceData xData = texRead_nodeMaterialData(iVert);
+		const float value = con.value(x);
+		const float g = con.energy_grad(value, xData.area);
+		const float h = con.energy_hess(value, xData.area);
+		const Float3 grad = con.gradient(x);
+		const float v_dot_grad = v.dot(grad);
+
+		const Mat3f thisA = dt*dt*h*outer(grad, grad);
+		const Float3 thisb = -dt*(g + dt*h*v_dot_grad)*grad;
+
+		// write into A
+		const int rb = fetch_int(A_rowTex, iVert);
+		const int re = fetch_int(A_rowTex, iVert + 1);
+		for (int pos = rb; pos < re; pos++)
+		{
+			const int col = fetch_int(A_colTex, pos);
+			if (iVert == col)
+				A_values[pos] += thisA.trans();
+		}
+
+		// write into b
+		b_values[iVert] += thisb;
 	}
 
 	void GpuSim::updateNumeric()
 	{
 		cudaSafeCall(cudaMemset(m_beforScan_A.ptr(), 0, m_beforScan_A.sizeBytes()));
 		cudaSafeCall(cudaMemset(m_beforScan_b.ptr(), 0, m_beforScan_b.sizeBytes()));
-
-#ifdef LDP_DEBUG1
-		std::vector<Float3> tmpv(m_v_d.size(), Float3(1,2,3));
-		m_v_d.upload(tmpv);
-#endif
 
 		// ldp hack here: make the gravity not important when we are stitching.
 		const Float3 gravity = m_simParam.gravity;// *powf(1 - std::max(0.f, std::min(1.f, m_curStitchRatio)), 2);
@@ -870,10 +867,20 @@ namespace ldp
 			m_v_d.ptr(), m_vert_FaceList_d->bsrRowPtrTexture(), m_vert_FaceList_d->bsrColIdxTexture()
 			);
 		cudaSafeCall(cudaGetLastError());
-#ifdef DEBUG_DUMP
-		m_A_d->dump("D:/tmp/m_A.txt");
-		dumpVec("D:/tmp/m_b.txt", m_b_d);
-#endif
+
+		// add body-cloth force term using level set
+		NodeCon con;
+		con.lvTex = m_bodyLvSet_d.getCudaTexture();
+		con.lvStep = m_bodyLvSet_h->getStep();
+		con.lvStart = m_bodyLvSet_h->getStartPos();
+		con.projection_thickness = m_simParam.projection_thickness;
+		con.repulsion_thickness = m_simParam.repulsion_thickness;
+		con.collision_stiffness = m_simParam.collision_stiffness;
+		add_LevelSet_constrain_kernel << <divUp(nVerts, CTA_SIZE), CTA_SIZE >> >(
+			con, m_A_d->bsrRowPtrTexture(), m_A_d->bsrColIdxTexture(), (Mat3f*)m_A_d->value(), 
+			m_b_d.ptr(), m_x_d.ptr(), m_v_d.ptr(), m_simParam.dt, nVerts
+			);
+		cudaSafeCall(cudaGetLastError());
 	}
 #pragma endregion
 
@@ -907,21 +914,6 @@ namespace ldp
 		update_x_v_by_dv_kernel << <divUp(m_x_d.size(), CTA_SIZE), CTA_SIZE >> >
 			(m_dv_d.ptr(), m_v_d.ptr(), m_x_d.ptr(), m_simParam.dt, m_dv_d.size());
 		cudaSafeCall(cudaGetLastError());
-
-#ifdef LDP_DEBUG1
-		std::vector<ldp::Float3> v, dv;
-		m_v_d.download(v);
-		m_dv_d.download(dv);
-
-		Float3 sum_v = 0.f, sum_dv = 0.f;
-		for (const auto& vv : v)
-			sum_v += vv;
-		for (const auto& vv : dv)
-			sum_dv += vv;
-		sum_v /= v.size();
-		sum_dv /= v.size();
-		printf("n0: v=%ef %ef, dv=%ef %ef\n", sum_v[0], sum_v[2], sum_dv[0], sum_dv[2]);
-#endif
 	}
 #pragma endregion
 

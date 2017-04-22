@@ -622,26 +622,14 @@ namespace arcsim
 		add_friction_forces(cloth, cons, A, b, dt);
 
 		vector<Vec3> dv = taucs_linear_solve(A, b);
-#ifdef LDP_DEBUG1
-		Vec3 sum_dv(0), sum_v(0);
-#endif
 		for (int n = 0; n < mesh.nodes.size(); n++)
 		{
 			Node *node = mesh.nodes[n];
 			node->v += dv[n];
-#ifdef LDP_DEBUG1
-			sum_dv += dv[n];
-			sum_v += node->v;
-#endif
 			if (update_positions)
 				node->x += node->v*dt;
 			node->acceleration = dv[n] / dt;
 		}
-#ifdef LDP_DEBUG1
-		sum_v /= (double)mesh.nodes.size();
-		sum_dv /= (double)mesh.nodes.size();
-		printf("n0: v=%ef %ef, dv=%ef %ef\n", sum_v[0], sum_v[2], sum_dv[0], sum_dv[2]);
-#endif
 		project_outside(cloth.mesh, cons);
 		compute_ws_data(mesh);
 	}

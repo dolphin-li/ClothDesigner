@@ -156,7 +156,7 @@ namespace arcsim
 
 		// collect constraints
 		vector<Constraint*> cons;// = get_constraints(sim, true);
-		if (sim.enabled[collision])
+		if (1)//sim.enabled[collision])
 			cons = get_constraints(sim, true);
 
 		// physical simulation

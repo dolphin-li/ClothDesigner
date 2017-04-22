@@ -124,8 +124,8 @@ namespace ldp
 		pcg_tol = 1e-6f;
 
 		handle_stiffness = 1e3f;
-		collision_stiffness = 1e5f;
-		repulsion_thickness = 1e-3f;
+		collision_stiffness = 1e6f;
+		repulsion_thickness = 5e-3f;
 		projection_thickness = 1e-4f;
 	}
 
