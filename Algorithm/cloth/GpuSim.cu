@@ -1020,19 +1020,27 @@ namespace ldp
 		if (i >= n)	return;
 		c_d[i] = alpha * a_d[i] * b_d[i] + beta;
 	}
-	__global__ void pcg_update_p_kernel(int n, const float* z_d, float* p_d, float beta)
+	__global__ void pcg_update_p_kernel(int n, const float* z_d, float* p_d, float* pcg_orz_rz_pAp)
 	{
 		const int i = blockDim.x * blockIdx.x + threadIdx.x;
 		if (i >= n)	return;
+		const float orz = pcg_orz_rz_pAp[0];
+		const float rz = pcg_orz_rz_pAp[1];
+		const float beta = (orz==0.f) ? 0.f : rz/orz;
 		p_d[i] = beta * p_d[i] + z_d[i];
 	}
 	__global__ void pcg_update_x_r_kernel(int n, const float* p_d, const float* Ap_d, 
-		float* x_d, float* r_d, float alpha)
+		float* x_d, float* r_d, float* pcg_orz_rz_pAp)
 	{
 		const int i = blockDim.x * blockIdx.x + threadIdx.x;
 		if (i >= n)	return;
+		const float pAp = pcg_orz_rz_pAp[2];
+		const float rz = pcg_orz_rz_pAp[1];
+		const float alpha = (pAp==0.f) ? 0.f : rz / pAp;
 		x_d[i] += alpha * p_d[i];
 		r_d[i] -= alpha * Ap_d[i];
+		if (i == 0)
+			pcg_orz_rz_pAp[0] = rz;
 	}
 
 	__global__ void pcg_extractInvDiagBlock_kernel(int n, Mat3f* diag, 
@@ -1058,23 +1066,29 @@ namespace ldp
 		cudaSafeCall(cudaGetLastError());
 	}
 
-	void GpuSim::pcg_update_p(int n, const float* z_d, float* p_d, float beta)const
+	void GpuSim::pcg_update_p(int n, const float* z_d, float* p_d, float* pcg_orz_rz_pAp)const
 	{
-		pcg_update_p_kernel << <divUp(n, CTA_SIZE), CTA_SIZE >> >(n, z_d, p_d, beta);
+		pcg_update_p_kernel << <divUp(n, CTA_SIZE), CTA_SIZE >> >(n, z_d, p_d, pcg_orz_rz_pAp);
 		cudaSafeCall(cudaGetLastError());
 	}
 	
-	void GpuSim::pcg_update_x_r(int n, const float* p_d, const float* Ap_d, float* x_d, float* r_d, float alpha)const
+	void GpuSim::pcg_update_x_r(int n, const float* p_d, const float* Ap_d, 
+		float* x_d, float* r_d, float* pcg_orz_rz_pAp)const
 	{
-		pcg_update_x_r_kernel << <divUp(n, CTA_SIZE), CTA_SIZE >> >(n, p_d, Ap_d, x_d, r_d, alpha);
+		pcg_update_x_r_kernel << <divUp(n, CTA_SIZE), CTA_SIZE >> >(n, p_d, Ap_d, x_d, r_d, pcg_orz_rz_pAp);
 		cudaSafeCall(cudaGetLastError());
 	}
 
-	float GpuSim::pcg_dot(int n, const float* a_d, const float* b_d)const
+	void GpuSim::pcg_dot_rz(int n, const float* a_d, const float* b_d, float* pcg_orz_rz_pAp)const
 	{
-		float s = 0.f;
-		cublasSdot_v2(m_cublasHandle, n, a_d, 1, b_d, 1, &s);
-		return s;
+		cublasSetPointerMode_v2(m_cublasHandle, CUBLAS_POINTER_MODE_DEVICE);
+		cublasSdot_v2(m_cublasHandle, n, a_d, 1, b_d, 1, pcg_orz_rz_pAp + 1);
+	}
+
+	void GpuSim::pcg_dot_pAp(int n, const float* a_d, const float* b_d, float* pcg_orz_rz_pAp)const
+	{
+		cublasSetPointerMode_v2(m_cublasHandle, CUBLAS_POINTER_MODE_DEVICE);
+		cublasSdot_v2(m_cublasHandle, n, a_d, 1, b_d, 1, pcg_orz_rz_pAp + 2);
 	}
 
 	void GpuSim::pcg_extractInvDiagBlock(const CudaBsrMatrix& A, CudaDiagBlockMatrix& invD)

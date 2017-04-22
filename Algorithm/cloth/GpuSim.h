@@ -290,9 +290,11 @@ namespace ldp
 	public:
 		void pcg_vecMul(int n, const float* a_d, const float* b_d, 
 			float* c_d, float alpha = 1.f, float beta = 0.f)const; // c=alpha * a * b + beta
-		void pcg_update_p(int n, const float* z_d, float* p_d, float beta)const;
-		void pcg_update_x_r(int n, const float* p_d, const float* Ap_d, float* x_d, float* r_d, float alpha)const;
-		float pcg_dot(int n, const float* a_d, const float* b_d)const;
+		void pcg_update_p(int n, const float* z_d, float* p_d, float* pcg_orz_rz_pAp)const;
+		void pcg_update_x_r(int n, const float* p_d, const float* Ap_d, float* x_d, 
+			float* r_d, float* pcg_orz_rz_pAp)const;
+		void pcg_dot_rz(int n, const float* a_d, const float* b_d, float* pcg_orz_rz_pAp)const;
+		void pcg_dot_pAp(int n, const float* a_d, const float* b_d, float* pcg_orz_rz_pAp)const;
 		void pcg_extractInvDiagBlock(const CudaBsrMatrix& A, CudaDiagBlockMatrix& invD);
 		static void vertPair_to_idx(const int* ids_v1, const int* ids_v2, size_t* ids, int nVerts, int nPairs);
 		static void vertPair_from_idx(int* ids_v1, int* ids_v2, const size_t* ids, int nVerts, int nPairs);

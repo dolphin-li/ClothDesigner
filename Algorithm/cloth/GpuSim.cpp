@@ -186,7 +186,6 @@ namespace ldp
 	void GpuSim::run_one_step()
 	{
 		gtime_t t_start = gtime_now();
-
 		bindTextures();
 		updateNumeric();
 
@@ -296,6 +295,8 @@ namespace ldp
 		m_last_v_d.create(m_v_d.size());
 		m_dv_d.create(m_x_d.size());
 		m_b_d.create(m_x_d.size());
+		cudaSafeCall(cudaMemset(m_last_x_d.ptr(), 0, m_last_x_d.sizeBytes()));
+		cudaSafeCall(cudaMemset(m_last_v_d.ptr(), 0, m_last_v_d.sizeBytes()));
 		cudaSafeCall(cudaMemset(m_v_d.ptr(), 0, m_v_d.sizeBytes()));
 		cudaSafeCall(cudaMemset(m_dv_d.ptr(), 0, m_dv_d.sizeBytes()));
 		cudaSafeCall(cudaMemset(m_b_d.ptr(), 0, m_b_d.sizeBytes()));
@@ -575,6 +576,9 @@ namespace ldp
 		// copy to self cpu
 		if (m_arcSimManager)
 		{
+			m_densityData_h.clear();
+			m_stretchSamples_h.clear();
+			m_bendingData_h.clear();
 			for (const auto& cloth : m_arcSimManager->getSimulator()->cloths)
 			for (const auto& mat : cloth.materials)
 			{
@@ -657,9 +661,8 @@ namespace ldp
 		CachedDeviceArray<float> p(nVal);
 		CachedDeviceArray<float> Ap(nVal);
 		CachedDeviceArray<float> invD(nVal);
-		std::vector<float> tmp1, tmp2;
-		tmp1.resize(nVal);
-		tmp2.resize(nVal);
+		CachedDeviceArray<float> pcg_orz_rz_pAp(3);
+		cudaSafeCall(cudaMemset(pcg_orz_rz_pAp.data(), 0, pcg_orz_rz_pAp.bytes()));
 
 		// x = 0
 		cudaSafeCall(cudaMemset(m_dv_d.ptr(), 0, m_dv_d.sizeBytes()));
@@ -667,6 +670,7 @@ namespace ldp
 
 		// norm b
 		float norm_b = 0.f;
+		cublasCheck(cublasSetPointerMode_v2(m_cublasHandle, CUBLAS_POINTER_MODE_HOST));
 		cublasSnrm2_v2(m_cublasHandle, nVal, (float*)m_b_d.ptr(), 1, &norm_b);
 		if (norm_b == 0.f)
 			return;
@@ -680,31 +684,23 @@ namespace ldp
 
 		int iter = 0;
 		float err = 0.f;
-		float rz = 0.f, rz_old = 0.f, pAp = 0.f, alpha = 0.f, beta = 0.f;
 		for (iter = 0; iter<m_simParam.pcg_iter; iter++)
 		{
 			// z = invD * r
 			m_A_diag_d->Mv(r.data(), z.data());
 
 			// rz = r'*z
-			rz_old = rz;
-			rz = pcg_dot(nVal, r.data(), z.data());
-			beta = iter == 0 ? 0.f : rz / rz_old;
-			if (isinf(beta) || rz == 0.f)
-				break;
+			pcg_dot_rz(nVal, r.data(), z.data(), pcg_orz_rz_pAp.data());
 
-			// p = z+beta*p
-			pcg_update_p(nVal, z.data(), p.data(), beta);
+			// p = z+beta*p, beta = rz/old_rz
+			pcg_update_p(nVal, z.data(), p.data(), pcg_orz_rz_pAp.data());
 
 			// Ap = A*p, pAp = p'*Ap, alpha = rz / pAp
 			m_A_d->Mv(p.data(), Ap.data());
-			pAp = pcg_dot(nVal, p.data(), Ap.data());
-			alpha = rz / pAp;
-			if (isinf(alpha) || alpha == 0.f)
-				break;
+			pcg_dot_pAp(nVal, p.data(), Ap.data(), pcg_orz_rz_pAp.data());
 
 			// x = x + alpha*p, r = r - alpha*Ap
-			pcg_update_x_r(nVal, p.data(), Ap.data(), (float*)m_dv_d.ptr(), r.data(), alpha);
+			pcg_update_x_r(nVal, p.data(), Ap.data(), (float*)m_dv_d.ptr(), r.data(), pcg_orz_rz_pAp.data());
 
 			// each several iterations, we check the convergence
 			if (iter % 10 == 0)
@@ -714,6 +710,7 @@ namespace ldp
 				m_A_d->Mv((const float*)m_dv_d.ptr(), Ap.data(), -1.f, 1.f);
 
 				float norm_bAx = 0.f;
+				cublasCheck(cublasSetPointerMode_v2(m_cublasHandle, CUBLAS_POINTER_MODE_HOST));
 				cublasSnrm2_v2(m_cublasHandle, nVal, Ap.data(), 1, &norm_bAx);
 
 				err = norm_bAx / (norm_b + 1e-15f);
@@ -745,6 +742,7 @@ namespace ldp
 		m_dv_d.upload(dvvec);
 #endif
 		update_x_v_by_dv();
+		cudaSafeCall(cudaThreadSynchronize());
 	}
 
 	void GpuSim::dumpVec(std::string name, const DeviceArray<float>& A, int nTotal)
