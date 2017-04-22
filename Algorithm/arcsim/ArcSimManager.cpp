@@ -216,6 +216,7 @@ namespace arcsim
 
 #ifdef LDP_DEBUG_USE_GPUSIM
 		m_gpuSim->restart();
+		m_iterInfo += "[" + m_gpuSim->getSolverInfo() + "]";
 #else
 		m_timeStamp->Stamp("prepared");
 		if (m_sim->enabled[Simulation::Separation])
@@ -365,14 +366,14 @@ namespace arcsim
 	void simulate_thread_loop(ArcSimManager* threadData)
 	{
 		Simulation* sim = threadData->getSimulator();
-		char info[1000] = { 0 };
+		std::string info(1000, 0);
 		while (sim->time < sim->end_time)
 		{
 #ifdef LDP_DEBUG_USE_GPUSIM
 			threadData->m_gpuSim->run_one_step();
 			sim->time += sim->step_time;
-			sprintf_s(info, "%.3f / %.1f, fps = %.1f\n", sim->time,
-				sim->end_time, threadData->m_gpuSim->getFps());
+			sprintf_s((char*)info.c_str(), info.size(), "%.3f / %.1f, fps = %.1f [%s]", sim->time,
+				sim->end_time, threadData->m_gpuSim->getFps(), threadData->m_gpuSim->getSolverInfo().c_str());
 #else
 			advance_step(*sim);
 			sprintf_s(info, "%.3f/%.1f, pr=%.3f, ps=%.3f, co=%.3f, sl=%.3f, pl=%.3f",

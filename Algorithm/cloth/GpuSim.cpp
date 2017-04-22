@@ -157,6 +157,7 @@ namespace ldp
 		ldp::dump("D:/tmp/m_A_eigen.txt", A);
 #endif
 		restart();
+		m_solverInfo = "solver intialized from arcsim";
 	}
 
 	void GpuSim::initParam()
@@ -719,7 +720,7 @@ namespace ldp
 					break;
 			}
 		} // end for iter
-		//printf("pcg, iter %d, err %ef\n", iter, err);
+		m_solverInfo = std::string("pcg, iter ") + std::to_string(iter) + ", err " + std::to_string(err);
 #else
 		SpMat A;
 		cudaSpMat_to_EigenMat(*m_A_d, A);

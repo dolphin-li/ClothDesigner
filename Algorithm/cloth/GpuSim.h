@@ -99,6 +99,7 @@ namespace ldp
 
 		float getFps()const{ return m_fps; }
 		float getStepTime()const{ return m_simParam.dt; }
+		std::string getSolverInfo()const{ return m_solverInfo; }
 
 		void clothToObjMesh(ObjMesh& mesh);
 
@@ -137,6 +138,7 @@ namespace ldp
 		cublasHandle_t m_cublasHandle = nullptr;
 		SimParam m_simParam;
 		float m_fps = 0.f;
+		std::string m_solverInfo;
 
 		ldp::LevelSet3D* m_bodyLvSet_h = nullptr;
 		Cuda3DArray<float> m_bodyLvSet_d;
