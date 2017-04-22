@@ -491,12 +491,12 @@ namespace ldp
 		__device__ inline float violation(const float value)const { return max(-value, 0.f); }
 		__device__ inline float value(Float3 p)const
 		{
-			const Float3 t = (p - lvStart) / lvStep;
+			const Float3 t = (p - lvStart) / lvStep + 0.5f;
 			return Level_Set_Depth(lvTex, t[0], t[1], t[2], repulsion_thickness/lvStep)*lvStep;
 		}
 		__device__ inline Float3 gradient(Float3 p)const
 		{
-			const Float3 t = (p - lvStart) / lvStep;
+			const Float3 t = (p - lvStart) / lvStep + 0.5f;
 			Float3 g;
 			Level_Set_Gradient(lvTex, t[0], t[1], t[2], g[0], g[1], g[2]);
 			return g;
@@ -868,7 +868,7 @@ namespace ldp
 			m_v_d.ptr(), m_vert_FaceList_d->bsrRowPtrTexture(), m_vert_FaceList_d->bsrColIdxTexture()
 			);
 		cudaSafeCall(cudaGetLastError());
-	
+
 		// add body-cloth force term using level set
 		NodeCon con;
 		con.lvTex = m_bodyLvSet_d.getCudaTexture();
