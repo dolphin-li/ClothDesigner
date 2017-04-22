@@ -1,7 +1,6 @@
 #include "GpuKdTree.h"
 #include "cudpp\thrust_wrapper.h"
 #include "helper_math.h"
-#include "cudpp\ModerGpuWrapper.h"
 #include "GpuHeap.h"
 #include "cuda_utils.h"
 namespace ldp
@@ -10,69 +9,6 @@ namespace ldp
 	texture<int, cudaTextureType1D, cudaReadModeElementType> g_mempool_tex;
 	texture<float4, cudaTextureType1D, cudaReadModeElementType> g_ele_low_high_tex;
 	__constant__ int g_ele_low_high_tex_off_d[3];
-
-#pragma region --knn
-	/** ***************************************************************
-	* Knn related
-	* ****************************************************************/
-	typedef ushort KnnIdxType;
-#ifdef ENABLE_8_NN_GRAPH
-	typedef uint4 KnnIdx;
-#else
-	typedef uint2 KnnIdx;
-#endif
-	enum{
-		KnnK = sizeof(KnnIdx) / sizeof(KnnIdxType)
-	};
-
-	__device__ __host__ __forceinline__ KnnIdxType& knn_k(KnnIdx& knn, int i)
-	{
-		return ((KnnIdxType*)(&knn))[i];
-	}
-	__device__ __host__ __forceinline__ const KnnIdxType& knn_k(const KnnIdx& knn, int i)
-	{
-		return ((KnnIdxType*)(&knn))[i];
-	}
-	__device__ __host__ __forceinline__ KnnIdx make_knn(const ushort* data, int n = KnnK)
-	{
-		KnnIdx knn;
-		for (int k = 0; k < n; k++)
-			knn_k(knn, k) = data[k];
-		return knn;
-	}
-	__device__ __host__ __forceinline__ KnnIdx make_knn(int c)
-	{
-		KnnIdx knn;
-		for (int k = 0; k < KnnK; k++)
-			knn_k(knn, k) = c;
-		return knn;
-	}
-	__device__ __host__ __forceinline__ KnnIdx make_knn(const int* data, int n = KnnK)
-	{
-		KnnIdx knn;
-		for (int k = 0; k < n; k++)
-			knn_k(knn, k) = data[k];
-		return knn;
-	}
-#if defined(__CUDACC__)
-	__device__ __forceinline__ KnnIdx read_knn_tex(cudaTextureObject_t knnTex, int x, int y, int z)
-	{
-		KnnIdx knn;
-		tex3D(&knn, knnTex, x, y, z);
-		return knn;
-	}
-	__device__ __forceinline__ KnnIdx read_knn_surf(cudaSurfaceObject_t knnTex, int x, int y, int z)
-	{
-		KnnIdx knn;
-		surf3Dread(&knn, knnTex, x*sizeof(KnnIdx), y, z);
-		return knn;
-	}
-	__device__ __forceinline__ void write_knn(KnnIdx knn, cudaSurfaceObject_t knnTex, int x, int y, int z)
-	{
-		surf3Dwrite(knn, knnTex, x*sizeof(KnnIdx), y, z);
-	}
-#endif
-#pragma endregion
 
 #pragma region offsets
 	__constant__ int g_mempool_tex_offs[26]; // size by int but not byte
@@ -519,9 +455,9 @@ namespace ldp
 
 		
 		// create sorted index list -> can be used to compute AABBs in O(1)
-		modergpu_wrapper::mergesort_by_key(tmp_pt_x_ptr_, index_x_ptr_, nInputPoints_);
-		modergpu_wrapper::mergesort_by_key(tmp_pt_y_ptr_, index_y_ptr_, nInputPoints_);
-		modergpu_wrapper::mergesort_by_key(tmp_pt_z_ptr_, index_z_ptr_, nInputPoints_);
+		thrust_wrapper::sort_by_key(tmp_pt_x_ptr_, index_x_ptr_, nInputPoints_);
+		thrust_wrapper::sort_by_key(tmp_pt_y_ptr_, index_y_ptr_, nInputPoints_);
+		thrust_wrapper::sort_by_key(tmp_pt_z_ptr_, index_z_ptr_, nInputPoints_);
 
 		// bounding box info
 		{
@@ -934,153 +870,6 @@ namespace ldp
 			searchNeighbors(q, result);
 			result.finish();
 		}
-
-		template< typename GPUResultSet>
-		__global__ void nearestKernel(cudaSurfaceObject_t volumeSurf, int3 begin, int3 end,
-			float3 origion, float voxelSize, GPUResultSet result, int knnStride, bool excludeSelf=false
-			)
-		{
-			typedef float DistanceType;
-			typedef float ElementType;
-
-			int ix = blockDim.x*blockIdx.x + threadIdx.x + begin.x;
-			int iy = blockDim.y*blockIdx.y + threadIdx.y + begin.y;
-			int iz = blockDim.z*blockIdx.z + threadIdx.z + begin.z;
-
-			if (ix < end.x && iy < end.y && iz < end.z)
-			{
-				float4 q;
-				q.x = origion.x + ix*voxelSize;
-				q.y = origion.y + iy*voxelSize;
-				q.z = origion.z + iz*voxelSize;
-				q.w = 0.f;
-				searchNeighbors(q, result);
-
-				result.setResultLocation(nullptr, nullptr, 0, knnStride, excludeSelf);
-				searchNeighbors(q, result);
-				result.finish();
-
-				KnnIdx knn = make_knn(KnnIdxType(-1));
-				for (int k = 0; k < GPUResultSet::ResultK; k++)
-					knn_k(knn, k) = result.resultIndex[k];
-				write_knn(knn, volumeSurf, ix, iy, iz);
-			}
-		}
-	}
-
-	void GpuKdTree::knnSearchGpu(const float4* queries, int query_stride_in_float4,
-		ushort* indices, float* dists, size_t knn, size_t n, size_t knnStride, bool excludeSelf) const
-	{
-		if (n == 0)
-			return;
-		int threadsPerBlock = 256;
-		int blocksPerGrid = divUp(n, threadsPerBlock);
-		bool sorted = true;
-
-		// bind src to texture
-		bindTextures();
-
-		switch (knn)
-		{
-		case 1:
-			KdTreeCudaPrivate::nearestKernel << <blocksPerGrid, threadsPerBlock >> > (
-				queries,
-				query_stride_in_float4,
-				indices,
-				dists,
-				n,
-				KdTreeCudaPrivate::SingleResultSet<float, ushort>(), 
-				knnStride, 
-				excludeSelf
-				);
-			break;
-		case 2:
-			KdTreeCudaPrivate::nearestKernel << <blocksPerGrid, threadsPerBlock >> > (
-				queries,
-				query_stride_in_float4,
-				indices,
-				dists,
-				n,
-				KdTreeCudaPrivate::KnnResultSet<float, 2, ushort>(sorted),
-				knnStride,
-				excludeSelf
-				);
-			break;
-		case 3:
-			KdTreeCudaPrivate::nearestKernel << <blocksPerGrid, threadsPerBlock >> > (
-				queries,
-				query_stride_in_float4,
-				indices,
-				dists,
-				n,
-				KdTreeCudaPrivate::KnnResultSet<float, 3, ushort>(sorted),
-				knnStride,
-				excludeSelf
-				);
-			break;
-		case 4:
-			KdTreeCudaPrivate::nearestKernel << <blocksPerGrid, threadsPerBlock >> > (
-				queries,
-				query_stride_in_float4,
-				indices,
-				dists,
-				n,
-				KdTreeCudaPrivate::KnnResultSet<float, 4, ushort>(sorted),
-				knnStride,
-				excludeSelf
-				);
-			break;
-		case 5:
-			KdTreeCudaPrivate::nearestKernel << <blocksPerGrid, threadsPerBlock >> > (
-				queries,
-				query_stride_in_float4,
-				indices,
-				dists,
-				n,
-				KdTreeCudaPrivate::KnnResultSet<float, 5, ushort>(sorted),
-				knnStride,
-				excludeSelf
-				);
-			break;
-		case 6:
-			KdTreeCudaPrivate::nearestKernel << <blocksPerGrid, threadsPerBlock >> > (
-				queries,
-				query_stride_in_float4,
-				indices,
-				dists,
-				n,
-				KdTreeCudaPrivate::KnnResultSet<float, 6, ushort>(sorted),
-				knnStride,
-				excludeSelf
-				);
-			break;
-		case 7:
-			KdTreeCudaPrivate::nearestKernel << <blocksPerGrid, threadsPerBlock >> > (
-				queries,
-				query_stride_in_float4,
-				indices,
-				dists,
-				n,
-				KdTreeCudaPrivate::KnnResultSet<float, 7, ushort>(sorted),
-				knnStride,
-				excludeSelf
-				);
-			break;
-		case 8:
-			KdTreeCudaPrivate::nearestKernel << <blocksPerGrid, threadsPerBlock >> > (
-				queries,
-				query_stride_in_float4,
-				indices,
-				dists,
-				n,
-				KdTreeCudaPrivate::KnnResultSet<float, 8, ushort>(sorted),
-				knnStride,
-				excludeSelf
-				);
-			break;
-		default:
-			throw std::exception("non-supported K in KnnSearch!");
-		}
 	}
 
 	void GpuKdTree::knnSearchGpu(const float4* queries, int query_stride_in_float4, 
@@ -1198,117 +987,6 @@ namespace ldp
 		}
 	}
 
-	void GpuKdTree::knnSearchGpu(cudaSurfaceObject_t volumeSurf, int3 begin, int3 end,
-		float3 origion, float voxelSize, size_t knn) const
-	{
-		if (begin.x >= end.x || begin.y >= end.y || begin.z >= end.z)
-			return;
-
-		// bind src to texture
-		bindTextures();
-
-		dim3 threadsPerBlock(32, 8, 2);
-		dim3 blocksPerGrid(divUp(end.x-begin.x, threadsPerBlock.x),
-			divUp(end.y - begin.y, threadsPerBlock.y),
-			divUp(end.z - begin.z, threadsPerBlock.z));
-		bool sorted = true;
-
-		switch (knn)
-		{
-		case 0:
-			break;
-		case 1:
-			KdTreeCudaPrivate::nearestKernel << <blocksPerGrid, threadsPerBlock >> > (
-				volumeSurf,
-				begin,
-				end,
-				origion,
-				voxelSize,
-				KdTreeCudaPrivate::KnnResultSet<float, 1, KnnIdxType>(sorted),
-				KnnK
-				);
-			break;
-		case 2:
-			KdTreeCudaPrivate::nearestKernel << <blocksPerGrid, threadsPerBlock >> > (
-				volumeSurf,
-				begin,
-				end,
-				origion,
-				voxelSize,
-				KdTreeCudaPrivate::KnnResultSet<float, 2, KnnIdxType>(sorted),
-				KnnK
-				);
-			break;
-		case 3:
-			KdTreeCudaPrivate::nearestKernel << <blocksPerGrid, threadsPerBlock >> > (
-				volumeSurf,
-				begin,
-				end,
-				origion,
-				voxelSize,
-				KdTreeCudaPrivate::KnnResultSet<float, 3, KnnIdxType>(sorted),
-				KnnK
-				);
-			break;
-		case 4:
-			KdTreeCudaPrivate::nearestKernel << <blocksPerGrid, threadsPerBlock >> > (
-				volumeSurf,
-				begin,
-				end,
-				origion,
-				voxelSize,
-				KdTreeCudaPrivate::KnnResultSet<float, 4, KnnIdxType>(sorted),
-				KnnK
-				);
-			break;
-		case 5:
-			KdTreeCudaPrivate::nearestKernel << <blocksPerGrid, threadsPerBlock >> > (
-				volumeSurf,
-				begin,
-				end,
-				origion,
-				voxelSize,
-				KdTreeCudaPrivate::KnnResultSet<float, 5, KnnIdxType>(sorted),
-				KnnK
-				);
-			break;
-		case 6:
-			KdTreeCudaPrivate::nearestKernel << <blocksPerGrid, threadsPerBlock >> > (
-				volumeSurf,
-				begin,
-				end,
-				origion,
-				voxelSize,
-				KdTreeCudaPrivate::KnnResultSet<float, 6, KnnIdxType>(sorted),
-				KnnK
-				);
-			break;
-		case 7:
-			KdTreeCudaPrivate::nearestKernel << <blocksPerGrid, threadsPerBlock >> > (
-				volumeSurf,
-				begin,
-				end,
-				origion,
-				voxelSize,
-				KdTreeCudaPrivate::KnnResultSet<float, 7, KnnIdxType>(sorted),
-				KnnK
-				);
-			break;
-		case 8:
-			KdTreeCudaPrivate::nearestKernel << <blocksPerGrid, threadsPerBlock >> > (
-				volumeSurf,
-				begin,
-				end,
-				origion,
-				voxelSize,
-				KdTreeCudaPrivate::KnnResultSet<float, 8, KnnIdxType>(sorted),
-				KnnK
-				);
-			break;
-		default:
-			throw std::exception("non-supported knnK!");
-		}
-	}
 
 	void GpuKdTree::update_leftright_and_aabb(
 		const float* x,

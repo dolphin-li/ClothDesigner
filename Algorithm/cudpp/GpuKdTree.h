@@ -62,21 +62,6 @@ namespace ldp
 		void knnSearchGpu(const float4* queries, int query_stride_in_float4, 
 			int* indices, float* dists, size_t knn, size_t n, size_t knnStride, 
 			bool excludeSelf = false) const;
-		void knnSearchGpu(const float4* queries, int query_stride_in_float4,
-			ushort* indices, float* dists, size_t knn, size_t n, size_t knnStride,
-			bool excludeSelf = false) const;
-
-		/**
-		* \brief Perform k-nearest neighbor search on a grid: (x,y,z) = origion + (ix,iy,iz)*voxelSize
-		* \param[out] volumeSurf the volume of type WarpField::KnnIdx (generally uchar4, ushort4)
-		* \param[in] begin the x0y0z0 of the input grid
-		* \param[in] end the x1y1z1 of the input grid: valid range: begin:end
-		* \param[in] origion the origion point of the input grid
-		* \param[in] voxelSize the voxel size of the input grid
-		* \param[in] knn Number of nearest neighbors to return
-		*/
-		void knnSearchGpu(cudaSurfaceObject_t volumeSurf, int3 begin, int3 end, 
-			float3 origion, float voxelSize, size_t knn) const;
 
 		// for debug
 		static void test();
