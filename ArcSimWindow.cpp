@@ -40,6 +40,7 @@ void ArcsimWindow::timerEvent(QTimerEvent* ev)
 	{
 		if (g_dataholder.m_arcsimManager->updateMesh())
 			ui.widget->updateGL();
+		setWindowTitle(g_dataholder.m_arcsimManager->getIterInfo().c_str());
 	}
 }
 

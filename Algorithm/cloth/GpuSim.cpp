@@ -195,7 +195,6 @@ namespace ldp
 		linearSolve();
 		collisionSolve();
 		userControlSolve();
-		update_x_v_by_dv();
 		m_x_d.download(m_x_h);
 
 		gtime_t t_end = gtime_now();
@@ -676,7 +675,7 @@ namespace ldp
 		// r = b-Ax
 		cudaSafeCall(cudaMemcpy(r.data(), m_b_d.ptr(), r.bytes(), cudaMemcpyDeviceToDevice));
 		m_A_d->Mv((float*)m_dv_d.ptr(), r.data(), -1.f, 1.f);
-		
+
 		int iter = 0;
 		float err = 0.f;
 		float rz = 0.f, rz_old = 0.f, pAp = 0.f, alpha = 0.f, beta = 0.f;
@@ -689,7 +688,7 @@ namespace ldp
 			rz_old = rz;
 			rz = pcg_dot(nVal, r.data(), z.data());
 			beta = iter == 0 ? 0.f : rz / rz_old;
-			if (isinf(beta))
+			if (isinf(beta) || rz == 0.f)
 				break;
 
 			// p = z+beta*p
@@ -699,7 +698,7 @@ namespace ldp
 			m_A_d->Mv(p.data(), Ap.data());
 			pAp = pcg_dot(nVal, p.data(), Ap.data());
 			alpha = rz / pAp;
-			if (isinf(alpha))
+			if (isinf(alpha) || alpha == 0.f)
 				break;
 
 			// x = x + alpha*p, r = r - alpha*Ap
@@ -720,9 +719,7 @@ namespace ldp
 					break;
 			}
 		} // end for iter
-
 		//printf("pcg, iter %d, err %ef\n", iter, err);
-
 #else
 		SpMat A;
 		cudaSpMat_to_EigenMat(*m_A_d, A);
@@ -745,6 +742,7 @@ namespace ldp
 
 		m_dv_d.upload(dvvec);
 #endif
+		update_x_v_by_dv();
 	}
 
 	void GpuSim::dumpVec(std::string name, const DeviceArray<float>& A, int nTotal)

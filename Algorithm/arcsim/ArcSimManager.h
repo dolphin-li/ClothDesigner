@@ -35,6 +35,8 @@ namespace arcsim
 		ObjMesh* getClothMesh(){ return m_clothMesh.get(); }
 		const ObjMesh* getClothMesh()const{ return m_clothMesh.get(); }
 		bool updateMesh();
+		float getFps()const{ return m_fps; }
+		std::string getIterInfo()const{ return m_iterInfo; }
 	public:
 		////////////////////////////////// multi-thread handling
 		friend void arcsim::simulate_thread_loop(ArcSimManager* threadData);
@@ -48,6 +50,8 @@ namespace arcsim
 		std::shared_ptr<ldp::TimeStamp> m_timeStamp;
 		bool m_needUpdateMesh = false;
 		std::shared_ptr<ldp::GpuSim> m_gpuSim;
+		float m_fps = 0.f;
+		std::string m_iterInfo;
 	private:
 		std::shared_ptr<std::thread> m_threadLoop;
 		std::shared_ptr<std::mutex> m_threadMutex;

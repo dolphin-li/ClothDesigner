@@ -10,7 +10,7 @@ namespace ldp
 {
 
 //#define DEBUG_DUMP
-//#define LDP_DEBUG
+#define LDP_DEBUG
 
 #pragma region --utils
 	enum{
@@ -798,9 +798,9 @@ namespace ldp
 		b_values[thread_id] = sum;
 	}
 
-	__global__ void add_LevelSet_constrain_kernel(const NodeCon con, 
-		const cudaTextureObject_t A_rowTex, const cudaTextureObject_t A_colTex, 
-		Mat3f* A_values, Float3* b_values, const Float3* positions, const Float3* velocity, 
+	__global__ void add_LevelSet_constrain_kernel(const NodeCon con,
+		const cudaTextureObject_t A_rowTex, const cudaTextureObject_t A_colTex,
+		Mat3f* A_values, Float3* b_values, const Float3* positions, const Float3* velocity,
 		const float dt, const int nVerts)
 	{
 		int iVert = threadIdx.x + blockIdx.x * blockDim.x;
@@ -818,6 +818,24 @@ namespace ldp
 
 		const Mat3f thisA = dt*dt*h*outer(grad, grad);
 		const Float3 thisb = -dt*(g + dt*h*v_dot_grad)*grad;
+
+#ifdef LDP_DEBUG1
+		if(iVert == 2)
+		{
+			printVal(iVert);
+			printVal(x);
+			printVal(v);
+			printVal(xData.area);
+			printVal(value);
+			printVal(g);
+			printVal(h);
+			printVal(grad);
+			printVal(v_dot_grad);
+			printVal(thisA);
+			printVal(thisb);
+		}
+#endif
+		return;
 
 		// write into A
 		const int rb = fetch_int(A_rowTex, iVert);
@@ -867,7 +885,7 @@ namespace ldp
 			m_v_d.ptr(), m_vert_FaceList_d->bsrRowPtrTexture(), m_vert_FaceList_d->bsrColIdxTexture()
 			);
 		cudaSafeCall(cudaGetLastError());
-
+	
 		// add body-cloth force term using level set
 		NodeCon con;
 		con.lvTex = m_bodyLvSet_d.getCudaTexture();
@@ -984,8 +1002,8 @@ namespace ldp
 
 	void GpuSim::pcg_extractInvDiagBlock(const CudaBsrMatrix& A, CudaDiagBlockMatrix& invD)
 	{
-		pcg_extractInvDiagBlock_kernel << <divUp(A.rows(), CTA_SIZE), CTA_SIZE >> >(
-			A.rows(), (Mat3f*)invD.value(), A.bsrRowPtrTexture(), A.bsrColIdxTexture(), (const Mat3f*)A.value());
+		pcg_extractInvDiagBlock_kernel << <divUp(A.blocksInRow(), CTA_SIZE), CTA_SIZE >> >(
+			A.blocksInRow(), (Mat3f*)invD.value(), A.bsrRowPtrTexture(), A.bsrColIdxTexture(), (const Mat3f*)A.value());
 		cudaSafeCall(cudaGetLastError());
 	}
 #pragma endregion

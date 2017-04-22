@@ -125,7 +125,7 @@ namespace arcsim
 	void ArcSimManager::loadFromJsonConfig(std::string bodyMeshFileName)
 	{
 		m_timeStamp->Reset();
-
+		m_iterInfo = "loaded from: " + bodyMeshFileName;
 		clear();
 		m_sim.reset(new Simulation);
 		load_json(bodyMeshFileName, *m_sim.get());
@@ -175,6 +175,7 @@ namespace arcsim
 	void ArcSimManager::loadFromClothManager(ldp::ClothManager* clothManager)
 	{
 		m_timeStamp->Reset();
+		m_iterInfo = "loaded from cloth manager";
 
 		clear();
 		m_sim.reset(new Simulation);
@@ -210,6 +211,8 @@ namespace arcsim
 		prepare(*m_sim);
 
 		m_sim->time = 0;
+		m_fps = 0.f;
+		m_iterInfo = "reset";
 
 #ifdef LDP_DEBUG_USE_GPUSIM
 		m_gpuSim->restart();
@@ -362,16 +365,17 @@ namespace arcsim
 	void simulate_thread_loop(ArcSimManager* threadData)
 	{
 		Simulation* sim = threadData->getSimulator();
+		char info[1000] = { 0 };
 		while (sim->time < sim->end_time)
 		{
 #ifdef LDP_DEBUG_USE_GPUSIM
 			threadData->m_gpuSim->run_one_step();
 			sim->time += sim->step_time;
-			threadData->m_timeStamp->Stamp("%.3f/%.1f, fps=%.1f\n", sim->time, 
+			sprintf_s(info, "%.3f / %.1f, fps = %.1f\n", sim->time,
 				sim->end_time, threadData->m_gpuSim->getFps());
 #else
 			advance_step(*sim);
-			threadData->m_timeStamp->Stamp("%.3f/%.1f, pr=%.3f, ps=%.3f, co=%.3f, sl=%.3f, pl=%.3f",
+			sprintf_s(info, "%.3f/%.1f, pr=%.3f, ps=%.3f, co=%.3f, sl=%.3f, pl=%.3f",
 				sim->time, sim->end_time,
 				sim->timers[Simulation::Proximity].last,
 				sim->timers[Simulation::Physics].last,
@@ -379,7 +383,10 @@ namespace arcsim
 				sim->timers[Simulation::StrainLimiting].last,
 				sim->timers[Simulation::Plasticity].last);
 #endif
+			//threadData->m_timeStamp->Stamp(info);
 			threadData->m_threadMutex->lock();
+			threadData->m_fps = threadData->m_gpuSim->getFps();
+			threadData->m_iterInfo = info;
 			threadData->m_needUpdateMesh = true;
 			threadData->m_threadMutex->unlock();
 			if (!threadData->m_thread_running)
