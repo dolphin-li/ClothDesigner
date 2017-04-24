@@ -492,7 +492,7 @@ namespace ldp
 
 		static thrust::device_vector<int> not_converged(1);
 		int l = 0;
-		for (l = 0; l<64; l++)
+		for (l = 0; l<64/64; l++)
 		{
 			cudaMemset(m_dev_I, 0, sizeof(float3)*number);
 			cudaMemset(m_dev_R, 0, sizeof(float3)*number);

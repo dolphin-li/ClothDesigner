@@ -192,7 +192,6 @@ namespace ldp
 		m_x_d.copyTo(m_last_x_d);
 		m_v_d.copyTo(m_last_v_d);
 		cudaSafeCall(cudaMemset(m_dv_d.ptr(), 0, m_dv_d.sizeBytes()));
-		// laplacian damping?
 		linearSolve();
 		collisionSolve();
 		userControlSolve();

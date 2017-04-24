@@ -125,6 +125,8 @@ namespace ldp
 		void updateTopology_clothManager();
 
 		void linearSolve();
+		void linearBodyCollision();
+		void linearSelfCollision();
 		void collisionSolve();
 		void userControlSolve();
 
@@ -187,8 +189,13 @@ namespace ldp
 		DeviceArray<ldp::Float3> m_v_d;							// velocity of current step
 		DeviceArray<ldp::Float3> m_last_v_d;					// velocity of last step	
 		DeviceArray<ldp::Float3> m_dv_d;						// velocity changed in this step
-		//////////////////////// material related///////////////////////////////////////////////////////
+		//////////////////////// self collision related///////////////////////////////////////////////////////
+		int m_selfColli_nBuckets = 0;
+		DeviceArray<int> m_selfColli_vertIds;
+		DeviceArray<int> m_selfColli_bucketIds;
+		DeviceArray<int> m_selfColli_bucketRanges;
 	public:
+		//////////////////////// material related///////////////////////////////////////////////////////
 		class StretchingData { 
 		public:
 			enum {
@@ -288,6 +295,7 @@ namespace ldp
 		std::vector<BendingData> m_bendingData_h;
 		std::vector<float> m_densityData_h;
 	public:
+		//////////////////////// pcg related///////////////////////////////////////////////////////
 		void pcg_vecMul(int n, const float* a_d, const float* b_d, 
 			float* c_d, float alpha = 1.f, float beta = 0.f)const; // c=alpha * a * b + beta
 		void pcg_update_p(int n, const float* z_d, float* p_d, float* pcg_orz_rz_pAp)const;
@@ -296,6 +304,7 @@ namespace ldp
 		void pcg_dot_rz(int n, const float* a_d, const float* b_d, float* pcg_orz_rz_pAp)const;
 		void pcg_dot_pAp(int n, const float* a_d, const float* b_d, float* pcg_orz_rz_pAp)const;
 		void pcg_extractInvDiagBlock(const CudaBsrMatrix& A, CudaDiagBlockMatrix& invD);
+		//////////////////////// helper related///////////////////////////////////////////////////////
 		static void vertPair_to_idx(const int* ids_v1, const int* ids_v2, size_t* ids, int nVerts, int nPairs);
 		static void vertPair_from_idx(int* ids_v1, int* ids_v2, const size_t* ids, int nVerts, int nPairs);
 		static void dumpVec(std::string name, const DeviceArray2D<float>& A);

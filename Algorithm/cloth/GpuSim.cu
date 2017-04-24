@@ -186,6 +186,25 @@ namespace ldp
 		return s;
 	}
 
+	template<class T, int N>
+	__device__ __host__ __forceinline__ ldp_basic_vec<T, N> min(ldp_basic_vec<T, N> a, ldp_basic_vec<T, N> b)
+	{
+		ldp_basic_vec<T, N> c;
+		for (int i = 0; i < N; i++)
+			c[i] = ::min(a[i], b[i]);
+		return c;
+	}
+
+	template<class T, int N>
+	__device__ __host__ __forceinline__ ldp_basic_vec<T, N> max(ldp_basic_vec<T, N> a, ldp_basic_vec<T, N> b)
+	{
+		ldp_basic_vec<T, N> c;
+		for (int i = 0; i < N; i++)
+			c[i] = ::max(a[i], b[i]);
+		return c;
+	}
+
+
 	__device__ __host__ __forceinline__ Mat23f make_rows(Float3 a, Float3 b)
 	{
 		Mat23f C;
@@ -374,6 +393,8 @@ namespace ldp
 	texture<int, cudaTextureType1D, cudaReadModeElementType> gt_b_order;
 	texture<float4, cudaTextureType1D, cudaReadModeElementType> gt_faceMaterialData;
 	texture<float4, cudaTextureType1D, cudaReadModeElementType> gt_nodeMaterialData;
+	texture<int, cudaTextureType1D, cudaReadModeElementType> gt_selfColli_vertIds;
+	texture<int2, cudaTextureType1D, cudaReadModeElementType> gt_selfColli_bucketRanges;
 	__device__ __forceinline__ Float3 texRead_x(int i)
 	{
 		return ldp::Float3(tex1Dfetch(gt_x, i * 3),
@@ -437,6 +458,15 @@ namespace ldp
 	{
 		return tex2D<float>(t, x, y);
 	}
+	__device__ __forceinline__ int texRead_selfColli_vid(int i)
+	{
+		return tex1Dfetch(gt_selfColli_vertIds, i);
+	}
+	__device__ __forceinline__ Int2 texRead_selfColli_buckedRange(int i)
+	{
+		int2 val = tex1Dfetch(gt_selfColli_bucketRanges, i);
+		return Int2(val.x, val.y);
+	}
 
 	void GpuSim::bindTextures()
 	{
@@ -445,6 +475,7 @@ namespace ldp
 		cudaChannelFormatDesc desc_float2 = cudaCreateChannelDesc<float2>();
 		cudaChannelFormatDesc desc_float4 = cudaCreateChannelDesc<float4>();
 		cudaChannelFormatDesc desc_int = cudaCreateChannelDesc<int>();
+		cudaChannelFormatDesc desc_int2 = cudaCreateChannelDesc<int2>();
 		cudaChannelFormatDesc desc_int4 = cudaCreateChannelDesc<int4>();
 
 		cudaSafeCall(cudaBindTexture(&offset, &gt_x, m_x_d.ptr(),
@@ -489,68 +520,12 @@ namespace ldp
 	}
 #pragma endregion
 
-#pragma region --constraints
-	struct NodeCon
-	{
-		float friction_stiffness = 0.f;
-		float collision_stiffness = 0.f;
-		float repulsion_thickness = 0.f;
-		float projection_thickness = 0.f;
-		float lvStep = 0.f;
-		Float3 lvStart = 0.f;
-		cudaTextureObject_t lvTex = 0;
-		__device__ inline float violation(const float value)const { return max(-value, 0.f); }
-		__device__ inline float value(Float3 p)const
-		{
-			const Float3 t = (p - lvStart) / lvStep + 0.5f;
-			return Level_Set_Depth(lvTex, t[0], t[1], t[2], repulsion_thickness/lvStep)*lvStep;
-		}
-		__device__ inline Float3 gradient(Float3 p)const
-		{
-			const Float3 t = (p - lvStart) / lvStep + 0.5f;
-			Float3 g;
-			Level_Set_Gradient(lvTex, t[0], t[1], t[2], g[0], g[1], g[2]);
-			return g;
-		}
-		__device__ inline Float3 project(const Float3 p)const
-		{
-			const float d = value(p) + repulsion_thickness - projection_thickness;
-			return gradient(p) * violation(d);
-		}
-		__device__ inline float energy(const float value, const float area)const
-		{
-			const float v = violation(value);
-			return area * collision_stiffness*v*v*v / repulsion_thickness / 6.f;
-		}
-		__device__ inline float energy_grad(const float value, const float area)const
-		{
-			const float v = violation(value);
-			return -area * collision_stiffness*v*v / repulsion_thickness / 2.f;
-		}
-		__device__ inline float energy_hess(const float value, const float area)const
-		{
-			return area * collision_stiffness*violation(value) / repulsion_thickness;
-		}
-		__device__ inline Float3 friction(const Float3 p, const Float3 velocity, 
-			const float mass, const float area, const float dt, Mat3f &jac)const
-		{
-			const float fn = abs(energy_grad(value(p), area));
-			const Float3 n = -gradient(p);
-			const Mat3f T = Mat3f().eye() - outer(n, n);
-			const Float3 Tv = T*velocity;
-			const float f_by_v = velocity.length() == 0.f ? 0.f : min(friction_stiffness*fn / Tv.length(), mass / dt);
-			jac = -f_by_v*T;
-			return jac*velocity;
-		}
-	};
-#pragma endregion
-
 #pragma region --update numeric
 	__device__ __forceinline__ float distance(const Float3 &x, const Float3 &a, const Float3 &b)
 	{
 		Float3 e = b - a;
 		Float3 xp = e*e.dot(x - a) / e.dot(e);
-		return max((x - a - xp).length(), 1e-3f*e.length());
+		return ::max((x - a - xp).length(), 1e-3f*e.length());
 	}
 	__device__ __forceinline__ Float2 barycentric_weights(Float3 x, Float3 a, Float3 b)
 	{
@@ -583,11 +558,11 @@ namespace ldp
 	{
 		// because samples are per 0.05 cm^-1 = 5 m^-1
 		const float len = 0.5f * (sqrt(eData.length_sqr[0]) + sqrt(eData.length_sqr[1]));
-		float value = min(4.f, dihe_angle*len / area * 0.5f*0.2f);
+		float value = ::min(4.f, dihe_angle*len / area * 0.5f*0.2f);
 		float bias_angle = fabs((eData.theta_uv[side] + eData.theta_initial) * 4.f / M_PI);
 
 		const cudaTextureObject_t bendDataTex = t_bendDataTex[eData.faceIdx[side]];
-		int value_i = min(3, max(0, (int)value));
+		int value_i = ::min(3, ::max(0, (int)value));
 		value -= value_i;
 		const int bias_id = (int)bias_angle;
 		bias_angle -= bias_id;
@@ -645,10 +620,10 @@ namespace ldp
 		const Float9 fuv = (Du.trans()*xv + Dv.trans()*xu) * 0.5f;
 		Float9 grad_e = k[0] * G(0, 0)*fuu + k[2] * G(1, 1)*fvv
 			+ k[1] * (G(0, 0)*fvv + G(1, 1)*fuu) + 2 * k[3] * G(0, 1)*fuv;
-		Mat9f hess_e = k[0] * (outer(fuu, fuu) + max(G(0, 0), 0.f)*Du.trans()*Du)
-			+ k[2] * (outer(fvv, fvv) + max(G(1, 1), 0.f)*Dv.trans()*Dv)
-			+ k[1] * (outer(fuu, fvv) + max(G(0, 0), 0.f)*Dv.trans()*Dv
-			+ outer(fvv, fuu) + max(G(1, 1), 0.f)*Du.trans()*Du)
+		Mat9f hess_e = k[0] * (outer(fuu, fuu) + ::max(G(0, 0), 0.f)*Du.trans()*Du)
+			+ k[2] * (outer(fvv, fvv) + ::max(G(1, 1), 0.f)*Dv.trans()*Dv)
+			+ k[1] * (outer(fuu, fvv) + ::max(G(0, 0), 0.f)*Dv.trans()*Dv
+			+ outer(fvv, fuu) + ::max(G(1, 1), 0.f)*Du.trans()*Du)
 			+ 2.*k[3] * (outer(fuv, fuv));
 
 		const Float9 vs = make_Float9(velocity[face_idxWorld[0]], 
@@ -690,7 +665,7 @@ namespace ldp
 		const Float2 w_f1 = barycentric_weights(ex[3], ex[0], ex[1]);
 		const FloatC dtheta = make_Float12(-(w_f0[0] * n0 / h0 + w_f1[0] * n1 / h1),
 			-(w_f0[1] * n0 / h0 + w_f1[1] * n1 / h1), n0 / h0, n1 / h1);
-		const float ke = min(
+		const float ke = ::min(
 			bending_stiffness(edgeData, dihe_theta, area, t_bendDatas, 0),
 			bending_stiffness(edgeData, dihe_theta, area, t_bendDatas, 1)
 			) * bendMult;
@@ -809,6 +784,103 @@ namespace ldp
 		b_values[thread_id] = sum;
 	}
 
+	void GpuSim::updateNumeric()
+	{
+		cudaSafeCall(cudaMemset(m_beforScan_A.ptr(), 0, m_beforScan_A.sizeBytes()));
+		cudaSafeCall(cudaMemset(m_beforScan_b.ptr(), 0, m_beforScan_b.sizeBytes()));
+
+		// ldp hack here: make the gravity not important when we are stitching.
+		const Float3 gravity = m_simParam.gravity;// *powf(1 - std::max(0.f, std::min(1.f, m_curStitchRatio)), 2);
+		const int nFaces = m_faces_idxWorld_d.size();
+		const int nEdges = m_edgeData_d.size();
+		computeNumeric_kernel << <divUp(nFaces + nEdges, CTA_SIZE), CTA_SIZE >> >(
+			m_edgeData_d.ptr(), m_faces_texStretch_d.ptr(), m_faces_texBend_d.ptr(),
+			m_A_Ids_start_d.ptr(), m_beforScan_A.ptr(), m_b_Ids_start_d.ptr(), m_beforScan_b.ptr(),
+			m_v_d.ptr(), nFaces, nEdges, m_simParam.dt, m_simParam.strecth_mult, m_simParam.bend_mult);
+		cudaSafeCall(cudaGetLastError());
+
+		// scanning into the sparse matrix
+		// since we have unique positions, we can do scan similar with CSR-vector multiplication.
+		const int nVerts = m_x_d.size();
+		const int nnzBlocks = m_A_d->nnzBlocks();
+		const int nA_beforScan = m_beforScan_A.size();
+		const int nb_beforScan = m_beforScan_b.size();
+		compute_A_kernel << <divUp(nnzBlocks, CTA_SIZE), CTA_SIZE >> >(
+			m_A_Ids_d_unique_pos.ptr(), m_beforScan_A.ptr(), m_A_d->bsrRowPtr_coo(), m_A_d->bsrColIdx(),
+			(Mat3f*)m_A_d->value(), nVerts, nnzBlocks, nA_beforScan
+			);
+		cudaSafeCall(cudaGetLastError());
+		compute_b_kernel << <divUp(nVerts, CTA_SIZE), CTA_SIZE >> >(
+			m_b_Ids_d_unique_pos.ptr(), m_beforScan_b.ptr(),
+			(Float3*)m_b_d.ptr(), m_simParam.dt, gravity, nVerts, nb_beforScan,
+			m_v_d.ptr(), m_vert_FaceList_d->bsrRowPtrTexture(), m_vert_FaceList_d->bsrColIdxTexture()
+			);
+		cudaSafeCall(cudaGetLastError());
+
+		// add body-cloth force term using level set
+		linearBodyCollision();
+
+		// add cloth-cloth force term using uniform grid
+		linearSelfCollision();
+	}
+#pragma endregion
+
+#pragma region --body collision
+	struct NodeCon
+	{
+		float friction_stiffness = 0.f;
+		float collision_stiffness = 0.f;
+		float repulsion_thickness = 0.f;
+		float projection_thickness = 0.f;
+		float lvStep = 0.f;
+		Float3 lvStart = 0.f;
+		cudaTextureObject_t lvTex = 0;
+		__device__ inline float violation(const float value)const { return ::max(-value, 0.f); }
+		__device__ inline float value(Float3 p)const
+		{
+			const Float3 t = (p - lvStart) / lvStep + 0.5f;
+			return Level_Set_Depth(lvTex, t[0], t[1], t[2], repulsion_thickness / lvStep)*lvStep;
+		}
+		__device__ inline Float3 gradient(Float3 p)const
+		{
+			const Float3 t = (p - lvStart) / lvStep + 0.5f;
+			Float3 g;
+			Level_Set_Gradient(lvTex, t[0], t[1], t[2], g[0], g[1], g[2]);
+			return g;
+		}
+		__device__ inline Float3 project(const Float3 p)const
+		{
+			const float d = value(p) + repulsion_thickness - projection_thickness;
+			return gradient(p) * violation(d);
+		}
+		__device__ inline float energy(const float value, const float area)const
+		{
+			const float v = violation(value);
+			return area * collision_stiffness*v*v*v / repulsion_thickness / 6.f;
+		}
+		__device__ inline float energy_grad(const float value, const float area)const
+		{
+			const float v = violation(value);
+			return -area * collision_stiffness*v*v / repulsion_thickness / 2.f;
+		}
+		__device__ inline float energy_hess(const float value, const float area)const
+		{
+			return area * collision_stiffness*violation(value) / repulsion_thickness;
+		}
+		__device__ inline Float3 friction(const Float3 p, const Float3 velocity,
+			const float mass, const float area, const float dt, Mat3f &jac)const
+		{
+			const float fn = abs(energy_grad(value(p), area));
+			const Float3 n = -gradient(p);
+			const Mat3f T = Mat3f().eye() - outer(n, n);
+			const Float3 Tv = T*velocity;
+			const float f_by_v = velocity.length() == 0.f ? 0.f : 
+				::min(friction_stiffness*fn / Tv.length(), mass / dt);
+			jac = -f_by_v*T;
+			return jac*velocity;
+		}
+	};
+
 	__global__ void add_LevelSet_constrain_kernel(const NodeCon con,
 		const cudaTextureObject_t A_rowTex, const cudaTextureObject_t A_colTex,
 		Mat3f* A_values, Float3* b_values, const float dt, const int nVerts)
@@ -820,14 +892,14 @@ namespace ldp
 		const int re = fetch_int(A_rowTex, iVert + 1);
 
 #ifdef USE_ONE_RING_EDGE_FOR_LEVELSET_COLLISION
-		enum{SAMPLE_N = 10};
+		enum{ SAMPLE_N = 10 };
 		float sumW = 0.f;
 		Mat3f thisA = 0.f;
 		Float3 thisb = 0.f;
 		const Float3 x = texRead_x(iVert);
 		const Float3 v = texRead_v(iVert);
 		GpuSim::NodeMaterailSpaceData xData = texRead_nodeMaterialData(iVert);
-		for(int pos = rb; pos < re; pos++)
+		for (int pos = rb; pos < re; pos++)
 		{
 			int iVert1 = fetch_int(A_colTex, pos);
 			const Float3 x1 = texRead_x(iVert1);
@@ -866,7 +938,7 @@ namespace ldp
 			sumW += minW;
 		} // end for pos
 
-		if(sumW != 0.f)
+		if (sumW != 0.f)
 		{
 			thisA *= 1.f / sumW;
 			thisb *= 1.f / sumW;
@@ -900,40 +972,9 @@ namespace ldp
 		b_values[iVert] += thisb;
 	}
 
-	void GpuSim::updateNumeric()
+	void GpuSim::linearBodyCollision()
 	{
-		cudaSafeCall(cudaMemset(m_beforScan_A.ptr(), 0, m_beforScan_A.sizeBytes()));
-		cudaSafeCall(cudaMemset(m_beforScan_b.ptr(), 0, m_beforScan_b.sizeBytes()));
-
-		// ldp hack here: make the gravity not important when we are stitching.
-		const Float3 gravity = m_simParam.gravity;// *powf(1 - std::max(0.f, std::min(1.f, m_curStitchRatio)), 2);
-		const int nFaces = m_faces_idxWorld_d.size();
-		const int nEdges = m_edgeData_d.size();
-		computeNumeric_kernel << <divUp(nFaces + nEdges, CTA_SIZE), CTA_SIZE >> >(
-			m_edgeData_d.ptr(), m_faces_texStretch_d.ptr(), m_faces_texBend_d.ptr(),
-			m_A_Ids_start_d.ptr(), m_beforScan_A.ptr(), m_b_Ids_start_d.ptr(), m_beforScan_b.ptr(),
-			m_v_d.ptr(), nFaces, nEdges, m_simParam.dt, m_simParam.strecth_mult, m_simParam.bend_mult);
-		cudaSafeCall(cudaGetLastError());
-
-		// scanning into the sparse matrix
-		// since we have unique positions, we can do scan similar with CSR-vector multiplication.
-		const int nVerts = m_x_d.size();
-		const int nnzBlocks = m_A_d->nnzBlocks();
-		const int nA_beforScan = m_beforScan_A.size();
-		const int nb_beforScan = m_beforScan_b.size();
-		compute_A_kernel << <divUp(nnzBlocks, CTA_SIZE), CTA_SIZE >> >(
-			m_A_Ids_d_unique_pos.ptr(), m_beforScan_A.ptr(), m_A_d->bsrRowPtr_coo(), m_A_d->bsrColIdx(),
-			(Mat3f*)m_A_d->value(), nVerts, nnzBlocks, nA_beforScan
-			);
-		cudaSafeCall(cudaGetLastError());
-		compute_b_kernel << <divUp(nVerts, CTA_SIZE), CTA_SIZE >> >(
-			m_b_Ids_d_unique_pos.ptr(), m_beforScan_b.ptr(),
-			(Float3*)m_b_d.ptr(), m_simParam.dt, gravity, nVerts, nb_beforScan,
-			m_v_d.ptr(), m_vert_FaceList_d->bsrRowPtrTexture(), m_vert_FaceList_d->bsrColIdxTexture()
-			);
-		cudaSafeCall(cudaGetLastError());
-
-		// add body-cloth force term using level set
+		const int nVerts = m_x_init_d.size();
 		NodeCon con;
 		con.lvTex = m_bodyLvSet_d.getCudaTexture();
 		con.lvStep = m_bodyLvSet_h->getStep();
@@ -943,8 +984,238 @@ namespace ldp
 		con.collision_stiffness = m_simParam.collision_stiffness;
 		con.friction_stiffness = m_simParam.friction_stiffness;
 		add_LevelSet_constrain_kernel << <divUp(nVerts, CTA_SIZE), CTA_SIZE >> >(
-			con, m_A_d->bsrRowPtrTexture(), m_A_d->bsrColIdxTexture(), (Mat3f*)m_A_d->value(), 
+			con, m_A_d->bsrRowPtrTexture(), m_A_d->bsrColIdxTexture(), (Mat3f*)m_A_d->value(),
 			m_b_d.ptr(), m_simParam.dt, nVerts
+			);
+		cudaSafeCall(cudaGetLastError());
+	}
+#pragma endregion
+
+#pragma region --self collision
+	struct NodeFaceCon
+	{
+		float collision_stiffness = 0.f;
+		float repulsion_thickness = 0.f;
+		__device__ inline float violation(const float value)const { return ::max(-value, 0.f); }
+		__device__ inline float energy(const float value, const float area)const
+		{
+			const float v = violation(value);
+			return area * collision_stiffness*v*v*v / repulsion_thickness / 6.f;
+		}
+		__device__ inline float energy_grad(const float value, const float area)const
+		{
+			const float v = violation(value);
+			return -area * collision_stiffness*v*v / repulsion_thickness / 2.f;
+		}
+		__device__ inline float energy_hess(const float value, const float area)const
+		{
+			return area * collision_stiffness*violation(value) / repulsion_thickness;
+		}
+	};
+	__device__ __forceinline__ Int4 make_Int4(Int3 xyz, int w)
+	{
+		return Int4(xyz[0], xyz[1], xyz[2], w);
+	}
+	__device__ __forceinline__ int xyz2id(Int3 xyz, Int3 size)
+	{
+		return (xyz[0] * size[1] + xyz[1]) * size[2] + xyz[2];
+	}
+	__device__ __forceinline__ Int3 v2xyz(Float3 v, Float3 start, float inv_h)
+	{
+		return Int3(v - start)*inv_h;
+	}
+	__device__ __forceinline__ int v2id(Float3 v, Float3 start, float inv_h, Int3 size)
+	{
+		return xyz2id(v2xyz(v, start, inv_h), size);
+	}
+	__device__ __forceinline__ float signed_vf_distance(const Float3 &x, const Float3 &y0, 
+		const Float3 &y1, const Float3 &y2, Float3& n, float *w)
+	{
+		if ((y1 - y0).length() == 0.f || (y2 - y0).length() == 0.f)
+			return FLT_MAX;
+		n = Float3((y1 - y0).normalize()).cross((y2 - y0).normalize());
+		if (n.length() < 1e-6f)
+			return FLT_MAX;
+		n.normalizeLocal();
+		float b0 = (y1 - x).dot(Float3(y2 - x).cross(n));
+		float b1 = (y2 - x).dot(Float3(y0 - x).cross(n));
+		float b2 = (y0 - x).dot(Float3(y1 - x).cross(n));
+		w[3] = 1.f;
+		w[0] = -b0 / (b0 + b1 + b2);
+		w[1] = -b1 / (b0 + b1 + b2);
+		w[2] = -b2 / (b0 + b1 + b2);
+		if (w[0] > 1e-6f || w[1] > 1e-6f || w[2] > 1e-6f)
+			return FLT_MAX;
+		return (x - y0).dot(n);
+	}
+
+	__device__ __forceinline__ void spMat_atomicAdd(cudaTextureObject_t A_rowTex,
+		cudaTextureObject_t A_colTex, Mat3f* A_value, int r, int c, Mat3f B)
+	{
+		const int re = fetch_int(A_rowTex, r + 1);
+		for (int pos = fetch_int(A_rowTex, r); pos < re; pos++)
+		{
+			if (fetch_int(A_colTex, pos) == c)
+			for (int k = 0; k < 9; k++)
+				atomicAdd(A_value[pos].ptr() + k, B[k]);
+		}
+	}
+	__device__ __forceinline__ void rhs_atomicAdd(Float3* A_value, int i, Float3 B)
+	{
+		for (int k = 0; k < 3; k++)
+			atomicAdd(A_value[i].ptr() + k, B[k]);
+	}
+
+	__global__ void selfColli_Grid_0_Kernel(const Float3* X, int* vertex_id, int* vertex_bucket,
+		int number, Float3 start, float inv_h, Int3 size)
+	{
+		int i = blockDim.x * blockIdx.x + threadIdx.x;
+		if (i >= number)	return;
+		vertex_id[i] = i;
+		vertex_bucket[i] = v2id(X[i], start, inv_h, size);
+	}
+
+	__global__ void selfColli_Grid_1_Kernel(int* vertex_bucket, int* bucket_ranges, int number)
+	{
+		int i = blockDim.x * blockIdx.x + threadIdx.x;
+		if (i >= number)	return;
+
+		const int vi = vertex_bucket[i];
+		if (i == 0 || vi != vertex_bucket[i - 1])
+			bucket_ranges[vi * 2 + 0] = i;		//begin at i
+		if (i == number - 1 || vi != vertex_bucket[i + 1])
+			bucket_ranges[vi * 2 + 1] = i + 1;	//  end at i+1
+	}
+
+	__global__ void Triangle_Test_Kernel(
+		const int nVerts, const int nTri, const NodeFaceCon con,
+		const Float3 start, const float inv_h, const Int3 size,
+		cudaTextureObject_t A_rowTex, cudaTextureObject_t A_colTex, Mat3f* A_value,
+		Float3* b_value, float dt)
+	{
+		int iTri = blockDim.x * blockIdx.x + threadIdx.x;
+		if (iTri >= nTri)	return;
+
+		Int4 vabcp = make_Int4(texRead_faces_idxWorld(iTri), 0);
+		Float3 x[4] = { texRead_x(vabcp[0]), texRead_x(vabcp[1]), texRead_x(vabcp[2]), Float3(0.f) };
+		Float3 v[4] = { texRead_v(vabcp[0]), texRead_v(vabcp[1]), texRead_v(vabcp[2]), Float3(0.f) };
+		const Int3 min_ijk = max(Int3(0), min(Int3(size - 1), min(v2xyz(x[0], start, inv_h),
+			min(v2xyz(x[1], start, inv_h), v2xyz(x[2], start, inv_h))) - 1));
+		const Int3 max_ijk = max(Int3(0), min(Int3(size - 1), max(v2xyz(x[0], start, inv_h),
+			max(v2xyz(x[1], start, inv_h), v2xyz(x[2], start, inv_h))) + 1));
+		const float area = texRead_faceMaterialData(iTri).area;
+		const float mass = texRead_faceMaterialData(iTri).mass;
+
+		for (int pos_i = min_ijk[0]; pos_i <= max_ijk[0]; pos_i++)
+		for (int pos_j = min_ijk[1]; pos_j <= max_ijk[1]; pos_j++)
+		for (int pos_k = min_ijk[2]; pos_k <= max_ijk[2]; pos_k++)
+		{
+			const int v_buckedtId = xyz2id(Int3(pos_i,pos_j,pos_k), size);
+			const Int2 range = texRead_selfColli_buckedRange(v_buckedtId);
+			for (int ptr = range[0]; ptr<range[1]; ptr++)
+			{
+				vabcp[3] = texRead_selfColli_vid(ptr);
+				if (vabcp[3] == vabcp[0] || vabcp[3] == vabcp[1] || vabcp[3] == vabcp[2])
+					continue;
+				x[3] = texRead_x(vabcp[3]);
+				v[3] = texRead_v(vabcp[3]);
+				Float4 w = 0.f;
+				Float3 N;
+				const float d = signed_vf_distance(x[3], x[0], x[1], x[2], N, w.ptr());
+				if (d < 0.f)
+					N = -N;
+				if (fabs(d) > con.repulsion_thickness)
+					continue;		//proximity found!
+				float value = 0.f;
+				for (int i = 0; i < 4; i++)
+					value += w[i] * N.dot(x[i]);
+				value -= con.repulsion_thickness;
+				// f = -g*grad
+				// J = -h*outer(grad,grad)
+				const float g = con.energy_grad(value, area);
+				const float h = con.energy_hess(value, area);
+				float v_dot_grad = 0.f;
+				for (int k = 0; k < 4; k++)
+					v_dot_grad += w[k]*N.dot(v[k]);
+				const Mat3f ot = outer(N, N);
+
+				for (int k1 = 0; k1 < 4; k1++)
+				{
+					for (int k2 = 0; k2 < 4; k2++)
+					{
+						spMat_atomicAdd(A_rowTex, A_colTex, A_value, vabcp[k1],
+							vabcp[k2], dt*dt*h* w[k1] * w[k2] * ot);
+					} // end for k2
+					rhs_atomicAdd(b_value, vabcp[k1], -dt*(g + dt*h*v_dot_grad)*w[k1]*N);
+				} // end for k1
+			} // end for ptr
+		} // end for pos_i, j, k
+	}
+
+	void GpuSim::linearSelfCollision()
+	{
+		const int nVerts = m_x_init_h.size();
+		const int nTri = m_faces_idxWorld_h.size();
+		const float h = m_simParam.dt;
+		const float inv_h = 1.f / h;
+		ldp::Float3 bmin = FLT_MAX;
+		ldp::Float3 bmax = -bmin;
+		for (int i = 0; i<nVerts; i++)
+		for (int k = 0; k < 3; k++)
+		{
+			bmin[k] = ::min(bmin[k], m_x_h[i][k]);
+			bmax[k] = ::max(bmax[k], m_x_h[i][k]);
+		}
+		NodeFaceCon con;
+		con.collision_stiffness = m_simParam.collision_stiffness;
+		con.repulsion_thickness = m_simParam.repulsion_thickness;
+
+		// Initialize the culling grid sizes
+		const ldp::Float3 gridStart = bmin - 1.5f * h;
+		const ldp::Int3 gridSize((bmax - gridStart)*inv_h + 2);
+		const int bucket_size = gridSize[0] * gridSize[1] * gridSize[2];
+		if (bucket_size > m_selfColli_bucketIds.size())
+		{
+			m_selfColli_bucketIds.create(bucket_size*1.2);
+			m_selfColli_bucketRanges.create(m_selfColli_bucketIds.size() * 2);
+		}
+		m_selfColli_nBuckets = bucket_size;
+		m_selfColli_vertIds.create(nVerts);
+
+		// bind textures
+		if (m_selfColli_nBuckets > 0)
+		{
+			cudaChannelFormatDesc desc_int = cudaCreateChannelDesc<int>();
+			cudaChannelFormatDesc desc_int2 = cudaCreateChannelDesc<int2>();
+			size_t offset = 0;
+			cudaSafeCall(cudaBindTexture(&offset, &gt_selfColli_vertIds, m_selfColli_vertIds.ptr(),
+				&desc_int, m_selfColli_vertIds.size()*sizeof(int)));
+			CHECK_ZERO(offset);
+			cudaSafeCall(cudaBindTexture(&offset, &gt_selfColli_bucketRanges, (int2*)m_selfColli_bucketRanges.ptr(),
+				&desc_int2, m_selfColli_nBuckets*sizeof(int2)));
+			CHECK_ZERO(offset);
+		}
+
+		//assign vertex_id and vertex_bucket
+		selfColli_Grid_0_Kernel << <divUp(nVerts, CTA_SIZE), CTA_SIZE >> >(
+			m_x_d.ptr(), m_selfColli_vertIds.ptr(), m_selfColli_bucketIds.ptr(), 
+			nVerts,	gridStart, inv_h, gridSize);
+		cudaSafeCall(cudaGetLastError());
+		thrust_wrapper::sort_by_key(m_selfColli_bucketIds.ptr(), m_selfColli_vertIds.ptr(), nVerts);
+		cudaSafeCall(cudaGetLastError());
+
+		// calculate bucket renages
+		cudaMemset(m_selfColli_bucketRanges.ptr(), 0, sizeof(int)*m_selfColli_nBuckets);
+		cudaSafeCall(cudaGetLastError());
+		selfColli_Grid_1_Kernel << <divUp(nVerts, CTA_SIZE), CTA_SIZE >> >(
+			m_selfColli_bucketIds.ptr(), m_selfColli_bucketRanges.ptr(), nVerts);
+		cudaSafeCall(cudaGetLastError());
+
+		// apply triangle intersection forces
+		Triangle_Test_Kernel << <divUp(nTri, CTA_SIZE), CTA_SIZE >> >(
+			nVerts, nTri, con, gridStart, inv_h, gridSize, 
+			m_A_d->bsrRowPtrTexture(), m_A_d->bsrColIdxTexture(), 
+			(Mat3f*)m_A_d->value(), (Float3*)m_b_d.ptr(), m_simParam.dt
 			);
 		cudaSafeCall(cudaGetLastError());
 	}
