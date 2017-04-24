@@ -227,6 +227,10 @@ namespace ldp
 		return c;
 	}
 
+	__device__ __host__ __forceinline__ Float4 make_Float4(Float3 a, float b)
+	{
+		return Float4(a[0], a[1], a[2], b);
+	}
 	__device__ __host__ __forceinline__ Mat23f make_rows(Float3 a, Float3 b)
 	{
 		Mat23f C;
@@ -797,6 +801,7 @@ namespace ldp
 
 	void GpuSim::updateNumeric()
 	{
+		cudaSafeCall(cudaMemset(m_project_vw_d.ptr(), 0, m_project_vw_d.sizeBytes()));
 		cudaSafeCall(cudaMemset(m_beforScan_A.ptr(), 0, m_beforScan_A.sizeBytes()));
 		cudaSafeCall(cudaMemset(m_beforScan_b.ptr(), 0, m_beforScan_b.sizeBytes()));
 
@@ -894,7 +899,7 @@ namespace ldp
 
 	__global__ void add_LevelSet_constrain_kernel(const NodeCon con,
 		const cudaTextureObject_t A_rowTex, const cudaTextureObject_t A_colTex,
-		Mat3f* A_values, Float3* b_values, const float dt, const int nVerts)
+		Mat3f* A_values, Float3* b_values, Float4* proj_vw, const float dt, const int nVerts)
 	{
 		int iVert = threadIdx.x + blockIdx.x * blockDim.x;
 		if (iVert >= nVerts)
@@ -981,6 +986,9 @@ namespace ldp
 
 		// write into b
 		b_values[iVert] += thisb;
+
+		// collect project vec info
+		proj_vw[iVert] = make_Float4(con.project(x), 1.f);
 	}
 
 	void GpuSim::linearBodyCollision()
@@ -996,7 +1004,7 @@ namespace ldp
 		con.friction_stiffness = m_simParam.friction_stiffness;
 		add_LevelSet_constrain_kernel << <divUp(nVerts, CTA_SIZE), CTA_SIZE >> >(
 			con, m_A_d->bsrRowPtrTexture(), m_A_d->bsrColIdxTexture(), (Mat3f*)m_A_d->value(),
-			m_b_d.ptr(), m_simParam.dt, nVerts
+			m_b_d.ptr(), m_project_vw_d.ptr(), m_simParam.dt, nVerts
 			);
 		cudaSafeCall(cudaGetLastError());
 	}
@@ -1007,6 +1015,7 @@ namespace ldp
 	{
 		float collision_stiffness = 0.f;
 		float repulsion_thickness = 0.f;
+		float projection_thickness = 0.f;
 		__device__ inline float violation(const float value)const { return ::max(-value, 0.f); }
 		__device__ inline float energy(const float value, const float area)const
 		{
@@ -1021,6 +1030,18 @@ namespace ldp
 		__device__ inline float energy_hess(const float value, const float area)const
 		{
 			return area * collision_stiffness*violation(value) / repulsion_thickness;
+		}
+		__device__ inline void project(float value, Float3 n, Float4 w, Int4 nIds, Float3 dx[4])const
+		{
+			const float d = value + repulsion_thickness - projection_thickness;
+			dx[0] = dx[1] = dx[2] = dx[3] = 0.f;
+			if (d >= 0.f)
+				return;
+			float inv_mass = 0.f;
+			for (int i = 0; i < 4; i++)
+				inv_mass += sqr(w[i]) / texRead_nodeMaterialData(nIds[i]).area;
+			for (int i = 0; i < 4; i++)
+				dx[nIds[i]] = -(w[i] / texRead_nodeMaterialData(nIds[i]).mass) / inv_mass*d*n;
 		}
 	};
 	__device__ __forceinline__ Int4 make_Int4(Int3 xyz, int w)
@@ -1319,31 +1340,25 @@ namespace ldp
 #pragma endregion
 
 #pragma region --collision solve
-	__global__ void project_outside_kernel(const NodeCon con,
+	__global__ void project_outside_kernel(const Float4* proj_vw,
 		Float3* positions, const int nVerts)
 	{
-		int iVert = threadIdx.x + blockIdx.x * blockDim.x;
+		const int iVert = threadIdx.x + blockIdx.x * blockDim.x;
 		if (iVert >= nVerts)
 			return;
 
-		Float3 x = positions[iVert];
-		x += con.project(x);
-		positions[iVert] = x;
+		const Float4 vw = proj_vw[iVert];
+		Float3 v(vw[0], vw[1], vw[2]);
+		if (vw[3])
+			v /= vw[3];
+		positions[iVert] += v;
 	}
 
 
 	void GpuSim::project_outside()
 	{
-		NodeCon con;
-		con.lvTex = m_bodyLvSet_d.getCudaTexture();
-		con.lvStep = m_bodyLvSet_h->getStep();
-		con.lvStart = m_bodyLvSet_h->getStartPos();
-		con.projection_thickness = m_simParam.projection_thickness;
-		con.repulsion_thickness = m_simParam.repulsion_thickness;
-		con.collision_stiffness = m_simParam.collision_stiffness;
-		con.friction_stiffness = m_simParam.friction_stiffness;
 		project_outside_kernel << <divUp(m_x_d.size(), CTA_SIZE), CTA_SIZE >> >(
-			con, m_x_d.ptr(), m_x_d.size()
+			m_project_vw_d.ptr(), m_x_d.ptr(), m_x_d.size()
 			);
 		cudaSafeCall(cudaGetLastError());
 	}

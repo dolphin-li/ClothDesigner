@@ -296,6 +296,7 @@ namespace ldp
 		m_last_v_d.create(m_v_d.size());
 		m_dv_d.create(m_x_d.size());
 		m_b_d.create(m_x_d.size());
+		m_project_vw_d.create(m_x_d.size());
 		updateMaterial();
 		bindTextures();
 	}
