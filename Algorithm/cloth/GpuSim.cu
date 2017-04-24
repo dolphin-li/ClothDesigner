@@ -804,7 +804,7 @@ namespace ldp
 		cudaSafeCall(cudaMemset(m_project_vw_d.ptr(), 0, m_project_vw_d.sizeBytes()));
 		cudaSafeCall(cudaMemset(m_beforScan_A.ptr(), 0, m_beforScan_A.sizeBytes()));
 		cudaSafeCall(cudaMemset(m_beforScan_b.ptr(), 0, m_beforScan_b.sizeBytes()));
-
+		
 		// ldp hack here: make the gravity not important when we are stitching.
 		const Float3 gravity = m_simParam.gravity;// *powf(1 - std::max(0.f, std::min(1.f, m_curStitchRatio)), 2);
 		const int nFaces = m_faces_idxWorld_d.size();
@@ -814,7 +814,7 @@ namespace ldp
 			m_A_Ids_start_d.ptr(), m_beforScan_A.ptr(), m_b_Ids_start_d.ptr(), m_beforScan_b.ptr(),
 			m_v_d.ptr(), nFaces, nEdges, m_simParam.dt, m_simParam.strecth_mult, m_simParam.bend_mult);
 		cudaSafeCall(cudaGetLastError());
-
+		
 		// scanning into the sparse matrix
 		// since we have unique positions, we can do scan similar with CSR-vector multiplication.
 		const int nVerts = m_x_d.size();
@@ -825,16 +825,16 @@ namespace ldp
 			m_A_Ids_d_unique_pos.ptr(), m_beforScan_A.ptr(), m_A_d->bsrRowPtr_coo(), m_A_d->bsrColIdx(),
 			(Mat3f*)m_A_d->value(), nVerts, nnzBlocks, nA_beforScan
 			);
-		cudaSafeCall(cudaGetLastError());
+		cudaSafeCall(cudaGetLastError()); 
 		compute_b_kernel << <divUp(nVerts, CTA_SIZE), CTA_SIZE >> >(
 			m_b_Ids_d_unique_pos.ptr(), m_beforScan_b.ptr(),
 			(Float3*)m_b_d.ptr(), m_simParam.dt, gravity, nVerts, nb_beforScan,
 			m_v_d.ptr(), m_vert_FaceList_d->bsrRowPtrTexture(), m_vert_FaceList_d->bsrColIdxTexture()
 			);
-		cudaSafeCall(cudaGetLastError());
+		cudaSafeCall(cudaGetLastError()); 
 
 		// add body-cloth force term using level set
-		linearBodyCollision();
+		linearBodyCollision(); 
 
 		// add cloth-cloth force term using uniform grid
 		linearSelfCollision();
@@ -1286,35 +1286,28 @@ namespace ldp
 
 		// Initialize the culling grid sizes
 		const ldp::Float3 gridStart = bmin - 1.5f * h;
-		const ldp::Int3 gridSize((bmax - gridStart)*inv_h + 2);
+		const ldp::Int3 gridSize(floor((bmax - gridStart)*inv_h) + 2);
 		m_selfColli_nBuckets = gridSize[0] * gridSize[1] * gridSize[2];
 		if (m_selfColli_nBuckets > m_selfColli_bucketIds.size())
-		{
-			m_selfColli_bucketIds.create(m_selfColli_nBuckets*1.2);
-			m_selfColli_bucketRanges.create(m_selfColli_bucketIds.size() * 2);
-		}
-		if (nVerts > m_selfColli_vertIds.size())
-		{
-			m_selfColli_vertIds.create(nVerts);
-		}
-		if (nTri > m_selfColli_tri_vertCnt.size())
-		{
-			m_selfColli_tri_vertCnt.create(nTri);
-		}
-	
+			m_selfColli_bucketRanges.create(m_selfColli_nBuckets * 2.4, false);
+		cudaSafeCall(cudaMemset(m_selfColli_bucketRanges.ptr(), 0, m_selfColli_bucketRanges.sizeBytes()));
+		m_selfColli_bucketIds.create(nVerts);
+		m_selfColli_vertIds.create(nVerts);
+		m_selfColli_tri_vertCnt.create(nTri);
+		
 		//assign vertex_id and vertex_bucket
 		selfColli_Grid_0_Kernel << <divUp(nVerts, CTA_SIZE), CTA_SIZE >> >(
 			m_x_d.ptr(), m_selfColli_vertIds.ptr(), m_selfColli_bucketIds.ptr(), 
 			nVerts,	gridStart, inv_h, gridSize);
-		cudaSafeCall(cudaGetLastError());
+		cudaSafeCall(cudaGetLastError()); 
 		thrust_wrapper::sort_by_key(m_selfColli_bucketIds.ptr(), m_selfColli_vertIds.ptr(), nVerts);
-		cudaSafeCall(cudaGetLastError());
-
+		cudaSafeCall(cudaGetLastError()); 
+		
 		// calculate bucket renages
 		cudaSafeCall(cudaGetLastError());
 		selfColli_Grid_1_Kernel << <divUp(nVerts, CTA_SIZE), CTA_SIZE >> >(
 			m_selfColli_bucketIds.ptr(), m_selfColli_bucketRanges.ptr(), nVerts);
-		cudaSafeCall(cudaGetLastError());
+		cudaSafeCall(cudaGetLastError()); 
 
 		// count the possible intersections
 		Triangle_count_Kernel << <divUp(nTri, CTA_SIZE), CTA_SIZE >> >(
