@@ -37,7 +37,6 @@ CudaBsrMatrix::~CudaBsrMatrix()
 
 void CudaBsrMatrix::clear()
 {
-	m_cusparseHandle = nullptr;
 	m_blocksInRow = 0;
 	m_blocksInCol = 0;
 	m_rowsPerBlock = 0;

@@ -203,7 +203,30 @@ namespace ldp
 			c[i] = ::max(a[i], b[i]);
 		return c;
 	}
-
+	template<class T, int N>
+	__device__ __host__ __forceinline__ ldp_basic_vec<T, N> floor(ldp_basic_vec<T, N> a)
+	{
+		ldp_basic_vec<T, N> c;
+		for (int i = 0; i < N; i++)
+			c[i] = ::floor(a[i]);
+		return c;
+	}
+	template<class T, int N>
+	__device__ __host__ __forceinline__ ldp_basic_vec<T, N> ceil(ldp_basic_vec<T, N> a)
+	{
+		ldp_basic_vec<T, N> c;
+		for (int i = 0; i < N; i++)
+			c[i] = ::ceil(a[i]);
+		return c;
+	}	
+	template<class T, int N>
+	__device__ __host__ __forceinline__ ldp_basic_vec<T, N> round(ldp_basic_vec<T, N> a)
+	{
+		ldp_basic_vec<T, N> c;
+		for (int i = 0; i < N; i++)
+			c[i] = ::round(a[i]);
+		return c;
+	}
 
 	__device__ __host__ __forceinline__ Mat23f make_rows(Float3 a, Float3 b)
 	{
@@ -393,8 +416,6 @@ namespace ldp
 	texture<int, cudaTextureType1D, cudaReadModeElementType> gt_b_order;
 	texture<float4, cudaTextureType1D, cudaReadModeElementType> gt_faceMaterialData;
 	texture<float4, cudaTextureType1D, cudaReadModeElementType> gt_nodeMaterialData;
-	texture<int, cudaTextureType1D, cudaReadModeElementType> gt_selfColli_vertIds;
-	texture<int2, cudaTextureType1D, cudaReadModeElementType> gt_selfColli_bucketRanges;
 	__device__ __forceinline__ Float3 texRead_x(int i)
 	{
 		return ldp::Float3(tex1Dfetch(gt_x, i * 3),
@@ -457,15 +478,6 @@ namespace ldp
 	__device__ __forceinline__ float texRead_bendData(cudaTextureObject_t t, float x, float y)
 	{
 		return tex2D<float>(t, x, y);
-	}
-	__device__ __forceinline__ int texRead_selfColli_vid(int i)
-	{
-		return tex1Dfetch(gt_selfColli_vertIds, i);
-	}
-	__device__ __forceinline__ Int2 texRead_selfColli_buckedRange(int i)
-	{
-		int2 val = tex1Dfetch(gt_selfColli_bucketRanges, i);
-		return Int2(val.x, val.y);
 	}
 
 	void GpuSim::bindTextures()
@@ -1020,13 +1032,21 @@ namespace ldp
 	{
 		return (xyz[0] * size[1] + xyz[1]) * size[2] + xyz[2];
 	}
-	__device__ __forceinline__ Int3 v2xyz(Float3 v, Float3 start, float inv_h)
+	__device__ __forceinline__ Int3 v2xyz_floor(Float3 v, Float3 start, float inv_h)
 	{
-		return Int3(v - start)*inv_h;
+		return Int3(floor((v - start)*inv_h));
 	}
-	__device__ __forceinline__ int v2id(Float3 v, Float3 start, float inv_h, Int3 size)
+	__device__ __forceinline__ Int3 v2xyz_ceil(Float3 v, Float3 start, float inv_h)
 	{
-		return xyz2id(v2xyz(v, start, inv_h), size);
+		return Int3(ceil((v - start)*inv_h));
+	}
+	__device__ __forceinline__ int v2id_floor(Float3 v, Float3 start, float inv_h, Int3 size)
+	{
+		return xyz2id(v2xyz_floor(v, start, inv_h), size);
+	}
+	__device__ __forceinline__ int v2id_ceil(Float3 v, Float3 start, float inv_h, Int3 size)
+	{
+		return xyz2id(v2xyz_ceil(v, start, inv_h), size);
 	}
 	__device__ __forceinline__ float signed_vf_distance(const Float3 &x, const Float3 &y0, 
 		const Float3 &y1, const Float3 &y2, Float3& n, float *w)
@@ -1072,7 +1092,7 @@ namespace ldp
 		int i = blockDim.x * blockIdx.x + threadIdx.x;
 		if (i >= number)	return;
 		vertex_id[i] = i;
-		vertex_bucket[i] = v2id(X[i], start, inv_h, size);
+		vertex_bucket[i] = v2id_floor(X[i], start, inv_h, size);
 	}
 
 	__global__ void selfColli_Grid_1_Kernel(int* vertex_bucket, int* bucket_ranges, int number)
@@ -1087,76 +1107,138 @@ namespace ldp
 			bucket_ranges[vi * 2 + 1] = i + 1;	//  end at i+1
 	}
 
-	__global__ void Triangle_Test_Kernel(
-		const int nVerts, const int nTri, const NodeFaceCon con,
+	__global__ void Triangle_count_Kernel(
+		const int nVerts, const int nTri, NodeFaceCon con,
 		const Float3 start, const float inv_h, const Int3 size,
-		cudaTextureObject_t A_rowTex, cudaTextureObject_t A_colTex, Mat3f* A_value,
-		Float3* b_value, float dt)
+		const Int2* bucketRanges, const int* vertIds, int* tri_vertCnt)
 	{
 		int iTri = blockDim.x * blockIdx.x + threadIdx.x;
 		if (iTri >= nTri)	return;
 
-		Int4 vabcp = make_Int4(texRead_faces_idxWorld(iTri), 0);
-		Float3 x[4] = { texRead_x(vabcp[0]), texRead_x(vabcp[1]), texRead_x(vabcp[2]), Float3(0.f) };
-		Float3 v[4] = { texRead_v(vabcp[0]), texRead_v(vabcp[1]), texRead_v(vabcp[2]), Float3(0.f) };
-		const Int3 min_ijk = max(Int3(0), min(Int3(size - 1), min(v2xyz(x[0], start, inv_h),
-			min(v2xyz(x[1], start, inv_h), v2xyz(x[2], start, inv_h))) - 1));
-		const Int3 max_ijk = max(Int3(0), min(Int3(size - 1), max(v2xyz(x[0], start, inv_h),
-			max(v2xyz(x[1], start, inv_h), v2xyz(x[2], start, inv_h))) + 1));
-		const float area = texRead_faceMaterialData(iTri).area;
-		const float mass = texRead_faceMaterialData(iTri).mass;
+		const Int3 vabc = texRead_faces_idxWorld(iTri);
+		const Float3 x[3] = { texRead_x(vabc[0]), texRead_x(vabc[1]), texRead_x(vabc[2]) };
+		const Float3 bmin(min(x[0], min(x[1], x[2])));
+		const Float3 bmax(max(x[0], max(x[1], x[2])));
+		const Int3 min_ijk = max(Int3(0), min(size - 1, v2xyz_floor(bmin, start, inv_h) - 1));
+		const Int3 max_ijk = max(Int3(0), min(size - 1, v2xyz_ceil(bmax, start, inv_h) + 1));
 
+		int cnt = 0;
 		for (int pos_i = min_ijk[0]; pos_i <= max_ijk[0]; pos_i++)
 		for (int pos_j = min_ijk[1]; pos_j <= max_ijk[1]; pos_j++)
 		for (int pos_k = min_ijk[2]; pos_k <= max_ijk[2]; pos_k++)
 		{
-			const int v_buckedtId = xyz2id(Int3(pos_i,pos_j,pos_k), size);
-			const Int2 range = texRead_selfColli_buckedRange(v_buckedtId);
-			for (int ptr = range[0]; ptr<range[1]; ptr++)
+			const int v_buckedtId = xyz2id(Int3(pos_i, pos_j, pos_k), size);
+			const Int2 range = bucketRanges[v_buckedtId];
+			for (int k = range[0]; k < range[1]; k++)
 			{
-				vabcp[3] = texRead_selfColli_vid(ptr);
-				if (vabcp[3] == vabcp[0] || vabcp[3] == vabcp[1] || vabcp[3] == vabcp[2])
-					continue;
-				x[3] = texRead_x(vabcp[3]);
-				v[3] = texRead_v(vabcp[3]);
-				Float4 w = 0.f;
-				Float3 N;
-				const float d = signed_vf_distance(x[3], x[0], x[1], x[2], N, w.ptr());
-				if (d < 0.f)
-					N = -N;
-				if (fabs(d) > con.repulsion_thickness)
-					continue;		//proximity found!
-				float value = 0.f;
-				for (int i = 0; i < 4; i++)
-					value += w[i] * N.dot(x[i]);
-				value -= con.repulsion_thickness;
-				// f = -g*grad
-				// J = -h*outer(grad,grad)
-				const float g = con.energy_grad(value, area);
-				const float h = con.energy_hess(value, area);
-				float v_dot_grad = 0.f;
-				for (int k = 0; k < 4; k++)
-					v_dot_grad += w[k]*N.dot(v[k]);
-				const Mat3f ot = outer(N, N);
-
-				for (int k1 = 0; k1 < 4; k1++)
-				{
-					for (int k2 = 0; k2 < 4; k2++)
-					{
-						spMat_atomicAdd(A_rowTex, A_colTex, A_value, vabcp[k1],
-							vabcp[k2], dt*dt*h* w[k1] * w[k2] * ot);
-					} // end for k2
-					rhs_atomicAdd(b_value, vabcp[k1], -dt*(g + dt*h*v_dot_grad)*w[k1]*N);
-				} // end for k1
-			} // end for ptr
+				const int pid = vertIds[k];
+				const Float3 p = texRead_x(pid);
+				cnt += (pid != vabc[0] && pid != vabc[1] && pid != vabc[2])
+					&& p[0] >= bmin[0] - con.repulsion_thickness && p[0] < bmax[0] + con.repulsion_thickness
+					&& p[1] >= bmin[1] - con.repulsion_thickness && p[1] < bmax[1] + con.repulsion_thickness
+					&& p[2] >= bmin[2] - con.repulsion_thickness && p[2] < bmax[2] + con.repulsion_thickness
+					;
+			}
 		} // end for pos_i, j, k
+		tri_vertCnt[iTri] = cnt;
+	}
+
+	__global__ void Triangle_fillPair_Kernel(
+		const int nVerts, const int nTri, NodeFaceCon con,
+		const Float3 start, const float inv_h, const Int3 size,
+		const Int2* bucketRanges, const int* vertIds,
+		const int* tri_vertCnt, int* pair_tId, int* pair_vId)
+	{
+		const int iTri = blockDim.x * blockIdx.x + threadIdx.x;
+		if (iTri >= nTri)	return;
+
+		const int tb = iTri == 0 ? 0 : tri_vertCnt[iTri - 1];
+		const int te = tri_vertCnt[iTri];
+		if (tb == te)
+			return;
+
+		const Int3 vabc = texRead_faces_idxWorld(iTri);
+		const Float3 x[3] = { texRead_x(vabc[0]), texRead_x(vabc[1]), texRead_x(vabc[2]) };
+		const Float3 bmin(min(x[0], min(x[1], x[2])));
+		const Float3 bmax(max(x[0], max(x[1], x[2])));
+		const Int3 min_ijk = max(Int3(0), min(size - 1, v2xyz_floor(bmin, start, inv_h) - 1));
+		const Int3 max_ijk = max(Int3(0), min(size - 1, v2xyz_ceil(bmax, start, inv_h) + 1));
+
+		int cnt = 0;
+		for (int pos_i = min_ijk[0]; pos_i <= max_ijk[0]; pos_i++)
+		for (int pos_j = min_ijk[1]; pos_j <= max_ijk[1]; pos_j++)
+		for (int pos_k = min_ijk[2]; pos_k <= max_ijk[2]; pos_k++)
+		{
+			const int v_buckedtId = xyz2id(Int3(pos_i, pos_j, pos_k), size);
+			const Int2 range = bucketRanges[v_buckedtId];
+			for (int k = range[0]; k < range[1]; k++)
+			{
+				const int pid = vertIds[k];
+				const Float3 p = texRead_x(pid);
+				if (pid != vabc[0] && pid != vabc[1] && pid != vabc[2]
+					&& p[0] >= bmin[0] - con.repulsion_thickness && p[0] < bmax[0] + con.repulsion_thickness
+					&& p[1] >= bmin[1] - con.repulsion_thickness && p[1] < bmax[1] + con.repulsion_thickness
+					&& p[2] >= bmin[2] - con.repulsion_thickness && p[2] < bmax[2] + con.repulsion_thickness
+					)
+				{
+					pair_tId[tb + cnt] = iTri;
+					pair_vId[tb + cnt] = pid;
+					cnt++;
+				}
+			}
+		} // end for pos_i, j, k
+	}
+
+	__global__ void Triangle_compute_Kernel(
+		const int nPairs, const NodeFaceCon con, const int* pair_tId, const int* pair_vId, 
+		cudaTextureObject_t A_rowTex, cudaTextureObject_t A_colTex, Mat3f* A_value,
+		Float3* b_value, float dt)
+	{
+		const int iPair = blockDim.x * blockIdx.x + threadIdx.x;
+		if (iPair >= nPairs)	return;
+
+		const int iTri = pair_tId[iPair];
+		const int iVert = pair_vId[iPair];
+		const Int4 vabcp = make_Int4(texRead_faces_idxWorld(iTri), iVert);
+		const Float3 x[4] = { texRead_x(vabcp[0]), texRead_x(vabcp[1]), texRead_x(vabcp[2]), texRead_x(vabcp[3]) };
+		const float area = ::min(texRead_faceMaterialData(iTri).area, texRead_nodeMaterialData(iVert).area);
+
+		Float4 w = 0.f;
+		Float3 N;
+		const float d = signed_vf_distance(x[3], x[0], x[1], x[2], N, w.ptr());
+		if (d < 0.f)
+			N = -N;
+		if (fabs(d) > con.repulsion_thickness)
+			return;		//proximity found!
+		float value = 0.f;
+		for (int i = 0; i < 4; i++)
+			value += w[i] * N.dot(x[i]);
+		value -= con.repulsion_thickness;
+		// f = -g*grad
+		// J = -h*outer(grad,grad)
+		const float g = con.energy_grad(value, area);
+		const float h = con.energy_hess(value, area);
+		float v_dot_grad = 0.f;
+		for (int k = 0; k < 4; k++)
+			v_dot_grad += w[k] * N.dot(texRead_v(vabcp[k]));
+		const Mat3f ot = outer(N, N);
+
+		for (int k1 = 0; k1 < 4; k1++)
+		{
+			for (int k2 = 0; k2 < 4; k2++)
+			{
+				spMat_atomicAdd(A_rowTex, A_colTex, A_value, vabcp[k1],
+					vabcp[k2], dt*dt*h* w[k1] * w[k2] * ot);
+			} // end for k2
+			rhs_atomicAdd(b_value, vabcp[k1], -dt*(g + dt*h*v_dot_grad)*w[k1] * N);
+		} // end for k1
 	}
 
 	void GpuSim::linearSelfCollision()
 	{
 		const int nVerts = m_x_init_h.size();
 		const int nTri = m_faces_idxWorld_h.size();
-		const float h = m_simParam.dt;
+		const float h = ::max(1.f/256.f, m_simParam.dt);
 		const float inv_h = 1.f / h;
 		ldp::Float3 bmin = FLT_MAX;
 		ldp::Float3 bmax = -bmin;
@@ -1173,29 +1255,15 @@ namespace ldp
 		// Initialize the culling grid sizes
 		const ldp::Float3 gridStart = bmin - 1.5f * h;
 		const ldp::Int3 gridSize((bmax - gridStart)*inv_h + 2);
-		const int bucket_size = gridSize[0] * gridSize[1] * gridSize[2];
-		if (bucket_size > m_selfColli_bucketIds.size())
+		m_selfColli_nBuckets = gridSize[0] * gridSize[1] * gridSize[2];
+		if (m_selfColli_nBuckets > m_selfColli_bucketIds.size())
 		{
-			m_selfColli_bucketIds.create(bucket_size*1.2);
+			m_selfColli_bucketIds.create(m_selfColli_nBuckets*1.2);
 			m_selfColli_bucketRanges.create(m_selfColli_bucketIds.size() * 2);
 		}
-		m_selfColli_nBuckets = bucket_size;
 		m_selfColli_vertIds.create(nVerts);
-
-		// bind textures
-		if (m_selfColli_nBuckets > 0)
-		{
-			cudaChannelFormatDesc desc_int = cudaCreateChannelDesc<int>();
-			cudaChannelFormatDesc desc_int2 = cudaCreateChannelDesc<int2>();
-			size_t offset = 0;
-			cudaSafeCall(cudaBindTexture(&offset, &gt_selfColli_vertIds, m_selfColli_vertIds.ptr(),
-				&desc_int, m_selfColli_vertIds.size()*sizeof(int)));
-			CHECK_ZERO(offset);
-			cudaSafeCall(cudaBindTexture(&offset, &gt_selfColli_bucketRanges, (int2*)m_selfColli_bucketRanges.ptr(),
-				&desc_int2, m_selfColli_nBuckets*sizeof(int2)));
-			CHECK_ZERO(offset);
-		}
-
+		m_selfColli_tri_vertCnt.create(nTri);
+	
 		//assign vertex_id and vertex_bucket
 		selfColli_Grid_0_Kernel << <divUp(nVerts, CTA_SIZE), CTA_SIZE >> >(
 			m_x_d.ptr(), m_selfColli_vertIds.ptr(), m_selfColli_bucketIds.ptr(), 
@@ -1211,9 +1279,34 @@ namespace ldp
 			m_selfColli_bucketIds.ptr(), m_selfColli_bucketRanges.ptr(), nVerts);
 		cudaSafeCall(cudaGetLastError());
 
-		// apply triangle intersection forces
-		Triangle_Test_Kernel << <divUp(nTri, CTA_SIZE), CTA_SIZE >> >(
-			nVerts, nTri, con, gridStart, inv_h, gridSize, 
+		// count the possible intersections
+		Triangle_count_Kernel << <divUp(nTri, CTA_SIZE), CTA_SIZE >> >(
+			nVerts, nTri, con, gridStart, inv_h, gridSize,
+			(Int2*)m_selfColli_bucketRanges.ptr(), m_selfColli_vertIds.ptr(),
+			m_selfColli_tri_vertCnt.ptr()
+			);
+		cudaSafeCall(cudaGetLastError());
+		thrust_wrapper::inclusive_scan(m_selfColli_tri_vertCnt.ptr(), m_selfColli_tri_vertCnt.ptr(), nTri);
+		cudaMemcpy(&m_nPairs, m_selfColli_tri_vertCnt.ptr() + nTri-1, sizeof(int), cudaMemcpyDeviceToHost);
+		if (m_nPairs == 0)
+			return;
+		if (m_nPairs > m_selfColli_tri_vertPair_tId.size())
+		{
+			m_selfColli_tri_vertPair_tId.create(m_nPairs * 1.2);
+			m_selfColli_tri_vertPair_vId.create(m_nPairs * 1.2);
+		}
+		
+		// fill the triangle-vertex intersection pairs
+		Triangle_fillPair_Kernel << <divUp(nTri, CTA_SIZE), CTA_SIZE >> >(
+			nVerts, nTri, con, gridStart, inv_h, gridSize,
+			(Int2*)m_selfColli_bucketRanges.ptr(), m_selfColli_vertIds.ptr(),
+			m_selfColli_tri_vertCnt.ptr(), m_selfColli_tri_vertPair_tId.ptr(), m_selfColli_tri_vertPair_vId.ptr()
+			);
+		cudaSafeCall(cudaGetLastError());
+
+		// compute the intersection info
+		Triangle_compute_Kernel << <divUp(m_nPairs, CTA_SIZE), CTA_SIZE >> >(
+			m_nPairs, con, m_selfColli_tri_vertPair_tId.ptr(), m_selfColli_tri_vertPair_vId.ptr(),
 			m_A_d->bsrRowPtrTexture(), m_A_d->bsrColIdxTexture(), 
 			(Mat3f*)m_A_d->value(), (Float3*)m_b_d.ptr(), m_simParam.dt
 			);

@@ -132,6 +132,7 @@ namespace ldp
 
 	void GpuSim::init(ClothManager* clothManager)
 	{
+		clear();
 		release_assert(ldp::is_float<ClothManager::ValueType>::value);
 		m_arcSimManager = nullptr;
 		m_clothManager = clothManager;
@@ -140,6 +141,7 @@ namespace ldp
 
 	void GpuSim::init(arcsim::ArcSimManager* arcSimManager)
 	{
+		clear();
 		release_assert(ldp::is_float<ClothManager::ValueType>::value);
 		m_clothManager = nullptr;
 		m_arcSimManager = arcSimManager;
@@ -742,6 +744,71 @@ namespace ldp
 #endif
 		update_x_v_by_dv();
 		cudaSafeCall(cudaThreadSynchronize());
+	}
+
+	void GpuSim::clear()
+	{
+		m_clothManager = nullptr;
+		m_arcSimManager = nullptr;
+		m_simParam.setDefault();
+		m_fps = 0.f;
+		m_solverInfo ="";
+		m_bodyLvSet_h = nullptr;
+		m_bodyLvSet_d.release();
+
+		m_faces_idxWorld_h.clear();
+		m_faces_idxWorld_d.release();
+		m_faces_idxTex_h.clear();
+		m_faces_idxTex_d.release();
+		m_faces_idxMat_h.clear();
+		m_faces_texStretch_d.release();
+		m_faces_texBend_d.release();
+		m_faces_materialSpace_d.release();
+		m_nodes_materialSpace_d.release();
+		m_edgeData_h.clear();
+		m_edgeData_d.release();
+		m_vert_FaceList_d->clear();
+	
+		m_A_Ids_d.release();
+		m_A_Ids_d_unique.release();
+		m_A_Ids_d_unique_pos.release();	
+		m_A_Ids_start_d.release();		
+		m_A_order_d.release();			
+		m_A_invOrder_d.release();
+		m_beforScan_A.release();
+		m_b_Ids_d.release();
+		m_b_Ids_d_unique.release();
+		m_b_Ids_d_unique_pos.release();
+		m_b_Ids_start_d.release();		
+		m_b_order_d.release();			
+		m_b_invOrder_d.release();
+		m_beforScan_b.release();
+
+		m_A_d->clear();
+		m_A_diag_d->clear();
+		m_b_d.release();
+		m_texCoord_init_h.clear();								
+		m_texCoord_init_d.release();		
+		m_x_init_h.clear();				
+		m_x_init_d.release();				
+		m_x_h.clear();					
+		m_x_d.release();					
+		m_last_x_d.release();				
+		m_v_d.release();					
+		m_last_v_d.release();				
+		m_dv_d.release();					
+		
+		m_selfColli_nBuckets = 0;
+		m_selfColli_vertIds.release();
+		m_selfColli_bucketIds.release();
+		m_selfColli_bucketRanges.release();
+		m_selfColli_tri_vertCnt.release();
+		m_selfColli_tri_vertPair_tId.release();
+		m_selfColli_tri_vertPair_vId.release();
+		m_nPairs = 0;
+		m_stretchSamples_h.clear();
+		m_bendingData_h.clear();
+		m_densityData_h.clear();
 	}
 
 	void GpuSim::dumpVec(std::string name, const DeviceArray<float>& A, int nTotal)

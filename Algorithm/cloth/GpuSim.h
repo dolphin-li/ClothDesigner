@@ -115,6 +115,8 @@ namespace ldp
 
 		// simulatio parameter update; resulting in numerical updates
 		void updateNumeric();
+
+		void clear();
 	protected:
 		void initParam();
 
@@ -194,6 +196,10 @@ namespace ldp
 		DeviceArray<int> m_selfColli_vertIds;
 		DeviceArray<int> m_selfColli_bucketIds;
 		DeviceArray<int> m_selfColli_bucketRanges;
+		DeviceArray<int> m_selfColli_tri_vertCnt;
+		DeviceArray<int> m_selfColli_tri_vertPair_tId;
+		DeviceArray<int> m_selfColli_tri_vertPair_vId;
+		int m_nPairs = 0;
 	public:
 		//////////////////////// material related///////////////////////////////////////////////////////
 		class StretchingData { 

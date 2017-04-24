@@ -119,6 +119,13 @@ namespace thrust_wrapper
 		thrust::exclusive_scan(thrust::cuda::par(g_allocator), in_begin, in_end, out_begin);
 	}
 
+	void inclusive_scan(const int* in, int* out, int n)
+	{
+		thrust::device_ptr<int> in_begin((int*)in);
+		thrust::device_ptr<int> in_end((int*)in + n);
+		thrust::device_ptr<int> out_begin(out);
+		thrust::inclusive_scan(thrust::cuda::par(g_allocator), in_begin, in_end, out_begin);
+	}
 	void inclusive_scan_by_key(const int* key_d, const float4* value_d, float4* dst_d, int n)
 	{
 		thrust::device_ptr<int> key_begin((int*)key_d);
@@ -161,6 +168,13 @@ namespace thrust_wrapper
 		thrust::device_ptr<int> points_begin(value_d);
 		auto ptr = thrust::unique_by_key(thrust::cuda::par(g_allocator), key_begin, key_end, points_begin);
 		return ptr.first - key_begin;
+	}
+
+	int reduce(const int* in, int n)
+	{
+		thrust::device_ptr<int> key_begin((int*)in);
+		thrust::device_ptr<int> key_end((int*)in + n);
+		return thrust::reduce(thrust::cuda::par(g_allocator), key_begin, key_end, 0);
 	}
 
 	size_t unique(int* data, int n)
