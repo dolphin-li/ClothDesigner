@@ -988,7 +988,7 @@ namespace ldp
 		b_values[iVert] += thisb;
 
 		// collect project vec info
-		proj_vw[iVert] = make_Float4(con.project(x), 1.f);
+		proj_vw[iVert] += make_Float4(con.project(x), 1.f);
 	}
 
 	void GpuSim::linearBodyCollision()
@@ -1041,7 +1041,7 @@ namespace ldp
 			for (int i = 0; i < 4; i++)
 				inv_mass += sqr(w[i]) / texRead_nodeMaterialData(nIds[i]).area;
 			for (int i = 0; i < 4; i++)
-				dx[nIds[i]] = -(w[i] / texRead_nodeMaterialData(nIds[i]).mass) / inv_mass*d*n;
+				dx[i] = -(w[i] / texRead_nodeMaterialData(nIds[i]).mass) / inv_mass*d*n;
 		}
 	};
 	__device__ __forceinline__ Int4 make_Int4(Int3 xyz, int w)
@@ -1103,6 +1103,11 @@ namespace ldp
 	__device__ __forceinline__ void rhs_atomicAdd(Float3* A_value, int i, Float3 B)
 	{
 		for (int k = 0; k < 3; k++)
+			atomicAdd(A_value[i].ptr() + k, B[k]);
+	}
+	__device__ __forceinline__ void vw_atomicAdd(Float4* A_value, int i, Float4 B)
+	{
+		for (int k = 0; k < 4; k++)
 			atomicAdd(A_value[i].ptr() + k, B[k]);
 	}
 
@@ -1212,7 +1217,7 @@ namespace ldp
 	__global__ void Triangle_compute_Kernel(
 		const int nPairs, const NodeFaceCon con, const int* pair_tId, const int* pair_vId, 
 		cudaTextureObject_t A_rowTex, cudaTextureObject_t A_colTex, Mat3f* A_value,
-		Float3* b_value, float dt)
+		Float3* b_value, Float4* proj_vw, float dt)
 	{
 		const int iPair = blockDim.x * blockIdx.x + threadIdx.x;
 		if (iPair >= nPairs)	return;
@@ -1252,6 +1257,12 @@ namespace ldp
 			} // end for k2
 			rhs_atomicAdd(b_value, vabcp[k1], -dt*(g + dt*h*v_dot_grad)*w[k1] * N);
 		} // end for k1
+
+		//// handle self collision project out
+		//Float3 proj_dx[4];
+		//con.project(value, N, w, vabcp, proj_dx);
+		//for (int k1 = 0; k1 < 4; k1++)
+		//	vw_atomicAdd(proj_vw, vabcp[k1], make_Float4(proj_dx[k1], w[k1]));
 	}
 
 	void GpuSim::linearSelfCollision()
@@ -1271,6 +1282,7 @@ namespace ldp
 		NodeFaceCon con;
 		con.collision_stiffness = m_simParam.collision_stiffness;
 		con.repulsion_thickness = m_simParam.repulsion_thickness;
+		con.projection_thickness = m_simParam.projection_thickness;
 
 		// Initialize the culling grid sizes
 		const ldp::Float3 gridStart = bmin - 1.5f * h;
@@ -1333,7 +1345,7 @@ namespace ldp
 		Triangle_compute_Kernel << <divUp(m_nPairs, CTA_SIZE), CTA_SIZE >> >(
 			m_nPairs, con, m_selfColli_tri_vertPair_tId.ptr(), m_selfColli_tri_vertPair_vId.ptr(),
 			m_A_d->bsrRowPtrTexture(), m_A_d->bsrColIdxTexture(), 
-			(Mat3f*)m_A_d->value(), (Float3*)m_b_d.ptr(), m_simParam.dt
+			(Mat3f*)m_A_d->value(), (Float3*)m_b_d.ptr(), m_project_vw_d.ptr(), m_simParam.dt
 			);
 		cudaSafeCall(cudaGetLastError());
 	}
@@ -1341,7 +1353,7 @@ namespace ldp
 
 #pragma region --collision solve
 	__global__ void project_outside_kernel(const Float4* proj_vw,
-		Float3* positions, const int nVerts)
+		Float3* positions, Float3* velocity, float dt, const int nVerts)
 	{
 		const int iVert = threadIdx.x + blockIdx.x * blockDim.x;
 		if (iVert >= nVerts)
@@ -1352,13 +1364,14 @@ namespace ldp
 		if (vw[3])
 			v /= vw[3];
 		positions[iVert] += v;
+		velocity[iVert] += v / dt;
 	}
 
 
 	void GpuSim::project_outside()
 	{
 		project_outside_kernel << <divUp(m_x_d.size(), CTA_SIZE), CTA_SIZE >> >(
-			m_project_vw_d.ptr(), m_x_d.ptr(), m_x_d.size()
+			m_project_vw_d.ptr(), m_x_d.ptr(), m_v_d.ptr(), m_simParam.dt, m_x_d.size()
 			);
 		cudaSafeCall(cudaGetLastError());
 	}
