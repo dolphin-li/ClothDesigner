@@ -1589,6 +1589,9 @@
     <ClInclude Include="Algorithm\cudpp\GpuKdTree.h">
       <Filter>algorithm\cudpp</Filter>
     </ClInclude>
+    <ClInclude Include="Algorithm\cudpp\cached_allocator.h">
+      <Filter>algorithm\cudpp</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="qdarkstyle\rc\up_arrow_disabled.png">
@@ -1761,6 +1764,9 @@
       <Filter>algorithm\cudpp</Filter>
     </CudaCompile>
     <CudaCompile Include="Algorithm\cudpp\GpuKdTree.cu">
+      <Filter>algorithm\cudpp</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Algorithm\cudpp\cached_allocator.cu">
       <Filter>algorithm\cudpp</Filter>
     </CudaCompile>
   </ItemGroup>

@@ -4,6 +4,7 @@
 #include <driver_functions.h>
 #include <vector_functions.h>
 #include <cuda_fp16.h>
+#include "cached_allocator.h"
 namespace thrust_wrapper
 {
 	char* cached_allocate(size_t bytes);

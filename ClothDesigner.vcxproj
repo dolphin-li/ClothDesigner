@@ -245,6 +245,9 @@
     <ClCompile Include="Algorithm\conv\Convolution_Helper.cpp" />
     <ClCompile Include="Algorithm\conv\ImageData.cpp" />
     <ClCompile Include="Algorithm\cudpp\CachedDeviceBuffer.cpp" />
+    <CudaCompile Include="Algorithm\cudpp\cached_allocator.cu">
+      <FileType>CppCode</FileType>
+    </CudaCompile>
     <ClCompile Include="Algorithm\cudpp\CudaBsrMatrix.cpp" />
     <ClCompile Include="Algorithm\cudpp\CudaDiagBlockMatrix.cpp" />
     <ClCompile Include="Algorithm\cudpp\device_memory.cpp" />
@@ -634,6 +637,7 @@
     <ClInclude Include="Algorithm\conv\Convolution_Helper.h" />
     <ClInclude Include="Algorithm\conv\ImageData.h" />
     <ClInclude Include="Algorithm\cudpp\CachedDeviceBuffer.h" />
+    <ClInclude Include="Algorithm\cudpp\cached_allocator.h" />
     <ClInclude Include="Algorithm\cudpp\Cuda2DArray.h" />
     <ClInclude Include="Algorithm\cudpp\Cuda3DArray.h" />
     <ClInclude Include="Algorithm\cudpp\CudaBsrMatrix.h" />
