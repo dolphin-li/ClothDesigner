@@ -80,7 +80,7 @@ public:
 	/** \brief Allocates internal buffer in GPU memory. If internal buffer was created before the function recreates it with new size. If new and old sizes are equal it does nothing.               
 	* \param size: elemens number
 	* */
-	void create(size_t size);
+	void create(size_t size, bool setZero = true);
 
 	/** \brief Decrements reference counter and releases internal buffer if needed. */
 	void release();  
@@ -181,7 +181,7 @@ public:
 	* \param rows: number of rows to allocate
 	* \param cols: number of elements in each row
 	* */
-	void create(int rows, int cols);
+	void create(int rows, int cols, bool setZero = true);
 
 	/** \brief Decrements reference counter and releases internal buffer if needed. */
 	void release();
@@ -261,8 +261,8 @@ template<class T> inline DeviceArray<T>::DeviceArray(const DeviceArray& other) :
 template<class T> inline DeviceArray<T>& DeviceArray<T>::operator=(const DeviceArray& other)
 { DeviceMemory::operator=(other); return *this; }
 
-template<class T> inline void DeviceArray<T>::create(size_t size) 
-{ DeviceMemory::create(size * elem_size); }
+template<class T> inline void DeviceArray<T>::create(size_t size, bool setZero) 
+{ DeviceMemory::create(size * elem_size, setZero); }
 template<class T> inline void DeviceArray<T>::release()  
 { DeviceMemory::release(); }
 
@@ -294,8 +294,8 @@ template<class T> inline DeviceArray2D<T>::DeviceArray2D(const DeviceArray2D& ot
 template<class T> inline DeviceArray2D<T>& DeviceArray2D<T>::operator=(const DeviceArray2D& other)
 { DeviceMemory2D::operator=(other); return *this; }
 
-template<class T> inline void DeviceArray2D<T>::create(int rows, int cols) 
-{ DeviceMemory2D::create(rows, cols * elem_size); }
+template<class T> inline void DeviceArray2D<T>::create(int rows, int cols, bool setZero) 
+{ DeviceMemory2D::create(rows, cols * elem_size, setZero); }
 template<class T> inline void DeviceArray2D<T>::release()  
 { DeviceMemory2D::release(); }
 

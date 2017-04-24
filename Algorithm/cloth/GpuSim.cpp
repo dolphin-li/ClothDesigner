@@ -193,7 +193,7 @@ namespace ldp
 
 		m_x_d.copyTo(m_last_x_d);
 		m_v_d.copyTo(m_last_v_d);
-		cudaSafeCall(cudaMemset(m_dv_d.ptr(), 0, m_dv_d.sizeBytes()));
+		m_dv_d.create(m_dv_d.size());
 		linearSolve();
 		collisionSolve();
 		userControlSolve();
@@ -229,10 +229,10 @@ namespace ldp
 		m_x_h = m_x_init_h;
 		m_x_init_d.copyTo(m_x_d);
 		m_x_d.copyTo(m_last_x_d);
-		cudaSafeCall(cudaMemset(m_v_d.ptr(), 0, m_v_d.sizeBytes()));
-		m_v_d.copyTo(m_last_v_d);
-		cudaSafeCall(cudaMemset(m_dv_d.ptr(), 0, m_dv_d.sizeBytes()));
-		cudaSafeCall(cudaMemset(m_b_d.ptr(), 0, m_b_d.sizeBytes()));
+		m_v_d.create(m_x_init_d.size());
+		m_last_v_d.create(m_x_init_d.size());
+		m_dv_d.create(m_x_init_d.size());
+		m_b_d.create(m_x_init_d.size());
 	}
 
 	void GpuSim::updateMaterial()
@@ -296,11 +296,6 @@ namespace ldp
 		m_last_v_d.create(m_v_d.size());
 		m_dv_d.create(m_x_d.size());
 		m_b_d.create(m_x_d.size());
-		cudaSafeCall(cudaMemset(m_last_x_d.ptr(), 0, m_last_x_d.sizeBytes()));
-		cudaSafeCall(cudaMemset(m_last_v_d.ptr(), 0, m_last_v_d.sizeBytes()));
-		cudaSafeCall(cudaMemset(m_v_d.ptr(), 0, m_v_d.sizeBytes()));
-		cudaSafeCall(cudaMemset(m_dv_d.ptr(), 0, m_dv_d.sizeBytes()));
-		cudaSafeCall(cudaMemset(m_b_d.ptr(), 0, m_b_d.sizeBytes()));
 		updateMaterial();
 		bindTextures();
 	}
@@ -657,17 +652,14 @@ namespace ldp
 		const float const_one = 1.f;
 		const float const_one_neg = -1.f;
 		const float const_zero = 0.f;
+
+		// all these variables are initialized with 0
 		CachedDeviceArray<float> r(nVal);
 		CachedDeviceArray<float> z(nVal);
 		CachedDeviceArray<float> p(nVal);
 		CachedDeviceArray<float> Ap(nVal);
 		CachedDeviceArray<float> invD(nVal);
 		CachedDeviceArray<float> pcg_orz_rz_pAp(3);
-		cudaSafeCall(cudaMemset(pcg_orz_rz_pAp.data(), 0, pcg_orz_rz_pAp.bytes()));
-
-		// x = 0
-		cudaSafeCall(cudaMemset(m_dv_d.ptr(), 0, m_dv_d.sizeBytes()));
-		cudaSafeCall(cudaMemset(p.data(), 0, p.bytes()));
 
 		// norm b
 		float norm_b = 0.f;
@@ -798,6 +790,7 @@ namespace ldp
 		m_last_v_d.release();				
 		m_dv_d.release();					
 		
+		m_debug_flag = 0;
 		m_selfColli_nBuckets = 0;
 		m_selfColli_vertIds.release();
 		m_selfColli_bucketIds.release();

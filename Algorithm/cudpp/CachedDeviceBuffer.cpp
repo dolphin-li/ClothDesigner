@@ -61,15 +61,17 @@ void CachedDeviceBuffer::copyTo(CachedDeviceBuffer& rhs)const
 	}
 }
 
-void CachedDeviceBuffer::create(size_t bytes)
+void CachedDeviceBuffer::create(size_t bytes, bool setZero)
 {
-	if (bytes == m_bytes || bytes == 0)
+	if ((bytes == m_bytes && !setZero) || bytes == 0)
 		return;
 	release();
 	m_data = thrust_wrapper::cached_allocate(bytes);
 	m_bytes = bytes;
 	m_refcount = new int;
 	*m_refcount = 1;
+	if (setZero)
+		cudaSafeCall(cudaMemset(m_data, 0, m_bytes));
 }
 void CachedDeviceBuffer::release()
 {

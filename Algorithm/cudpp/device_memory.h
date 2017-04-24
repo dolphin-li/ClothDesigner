@@ -76,7 +76,7 @@ public:
 	/** \brief Allocates internal buffer in GPU memory. If internal buffer was created before the function recreates it with new size. If new and old sizes are equal it does nothing.               
 	* \param sizeBytes_arg: buffer size
 	* */
-	void create(size_t sizeBytes_arg);
+	void create(size_t sizeBytes_arg, bool setZero = true);
 
 	/** \brief Decrements reference counter and releases internal buffer if needed. */
 	void release();
@@ -169,7 +169,7 @@ public:
 	* \param ptr_arg: number of rows to allocate
 	* \param sizeBytes_arg: width of the buffer in bytes
 	* */
-	void create(int rows_arg, int colsBytes_arg);
+	void create(int rows_arg, int colsBytes_arg, bool setZero=true);
 
 	/** \brief Decrements reference counter and releases internal buffer if needed. */
 	void release();

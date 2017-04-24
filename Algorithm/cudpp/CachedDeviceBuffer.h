@@ -9,7 +9,7 @@ public:
 	CachedDeviceBuffer(const CachedDeviceBuffer& rhs);
 	CachedDeviceBuffer(size_t bytes);
 	~CachedDeviceBuffer();
-	void create(size_t bytes);
+	void create(size_t bytes, bool setZero = true);
 	void release();
 	char* data(){ return m_data; }
 	const char* data()const{ return m_data; }
@@ -41,9 +41,9 @@ public:
 		CachedDeviceBuffer::operator=(other);
 		return *this;
 	}
-	void create(size_t size)
+	void create(size_t size, bool setZero = true)
 	{
-		CachedDeviceBuffer::create(size*elem_size);
+		CachedDeviceBuffer::create(size*elem_size, setZero);
 	}
 	void release()
 	{

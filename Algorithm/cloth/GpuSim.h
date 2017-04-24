@@ -200,6 +200,7 @@ namespace ldp
 		DeviceArray<int> m_selfColli_tri_vertPair_tId;
 		DeviceArray<int> m_selfColli_tri_vertPair_vId;
 		int m_nPairs = 0;
+		int m_debug_flag = 0;
 	public:
 		//////////////////////// material related///////////////////////////////////////////////////////
 		class StretchingData { 

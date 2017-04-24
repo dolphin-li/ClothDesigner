@@ -136,9 +136,9 @@ DeviceMemory& DeviceMemory::operator = (const DeviceMemory& other_arg)
 	return *this;
 }
 
-void DeviceMemory::create(size_t sizeBytes_arg)
+void DeviceMemory::create(size_t sizeBytes_arg, bool setZero)
 {
-	if (sizeBytes_arg == sizeBytes_)
+	if (sizeBytes_arg == sizeBytes_ && !setZero)
 		return;
 
 	if( sizeBytes_arg > 0)
@@ -154,6 +154,9 @@ void DeviceMemory::create(size_t sizeBytes_arg)
 		refcount_ = new int;
 		*refcount_ = 1;
 	}
+
+	if (setZero)
+		cudaSafeCall(cudaMemset(data_, 0, sizeBytes()));
 }
 
 void DeviceMemory::copyTo(DeviceMemory& other) const
@@ -246,9 +249,9 @@ DeviceMemory2D& DeviceMemory2D::operator = (const DeviceMemory2D& other_arg)
 	return *this;
 }
 
-void DeviceMemory2D::create(int rows_arg, int colsBytes_arg)
+void DeviceMemory2D::create(int rows_arg, int colsBytes_arg, bool setZero)
 {
-	if (colsBytes_ == colsBytes_arg && rows_ == rows_arg)
+	if (colsBytes_ == colsBytes_arg && rows_ == rows_arg && !setZero)
 		return;
 
 	if( rows_arg > 0 && colsBytes_arg > 0)
@@ -265,6 +268,9 @@ void DeviceMemory2D::create(int rows_arg, int colsBytes_arg)
 		refcount_ = new int;
 		*refcount_ = 1;
 	}
+
+	if (setZero)
+		cudaSafeCall(cudaMemset2D(data_, step_, 0, colsBytes_, rows_));
 }
 
 void DeviceMemory2D::release()

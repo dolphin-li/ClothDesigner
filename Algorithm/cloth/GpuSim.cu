@@ -2,7 +2,6 @@
 
 #include "ldpMat\ldp_basic_mat.h"
 #include "cudpp\thrust_wrapper.h"
-#include "cudpp\CachedDeviceBuffer.h"
 #include "LEVEL_SET_COLLISION.h"
 #include <math.h>
 #include "LevelSet3D.h"
@@ -1261,8 +1260,14 @@ namespace ldp
 			m_selfColli_bucketIds.create(m_selfColli_nBuckets*1.2);
 			m_selfColli_bucketRanges.create(m_selfColli_bucketIds.size() * 2);
 		}
-		m_selfColli_vertIds.create(nVerts);
-		m_selfColli_tri_vertCnt.create(nTri);
+		if (nVerts > m_selfColli_vertIds.size())
+		{
+			m_selfColli_vertIds.create(nVerts);
+		}
+		if (nTri > m_selfColli_tri_vertCnt.size())
+		{
+			m_selfColli_tri_vertCnt.create(nTri);
+		}
 	
 		//assign vertex_id and vertex_bucket
 		selfColli_Grid_0_Kernel << <divUp(nVerts, CTA_SIZE), CTA_SIZE >> >(
@@ -1273,7 +1278,6 @@ namespace ldp
 		cudaSafeCall(cudaGetLastError());
 
 		// calculate bucket renages
-		cudaMemset(m_selfColli_bucketRanges.ptr(), 0, sizeof(int)*m_selfColli_nBuckets);
 		cudaSafeCall(cudaGetLastError());
 		selfColli_Grid_1_Kernel << <divUp(nVerts, CTA_SIZE), CTA_SIZE >> >(
 			m_selfColli_bucketIds.ptr(), m_selfColli_bucketRanges.ptr(), nVerts);
