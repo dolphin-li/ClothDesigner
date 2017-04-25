@@ -9,6 +9,9 @@
 #include "arcsim\ArcSimManager.h"
 #include <eigen\Dense>
 #include "global_data_holder.h"
+#include "Shader\ShaderManager.h"
+#include "CmlShadowMap\MeshRender.h"
+#include "CmlShadowMap\GPUBuffers.h"
 
 #pragma region --mat_utils
 
@@ -135,6 +138,7 @@ ArcsimView::ArcsimView(QWidget *parent)
 : QGLWidget(QGLFormat(QGL::SampleBuffers), parent)
 {
 	setMouseTracking(true);
+	m_shaderManager.reset(new CShaderManager());
 }
 
 ArcsimView::~ArcsimView()
@@ -182,6 +186,12 @@ void ArcsimView::initializeGL()
 
 	resetCamera();
 
+	// shaders
+	m_shaderManager->create("shaders");
+
+	// shadow map
+	initShadowMap();
+
 	CHECK_GL_ERROR();
 }
 
@@ -190,6 +200,9 @@ void ArcsimView::resizeGL(int w, int h)
 	m_camera.setViewPort(0, w, 0, h);
 	m_camera.setPerspective(m_camera.getFov(), float(w) / float(h), 
 		m_camera.getFrustumNear(), m_camera.getFrustumFar());
+
+	// shadow map
+	m_GPUBuffers->ResetFrameSize(w, h);
 }
 
 void ArcsimView::paintGL()
@@ -207,9 +220,18 @@ void ArcsimView::paintGL()
 	if (sim == nullptr)
 		return;
 
-	if (m_showBody)
-		m_arcsimManager->getBodyMesh()->render(m_showType);
-	m_arcsimManager->getClothMesh()->render(m_showType);
+	if (m_showShadow)
+	{
+		renderWithShadowMap();
+	}
+	else
+	{
+		m_shaderManager->bind(CShaderManager::phong);
+		if (m_showBody)
+			m_arcsimManager->getBodyMesh()->render(m_showType);
+		m_arcsimManager->getClothMesh()->render(m_showType);
+		m_shaderManager->unbind();
+	}
 
 	// debug ldp: render texmap...
 	if (g_dataholder.m_arcsim_show_texcoord)
@@ -261,6 +283,10 @@ void ArcsimView::keyPressEvent(QKeyEvent*ev)
 		break;
 	case Qt::Key_V:
 		m_showType ^= Renderable::SW_V;
+		break;
+	case Qt::Key_L:
+		if (m_shadowMapInitialized)
+			m_showShadow = !m_showShadow;
 		break;
 	case Qt::Key_S:
 		m_showType ^= Renderable::SW_SMOOTH;
@@ -323,5 +349,134 @@ void ArcsimView::wheelEvent(QWheelEvent*ev)
 	cam.setLocation((c - c0)*s + c0);
 	//
 	updateGL();
+}
+
+////////////////////////////////////////////////////////////////////////
+inline int lightDivUp(int a, int b)
+{
+	return (a + b - 1) / b;
+}
+
+void ArcsimView::initShadowMap()
+{
+	QString lightFile = "Env/ironman_op25.dir";
+	if (!loadLight(lightFile))
+	{
+		printf("lighting file not found: %s\n", lightFile.toStdString().c_str());
+		return;
+	}
+	for (auto& ld : m_lightDirections)
+	{
+		ldp::Mat3f R = ldp::QuaternionF().fromAngleAxis(
+			-ldp::PI_S / 2.f,
+			ldp::Float3(1, 0, 0)).toRotationMatrix3();
+		ld = R * ld;
+	}
+
+
+	m_MeshRender.reset(new MeshRender());
+	if (!m_MeshRender->Initialize())
+		return;
+	m_GPUBuffers.reset(new GPUBuffers());
+	m_GPUBuffers->SetShadowSize(1024 * 2, 1024 * 2);
+	m_GPUBuffers->SetFrameSize(width(), height());
+	m_GPUBuffers->CreateTextures();
+	m_GPUBuffers->CreateFBOs();
+	m_GPUBuffers->AttachFBOTextures();
+	m_shadowMapInitialized = true;
+}
+
+void ArcsimView::renderWithShadowMap()
+{
+	if (!m_shadowMapInitialized)
+		return;
+
+	glClearColor(0., 0., 0., 0.);
+	glClear(GL_COLOR_BUFFER_BIT);
+	glEnable(GL_MULTISAMPLE);
+
+	m_camera.apply();
+
+	const float shadeLight = 0.2;
+	const float shadeShadow = 1;
+	const float shadeAmbient = 0.1 / m_lightNum;
+	const float shadeDiffuse = 1;
+	const float shadeSpecular = 0.5;
+	const ldp::Float3 clothColor(0.7, 0.9, 1);
+	const ldp::Float3 bodyColor(1, 1, 1);
+
+	if (m_arcsimManager)
+	{
+		// collect meshes
+		std::vector<ObjMesh*> meshes;
+		meshes.push_back(m_arcsimManager->getBodyMesh());
+		meshes.push_back(m_arcsimManager->getClothMesh());
+		m_MeshRender->updateGeometry(meshes.data() + 1, meshes.size() - 1, meshes.data(), 1);
+
+		for (int lightI = 0; lightI < m_lightNum; ++lightI)
+			m_lightShadeColors[lightI] = m_lightOriginalColors[lightI] * shadeLight;
+
+		std::vector<ldp::Float3> lightDirsRot = m_lightDirections;
+		for (auto& ld : lightDirsRot)
+			ld = m_camera.getModelViewMatrix().getRotationPart().inv() * ld;
+
+		// render each passes
+		for (int passI = 0; passI < lightDivUp(m_lightNum, MAX_LIGHTS_PASS); passI++){
+			m_MeshRender->PrepareLightMatrix(
+				meshes[0]->boundingBox[0], meshes[0]->boundingBox[1],
+				lightDirsRot.data() + passI * MAX_LIGHTS_PASS,
+				m_LightModelViewMatrix, m_LightProjectionMatrix);
+
+			m_MeshRender->RenderShadowMap(
+				m_LightModelViewMatrix,
+				m_LightProjectionMatrix,
+				m_GPUBuffers->GetShadowFBO());
+
+			for (int lightI = 0; lightI < MAX_LIGHTS_PASS; lightI++)
+				m_LightModelViewProjectionMatrix[lightI] =
+				m_LightProjectionMatrix[lightI] * m_LightModelViewMatrix[lightI];
+
+			m_MeshRender->RenderMesh(
+				m_camera.getLocation(),
+				m_lightShadeColors.data() + passI * MAX_LIGHTS_PASS,
+				lightDirsRot.data() + passI * MAX_LIGHTS_PASS,
+				m_LightModelViewMatrix,
+				m_LightModelViewProjectionMatrix,
+				shadeAmbient, shadeDiffuse, shadeSpecular, shadeShadow,
+				clothColor, bodyColor,
+				m_GPUBuffers->GetFrameFBO(),
+				m_GPUBuffers->GetShadowFBO().GetColorTexture(),
+				m_showType);
+
+			m_MeshRender->RenderComposite(m_GPUBuffers->GetFrameFBO().GetColorTexture());
+		}
+	} // end if clothManager
+}
+
+bool ArcsimView::loadLight(QString fileName)
+{
+	QFile lightFile(fileName);
+	if (!lightFile.open(QIODevice::ReadOnly | QIODevice::Text))
+		return false;
+	QTextStream lightStream(&lightFile);
+	lightStream >> m_lightNum;
+	m_lightOriginalColors.clear();
+	m_lightShadeColors.clear();
+	m_lightDirections.clear();
+	m_lightOriginalColors.resize(lightDivUp(m_lightNum, MAX_LIGHTS_PASS)*MAX_LIGHTS_PASS);
+	m_lightShadeColors.resize(lightDivUp(m_lightNum, MAX_LIGHTS_PASS)*MAX_LIGHTS_PASS);
+	m_lightDirections.resize(lightDivUp(m_lightNum, MAX_LIGHTS_PASS)*MAX_LIGHTS_PASS, ldp::Float3(0, 0, -1));
+	float lightIntensity = 0.f;
+	for (int lightI = 0; lightI < m_lightNum; ++lightI){
+		lightStream >> m_lightOriginalColors[lightI][0] >> m_lightOriginalColors[lightI][1] >> m_lightOriginalColors[lightI][2];
+		lightStream >> m_lightDirections[lightI][0] >> m_lightDirections[lightI][1] >> m_lightDirections[lightI][2];
+		lightStream >> lightIntensity;
+		m_lightOriginalColors[lightI] *= lightIntensity;
+		m_lightShadeColors[lightI] = m_lightOriginalColors[lightI];
+		m_lightDirections[lightI].normalize();
+		m_lightDirections[lightI] *= -1.f;
+	}
+	lightFile.close();
+	return true;
 }
 
