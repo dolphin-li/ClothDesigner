@@ -400,7 +400,7 @@ namespace arcsim
 		while (sim->time < sim->end_time)
 		{
 #ifdef LDP_DEBUG_USE_GPUSIM
-			threadData->m_gpuSim->run_one_step();
+			threadData->m_gpuSim->run_one_step(false);
 			sim->time += sim->step_time;
 			sprintf_s((char*)info.c_str(), info.size(), "%.3f / %.1f, fps = %.1f [%s]", sim->time,
 				sim->end_time, threadData->m_gpuSim->getFps(), threadData->m_gpuSim->getSolverInfo().c_str());

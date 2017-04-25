@@ -97,7 +97,7 @@ namespace ldp
 		void init(arcsim::ArcSimManager* arcSimManager);
 
 		// perform simulation for one time-step
-		void run_one_step();
+		void run_one_step(bool reset_velocity);
 
 		float getFps()const{ return m_fps; }
 		float getStepTime()const{ return m_simParam.dt; }
@@ -323,6 +323,7 @@ namespace ldp
 		static void dumpVec(std::string name, const DeviceArray<ldp::Float3>& A, int nTotal = -1);
 		static void dumpVec(std::string name, const DeviceArray<ldp::Mat3f>& A, int nTotal = -1);
 		static void dumpVec(std::string name, const DeviceArray<ldp::Float2>& A, int nTotal = -1);
+		static void dumpVec(std::string name, const DeviceArray<ldp::Int2>& A, int nTotal = -1);
 		static void dumpVec(std::string name, const DeviceArray<int>& A, int nTotal = -1);
 		static void dumpVec_pair(std::string name, const DeviceArray<size_t>& A, int nVerts, int nTotal = -1);
 		static void dumpStretchSampleArray(std::string name, const StretchingSamples& samples);

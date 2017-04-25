@@ -131,7 +131,7 @@ namespace ldp
 		handle_stiffness = 1e3f;
 		collision_stiffness = 1e6f;
 		friction_stiffness = 1;
-		stitch_stiffness = 1e3f;
+		stitch_stiffness = 1e2f;
 		repulsion_thickness = 5e-3f;
 		projection_thickness = 1e-4f;
 		enable_selfCollision = true;
@@ -148,6 +148,15 @@ namespace ldp
 		initializeMaterialMemory();
 		updateTopology();
 		updateNumeric();
+#ifdef DEBUG_DUMP
+		dumpVec("D:/tmp/m_beforScan_A.txt", m_beforScan_A);
+		dumpVec("D:/tmp/m_beforScan_b.txt", m_beforScan_b);
+		m_A_d->dump("D:/tmp/m_A.txt");
+		dumpVec("D:/tmp/m_b.txt", m_b_d);
+		SpMat A;
+		cudaSpMat_to_EigenMat(*m_A_d, A);
+		ldp::dump("D:/tmp/m_A_eigen.txt", A);
+#endif
 		restart();
 		m_solverInfo = "solver intialized from cloth manager";
 	}
@@ -205,7 +214,7 @@ namespace ldp
 		} // end else clothManager
 	}
 
-	void GpuSim::run_one_step()
+	void GpuSim::run_one_step(bool reset_velocity)
 	{
 		gtime_t t_start = gtime_now();
 		bindTextures();
@@ -218,6 +227,9 @@ namespace ldp
 		collisionSolve();
 		userControlSolve();
 		m_x_d.download(m_x_h);
+
+		if (reset_velocity)
+			cudaSafeCall(cudaMemset(m_v_d.ptr(), 0, m_v_d.sizeBytes()));
 
 		gtime_t t_end = gtime_now();
 		m_fps = 1.f / gtime_seconds(t_start, t_end);
@@ -612,6 +624,10 @@ namespace ldp
 			}
 		} // i_stp
 
+#ifdef DEBUG_DUMP
+		dumpVec("D:/tmp/m_stitch_vertPair_d.txt", m_stitch_vertPairs_d);
+#endif
+
 		// ---------------------------------------------------------------------------------------------
 		// upload to GPU; make order array, then sort the orders by vertex-pair idx, then unique
 		// matrix A
@@ -975,6 +991,22 @@ namespace ldp
 		{
 			for (int y = 0; y < n; y++)
 				fprintf(pFile, "%ef %ef\n", hA[y][0], hA[y][1]);
+			fclose(pFile);
+			printf("saved: %s\n", name.c_str());
+		}
+	}
+	void GpuSim::dumpVec(std::string name, const DeviceArray<ldp::Int2>& A, int nTotal)
+	{
+		std::vector<ldp::Int2> hA;
+		A.download(hA);
+		int n = A.size();
+		if (nTotal >= 0)
+			n = nTotal;
+		FILE* pFile = fopen(name.c_str(), "w");
+		if (pFile)
+		{
+			for (int y = 0; y < n; y++)
+				fprintf(pFile, "%d %d\n", hA[y][0], hA[y][1]);
 			fclose(pFile);
 			printf("saved: %s\n", name.c_str());
 		}

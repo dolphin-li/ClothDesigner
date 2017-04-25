@@ -707,20 +707,26 @@ namespace ldp
 	}
 
 	__device__ void computeStitchVertForces(int iStitch, const Int2* stitchVertPairs, 
-		int A_start, Mat3f* beforeScan_A, int b_start, Float3* beforeScan_b, float stiff)
+		int A_start, Mat3f* beforeScan_A, int b_start, Float3* beforeScan_b, 
+		float stiff, float dt)
 	{
 		const Int2 stp = stitchVertPairs[iStitch];
 
+		const Float3 x[2] = { texRead_x(stp[0]), texRead_x(stp[1]) };
+		const Float3 v[2] = { texRead_v(stp[0]), texRead_v(stp[1]) };
+
 		for (int r = 0; r < 2; r++)
 		{
+			Float3 b = 0.f;
 			for (int c = 0; c < 2; c++)
 			{
 				int pos = texRead_A_order(A_start + r * 2 + c);
-				const float s = stiff * ((r == c)*2.f - 1.f);
-				beforeScan_A[pos] = s*ldp::Mat3f().eye();
+				float s = stiff * ((r == c)*2.f - 1.f);
+				beforeScan_A[pos] = dt * s * ldp::Mat3f().eye();
+				b -= s * (x[c] + dt * v[c]);
 			}
-			int pos = texRead_A_order(b_start + r);
-			beforeScan_b[pos] = 0.f;
+			int pos = texRead_b_order(b_start + r);
+			beforeScan_b[pos] = b;
 		} // end for r
 	}
 
@@ -755,7 +761,7 @@ namespace ldp
 			const int A_start = A_starts[thread_id];
 			const int b_start = b_starts[thread_id];
 			computeStitchVertForces(thread_id - nFaces - nEdges, stitchVertPairs,
-				A_start, beforeScan_A, b_start, beforeScan_b, stitchVertPairStiff);
+				A_start, beforeScan_A, b_start, beforeScan_b, stitchVertPairStiff, dt);
 		}
 	}
 
