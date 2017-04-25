@@ -315,6 +315,68 @@ __global__ void CudaBsrMatrix_Range_multBsrT_value(
 	valueC[innzC] = alpha * sum + beta * D_val;
 }
 
+__global__ void CudaBsrMatrix_Range_addBsr_value(
+	const int* bsrRowPtrA, cudaTextureObject_t bsrColIdxA, cudaTextureObject_t valueA,
+	int rangeColBeginA, int rangeColEndA,
+	const int* bsrRowPtrB, cudaTextureObject_t bsrColIdxB, cudaTextureObject_t valueB,
+	int rangeColBeginB, int rangeColEndB,
+	const int* bsrRowPtrC, cudaTextureObject_t bsrColIdxC, float* valueC,
+	int rowsPerBlock, int colsPerBlock, int nRow, float alpha, float beta
+	)
+{
+	const int thread_id = threadIdx.x + blockIdx.x * blockDim.x;
+	const int iRow = thread_id / colsPerBlock;
+	const int rowBlock = iRow / rowsPerBlock;
+	const int rowShift_inBlock = iRow % rowsPerBlock;
+	const int colShift_inBlock = thread_id % colsPerBlock;
+	const int shift_inBlock = colShift_inBlock + rowShift_inBlock * colsPerBlock;
+	if (iRow >= nRow)
+		return;
+	const int elePerBlock = rowsPerBlock * rowsPerBlock;
+	const int blockBeginA = bsrRowPtrA[rowBlock];
+	const int blockEndA = bsrRowPtrA[rowBlock + 1];
+	const int blockBeginB = bsrRowPtrB[rowBlock];
+	const int blockEndB = bsrRowPtrB[rowBlock + 1];
+	const int blockBeginC = bsrRowPtrC[rowBlock];
+	const int blockEndC = bsrRowPtrC[rowBlock + 1];
+
+	// A+B
+	for (int ia = blockBeginA, ib = blockBeginB, ic = blockBeginC; 
+		ia < blockEndA && ib < blockEndB && ic < blockEndC; )
+	{
+		int colBlockA = 0, colBlockB = 0, colBlockC = 0;
+		tex1Dfetch(&colBlockA, bsrColIdxA, ia);
+		tex1Dfetch(&colBlockB, bsrColIdxB, ib);
+		tex1Dfetch(&colBlockC, bsrColIdxC, ic);
+		if (colBlockA >= rangeColEndA || colBlockB >= rangeColEndB)
+			break;
+		colBlockA -= rangeColBeginA;
+		colBlockB -= rangeColBeginB;
+		if (colBlockA == colBlockC && colBlockA >= 0)
+		{
+			int posa = ia * elePerBlock + shift_inBlock;
+			int posc = ic * elePerBlock + shift_inBlock;
+			float v1 = 0.f;
+			tex1Dfetch(&v1, valueA, posa);
+			valueC[posc] += alpha * v1;
+			ia++;
+		}
+		if (colBlockB == colBlockC && colBlockA >= 0)
+		{
+			int posb = ib * elePerBlock + shift_inBlock;
+			int posc = ic * elePerBlock + shift_inBlock;
+			float v1 = 0.f;
+			tex1Dfetch(&v1, valueA, posb);
+			valueC[posc] += beta * v1;
+			ib++;
+		}
+
+		ia += (colBlockA < colBlockC) || (colBlockA < 0);
+		ib += (colBlockB < colBlockC) || (colBlockB < 0);
+		ic += (colBlockA >= colBlockC) && (colBlockB >= colBlockC);
+	}// i
+}
+
 __global__ void CudaBsrMatrix_Range_multBsrT_addDiag_value(
 	const int* bsrRowPtrA, cudaTextureObject_t bsrColIdxA, cudaTextureObject_t valueA,
 	int rangeColBeginA, int rangeColEndA,
@@ -810,6 +872,31 @@ void CudaBsrMatrix::Range::multBsrT_value(const Range& B, CudaBsrMatrix& C, floa
 		D_rptr, D_cidx, D_val, D_cbegin, D_cend,
 		C.bsrRowPtr_coo(), C.bsrColIdx(), C.value(),
 		rowsPerBlock(), colsPerBlock(), B.rowsPerBlock(), C.nnz(), alpha, beta
+		);
+}
+
+void CudaBsrMatrix::Range::addBsr_value(const Range& B, CudaBsrMatrix& C, float alpha, float beta)
+{
+	if (A == nullptr || B.A == nullptr)
+		throw std::exception("CudaBsrMatrix::Range::addBsr_value(): null pointer exception");
+	if (A->isSymbolic() || B.A->isSymbolic())
+		throw std::exception("CudaBsrMatrix::addBsr_value(): symbolic matrix cannot touch values");
+	if (blocksInCol() != B.blocksInCol() || blocksInCol() != C.blocksInCol()
+		|| blocksInRow() != B.blocksInRow() || blocksInRow() != C.blocksInRow())
+		throw std::exception("CudaBsrMatrix::Range::addBsr_value(): matrix size not matched");
+	if (colsPerBlock() != B.colsPerBlock() || colsPerBlock() != C.colsPerBlock()
+		|| rowsPerBlock() != B.rowsPerBlock() || rowsPerBlock() != C.rowsPerBlock())
+		throw std::exception("CudaBsrMatrix::Range::addBsr_value(): block size not matched");
+	if (C.nnzBlocks() == 0)
+		return;
+	
+	CudaBsrMatrix_Range_addBsr_value << <divUp(C.rows()*C.colsPerBlock(), CTA_SIZE), CTA_SIZE >> >(
+		A->bsrRowPtr() + blockRowBegin, A->bsrColIdxTexture(), A->valueTexture(),
+		blockColBegin, blockColEnd,
+		B.A->bsrRowPtr() + B.blockRowBegin, B.A->bsrColIdxTexture(), B.A->valueTexture(),
+		B.blockColBegin, B.blockColEnd,
+		C.bsrRowPtr_coo(), C.bsrColIdxTexture(), C.value(),
+		rowsPerBlock(), colsPerBlock(), C.rows(), alpha, beta
 		);
 }
 

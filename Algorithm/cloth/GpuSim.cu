@@ -1249,6 +1249,9 @@ namespace ldp
 			v_dot_grad += w[k] * N.dot(texRead_v(vabcp[k]));
 		const Mat3f ot = outer(N, N);
 
+		// LDP NOTE: here the implementation is NOT exact:
+		// also we want A(i,j) += J, however, due to the sparse structure of A
+		// only A(i,i) is added... thus here we got diag-approximated self-collisions.
 		for (int k1 = 0; k1 < 4; k1++)
 		{
 			for (int k2 = 0; k2 < 4; k2++)

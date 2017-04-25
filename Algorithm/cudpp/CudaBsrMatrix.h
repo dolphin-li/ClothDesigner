@@ -53,6 +53,10 @@ public:
 		void multBsrT_addDiag_value(const Range& B, CudaBsrMatrix& C, float alpha = 1.f,
 			const CudaDiagBlockMatrix* D = nullptr, float beta = 0.f)const;
 
+		// C = alpha* this + beta * B
+		void addBsr_structure(const CudaBsrMatrix& B, CudaBsrMatrix& C)const;
+		void addBsr_value(const Range& B, CudaBsrMatrix& C, float alpha = 1.f, float beta = 0.f);
+
 		// compute C = alpha * blockDiag(this*this') + beta*C;
 		// if lowerInsteadOfFull, then only the lower triangular part is touched
 		void AAt_blockDiags(CudaDiagBlockMatrix& C, bool lowerInsteadOfFull,

@@ -425,4 +425,38 @@ char* CudaBsrMatrix::get_helper_buffer(int nBytes)const
 	return (char*)m_helperBuffer.ptr();
 }
 
+void CudaBsrMatrix::Range::addBsr_structure(const CudaBsrMatrix& B, CudaBsrMatrix& C)const
+{
+	if (A == nullptr)
+		throw std::exception("CudaBsrMatrix::Range::addBsr_structure(): nullpointer exception");
+	if (blockColBegin != 0 || blockColEnd != A->blocksInCol()
+		|| blockRowBegin != 0 || blockRowEnd != A->blocksInRow())
+		throw std::exception("CudaBsrMatrix::Range::addBsr_structure(): ranges not supported now");
+	if (cols() != B.cols() || rows() != B.rows())
+		throw std::exception("CudaBsrMatrix::Range::addBsr_structure(): matrix size not matched");
+	if (colsPerBlock() != B.colsPerBlock() || rowsPerBlock() != B.rowsPerBlock())
+		throw std::exception("CudaBsrMatrix::Range::addBsr_structure(): block size not matched");
+
+	C.resize(blocksInRow(), blocksInCol(), rowsPerBlock(), colsPerBlock());
+
+	// 0. working buffer
+	float alpha = 0.f, beta = 0.f;
+
+	// 1. construct rows
+	C.beginConstructRowPtr();
+	int nnzBlocks = 0;
+	cusparseCheck(cusparseXcsrgeamNnz(A->m_cusparseHandle, blocksInRow(), blocksInCol(),
+		A->m_desc, A->nnzBlocks(), A->bsrRowPtr(), A->bsrColIdx(),
+		B.m_desc, B.nnzBlocks(), B.bsrRowPtr(), B.bsrColIdx(),
+		C.m_desc, C.bsrRowPtr(), &nnzBlocks));
+	C.endConstructRowPtr(nnzBlocks);
+
+	// 2. construct cols
+	// NOTE: cusparse calculates values together with colIdx
+	// here we only want colIdx, the values calculated here is invalid since we use bsr format
+	cusparseCheck(cusparseScsrgeam(A->m_cusparseHandle, blocksInRow(), blocksInCol(), &alpha,
+		A->m_desc, A->nnzBlocks(), A->value(), A->bsrRowPtr(), A->bsrColIdx(),
+		&beta, B.m_desc, B.nnzBlocks(), B.value(), B.bsrRowPtr(), B.bsrColIdx(),
+		C.m_desc, C.value(), C.bsrRowPtr(), C.bsrColIdx()));
+}
 
