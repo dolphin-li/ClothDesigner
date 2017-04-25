@@ -75,6 +75,7 @@ namespace ldp
 			float stitch_ratio = 0.f;	// for stitching edges length reduction
 			float strecth_mult = 0.f;
 			float bend_mult = 0.f;
+			float stitch_stiffness = 0.f;
 			float handle_stiffness = 0.f;
 			float collision_stiffness = 0.f;
 			float friction_stiffness = 0.f;
@@ -161,6 +162,8 @@ namespace ldp
 		std::vector<EdgeData> m_edgeData_h;
 		DeviceArray<EdgeData> m_edgeData_d;
 		std::shared_ptr<CudaBsrMatrix> m_vert_FaceList_d;
+		std::vector<Int2> m_stitch_vertPairs_h;
+		DeviceArray<Int2> m_stitch_vertPairs_d;
 
 		///////////////// precomputed data /////////////////////////////////////////////////////////////	
 		DeviceArray<size_t> m_A_Ids_d;			// for sparse matrix, encode the (row, col) pairs, sorted

@@ -724,6 +724,14 @@ namespace ldp
 		return m_stitches.at(i).type;
 	}
 
+	StitchPointPair ClothManager::getStitchPointPair(int i)
+	{
+		updateDependency();
+		if (m_shouldMergePieces)
+			mergePieces();
+		return m_stitches.at(i);
+	}
+
 	std::pair<Float3, Float3> ClothManager::getStitchPos(int i)
 	{
 		updateDependency();

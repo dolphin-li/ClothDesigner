@@ -131,6 +131,7 @@ namespace ldp
 		handle_stiffness = 1e3f;
 		collision_stiffness = 1e6f;
 		friction_stiffness = 1;
+		stitch_stiffness = 1e3f;
 		repulsion_thickness = 5e-3f;
 		projection_thickness = 1e-4f;
 		enable_selfCollision = true;
@@ -145,11 +146,8 @@ namespace ldp
 		m_simParam.setDefault();
 		initParam();
 		initializeMaterialMemory();
-		printf("3\n");
 		updateTopology();
-		printf("4\n");
 		updateNumeric();
-		printf("5\n");
 		restart();
 		m_solverInfo = "solver intialized from cloth manager";
 	}
@@ -187,7 +185,7 @@ namespace ldp
 			m_simParam.gravity = convert(sim->gravity);
 			m_simParam.pcg_iter = 400;
 			m_simParam.pcg_tol = 1e-2f;
-			m_simParam.control_mag = 400.f;
+			m_simParam.handle_stiffness = 400.f;
 			m_simParam.stitch_ratio = 5.f;
 			m_simParam.strecth_mult = 1.f;
 			m_simParam.bend_mult = 1.f;
@@ -199,7 +197,7 @@ namespace ldp
 			m_simParam.gravity = par.gravity;
 			m_simParam.pcg_iter = 400;
 			m_simParam.pcg_tol = 1e-2f;
-			m_simParam.control_mag = m_simParam.control_mag;
+			m_simParam.handle_stiffness = m_simParam.control_mag;
 			m_simParam.stitch_ratio = m_simParam.stitch_ratio;
 			m_simParam.strecth_mult = 1.f;
 			m_simParam.bend_mult = 1.f;
@@ -477,6 +475,15 @@ namespace ldp
 		m_faces_idxTex_d.upload(m_faces_idxTex_h);
 		m_edgeData_d.upload(m_edgeData_h.data(), m_edgeData_h.size());
 
+		// load stitch		
+		m_stitch_vertPairs_h.clear();
+		for (int i_stp = 0; i_stp < m_clothManager->numStitches(); i_stp++)
+		{
+			const auto stp = m_clothManager->getStitchPointPair(i_stp);
+			m_stitch_vertPairs_h.push_back(ldp::Int2(stp.first, stp.second));
+		} // i_stp
+		m_stitch_vertPairs_d.upload(m_stitch_vertPairs_h);
+
 		// build sparse matrix topology
 		setup_sparse_structure_from_cpu();
 	}
@@ -524,7 +531,7 @@ namespace ldp
 		const int nVerts = m_x_init_h.size();
 		const int nFaces = m_faces_idxWorld_h.size();
 
-		// 0. collect one-ring face list of each vertex
+		// collect one-ring face list of each vertex
 		if (nVerts > 0 && nFaces > 0)
 		{
 			std::vector<Int2> vert_face_pair_h;
@@ -553,7 +560,8 @@ namespace ldp
 #endif
 		} // end collect one-ring face list of each vertex
 
-		// 1. collect face adjacents
+		// ---------------------------------------------------------------------------------------------
+		// collect face adjacents
 		std::vector<size_t> A_Ids_h;
 		std::vector<int> A_Ids_start_h;
 		std::vector<int> b_Ids_h;
@@ -570,7 +578,8 @@ namespace ldp
 			}
 		}
 
-		// 2. collect edge adjacents
+		// ---------------------------------------------------------------------------------------------
+		// collect edge adjacents
 		for (const auto& ed : m_edgeData_h)
 		{
 			A_Ids_start_h.push_back(A_Ids_h.size());
@@ -588,12 +597,27 @@ namespace ldp
 				}
 			}
 		} // end for edgeData
+
+		// ---------------------------------------------------------------------------------------------
+		// compute stitch vert pair info
+		for (const auto& stp : m_stitch_vertPairs_h)
+		{
+			A_Ids_start_h.push_back(A_Ids_h.size());
+			b_Ids_start_h.push_back(b_Ids_h.size());
+			for (int r = 0; r < 2; r++)
+			{
+				for (int c = 0; c < 2; c++)
+					A_Ids_h.push_back(ldp::vertPair_to_idx(Int2(stp[r], stp[c]), nVerts));
+				b_Ids_h.push_back(stp[r]);
+			}
+		} // i_stp
+
+		// ---------------------------------------------------------------------------------------------
+		// upload to GPU; make order array, then sort the orders by vertex-pair idx, then unique
+		// matrix A
 		A_Ids_start_h.push_back(A_Ids_h.size());
 		b_Ids_start_h.push_back(b_Ids_h.size());
 
-		// 3. upload to GPU; make order array, then sort the orders by vertex-pair idx, then unique
-
-		// matrix A
 		m_A_Ids_d.upload(A_Ids_h);
 #ifdef DEBUG_DUMP
 		dumpVec_pair("D:/tmp/m_A_Ids_d_inOrder.txt", m_A_Ids_d, nVerts);
@@ -633,12 +657,13 @@ namespace ldp
 			m_b_Ids_d_unique_pos.ptr(), m_b_Ids_d_unique.size());
 		m_beforScan_b.create(m_b_order_d.size());
 		release_assert(nUniqueb == nVerts);
-		
-		// 4. convert vertex-pair idx to coo array
+
+		// ---------------------------------------------------------------------------------------------
+		// convert vertex-pair idx to coo array
 		CachedDeviceArray<int> booRow(nUniqueNnz), booCol(nUniqueNnz);
 		vertPair_from_idx(booRow.data(), booCol.data(), m_A_Ids_d_unique.ptr(), nVerts, nUniqueNnz);
 
-		// 5. build the sparse matrix via coo
+		// build the sparse matrix via coo
 		m_A_d->resize(nVerts, nVerts, 3);
 		m_A_d->setRowFromBooRowPtr(booRow.data(), nUniqueNnz);
 		cudaSafeCall(cudaMemcpy(m_A_d->bsrColIdx(), booCol.data(), nUniqueNnz*sizeof(int), cudaMemcpyDeviceToDevice));
@@ -873,7 +898,9 @@ namespace ldp
 		m_nodes_materialSpace_d.release();
 		m_edgeData_h.clear();
 		m_edgeData_d.release();
-		m_vert_FaceList_d->clear();
+		m_vert_FaceList_d->clear(); 
+		m_stitch_vertPairs_h.clear();
+		m_stitch_vertPairs_d.release();
 	
 		m_A_Ids_d.release();
 		m_A_Ids_d_unique.release();

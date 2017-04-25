@@ -706,10 +706,30 @@ namespace ldp
 		} // end for row
 	}
 
+	__device__ void computeStitchVertForces(int iStitch, const Int2* stitchVertPairs, 
+		int A_start, Mat3f* beforeScan_A, int b_start, Float3* beforeScan_b, float stiff)
+	{
+		const Int2 stp = stitchVertPairs[iStitch];
+
+		for (int r = 0; r < 2; r++)
+		{
+			for (int c = 0; c < 2; c++)
+			{
+				int pos = texRead_A_order(A_start + r * 2 + c);
+				const float s = stiff * ((r == c)*2.f - 1.f);
+				beforeScan_A[pos] = s*ldp::Mat3f().eye();
+			}
+			int pos = texRead_A_order(b_start + r);
+			beforeScan_b[pos] = 0.f;
+		} // end for r
+	}
+
 	__global__ void computeNumeric_kernel(const GpuSim::EdgeData* edgeData, 
 		const cudaTextureObject_t* t_stretchSamples, const cudaTextureObject_t* t_bendDatas,
 		const int* A_starts, Mat3f* beforeScan_A, const int* b_starts, Float3* beforeScan_b,
-		const Float3* velocity, int nFaces, int nEdges, float dt, float stretchMult, float bendMult)
+		const Float3* velocity, int nFaces, int nEdges, 
+		const Int2* stitchVertPairs, int nStitchVertPairs,
+		float dt, float stretchMult, float bendMult, float stitchVertPairStiff)
 	{
 		int thread_id = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -729,6 +749,13 @@ namespace ldp
 			const int b_start = b_starts[thread_id];
 			computeBendForces(thread_id - nFaces, edgeData, A_start, beforeScan_A,
 				b_start, beforeScan_b, velocity, t_bendDatas, dt, bendMult);
+		}
+		else if (thread_id < nFaces + nEdges + nStitchVertPairs)
+		{
+			const int A_start = A_starts[thread_id];
+			const int b_start = b_starts[thread_id];
+			computeStitchVertForces(thread_id - nFaces - nEdges, stitchVertPairs,
+				A_start, beforeScan_A, b_start, beforeScan_b, stitchVertPairStiff);
 		}
 	}
 
@@ -809,10 +836,12 @@ namespace ldp
 		const Float3 gravity = m_simParam.gravity;// *powf(1 - std::max(0.f, std::min(1.f, m_curStitchRatio)), 2);
 		const int nFaces = m_faces_idxWorld_d.size();
 		const int nEdges = m_edgeData_d.size();
-		computeNumeric_kernel << <divUp(nFaces + nEdges, CTA_SIZE), CTA_SIZE >> >(
+		const int nStitchVertPairs = m_stitch_vertPairs_d.size();
+		computeNumeric_kernel << <divUp(nFaces + nEdges + nStitchVertPairs, CTA_SIZE), CTA_SIZE >> >(
 			m_edgeData_d.ptr(), m_faces_texStretch_d.ptr(), m_faces_texBend_d.ptr(),
 			m_A_Ids_start_d.ptr(), m_beforScan_A.ptr(), m_b_Ids_start_d.ptr(), m_beforScan_b.ptr(),
-			m_v_d.ptr(), nFaces, nEdges, m_simParam.dt, m_simParam.strecth_mult, m_simParam.bend_mult);
+			m_v_d.ptr(), nFaces, nEdges, m_stitch_vertPairs_d.ptr(), nStitchVertPairs,
+			m_simParam.dt, m_simParam.strecth_mult, m_simParam.bend_mult, m_simParam.stitch_stiffness);
 		cudaSafeCall(cudaGetLastError());
 		
 		// scanning into the sparse matrix

@@ -96,6 +96,7 @@ namespace ldp
 			const ClothPiece* cloth2, StitchPoint s2, size_t type);
 		std::pair<Float3, Float3> getStitchPos(int i);
 		size_t getStitchType(int i);
+		StitchPointPair getStitchPointPair(int i);
 		int numStitches();
 
 		int numGraphSewings()const { return m_graphSewings.size(); }
