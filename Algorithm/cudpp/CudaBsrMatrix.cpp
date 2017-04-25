@@ -256,6 +256,18 @@ void CudaBsrMatrix::multBsrT_value(const CudaBsrMatrix& B, CudaBsrMatrix& C, flo
 	range().multBsrT_value(B.range(), C, alpha, D==nullptr ? nullptr : &D->range(), beta);
 }
 
+void CudaBsrMatrix::addBsr_structure(const CudaBsrMatrix& B, CudaBsrMatrix& C)const
+{
+	throw std::exception("CudaBsrMatrix::addBsr_structure: NOT tested method, the result is not guarenteed!");
+	range().addBsr_structure(B, C);
+}
+
+void CudaBsrMatrix::addBsr_value(const CudaBsrMatrix& B, CudaBsrMatrix& C, float alpha, float beta)const
+{
+	throw std::exception("CudaBsrMatrix::addBsr_value: NOT tested method, the result is not guarenteed!");
+	range().addBsr_value(B.range(), C, alpha, beta);
+}
+
 void CudaBsrMatrix::multBsrT_addDiag_value(const CudaBsrMatrix& B, CudaBsrMatrix& C, float alpha,
 	const CudaDiagBlockMatrix* D, float beta)const
 {

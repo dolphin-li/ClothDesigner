@@ -162,6 +162,10 @@ public:
 	void multBsr_value(const CudaBsrMatrix& B, CudaBsrMatrix& C, float alpha = 1.f,
 		const CudaBsrMatrix* D = nullptr, float beta = 0.f)const;
 
+	// C = alpha*this + beta*B
+	void addBsr_structure(const CudaBsrMatrix& B, CudaBsrMatrix& C)const;
+	void addBsr_value(const CudaBsrMatrix& B, CudaBsrMatrix& C, float alpha = 1.f, float beta = 0.f)const;
+
 	// C = alpha*this*B' + beta*D
 	void multBsrT_value(const CudaBsrMatrix& B, CudaBsrMatrix& C, float alpha = 1.f,
 		const CudaBsrMatrix* D = nullptr, float beta = 0.f)const;
