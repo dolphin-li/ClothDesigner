@@ -1054,13 +1054,13 @@ namespace ldp
 
 	void ClothManager::calcLevelSet()
 	{
-		const float step = 0.005;
 		m_bodyMesh->updateBoundingBox();
 		auto bmin = m_bodyMesh->boundingBox[0];
 		auto bmax = m_bodyMesh->boundingBox[1];
 		auto brag = bmax - bmin;
 		bmin -= 0.2f * brag;
 		bmax += 0.2f * brag;
+		const float step = powf(brag[0] * brag[1] * brag[2], 1.f / 3.f) / 256.f;
 		ldp::Int3 res = (bmax - bmin) / step;
 		ldp::Float3 start = bmin;
 		m_bodyLvSet->create(res, start, step);

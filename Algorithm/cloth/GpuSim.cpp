@@ -1,12 +1,14 @@
 #include "GpuSim.h"
 
 #include "clothManager.h"
-#include "arcsim\ArcSimManager.h"
 #include "Renderable\ObjMesh.h"
 #include "cloth\LevelSet3D.h"
-#include "arcsim\adaptiveCloth\dde.hpp"
+#include "cloth\clothPiece.h"
 #include "cudpp\thrust_wrapper.h"
 #include "cudpp\CachedDeviceBuffer.h"
+#include "arcsim\adaptiveCloth\dde.hpp"
+#include "arcsim\ArcSimManager.h"
+#include "arcsim\adaptiveCloth\conf.hpp"
 
 #include <eigen\Dense>
 #include <eigen\Sparse>
@@ -15,6 +17,9 @@
 
 //#define DEBUG_DUMP
 //#define LDP_DEBUG
+
+const static char* g_default_arcsim_material = "data/arcsim/materials/gray-interlock.json";
+
 namespace ldp
 {
 #pragma region -- utils
@@ -136,8 +141,17 @@ namespace ldp
 		clear();
 		release_assert(ldp::is_float<ClothManager::ValueType>::value);
 		m_arcSimManager = nullptr;
-		m_clothManager = clothManager;
-		NOT_IMPLEMENTED;
+		m_clothManager = clothManager; 
+		m_simParam.setDefault();
+		initParam();
+		initializeMaterialMemory();
+		printf("3\n");
+		updateTopology();
+		printf("4\n");
+		updateNumeric();
+		printf("5\n");
+		restart();
+		m_solverInfo = "solver intialized from cloth manager";
 	}
 
 	void GpuSim::init(arcsim::ArcSimManager* arcSimManager)
@@ -175,14 +189,21 @@ namespace ldp
 			m_simParam.pcg_tol = 1e-2f;
 			m_simParam.control_mag = 400.f;
 			m_simParam.stitch_ratio = 5.f;
-			m_simParam.lap_damping_iter = 4;
-			m_simParam.air_damping = 0.999f;
 			m_simParam.strecth_mult = 1.f;
 			m_simParam.bend_mult = 1.f;
 		} // end if arc
 		else
 		{
-			NOT_IMPLEMENTED;
+			auto par = m_clothManager->getSimulationParam();
+			m_simParam.dt = par.time_step;
+			m_simParam.gravity = par.gravity;
+			m_simParam.pcg_iter = 400;
+			m_simParam.pcg_tol = 1e-2f;
+			m_simParam.control_mag = m_simParam.control_mag;
+			m_simParam.stitch_ratio = m_simParam.stitch_ratio;
+			m_simParam.strecth_mult = 1.f;
+			m_simParam.bend_mult = 1.f;
+			m_simParam.enable_selfCollision = par.enable_self_collistion;
 		} // end else clothManager
 	}
 
@@ -304,7 +325,6 @@ namespace ldp
 
 	void GpuSim::updateTopology_arcSim()
 	{
-		// prepare body collision
 		m_bodyLvSet_h = nullptr;
 		if (m_arcSimManager->getSimulator()->obstacles.size() >= 1)
 		{
@@ -325,7 +345,7 @@ namespace ldp
 		m_faces_idxTex_h.clear();
 		m_faces_idxMat_h.clear();
 		m_edgeData_h.clear();
-		m_x_init_h.clear(); 
+		m_x_init_h.clear();
 		m_texCoord_init_h.clear();
 		auto sim = m_arcSimManager->getSimulator();
 		int node_index_begin = 0;
@@ -346,7 +366,7 @@ namespace ldp
 			for (const auto& e : cloth.mesh.edges)
 			{
 				EdgeData ed;
-				ed.edge_idxWorld = ldp::Int4(e->n[0]->index + node_index_begin, 
+				ed.edge_idxWorld = ldp::Int4(e->n[0]->index + node_index_begin,
 					e->n[1]->index + node_index_begin, -1, -1);
 				ed.faceIdx[0] = ed.faceIdx[1] = -1;
 				for (int k = 0; k < 2; k++)
@@ -355,11 +375,11 @@ namespace ldp
 					ed.faceIdx[k] = e->adjf[k]->index + face_index_begin;
 					ed.edge_idxTex[k] = ldp::Int2(arcsim::edge_vert(e, k, 0)->index,
 						arcsim::edge_vert(e, k, 1)->index) + tex_index_begin;
-					ed.edge_idxWorld[k + 2] = arcsim::edge_opp_vert(e, k)->node->index + node_index_begin;			
+					ed.edge_idxWorld[k + 2] = arcsim::edge_opp_vert(e, k)->node->index + node_index_begin;
 					auto t0 = arcsim::edge_vert(e, k, 0)->u;
 					auto t1 = arcsim::edge_vert(e, k, 1)->u;
-					ed.length_sqr[k] = arcsim::norm2(t1-t0);
-					ed.theta_uv[k] = atan2f(t1[1]-t0[1], t1[0]-t0[0]);
+					ed.length_sqr[k] = arcsim::norm2(t1 - t0);
+					ed.theta_uv[k] = atan2f(t1[1] - t0[1], t1[0] - t0[0]);
 				}
 				m_edgeData_h.push_back(ed);
 			} // end for e
@@ -373,7 +393,7 @@ namespace ldp
 			face_index_begin += cloth.mesh.faces.size();
 		} // end for iCloth
 
-		m_x_init_d.upload(m_x_init_h); 
+		m_x_init_d.upload(m_x_init_h);
 		m_texCoord_init_d.upload(m_texCoord_init_h);
 		m_faces_idxWorld_d.upload(m_faces_idxWorld_h);
 		m_faces_idxTex_d.upload(m_faces_idxTex_h);
@@ -385,8 +405,80 @@ namespace ldp
 
 	void GpuSim::updateTopology_clothManager()
 	{		
+		// prepare body collision
+		m_clothManager->calcLevelSet();
+		m_bodyLvSet_h = m_clothManager->bodyLevelSet();
+		m_bodyLvSet_d = m_clothManager->bodyLevelSetDevice();
 
-		NOT_IMPLEMENTED;
+		// prepare triangle faces and edges
+		m_faces_idxWorld_h.clear();
+		m_faces_idxTex_h.clear();
+		m_faces_idxMat_h.clear();
+		m_edgeData_h.clear();
+		m_x_init_h.clear();
+		m_texCoord_init_h.clear();
+		int node_index_begin = 0;
+		int tex_index_begin = 0;
+		int mat_index_begin = 0;
+		int face_index_begin = 0;
+		for (int iCloth = 0; iCloth < m_clothManager->numClothPieces(); iCloth++)
+		{
+			auto cloth = m_clothManager->clothPiece(iCloth);
+			for (const auto& f : cloth->mesh3d().face_list)
+			{
+				m_faces_idxWorld_h.push_back(ldp::Int4(f.vertex_index[0],
+					f.vertex_index[1], f.vertex_index[2], 0) + node_index_begin);
+				m_faces_idxTex_h.push_back(ldp::Int4(f.vertex_index[0],
+					f.vertex_index[1], f.vertex_index[2], 0) + tex_index_begin);
+				m_faces_idxMat_h.push_back(mat_index_begin); // material set here..
+			} // end for f
+
+			BMesh bmesh = *cloth->mesh3d().get_bmesh(false);
+			BMESH_ALL_EDGES(e, e_of_m_iter, bmesh)
+			{
+				const int id0 = bmesh.vofe_first(e)->getIndex();
+				const int id1 = bmesh.vofe_last(e)->getIndex();
+				EdgeData ed;
+				ed.edge_idxWorld = ldp::Int4(id0 + node_index_begin, id1 + node_index_begin, -1, -1);
+				ed.faceIdx[0] = ed.faceIdx[1] = -1;
+				const auto t0 = cloth->mesh2d().vertex_list[id0];
+				const auto t1 = cloth->mesh2d().vertex_list[id1];
+				const float len = (t0 - t1).length();
+				const float theta = atan2f(t1[1] - t0[1], t1[0] - t0[0]);
+				int fcnt = 0;
+				BMESH_F_OF_E(f, e, f_of_e_iter, bmesh)
+				{
+					ed.faceIdx[fcnt] = f->getIndex() + face_index_begin;
+					ed.edge_idxTex[fcnt] = ldp::Int2(id0, id1) + tex_index_begin;
+					BMESH_V_OF_F(v, f, v_of_f_iter, bmesh)
+					{
+						if (v->getIndex() != id0 && v->getIndex() != id1)
+							ed.edge_idxWorld[fcnt + 2] = v->getIndex() + node_index_begin;
+					}
+					ed.length_sqr[fcnt] = len;
+					ed.theta_uv[fcnt] = theta;
+				} // end for f
+				m_edgeData_h.push_back(ed);
+			} // end for e
+
+			for (const auto& v : cloth->mesh3d().vertex_list)
+				m_x_init_h.push_back(v);
+			for (const auto& v : cloth->mesh2d().vertex_list)
+				m_texCoord_init_h.push_back(Float2(v[0], v[1]));
+			node_index_begin += cloth->mesh3d().vertex_list.size();
+			tex_index_begin += cloth->mesh2d().vertex_list.size();
+			mat_index_begin += 0;// cloth.materials.size();
+			face_index_begin += cloth->mesh3d().face_list.size();
+		} // end for iCloth
+
+		m_x_init_d.upload(m_x_init_h);
+		m_texCoord_init_d.upload(m_texCoord_init_h);
+		m_faces_idxWorld_d.upload(m_faces_idxWorld_h);
+		m_faces_idxTex_d.upload(m_faces_idxTex_h);
+		m_edgeData_d.upload(m_edgeData_h.data(), m_edgeData_h.size());
+
+		// build sparse matrix topology
+		setup_sparse_structure_from_cpu();
 	}
 
 	void GpuSim::setup_sparse_structure_from_cpu()
@@ -574,9 +666,6 @@ namespace ldp
 		// copy to self cpu
 		if (m_arcSimManager)
 		{
-			m_densityData_h.clear();
-			m_stretchSamples_h.clear();
-			m_bendingData_h.clear();
 			for (const auto& cloth : m_arcSimManager->getSimulator()->cloths)
 			for (const auto& mat : cloth.materials)
 			{
@@ -604,6 +693,29 @@ namespace ldp
 		else if (m_clothManager)
 		{
 			// TO DO: accomplish the importing from cloth manager
+			std::shared_ptr<arcsim::Cloth::Material> mat(new arcsim::Cloth::Material);
+			arcsim::load_material_data(*mat, g_default_arcsim_material);
+			printf("default material: %s\n", g_default_arcsim_material);
+
+			m_densityData_h.push_back(mat->density);
+			m_stretchSamples_h.push_back(StretchingSamples());
+			for (int x = 0; x < StretchingSamples::SAMPLES; x++)
+			for (int y = 0; y < StretchingSamples::SAMPLES; y++)
+			for (int z = 0; z < StretchingSamples::SAMPLES; z++)
+				m_stretchSamples_h.back()(x, y, z) = convert(mat->stretching.s[x][y][z]);
+			m_bendingData_h.push_back(BendingData());
+
+			auto& bdata = m_bendingData_h.back();
+			for (int x = 0; x < bdata.cols(); x++)
+			{
+				int wrap_x = x;
+				if (wrap_x>4)
+					wrap_x = 8 - wrap_x;
+				if (wrap_x > 2)
+					wrap_x = 4 - wrap_x;
+				for (int y = 0; y < bdata.rows(); y++)
+					bdata(x, y) = mat->bending.d[wrap_x][y];
+			}
 		} // end if clothManager
 		
 		// copy to gpu

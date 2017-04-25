@@ -73,8 +73,6 @@ namespace ldp
 			float pcg_tol = 0.f;		// tolerance of pcg method
 			float control_mag = 0.f;	// for user control
 			float stitch_ratio = 0.f;	// for stitching edges length reduction
-			int lap_damping_iter = 0;
-			float air_damping = 0.f;
 			float strecth_mult = 0.f;
 			float bend_mult = 0.f;
 			float handle_stiffness = 0.f;

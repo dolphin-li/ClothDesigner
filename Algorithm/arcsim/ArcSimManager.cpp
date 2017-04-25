@@ -183,7 +183,7 @@ namespace arcsim
 	{
 		m_timeStamp->Reset();
 		m_iterInfo = "loaded from cloth manager";
-
+		
 		clear();
 		m_sim.reset(new Simulation);
 		load_json("data/arcsim/default.json", *m_sim.get());
@@ -199,13 +199,29 @@ namespace arcsim
 		ObjMesh clothMesh;
 		clothManager->exportClothsMerged(clothMesh, true);
 		objMesh2arcMesh(m_sim->cloths[0].mesh, clothMesh);
+
+
+		// perform other preparations
+		prepare(*m_sim);
+		
+#ifdef LDP_DEBUG_USE_GPUSIM
+		m_gpuSim->init(clothManager);
+		//std::vector<Constraint*> cons;
+		//for (int c = 0; c < m_sim->cloths.size(); c++)
+		//{
+		//	int nn = m_sim->cloths[c].mesh.nodes.size();
+		//	std::vector<Vec3> fext(nn, Vec3(0));
+		//	std::vector<Mat3x3> Jext(nn, Mat3x3(0));
+		//	add_external_forces(m_sim->cloths[c], m_sim->gravity, m_sim->wind, fext, Jext);
+		//	implicit_update(m_sim->cloths[c], fext, Jext, cons, m_sim->step_time, false);
+		//}
+#endif
+
 		for (size_t i = 1; i < m_clothMesh_subDiv.size(); i++)
 			m_clothMesh_subDiv[i]->clear();
 
 		// TODO: create handles here
 
-		// perform other preparations
-		prepare(*m_sim);
 		m_needUpdateMesh = true;
 		updateMesh();
 		m_timeStamp->Stamp("cloth manager loaded");

@@ -30,5 +30,5 @@ namespace arcsim
 {
 
 	void load_json(const std::string &filename, Simulation &sim);
-
+	void load_material_data(Cloth::Material &material, const std::string &filename);
 }
