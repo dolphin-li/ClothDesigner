@@ -11,6 +11,7 @@
 namespace arcsim
 {
 #define LDP_DEBUG_USE_GPUSIM
+#define SUBDIV_SHOW_LEVEL 2
 	const static double g_num_edge_sample_angle_thre = 15 * ldp::PI_D / 180.;
 	const static double g_num_edge_sample_dist_thre = 0.01;
 
@@ -21,6 +22,10 @@ namespace arcsim
 		m_timeStamp.reset(new ldp::TimeStamp());
 		m_threadMutex.reset(new std::mutex());
 		m_gpuSim.reset(new ldp::GpuSim());
+		m_clothMesh_subDiv.resize(SUBDIV_SHOW_LEVEL);
+		m_clothMesh_subDiv[0] = m_clothMesh;
+		for (size_t i = 1; i < m_clothMesh_subDiv.size(); i++)
+			m_clothMesh_subDiv[i].reset(new ObjMesh());
 		m_timeStamp->Prefix("arcsim");
 	}
 
@@ -166,6 +171,8 @@ namespace arcsim
 		//	implicit_update(m_sim->cloths[c], fext, Jext, cons, m_sim->step_time, false);
 		//}
 #endif
+		for (size_t i = 1; i < m_clothMesh_subDiv.size(); i++)
+			m_clothMesh_subDiv[i]->clear();
 
 
 		m_needUpdateMesh = true;
@@ -192,6 +199,8 @@ namespace arcsim
 		ObjMesh clothMesh;
 		clothManager->exportClothsMerged(clothMesh, true);
 		objMesh2arcMesh(m_sim->cloths[0].mesh, clothMesh);
+		for (size_t i = 1; i < m_clothMesh_subDiv.size(); i++)
+			m_clothMesh_subDiv[i]->clear();
 
 		// TODO: create handles here
 
@@ -335,9 +344,10 @@ namespace arcsim
 		for (auto& f : m_clothMesh->face_list)
 			f.material_index = 0;
 
-		static ObjMesh subdivMesh;
-		if(m_clothMesh->subdiv_loop_to(subdivMesh))
-			m_clothMesh->cloneFrom(&subdivMesh);
+#ifdef LDP_DEBUG_USE_GPUSIM
+		for (size_t i = 1; i < m_clothMesh_subDiv.size(); i++)
+			m_clothMesh_subDiv[i - 1]->subdiv_loop_to(*m_clothMesh_subDiv[i]);
+#endif
 
 		m_needUpdateMesh = false;
 		m_threadMutex->unlock();

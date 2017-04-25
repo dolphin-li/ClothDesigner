@@ -229,7 +229,7 @@ void ArcsimView::paintGL()
 		//m_shaderManager->bind(CShaderManager::phong);
 		if (m_showBody)
 			m_arcsimManager->getBodyMesh()->render(m_showType);
-		m_arcsimManager->getClothMesh()->render(m_showType);
+		m_arcsimManager->getShowMesh()->render(m_showType);
 		//m_shaderManager->unbind();
 	}
 
@@ -410,7 +410,7 @@ void ArcsimView::renderWithShadowMap()
 		// collect meshes
 		std::vector<ObjMesh*> meshes;
 		meshes.push_back(m_arcsimManager->getBodyMesh());
-		meshes.push_back(m_arcsimManager->getClothMesh());
+		meshes.push_back(m_arcsimManager->getShowMesh());
 		m_MeshRender->updateGeometry(meshes.data() + 1, meshes.size() - 1, meshes.data(), 1);
 
 		for (int lightI = 0; lightI < m_lightNum; ++lightI)

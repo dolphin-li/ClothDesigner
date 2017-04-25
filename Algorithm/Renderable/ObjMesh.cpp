@@ -850,7 +850,6 @@ bool ObjMesh::subdiv_loop_to(ObjMesh& result)
 	if (f.vertex_count != 3)
 		return false;
 
-	result.clear();
 	result.material_list.assign(material_list.begin(), material_list.end());
 	strcpy_s(result.scene_filename, scene_filename);
 	strcpy_s(result.material_filename, material_filename);
@@ -860,8 +859,11 @@ bool ObjMesh::subdiv_loop_to(ObjMesh& result)
 	const int nEdges = bmesh.eofm_count();
 	const int nFaces = face_list.size();
 	const int nVerts = vertex_list.size();
+	result.face_list.clear();
 	result.face_list.reserve(nFaces * 4);
+	result.vertex_list.clear();
 	result.vertex_list.resize(nVerts + nEdges);
+	result.vertex_texture_list.clear();
 
 	// construct topology
 	BMESH_ALL_FACES(f, f_of_m_iter, bmesh)

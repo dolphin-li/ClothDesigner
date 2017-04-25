@@ -34,6 +34,8 @@ namespace arcsim
 		const ObjMesh* getBodyMesh()const{ return m_bodyMesh.get(); }
 		ObjMesh* getClothMesh(){ return m_clothMesh.get(); }
 		const ObjMesh* getClothMesh()const{ return m_clothMesh.get(); }
+		ObjMesh* getShowMesh(){ return m_clothMesh_subDiv.back().get(); }
+		const ObjMesh* getShowMesh()const{ return m_clothMesh_subDiv.back().get(); }
 		bool updateMesh();
 		float getFps()const{ return m_fps; }
 		std::string getIterInfo()const{ return m_iterInfo; }
@@ -47,6 +49,7 @@ namespace arcsim
 	private:
 		std::shared_ptr<Simulation> m_sim;
 		std::shared_ptr<ObjMesh> m_bodyMesh, m_clothMesh;
+		std::vector<std::shared_ptr<ObjMesh>> m_clothMesh_subDiv;
 		std::shared_ptr<ldp::TimeStamp> m_timeStamp;
 		bool m_needUpdateMesh = false;
 		std::shared_ptr<ldp::GpuSim> m_gpuSim;
