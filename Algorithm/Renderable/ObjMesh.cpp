@@ -843,6 +843,128 @@ void ObjMesh::getSelection(std::vector<int>& selectedIds)const
 		selectedIds.push_back(i);
 }
 
+bool ObjMesh::subdiv_loop_to(ObjMesh& result)
+{
+	// not triangle mesh
+	for (const auto& f : face_list)
+	if (f.vertex_count != 3)
+		return false;
+
+	result.clear();
+	result.material_list.assign(material_list.begin(), material_list.end());
+	strcpy_s(result.scene_filename, scene_filename);
+	strcpy_s(result.material_filename, material_filename);
+
+	BMesh& bmesh = *get_bmesh(m_bmesh_triagulate);
+
+	const int nEdges = bmesh.eofm_count();
+	const int nFaces = face_list.size();
+	const int nVerts = vertex_list.size();
+	result.face_list.reserve(nFaces * 4);
+	result.vertex_list.resize(nVerts + nEdges);
+
+	// construct topology
+	BMESH_ALL_FACES(f, f_of_m_iter, bmesh)
+	{
+		BMEdge* edges[3] = { 0 };
+		BMVert* verts[3] = { 0 };
+		int cnt = 0;
+		BMESH_E_OF_F(e, f, e_of_f_iter, bmesh)
+		{
+			edges[cnt++] = e;
+		}
+		verts[0] = bmesh.vofe_first(edges[0]);
+		verts[1] = bmesh.vofe_last(edges[0]);
+		if (verts[0] != bmesh.vofe_first(edges[2]) && verts[0] != bmesh.vofe_last(edges[2]))
+			std::swap(verts[0], verts[1]);
+		verts[2] = bmesh.vofe_first(edges[2]) == verts[0] ? bmesh.vofe_last(edges[2]) : bmesh.vofe_first(edges[2]);
+
+		const ObjMesh::obj_face& oriFace = face_list[f->getIndex()];
+		ObjMesh::obj_face f = oriFace;
+		f.vertex_index[0] = verts[0]->getIndex();
+		f.vertex_index[1] = edges[0]->getIndex() + nVerts;
+		f.vertex_index[2] = edges[2]->getIndex() + nVerts;
+		result.face_list.push_back(f);
+		f.vertex_index[0] = verts[1]->getIndex();
+		f.vertex_index[1] = edges[1]->getIndex() + nVerts;
+		f.vertex_index[2] = edges[0]->getIndex() + nVerts;
+		result.face_list.push_back(f);
+		f.vertex_index[0] = verts[2]->getIndex();
+		f.vertex_index[1] = edges[2]->getIndex() + nVerts;
+		f.vertex_index[2] = edges[1]->getIndex() + nVerts;
+		result.face_list.push_back(f);
+		f.vertex_index[0] = edges[0]->getIndex() + nVerts;
+		f.vertex_index[1] = edges[1]->getIndex() + nVerts;
+		f.vertex_index[2] = edges[2]->getIndex() + nVerts;
+		result.face_list.push_back(f);
+	} // end for all faces
+
+	// compute edge verts
+	std::vector<int> ids;
+	BMESH_ALL_EDGES(e, e_of_m_iter, bmesh)
+	{
+		ids.clear();
+		ids.push_back(bmesh.vofe_first(e)->getIndex());
+		ids.push_back(bmesh.vofe_last(e)->getIndex());
+		BMESH_F_OF_E(f, e, f_of_e_iter, bmesh)
+		{
+			BMESH_V_OF_F(v, f, v_of_f_iter, bmesh)
+			{
+				if (v->getIndex() != ids[0] && v->getIndex() != ids[1])
+				{
+					ids.push_back(v->getIndex());
+					break;
+				}
+			}
+		}
+		assert(cnt >= 1);
+
+		Float3 rv;
+		if (ids.size() != 4)	
+			rv = (vertex_list[ids[0]] + vertex_list[ids[1]]) * (1.f / 2.f);
+		else
+			rv = (vertex_list[ids[0]] + vertex_list[ids[1]]) * (3.f / 8.f)
+			+ (vertex_list[ids[2]] + vertex_list[ids[3]]) * (1.f / 8.f);
+		result.vertex_list[e->getIndex() + nVerts] = rv;
+	} // end for edges
+
+	// compute vert verts
+	std::vector<Float3> pos;
+	std::vector<int> boundary_id;
+	BMESH_ALL_VERTS(v, v_of_m_iter, bmesh)
+	{
+		ids.clear();
+		pos.clear();
+		boundary_id.clear();
+		BMESH_E_OF_V(e, v, e_of_v_iter, bmesh)
+		{
+			BMVert* v1 = bmesh.vofe_first(e) == v ? bmesh.vofe_last(e) : bmesh.vofe_first(e);
+			if (bmesh.fofe_count(e) != 2)
+				boundary_id.push_back(pos.size());
+			pos.push_back(vertex_list[v1->getIndex()]);
+		}
+		Float3 self = vertex_list[v->getIndex()];
+
+		if (boundary_id.size() == 2)
+		{
+			const Float3 p1 = pos[boundary_id[0]];
+			const Float3 p2 = pos[boundary_id[1]];
+			result.vertex_list[v->getIndex()] = 0.75f * self + 0.125f * (p1 + p2);
+		}
+		else
+		{
+			result.vertex_list[v->getIndex()] = self;
+			const float beta = pos.size() == 3 ? 3.f / 16.f : 3.f / (8.f*pos.size());
+			for (const auto& p : pos)
+				result.vertex_list[v->getIndex()] += beta * (p - self);
+		}
+	} // end for verts
+
+	result.updateNormals();
+	result.updateBoundingBox();
+	return true;
+}
+
 bool ObjMesh::isVertexSelected(int i)
 {
 	if (vertex_is_selected.size() == 0)

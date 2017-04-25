@@ -100,6 +100,8 @@ public:
 	virtual void getSubMesh(const std::vector<int>& validVertexIdx, 
 		ObjMesh* subMesh, std::vector<int>* faceIdToValidFaceId=0)const;
 
+	bool subdiv_loop_to(ObjMesh& result);
+
 	ObjMesh& operator=(const ObjMesh& rhs);
 
 	virtual void cloneFrom(const ObjMesh* rhs);

@@ -335,6 +335,10 @@ namespace arcsim
 		for (auto& f : m_clothMesh->face_list)
 			f.material_index = 0;
 
+		static ObjMesh subdivMesh;
+		if(m_clothMesh->subdiv_loop_to(subdivMesh))
+			m_clothMesh->cloneFrom(&subdivMesh);
+
 		m_needUpdateMesh = false;
 		m_threadMutex->unlock();
 		return true;

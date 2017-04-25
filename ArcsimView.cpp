@@ -187,7 +187,7 @@ void ArcsimView::initializeGL()
 	resetCamera();
 
 	// shaders
-	m_shaderManager->create("shaders");
+	//m_shaderManager->create("shaders");
 
 	// shadow map
 	initShadowMap();
@@ -226,11 +226,11 @@ void ArcsimView::paintGL()
 	}
 	else
 	{
-		m_shaderManager->bind(CShaderManager::phong);
+		//m_shaderManager->bind(CShaderManager::phong);
 		if (m_showBody)
 			m_arcsimManager->getBodyMesh()->render(m_showType);
 		m_arcsimManager->getClothMesh()->render(m_showType);
-		m_shaderManager->unbind();
+		//m_shaderManager->unbind();
 	}
 
 	// debug ldp: render texmap...
