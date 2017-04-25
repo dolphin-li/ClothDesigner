@@ -82,7 +82,9 @@ namespace ldp
 			float friction_stiffness = 0.f;
 			float repulsion_thickness = 0.f;
 			float projection_thickness = 0.f;
+			bool enable_selfCollision = false;
 
+			SimParam(){ setDefault(); }
 			void setDefault();
 		};
 	public:

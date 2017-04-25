@@ -837,7 +837,8 @@ namespace ldp
 		linearBodyCollision(); 
 
 		// add cloth-cloth force term using uniform grid
-		linearSelfCollision();
+		if (m_simParam.enable_selfCollision)
+			linearSelfCollision();
 	}
 #pragma endregion
 
