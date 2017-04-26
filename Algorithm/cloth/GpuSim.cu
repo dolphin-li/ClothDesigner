@@ -706,11 +706,12 @@ namespace ldp
 		} // end for row
 	}
 
-	__device__ void computeStitchVertForces(int iStitch, const Int2* stitchVertPairs, 
+	__device__ void computeStitchVertForces(int iStitch, 
+		cudaTextureObject_t stp_0, cudaTextureObject_t stp_1,
 		int A_start, Mat3f* beforeScan_A, int b_start, Float3* beforeScan_b, 
 		float stiff, float dt, float cur_stitch_ratio)
 	{
-		const Int2 stp = stitchVertPairs[iStitch];
+		const Int2 stp(fetch_int(stp_0, iStitch), fetch_int(stp_1, iStitch));
 
 		const Float3 xinit[2] = { texRead_x_init(stp[0]), texRead_x_init(stp[1]) };
 		const Float3 x[2] = { texRead_x(stp[0]), texRead_x(stp[1]) };
@@ -728,7 +729,7 @@ namespace ldp
 		const cudaTextureObject_t* t_stretchSamples, const cudaTextureObject_t* t_bendDatas,
 		const int* A_starts, Mat3f* beforeScan_A, const int* b_starts, Float3* beforeScan_b,
 		const Float3* velocity, int nFaces, int nEdges, 
-		const Int2* stitchVertPairs, int nStitchVertPairs,
+		cudaTextureObject_t stitchVertPair0, cudaTextureObject_t stitchVertPair1, int nStitchVertPairs,
 		float dt, float stretchMult, float bendMult, float stitchVertPairStiff, float curStitchRation)
 	{
 		int thread_id = threadIdx.x + blockIdx.x * blockDim.x;
@@ -754,7 +755,7 @@ namespace ldp
 		{
 			const int A_start = A_starts[thread_id];
 			const int b_start = b_starts[thread_id];
-			computeStitchVertForces(thread_id - nFaces - nEdges, stitchVertPairs,
+			computeStitchVertForces(thread_id - nFaces - nEdges, stitchVertPair0, stitchVertPair1,
 				A_start, beforeScan_A, b_start, beforeScan_b, stitchVertPairStiff, dt, curStitchRation);
 		}
 	}
@@ -831,19 +832,20 @@ namespace ldp
 		cudaSafeCall(cudaMemset(m_project_vw_d.ptr(), 0, m_project_vw_d.sizeBytes()));
 		cudaSafeCall(cudaMemset(m_beforScan_A.ptr(), 0, m_beforScan_A.sizeBytes()));
 		cudaSafeCall(cudaMemset(m_beforScan_b.ptr(), 0, m_beforScan_b.sizeBytes()));
-		
+
 		// ldp hack here: make the gravity not important when we are stitching.
 		const Float3 gravity = m_simParam.gravity;// *powf(1 - std::max(0.f, std::min(1.f, m_curStitchRatio)), 2);
 		const int nFaces = m_faces_idxWorld_d.size();
 		const int nEdges = m_edgeData_d.size();
-		const int nStitchVertPairs = m_stitch_vertPairs_d.size();
+		const int nStitchVertPairs = m_stitch_vertPairs_d->nnzBlocks();
 		computeNumeric_kernel << <divUp(nFaces + nEdges + nStitchVertPairs, CTA_SIZE), CTA_SIZE >> >(
 			m_edgeData_d.ptr(), m_faces_texStretch_d.ptr(), m_faces_texBend_d.ptr(),
 			m_A_Ids_start_d.ptr(), m_beforScan_A.ptr(), m_b_Ids_start_d.ptr(), m_beforScan_b.ptr(),
-			m_v_d.ptr(), nFaces, nEdges, m_stitch_vertPairs_d.ptr(), nStitchVertPairs,
+			m_v_d.ptr(), nFaces, nEdges, 
+			m_stitch_vertPairs_d->bsrRowPtr_cooTexture(), m_stitch_vertPairs_d->bsrColIdxTexture(), nStitchVertPairs,
 			m_simParam.dt, m_simParam.strecth_mult, m_simParam.bend_mult, m_simParam.stitch_stiffness,
 			m_curStitchRatio);
-		cudaSafeCall(cudaGetLastError());
+		cudaSafeCall(cudaGetLastError()); 
 		
 		// scanning into the sparse matrix
 		// since we have unique positions, we can do scan similar with CSR-vector multiplication.

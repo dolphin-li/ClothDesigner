@@ -113,6 +113,7 @@ namespace ldp
 		m_A_d.reset(new CudaBsrMatrix(m_cusparseHandle));
 		m_A_diag_d.reset(new CudaDiagBlockMatrix());
 		m_vert_FaceList_d.reset(new CudaBsrMatrix(m_cusparseHandle, true));
+		m_stitch_vertPairs_d.reset(new CudaBsrMatrix(m_cusparseHandle, true));
 	}
 
 	GpuSim::~GpuSim()
@@ -475,6 +476,7 @@ namespace ldp
 		m_bodyLvSet_h = m_clothManager->bodyLevelSet();
 		m_bodyLvSet_d = m_clothManager->bodyLevelSetDevice();
 
+		// ------------------------------------------------------------------------------
 		// prepare triangle faces and edges
 		m_faces_idxWorld_h.clear();
 		m_faces_idxTex_h.clear();
@@ -536,7 +538,8 @@ namespace ldp
 			face_index_begin += cloth->mesh3d().face_list.size();
 		} // end for iCloth
 
-		// load stitch		
+		// ------------------------------------------------------------------------------
+		// load stitch	
 		m_stitch_vertPairs_h.clear();
 		for (int i_stp = 0; i_stp < m_clothManager->numStitches(); i_stp++)
 		{
@@ -547,8 +550,21 @@ namespace ldp
 		std::sort(m_stitch_vertPairs_h.begin(), m_stitch_vertPairs_h.end());
 		m_stitch_vertPairs_h.resize(std::unique(m_stitch_vertPairs_h.begin(), 
 			m_stitch_vertPairs_h.end()) - m_stitch_vertPairs_h.begin());
-		m_stitch_vertPairs_d.upload(m_stitch_vertPairs_h);
+		std::vector<int> tmpRow_h, tmpCol_h;
+		for (const auto& stp : m_stitch_vertPairs_h)
+		{
+			tmpRow_h.push_back(stp[0]);
+			tmpCol_h.push_back(stp[1]);
+		}
+		CachedDeviceArray<int> tmpRow_d, tmpCol_d;
+		tmpRow_d.fromHost(tmpRow_h);
+		tmpCol_d.fromHost(tmpCol_h);
+		m_stitch_vertPairs_d->resize(m_x_init_h.size(), m_x_init_h.size(), 1);
+		m_stitch_vertPairs_d->setRowFromBooRowPtr(tmpRow_d.data(), tmpRow_d.size());
+		cudaSafeCall(cudaMemcpy(m_stitch_vertPairs_d->bsrColIdx(), tmpCol_d.data(), 
+			tmpCol_d.bytes(), cudaMemcpyDeviceToDevice));
 
+		// ------------------------------------------------------------------------------
 		// find idx map that remove all stitched vertices
 		m_stitch_vertMerge_idxMap_h.resize(m_x_init_h.size());
 		for (size_t i = 0; i < m_stitch_vertMerge_idxMap_h.size(); i++)
@@ -986,7 +1002,7 @@ namespace ldp
 		m_edgeData_d.release();
 		m_vert_FaceList_d->clear(); 
 		m_stitch_vertPairs_h.clear();
-		m_stitch_vertPairs_d.release();
+		m_stitch_vertPairs_d->clear();
 		m_stitch_vertMerge_idxMap_h.clear();
 	
 		m_A_Ids_d.release();
