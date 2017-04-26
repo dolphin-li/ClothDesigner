@@ -1168,13 +1168,19 @@ namespace ldp
 	__global__ void Triangle_count_Kernel(
 		const int nVerts, const int nTri, NodeFaceCon con,
 		const Float3 start, const float inv_h, const Int3 size,
-		const Int2* bucketRanges, const int* vertIds, int* tri_vertCnt)
+		const Int2* bucketRanges, const int* vertIds, int* tri_vertCnt,
+		cudaTextureObject_t stitch_csrRow, cudaTextureObject_t stitch_csrCol
+		)
 	{
 		int iTri = blockDim.x * blockIdx.x + threadIdx.x;
 		if (iTri >= nTri)	return;
 
 		const Int3 vabc = texRead_faces_idxWorld(iTri);
 		const Float3 x[3] = { texRead_x(vabc[0]), texRead_x(vabc[1]), texRead_x(vabc[2]) };
+		for (int k = 0; k < 3; k++)
+		if (isinf(x[k][0]) || isinf(x[k][1]) || isinf(x[k][2])
+			|| isnan(x[k][0]) || isnan(x[k][1]) || isnan(x[k][2]))
+			return;
 		const Float3 bmin(min(x[0], min(x[1], x[2])));
 		const Float3 bmax(max(x[0], max(x[1], x[2])));
 		const Int3 min_ijk = max(Int3(0), min(size - 1, v2xyz_floor(bmin, start, inv_h) - 1));
@@ -1191,12 +1197,21 @@ namespace ldp
 			{
 				const int pid = vertIds[k];
 				const Float3 p = texRead_x(pid);
-				cnt += (pid != vabc[0] && pid != vabc[1] && pid != vabc[2])
+				bool shouldContinue = false;
+				shouldContinue |= (pid != vabc[0] && pid != vabc[1] && pid != vabc[2])
 					&& p[0] >= bmin[0] - con.repulsion_thickness && p[0] < bmax[0] + con.repulsion_thickness
 					&& p[1] >= bmin[1] - con.repulsion_thickness && p[1] < bmax[1] + con.repulsion_thickness
 					&& p[2] >= bmin[2] - con.repulsion_thickness && p[2] < bmax[2] + con.repulsion_thickness
-					;
-			}
+					&& !isnan(p[0]) && !isnan(p[1]) && !isnan(p[2])
+					&& !isinf(p[0]) && !isinf(p[1]) && !isinf(p[2]);
+				const Int2 stitchedVertRange(fetch_int(stitch_csrRow, pid), fetch_int(stitch_csrRow, pid + 1));
+				for (int pos = stitchedVertRange[0]; pos < stitchedVertRange[1]; pos++)
+				{
+					const int svi = fetch_int(stitch_csrCol, pos);
+					shouldContinue &= (svi != vabc[0] && svi != vabc[1] && svi != vabc[2]);
+				} // pos
+				cnt += shouldContinue;
+			} // k
 		} // end for pos_i, j, k
 		tri_vertCnt[iTri] = cnt;
 	}
@@ -1205,7 +1220,8 @@ namespace ldp
 		const int nVerts, const int nTri, NodeFaceCon con,
 		const Float3 start, const float inv_h, const Int3 size,
 		const Int2* bucketRanges, const int* vertIds,
-		const int* tri_vertCnt, int* pair_tId, int* pair_vId)
+		const int* tri_vertCnt, int* pair_tId, int* pair_vId,
+		cudaTextureObject_t stitch_csrRow, cudaTextureObject_t stitch_csrCol)
 	{
 		const int iTri = blockDim.x * blockIdx.x + threadIdx.x;
 		if (iTri >= nTri)	return;
@@ -1217,6 +1233,10 @@ namespace ldp
 
 		const Int3 vabc = texRead_faces_idxWorld(iTri);
 		const Float3 x[3] = { texRead_x(vabc[0]), texRead_x(vabc[1]), texRead_x(vabc[2]) };
+		for (int k = 0; k < 3; k++)
+		if (isinf(x[k][0]) || isinf(x[k][1]) || isinf(x[k][2])
+			|| isnan(x[k][0]) || isnan(x[k][1]) || isnan(x[k][2]))
+			return;
 		const Float3 bmin(min(x[0], min(x[1], x[2])));
 		const Float3 bmax(max(x[0], max(x[1], x[2])));
 		const Int3 min_ijk = max(Int3(0), min(size - 1, v2xyz_floor(bmin, start, inv_h) - 1));
@@ -1233,11 +1253,20 @@ namespace ldp
 			{
 				const int pid = vertIds[k];
 				const Float3 p = texRead_x(pid);
-				if (pid != vabc[0] && pid != vabc[1] && pid != vabc[2]
+				bool shouldContinue = false;
+				shouldContinue |= (pid != vabc[0] && pid != vabc[1] && pid != vabc[2])
 					&& p[0] >= bmin[0] - con.repulsion_thickness && p[0] < bmax[0] + con.repulsion_thickness
 					&& p[1] >= bmin[1] - con.repulsion_thickness && p[1] < bmax[1] + con.repulsion_thickness
 					&& p[2] >= bmin[2] - con.repulsion_thickness && p[2] < bmax[2] + con.repulsion_thickness
-					)
+					&& !isnan(p[0]) && !isnan(p[1]) && !isnan(p[2])
+					&& !isinf(p[0]) && !isinf(p[1]) && !isinf(p[2]);
+				const Int2 stitchedVertRange(fetch_int(stitch_csrRow, pid), fetch_int(stitch_csrRow, pid + 1));
+				for (int pos = stitchedVertRange[0]; pos < stitchedVertRange[1]; pos++)
+				{
+					const int svi = fetch_int(stitch_csrCol, pos);
+					shouldContinue &= (svi != vabc[0] && svi != vabc[1] && svi != vabc[2]);
+				} // pos
+				if (shouldContinue)
 				{
 					pair_tId[tb + cnt] = iTri;
 					pair_vId[tb + cnt] = pid;
@@ -1294,7 +1323,7 @@ namespace ldp
 			rhs_atomicAdd(b_value, vabcp[k1], -dt*(g + dt*h*v_dot_grad)*w[k1] * N);
 		} // end for k1
 
-		//// handle self collision project out
+		////// handle self collision project out
 		//Float3 proj_dx[4];
 		//con.project(value, N, w, vabcp, proj_dx);
 		//for (int k1 = 0; k1 < 4; k1++)
@@ -1337,7 +1366,7 @@ namespace ldp
 		//assign vertex_id and vertex_bucket
 		selfColli_Grid_0_Kernel << <divUp(nVerts, CTA_SIZE), CTA_SIZE >> >(
 			m_x_d.ptr(), m_selfColli_vertIds.ptr(), m_selfColli_bucketIds.ptr(), 
-			nVerts,	gridStart, inv_h, gridSize);
+			nVerts, gridStart, inv_h, gridSize);
 		cudaSafeCall(cudaGetLastError()); 
 		thrust_wrapper::sort_by_key(m_selfColli_bucketIds.ptr(), m_selfColli_vertIds.ptr(), nVerts);
 		cudaSafeCall(cudaGetLastError()); 
@@ -1351,8 +1380,8 @@ namespace ldp
 		// count the possible intersections
 		Triangle_count_Kernel << <divUp(nTri, CTA_SIZE), CTA_SIZE >> >(
 			nVerts, nTri, con, gridStart, inv_h, gridSize,
-			(Int2*)m_selfColli_bucketRanges.ptr(), m_selfColli_vertIds.ptr(),
-			m_selfColli_tri_vertCnt.ptr()
+			(Int2*)m_selfColli_bucketRanges.ptr(), m_selfColli_vertIds.ptr(), m_selfColli_tri_vertCnt.ptr(),
+			m_stitch_vertPairs_d->bsrRowPtrTexture(), m_stitch_vertPairs_d->bsrColIdxTexture()
 			);
 		cudaSafeCall(cudaGetLastError());
 		thrust_wrapper::inclusive_scan(m_selfColli_tri_vertCnt.ptr(), m_selfColli_tri_vertCnt.ptr(), nTri);
@@ -1369,7 +1398,8 @@ namespace ldp
 		Triangle_fillPair_Kernel << <divUp(nTri, CTA_SIZE), CTA_SIZE >> >(
 			nVerts, nTri, con, gridStart, inv_h, gridSize,
 			(Int2*)m_selfColli_bucketRanges.ptr(), m_selfColli_vertIds.ptr(),
-			m_selfColli_tri_vertCnt.ptr(), m_selfColli_tri_vertPair_tId.ptr(), m_selfColli_tri_vertPair_vId.ptr()
+			m_selfColli_tri_vertCnt.ptr(), m_selfColli_tri_vertPair_tId.ptr(), m_selfColli_tri_vertPair_vId.ptr(),
+			m_stitch_vertPairs_d->bsrRowPtrTexture(), m_stitch_vertPairs_d->bsrColIdxTexture()
 			);
 		cudaSafeCall(cudaGetLastError());
 
