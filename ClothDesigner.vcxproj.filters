@@ -943,6 +943,9 @@
     <ClCompile Include="Algorithm\cudpp\GpuKdTree.cpp">
       <Filter>algorithm\cudpp</Filter>
     </ClCompile>
+    <ClCompile Include="Algorithm\Renderable\GpuMesh.cpp">
+      <Filter>algorithm\renderable</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">
@@ -1592,6 +1595,9 @@
     <ClInclude Include="Algorithm\cloth\SelfCollider.h">
       <Filter>algorithm\cloth</Filter>
     </ClInclude>
+    <ClInclude Include="Algorithm\Renderable\GpuMesh.h">
+      <Filter>algorithm\renderable</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="qdarkstyle\rc\up_arrow_disabled.png">
@@ -1768,6 +1774,9 @@
     </CudaCompile>
     <CudaCompile Include="Algorithm\cloth\SelfCollider.cu">
       <Filter>algorithm\cloth</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Algorithm\Renderable\GpuMesh.cu">
+      <Filter>algorithm\renderable</Filter>
     </CudaCompile>
   </ItemGroup>
 </Project>

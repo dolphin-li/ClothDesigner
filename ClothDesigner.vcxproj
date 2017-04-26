@@ -264,6 +264,7 @@
     <ClCompile Include="Algorithm\Renderable\bmesh.cpp" />
     <ClCompile Include="Algorithm\Renderable\BoneMesh.cpp" />
     <ClCompile Include="Algorithm\Renderable\GLNode.cpp" />
+    <ClCompile Include="Algorithm\Renderable\GpuMesh.cpp" />
     <ClCompile Include="Algorithm\Renderable\ObjMesh.cpp" />
     <ClCompile Include="Algorithm\Shader\glsl.cpp" />
     <ClCompile Include="Algorithm\Shader\glslprogram.cpp" />
@@ -504,6 +505,7 @@
     <CudaCompile Include="Algorithm\cudpp\ModerGpuWrapper.cu" />
     <CudaCompile Include="Algorithm\cudpp\moderngpu\src\mgpucontext.cu" />
     <CudaCompile Include="Algorithm\cudpp\thrust_wrapper.cu" />
+    <CudaCompile Include="Algorithm\Renderable\GpuMesh.cu" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.h">
@@ -676,6 +678,7 @@
     <ClInclude Include="Algorithm\Renderable\BoneMesh.h" />
     <ClInclude Include="Algorithm\Renderable\Error.h" />
     <ClInclude Include="Algorithm\Renderable\GLNode.h" />
+    <ClInclude Include="Algorithm\Renderable\GpuMesh.h" />
     <ClInclude Include="Algorithm\Renderable\ObjMesh.h" />
     <ClInclude Include="Algorithm\Renderable\Renderable.h" />
     <ClInclude Include="Algorithm\Shader\glsl.h" />
