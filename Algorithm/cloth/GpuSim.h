@@ -81,6 +81,7 @@ namespace ldp
 			float repulsion_thickness = 0.f;
 			float projection_thickness = 0.f;
 			bool enable_selfCollision = false;
+			int selfCollision_maxGridSize = 0;
 
 			SimParam(){ setDefault(); }
 			void setDefault();

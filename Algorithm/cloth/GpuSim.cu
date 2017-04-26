@@ -719,20 +719,9 @@ namespace ldp
 		const float len_init = (xinit[1] - xinit[0]).length();
 		const float len_cur = (x[1] - x[0]).length() + 1e-16f;
 		const float ratio = cur_stitch_ratio * len_init / len_cur;
-
-		for (int r = 0; r < 2; r++)
-		{
-			Float3 b = 0.f;
-			for (int c = 0; c < 2; c++)
-			{
-				int pos = texRead_A_order(A_start + r * 2 + c);
-				float s = stiff * ((r == c)*2.f - 1.f);
-				beforeScan_A[pos] = dt * s * ldp::Mat3f().eye();
-				b -= s * (1 - ratio) * (x[c] + dt * v[c]);
-			}
-			int pos = texRead_b_order(b_start + r);
-			beforeScan_b[pos] = b;
-		} // end for r
+		beforeScan_A[texRead_A_order(A_start + 0)] = dt * dt * stiff * ldp::Mat3f().eye();
+		beforeScan_A[texRead_A_order(A_start + 1)] = -dt * dt * stiff * ldp::Mat3f().eye();
+		beforeScan_b[texRead_b_order(b_start)] = -dt*stiff*(1 - ratio)*(x[0]-x[1] + dt*(v[0]-v[1]));
 	}
 
 	__global__ void computeNumeric_kernel(const GpuSim::EdgeData* edgeData, 
@@ -1314,8 +1303,10 @@ namespace ldp
 	{
 		const int nVerts = m_x_init_h.size();
 		const int nTri = m_faces_idxWorld_h.size();
-		const float h = ::max(1.f/256.f, m_simParam.dt);
-		const float inv_h = 1.f / h;
+		NodeFaceCon con;
+		con.collision_stiffness = m_simParam.collision_stiffness;
+		con.repulsion_thickness = m_simParam.repulsion_thickness;
+		con.projection_thickness = m_simParam.projection_thickness;
 		ldp::Float3 bmin = FLT_MAX;
 		ldp::Float3 bmax = -bmin;
 		for (int i = 0; i<nVerts; i++)
@@ -1324,14 +1315,15 @@ namespace ldp
 			bmin[k] = ::min(bmin[k], m_x_h[i][k]);
 			bmax[k] = ::max(bmax[k], m_x_h[i][k]);
 		}
-		NodeFaceCon con;
-		con.collision_stiffness = m_simParam.collision_stiffness;
-		con.repulsion_thickness = m_simParam.repulsion_thickness;
-		con.projection_thickness = m_simParam.projection_thickness;
+		const Float3 gridStart = bmin - 0.01f * (bmax - bmin);
+		const Float3 gridEnd = bmax + 0.01f * (bmax - bmin);
+		const Float3 gd = gridEnd - gridStart;
+		const float h = powf(gd[0] * gd[1] * gd[2], 1.f / 3.f) * 
+			std::max(1.f / float(m_simParam.selfCollision_maxGridSize), m_simParam.dt * 2.f);
+		const float inv_h = 1.f / h;
 
 		// Initialize the culling grid sizes
-		const ldp::Float3 gridStart = bmin - 1.5f * h;
-		const ldp::Int3 gridSize(floor((bmax - gridStart)*inv_h) + 2);
+		const Int3 gridSize(floor((bmax - gridStart)*inv_h) + 2);
 		m_selfColli_nBuckets = gridSize[0] * gridSize[1] * gridSize[2];
 		if (m_selfColli_nBuckets > m_selfColli_bucketIds.size())
 			m_selfColli_bucketRanges.create(m_selfColli_nBuckets * 2.4, false);

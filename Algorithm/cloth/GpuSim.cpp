@@ -131,10 +131,11 @@ namespace ldp
 		handle_stiffness = 1e3f;
 		collision_stiffness = 1e6f;
 		friction_stiffness = 1;
-		stitch_stiffness = 1e2f;
+		stitch_stiffness = 1e3f;
 		repulsion_thickness = 5e-3f;
 		projection_thickness = 1e-4f;
 		enable_selfCollision = true;
+		selfCollision_maxGridSize = 64;
 	}
 
 	void GpuSim::init(ClothManager* clothManager)
@@ -195,7 +196,7 @@ namespace ldp
 			m_simParam.pcg_iter = 400;
 			m_simParam.pcg_tol = 1e-2f;
 			m_simParam.handle_stiffness = 400.f;
-			m_simParam.stitch_ratio = 5.f;
+			m_simParam.stitch_ratio = 4.f;
 			m_simParam.strecth_mult = 1.f;
 			m_simParam.bend_mult = 1.f;
 		} // end if arc
@@ -541,7 +542,11 @@ namespace ldp
 		{
 			const auto stp = m_clothManager->getStitchPointPair(i_stp);
 			m_stitch_vertPairs_h.push_back(ldp::Int2(stp.first, stp.second));
+			m_stitch_vertPairs_h.push_back(ldp::Int2(stp.second, stp.first));
 		} // i_stp
+		std::sort(m_stitch_vertPairs_h.begin(), m_stitch_vertPairs_h.end());
+		m_stitch_vertPairs_h.resize(std::unique(m_stitch_vertPairs_h.begin(), 
+			m_stitch_vertPairs_h.end()) - m_stitch_vertPairs_h.begin());
 		m_stitch_vertPairs_d.upload(m_stitch_vertPairs_h);
 
 		// find idx map that remove all stitched vertices
@@ -682,12 +687,9 @@ namespace ldp
 		{
 			A_Ids_start_h.push_back(A_Ids_h.size());
 			b_Ids_start_h.push_back(b_Ids_h.size());
-			for (int r = 0; r < 2; r++)
-			{
-				for (int c = 0; c < 2; c++)
-					A_Ids_h.push_back(ldp::vertPair_to_idx(Int2(stp[r], stp[c]), nVerts));
-				b_Ids_h.push_back(stp[r]);
-			}
+			A_Ids_h.push_back(ldp::vertPair_to_idx(Int2(stp[0], stp[0]), nVerts));
+			A_Ids_h.push_back(ldp::vertPair_to_idx(Int2(stp[0], stp[1]), nVerts));
+			b_Ids_h.push_back(stp[0]);
 		} // i_stp
 
 #ifdef DEBUG_DUMP
