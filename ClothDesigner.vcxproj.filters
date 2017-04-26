@@ -943,9 +943,6 @@
     <ClCompile Include="Algorithm\cudpp\GpuKdTree.cpp">
       <Filter>algorithm\cudpp</Filter>
     </ClCompile>
-    <ClCompile Include="Algorithm\Renderable\GpuMesh.cpp">
-      <Filter>algorithm\renderable</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">
@@ -1568,9 +1565,6 @@
     <ClInclude Include="Algorithm\cudpp\device_memory.h">
       <Filter>algorithm\cudpp</Filter>
     </ClInclude>
-    <ClInclude Include="Algorithm\cudpp\device_utils.h">
-      <Filter>algorithm\cudpp</Filter>
-    </ClInclude>
     <ClInclude Include="Algorithm\cudpp\GpuCholeSky.h">
       <Filter>algorithm\cudpp</Filter>
     </ClInclude>
@@ -1594,9 +1588,6 @@
     </ClInclude>
     <ClInclude Include="Algorithm\cloth\SelfCollider.h">
       <Filter>algorithm\cloth</Filter>
-    </ClInclude>
-    <ClInclude Include="Algorithm\Renderable\GpuMesh.h">
-      <Filter>algorithm\renderable</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1774,9 +1765,6 @@
     </CudaCompile>
     <CudaCompile Include="Algorithm\cloth\SelfCollider.cu">
       <Filter>algorithm\cloth</Filter>
-    </CudaCompile>
-    <CudaCompile Include="Algorithm\Renderable\GpuMesh.cu">
-      <Filter>algorithm\renderable</Filter>
     </CudaCompile>
   </ItemGroup>
 </Project>

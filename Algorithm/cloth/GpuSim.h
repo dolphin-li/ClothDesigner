@@ -107,7 +107,7 @@ namespace ldp
 		float getFps()const{ return m_fps; }
 		float getStepTime()const{ return m_simParam.dt; }
 		std::string getSolverInfo()const{ return m_solverInfo; }
-		void clothToObjMesh(ObjMesh& mesh);
+		void exportClothToObjMesh(ObjMesh& mesh);
 	protected:
 		// update the whole system based on the current changes
 		void updateSystem();
@@ -146,6 +146,9 @@ namespace ldp
 		void userControlSolve();
 		void update_x_v_by_dv();
 		void project_outside();
+
+		// exporting related
+		void exportResultClothToObjMesh();
 	protected:
 		void bindTextures();
 		BMEdge* findEdge(int v1, int v2); // edge with end point v1,v2
@@ -161,6 +164,7 @@ namespace ldp
 		std::string m_solverInfo;
 		ldp::LevelSet3D* m_bodyLvSet_h = nullptr;
 		Cuda3DArray<float> m_bodyLvSet_d;
+		std::shared_ptr<ObjMesh> m_resultClothMesh;
 
 		bool m_shouldTopologyUpdate = false;
 		bool m_shouldLevelsetUpdate = false;
@@ -168,6 +172,7 @@ namespace ldp
 		bool m_shouldStitchUpdate = false;
 		bool m_shouldSparseStructureUpdate = false;
 		bool m_shouldRestart = false;
+		bool m_shouldExportMesh = false;
 		void updateDependency();
 		void resetDependency(bool on);
 		///////////////// mesh structure related /////////////////////////////////////////////////////////////
@@ -188,6 +193,7 @@ namespace ldp
 		std::vector<Int2> m_stitch_vertPairs_h;
 		std::shared_ptr<CudaBsrMatrix> m_stitch_vertPairs_d;
 		std::vector<int> m_stitch_vertMerge_idxMap_h;
+		std::vector<int> m_vertMerge_in_out_idxMap_h;
 		std::vector<EdgeData> m_stitch_edgeData_h;
 		DeviceArray<EdgeData> m_stitch_edgeData_d;
 

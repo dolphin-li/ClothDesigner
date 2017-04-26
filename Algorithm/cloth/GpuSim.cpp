@@ -116,6 +116,7 @@ namespace ldp
 		m_vert_FaceList_d.reset(new CudaBsrMatrix(m_cusparseHandle, true));
 		m_stitch_vertPairs_d.reset(new CudaBsrMatrix(m_cusparseHandle, true));
 		m_bmesh.reset(new BMesh());
+		m_resultClothMesh.reset(new ObjMesh);
 	}
 
 	GpuSim::~GpuSim()
@@ -186,6 +187,7 @@ namespace ldp
 		m_x_d.download(m_x_h);
 		m_curSimulationTime += m_simParam.dt;
 
+		m_shouldExportMesh = true;
 		gtime_t t_end = gtime_now();
 		m_fps = 1.f / gtime_seconds(t_start, t_end);
 	}
@@ -226,63 +228,10 @@ namespace ldp
 		buildMaterial();
 	}
 
-	void GpuSim::clothToObjMesh(ObjMesh& mesh)
+	void GpuSim::exportClothToObjMesh(ObjMesh& mesh)
 	{
-		if (m_arcSimManager || m_curStitchRatio > 0.f)
-		{
-			mesh.clear();
-			mesh.vertex_list = m_x_h;
-			mesh.vertex_texture_list = m_texCoord_init_h;
-			for (size_t iFace = 0; iFace < m_faces_idxWorld_h.size(); iFace++)
-			{
-				ObjMesh::obj_face f;
-				f.vertex_count = 3;
-				for (int k = 0; k < 3; k++)
-				{
-					f.vertex_index[k] = m_faces_idxWorld_h[iFace][k];
-					f.texture_index[k] = m_faces_idxTex_h[iFace][k];
-				}
-				f.material_index = -1;
-				mesh.face_list.push_back(f);
-			} // end for iFace
-			mesh.updateNormals();
-			mesh.updateBoundingBox();
-		} // end if arcsim
-		else // we merge pices if they have been stiched together
-		{
-			std::vector<int> idxMap = m_stitch_vertMerge_idxMap_h;
-			mesh.clear();
-			for (size_t id = 0; id < m_x_h.size(); id++)
-			{
-				if (idxMap[id] == id)
-				{
-					idxMap[id] = (int)mesh.vertex_list.size();
-					mesh.vertex_list.push_back(m_x_h[id]);
-				}
-				else
-					idxMap[id] = idxMap[idxMap[id]];
-				mesh.vertex_texture_list.push_back(m_texCoord_init_h[id]);
-			} // end for x
-
-			// write faces
-			for (const auto& t : m_faces_idxWorld_h)
-			{
-				ObjMesh::obj_face f;
-				f.vertex_count = 3;
-				f.material_index = -1;
-				for (int k = 0; k < t.size(); k++)
-					f.vertex_index[k] = idxMap[t[k]];
-				if (f.vertex_index[0] != f.vertex_index[1] && f.vertex_index[0] != f.vertex_index[2]
-					&& f.vertex_index[1] != f.vertex_index[2])
-				{
-					for (int k = 0; k < t.size(); k++)
-						f.texture_index[k] = t[k];
-					mesh.face_list.push_back(f);
-				}
-			} // end for t
-			mesh.updateBoundingBox();
-			mesh.updateNormals();
-		} // end else clothManger
+		exportResultClothToObjMesh();
+		mesh.cloneFrom(m_resultClothMesh.get());
 	}
 
 	void GpuSim::clear()
@@ -297,6 +246,7 @@ namespace ldp
 		m_solverInfo = "";
 		m_bodyLvSet_h = nullptr;
 		m_bodyLvSet_d.release();
+		m_resultClothMesh->clear();
 
 		m_bmesh->clear();
 		m_bmVerts.clear();
@@ -315,6 +265,7 @@ namespace ldp
 		m_stitch_vertPairs_h.clear();
 		m_stitch_vertPairs_d->clear();
 		m_stitch_vertMerge_idxMap_h.clear();
+		m_vertMerge_in_out_idxMap_h.clear();
 		m_stitch_edgeData_h.clear();
 		m_stitch_edgeData_d.release();
 
@@ -472,6 +423,7 @@ namespace ldp
 		m_stitch_vertMerge_idxMap_h.resize(m_x_init_h.size());
 		for (size_t i = 0; i < m_stitch_vertMerge_idxMap_h.size(); i++)
 			m_stitch_vertMerge_idxMap_h[i] = i;
+		m_vertMerge_in_out_idxMap_h = m_stitch_vertMerge_idxMap_h;
 
 		m_shouldTopologyUpdate = false;
 	}
@@ -1073,6 +1025,8 @@ namespace ldp
 			m_shouldSparseStructureUpdate = true;
 		if (m_shouldSparseStructureUpdate)
 			m_shouldRestart = true;
+		if (m_shouldRestart)
+			m_shouldExportMesh = true;
 	}
 
 	void GpuSim::resetDependency(bool on)
@@ -1083,6 +1037,7 @@ namespace ldp
 		m_shouldStitchUpdate = on;
 		m_shouldSparseStructureUpdate = on;
 		m_shouldRestart = on;
+		m_shouldExportMesh = on;
 	}
 
 	void GpuSim::updateSystem()
@@ -1196,6 +1151,76 @@ namespace ldp
 #endif
 		update_x_v_by_dv();
 		cudaSafeCall(cudaThreadSynchronize());
+	}
+#pragma endregion
+
+#pragma region -- exportmesh
+	void GpuSim::exportResultClothToObjMesh()
+	{
+		m_shouldExportMesh = true;
+		updateDependency();
+
+		ObjMesh& mesh = *m_resultClothMesh;
+		if (m_arcSimManager || m_curStitchRatio > 0.f)
+		{
+			m_vertMerge_in_out_idxMap_h.resize(m_x_init_h.size());
+			for (size_t i = 0; i < m_vertMerge_in_out_idxMap_h.size(); i++)
+				m_vertMerge_in_out_idxMap_h[i] = i;
+			mesh.clear();
+			mesh.vertex_list = m_x_h;
+			mesh.vertex_texture_list = m_texCoord_init_h;
+			for (size_t iFace = 0; iFace < m_faces_idxWorld_h.size(); iFace++)
+			{
+				ObjMesh::obj_face f;
+				f.vertex_count = 3;
+				for (int k = 0; k < 3; k++)
+				{
+					f.vertex_index[k] = m_faces_idxWorld_h[iFace][k];
+					f.texture_index[k] = m_faces_idxTex_h[iFace][k];
+				}
+				f.material_index = -1;
+				mesh.face_list.push_back(f);
+			} // end for iFace
+			mesh.updateNormals();
+			mesh.updateBoundingBox();
+		} // end if arcsim
+		else // we merge pices if they have been stiched together
+		{
+			m_vertMerge_in_out_idxMap_h = m_stitch_vertMerge_idxMap_h;
+			mesh.clear();
+			for (size_t id = 0; id < m_x_h.size(); id++)
+			{
+				if (m_vertMerge_in_out_idxMap_h[id] == id)
+				{
+					m_vertMerge_in_out_idxMap_h[id] = (int)mesh.vertex_list.size();
+					mesh.vertex_list.push_back(m_x_h[id]);
+				}
+				else
+					m_vertMerge_in_out_idxMap_h[id] = m_vertMerge_in_out_idxMap_h[m_vertMerge_in_out_idxMap_h[id]];
+				mesh.vertex_texture_list.push_back(m_texCoord_init_h[id]);
+			} // end for x
+
+			// write faces
+			for (const auto& t : m_faces_idxWorld_h)
+			{
+				ObjMesh::obj_face f;
+				f.vertex_count = 3;
+				f.material_index = -1;
+				for (int k = 0; k < t.size(); k++)
+					f.vertex_index[k] = m_vertMerge_in_out_idxMap_h[t[k]];
+				if (f.vertex_index[0] != f.vertex_index[1] && f.vertex_index[0] != f.vertex_index[2]
+					&& f.vertex_index[1] != f.vertex_index[2])
+				{
+					for (int k = 0; k < t.size(); k++)
+						f.texture_index[k] = t[k];
+					mesh.face_list.push_back(f);
+				}
+			} // end for t
+			mesh.updateBoundingBox();
+			mesh.updateNormals();
+		} // end else clothManger
+
+		m_shouldExportMesh = false;
 	}
 #pragma endregion
 
