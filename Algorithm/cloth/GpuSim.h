@@ -145,7 +145,7 @@ namespace ldp
 		SimParam m_simParam;
 		float m_fps = 0.f;
 		float m_curSimulationTime = 0.f;
-		float m_curStitchRation = 0.f;
+		float m_curStitchRatio = 0.f;
 		std::string m_solverInfo;
 
 		ldp::LevelSet3D* m_bodyLvSet_h = nullptr;
@@ -165,6 +165,7 @@ namespace ldp
 		std::shared_ptr<CudaBsrMatrix> m_vert_FaceList_d;
 		std::vector<Int2> m_stitch_vertPairs_h;
 		DeviceArray<Int2> m_stitch_vertPairs_d;
+		std::vector<int> m_stitch_vertMerge_idxMap_h;
 
 		///////////////// precomputed data /////////////////////////////////////////////////////////////	
 		DeviceArray<size_t> m_A_Ids_d;			// for sparse matrix, encode the (row, col) pairs, sorted

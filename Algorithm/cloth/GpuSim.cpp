@@ -219,8 +219,8 @@ namespace ldp
 		gtime_t t_start = gtime_now();
 
 		// stitching: during stitching, we do not want the speed to high
-		m_curStitchRation = std::max(0.f, 1.f - m_curSimulationTime * m_simParam.stitch_ratio);
-		if (m_curStitchRation > 0.f)
+		m_curStitchRatio = std::max(0.f, 1.f - m_curSimulationTime * m_simParam.stitch_ratio);
+		if (m_curStitchRatio > 0.f)
 		{
 			cudaSafeCall(cudaMemset(m_v_d.ptr(), 0, m_v_d.sizeBytes()));
 			m_v_d.copyTo(m_last_v_d);
@@ -252,23 +252,61 @@ namespace ldp
 
 	void GpuSim::clothToObjMesh(ObjMesh& mesh)
 	{
-		mesh.clear();
-		mesh.vertex_list = m_x_h;
-		mesh.vertex_texture_list = m_texCoord_init_h;
-		for (size_t iFace = 0; iFace < m_faces_idxWorld_h.size(); iFace++)
+		if (m_arcSimManager || m_curStitchRatio > 0.f)
 		{
-			ObjMesh::obj_face f;
-			f.vertex_count = 3;
-			for (int k = 0; k < 3; k++)
+			mesh.clear();
+			mesh.vertex_list = m_x_h;
+			mesh.vertex_texture_list = m_texCoord_init_h;
+			for (size_t iFace = 0; iFace < m_faces_idxWorld_h.size(); iFace++)
 			{
-				f.vertex_index[k] = m_faces_idxWorld_h[iFace][k];
-				f.texture_index[k] = m_faces_idxTex_h[iFace][k];
-			}
-			f.material_index = -1;
-			mesh.face_list.push_back(f);
-		} // end for iFace
-		mesh.updateNormals();
-		mesh.updateBoundingBox();
+				ObjMesh::obj_face f;
+				f.vertex_count = 3;
+				for (int k = 0; k < 3; k++)
+				{
+					f.vertex_index[k] = m_faces_idxWorld_h[iFace][k];
+					f.texture_index[k] = m_faces_idxTex_h[iFace][k];
+				}
+				f.material_index = -1;
+				mesh.face_list.push_back(f);
+			} // end for iFace
+			mesh.updateNormals();
+			mesh.updateBoundingBox();
+		} // end if arcsim
+		else // we merge pices if they have been stiched together
+		{
+			std::vector<int> idxMap = m_stitch_vertMerge_idxMap_h;
+			mesh.clear();
+			for (size_t id = 0; id < m_x_h.size(); id++)
+			{
+				if (idxMap[id] == id)
+				{
+					idxMap[id] = (int)mesh.vertex_list.size();
+					mesh.vertex_list.push_back(m_x_h[id]);
+				}
+				else
+					idxMap[id] = idxMap[idxMap[id]];
+				mesh.vertex_texture_list.push_back(m_texCoord_init_h[id]);
+			} // end for x
+
+			// write faces
+			for (const auto& t : m_faces_idxWorld_h)
+			{
+				ObjMesh::obj_face f;
+				f.vertex_count = 3;
+				f.material_index = -1;
+				for (int k = 0; k < t.size(); k++)
+					f.vertex_index[k] = idxMap[t[k]];
+				if (f.vertex_index[0] != f.vertex_index[1] && f.vertex_index[0] != f.vertex_index[2]
+					&& f.vertex_index[1] != f.vertex_index[2])
+				{
+					for (int k = 0; k < t.size(); k++)
+						f.texture_index[k] = t[k];
+					mesh.face_list.push_back(f);
+				}
+			} // end for t
+			mesh.updateBoundingBox();
+			mesh.updateNormals();
+		} // end else clothManger
 	}
 
 	void GpuSim::restart()
@@ -281,7 +319,7 @@ namespace ldp
 		m_dv_d.create(m_x_init_d.size());
 		m_b_d.create(m_x_init_d.size());
 		m_curSimulationTime = 0.f;
-		m_curStitchRation = 0.f;
+		m_curStitchRatio = 1.f;
 	}
 
 	void GpuSim::updateMaterial()
@@ -505,6 +543,27 @@ namespace ldp
 			m_stitch_vertPairs_h.push_back(ldp::Int2(stp.first, stp.second));
 		} // i_stp
 		m_stitch_vertPairs_d.upload(m_stitch_vertPairs_h);
+
+		// find idx map that remove all stitched vertices
+		m_stitch_vertMerge_idxMap_h.resize(m_x_init_h.size());
+		for (size_t i = 0; i < m_stitch_vertMerge_idxMap_h.size(); i++)
+			m_stitch_vertMerge_idxMap_h[i] = i;
+		for (const auto& stp : m_stitch_vertPairs_h)
+		{
+			int sm = std::min(stp[0], stp[1]);
+			int lg = std::max(stp[0], stp[1]);
+			while (m_stitch_vertMerge_idxMap_h[lg] != lg)
+				lg = m_stitch_vertMerge_idxMap_h[lg];
+			if (lg < sm) std::swap(sm, lg);
+			m_stitch_vertMerge_idxMap_h[lg] = sm;
+		}
+		for (size_t i = 0; i < m_stitch_vertMerge_idxMap_h.size(); i++)
+		{
+			int m = i;
+			while (m_stitch_vertMerge_idxMap_h[m] != m)
+				m = m_stitch_vertMerge_idxMap_h[m];
+			m_stitch_vertMerge_idxMap_h[i] = m;
+		}
 	}
 
 	void GpuSim::setup_sparse_structure_from_cpu()
@@ -907,7 +966,7 @@ namespace ldp
 		m_simParam.setDefault();
 		m_fps = 0.f;
 		m_curSimulationTime = 0.f;
-		m_curStitchRation = 0.f;
+		m_curStitchRatio = 0.f;
 		m_solverInfo ="";
 		m_bodyLvSet_h = nullptr;
 		m_bodyLvSet_d.release();
@@ -926,6 +985,7 @@ namespace ldp
 		m_vert_FaceList_d->clear(); 
 		m_stitch_vertPairs_h.clear();
 		m_stitch_vertPairs_d.release();
+		m_stitch_vertMerge_idxMap_h.clear();
 	
 		m_A_Ids_d.release();
 		m_A_Ids_d_unique.release();

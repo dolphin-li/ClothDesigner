@@ -853,7 +853,7 @@ namespace ldp
 			m_A_Ids_start_d.ptr(), m_beforScan_A.ptr(), m_b_Ids_start_d.ptr(), m_beforScan_b.ptr(),
 			m_v_d.ptr(), nFaces, nEdges, m_stitch_vertPairs_d.ptr(), nStitchVertPairs,
 			m_simParam.dt, m_simParam.strecth_mult, m_simParam.bend_mult, m_simParam.stitch_stiffness,
-			m_curStitchRation);
+			m_curStitchRatio);
 		cudaSafeCall(cudaGetLastError());
 		
 		// scanning into the sparse matrix
