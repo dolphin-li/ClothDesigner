@@ -17,7 +17,10 @@ class ObjMesh;
 namespace ldp
 {
 	class ClothManager;
-	class LevelSet3D;		
+	class LevelSet3D;	
+	class BMesh;
+	class BMVert;
+	class BMEdge;
 	__device__ __host__ inline size_t vertPair_to_idx(ldp::Int2 v, int n)
 	{
 		return size_t(v[0]) * size_t(n) + size_t(v[1]);
@@ -120,6 +123,7 @@ namespace ldp
 		void clear();
 	protected:
 		void initParam();
+		void initBMesh();
 
 		void releaseMaterialMemory();
 		void initializeMaterialMemory();
@@ -138,6 +142,9 @@ namespace ldp
 	protected:
 		void setup_sparse_structure_from_cpu();
 		void bindTextures();
+		void buildStitchVertPairs();
+		void buildStitchEdges();
+		BMEdge* findEdge(int v1, int v2);
 	private:
 		ClothManager* m_clothManager = nullptr;
 		arcsim::ArcSimManager* m_arcSimManager = nullptr;
@@ -152,6 +159,8 @@ namespace ldp
 		ldp::LevelSet3D* m_bodyLvSet_h = nullptr;
 		Cuda3DArray<float> m_bodyLvSet_d;
 
+		std::shared_ptr<BMesh> m_bmesh;
+		std::vector<BMVert*> m_bmVerts;
 		std::vector<ldp::Int4> m_faces_idxWorld_h;				// triangle face with 1 paded int
 		DeviceArray<ldp::Int4> m_faces_idxWorld_d;
 		std::vector<ldp::Int4> m_faces_idxTex_h;
@@ -167,6 +176,8 @@ namespace ldp
 		std::vector<Int2> m_stitch_vertPairs_h;
 		std::shared_ptr<CudaBsrMatrix> m_stitch_vertPairs_d;
 		std::vector<int> m_stitch_vertMerge_idxMap_h;
+		std::vector<EdgeData> m_stitch_edgeData_h;
+		DeviceArray<EdgeData> m_stitch_edgeData_d;
 
 		///////////////// precomputed data /////////////////////////////////////////////////////////////	
 		DeviceArray<size_t> m_A_Ids_d;			// for sparse matrix, encode the (row, col) pairs, sorted
@@ -331,5 +342,6 @@ namespace ldp
 		static void dumpVec_pair(std::string name, const DeviceArray<size_t>& A, int nVerts, int nTotal = -1);
 		static void dumpStretchSampleArray(std::string name, const StretchingSamples& samples);
 		static void dumpBendDataArray(std::string name, const BendingData& samples);
+		static void dumpEdgeData(std::string name, std::vector<EdgeData>& eDatas);
 	};
 }

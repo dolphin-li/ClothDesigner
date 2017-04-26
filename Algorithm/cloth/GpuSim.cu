@@ -730,7 +730,8 @@ namespace ldp
 		const int* A_starts, Mat3f* beforeScan_A, const int* b_starts, Float3* beforeScan_b,
 		const Float3* velocity, int nFaces, int nEdges, 
 		cudaTextureObject_t stitchVertPair0, cudaTextureObject_t stitchVertPair1, int nStitchVertPairs,
-		float dt, float stretchMult, float bendMult, float stitchVertPairStiff, float curStitchRation)
+		float dt, float stretchMult, float bendMult, float stitchVertPairStiff, float curStitchRation,
+		const GpuSim::EdgeData* stitchEdgeData, int nStitchEdges)
 	{
 		int thread_id = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -757,6 +758,13 @@ namespace ldp
 			const int b_start = b_starts[thread_id];
 			computeStitchVertForces(thread_id - nFaces - nEdges, stitchVertPair0, stitchVertPair1,
 				A_start, beforeScan_A, b_start, beforeScan_b, stitchVertPairStiff, dt, curStitchRation);
+		}
+		else if (thread_id < nFaces + nEdges + nStitchVertPairs + nStitchEdges)
+		{
+			const int A_start = A_starts[thread_id];
+			const int b_start = b_starts[thread_id];
+			computeBendForces(thread_id - nFaces - nEdges - nStitchVertPairs, stitchEdgeData, A_start, beforeScan_A,
+				b_start, beforeScan_b, velocity, t_bendDatas, dt, bendMult);
 		}
 	}
 
@@ -838,13 +846,14 @@ namespace ldp
 		const int nFaces = m_faces_idxWorld_d.size();
 		const int nEdges = m_edgeData_d.size();
 		const int nStitchVertPairs = m_stitch_vertPairs_d->nnzBlocks();
-		computeNumeric_kernel << <divUp(nFaces + nEdges + nStitchVertPairs, CTA_SIZE), CTA_SIZE >> >(
+		const int nStitchEdges = m_stitch_edgeData_d.size();
+		computeNumeric_kernel << <divUp(nFaces + nEdges + nStitchVertPairs + nStitchEdges, CTA_SIZE), CTA_SIZE >> >(
 			m_edgeData_d.ptr(), m_faces_texStretch_d.ptr(), m_faces_texBend_d.ptr(),
 			m_A_Ids_start_d.ptr(), m_beforScan_A.ptr(), m_b_Ids_start_d.ptr(), m_beforScan_b.ptr(),
 			m_v_d.ptr(), nFaces, nEdges, 
 			m_stitch_vertPairs_d->bsrRowPtr_cooTexture(), m_stitch_vertPairs_d->bsrColIdxTexture(), nStitchVertPairs,
 			m_simParam.dt, m_simParam.strecth_mult, m_simParam.bend_mult, m_simParam.stitch_stiffness,
-			m_curStitchRatio);
+			m_curStitchRatio, m_stitch_edgeData_d.ptr(), nStitchEdges);
 		cudaSafeCall(cudaGetLastError()); 
 		
 		// scanning into the sparse matrix

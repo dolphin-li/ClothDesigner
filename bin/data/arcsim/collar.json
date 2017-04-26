@@ -5,7 +5,7 @@
     "frame_steps": 8,											// Optional, default 1: Number of substeps per frame
     "end_time": 10,												// Optional, default infinity: Length of simulation in time
     "cloths": [{												// Required: List of cloth objects
-		"mesh": "data/arcsim/38_cloth.obj",							// Required: Initial mesh. See "Creating cloth meshes" in README
+		"mesh": "data/arcsim/38_cloth_manifold.obj",							// Required: Initial mesh. See "Creating cloth meshes" in README
 		"transform": {											// Optional, default identity: Initial pose of mesh
 			"translate": [0, 0, 0],
 			"rotate": [0, 1, 0, 0],

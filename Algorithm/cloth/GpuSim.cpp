@@ -28,6 +28,7 @@ namespace ldp
 	typedef Eigen::Triplet<egreal> Triplet;
 	typedef Eigen::SparseMatrix<egreal> SpMat;
 	typedef Eigen::Matrix<egreal, -1, 1> EgVec;
+#define DEBUG_POINT(i) {cudaThreadSynchronize(); printf("%d\n", i); cudaSafeCall(cudaGetLastError());}
 
 	static void dump(std::string name, const SpMat& A)
 	{
@@ -114,6 +115,7 @@ namespace ldp
 		m_A_diag_d.reset(new CudaDiagBlockMatrix());
 		m_vert_FaceList_d.reset(new CudaBsrMatrix(m_cusparseHandle, true));
 		m_stitch_vertPairs_d.reset(new CudaBsrMatrix(m_cusparseHandle, true));
+		m_bmesh.reset(new BMesh());
 	}
 
 	GpuSim::~GpuSim()
@@ -135,7 +137,7 @@ namespace ldp
 		stitch_stiffness = 1e3f;
 		repulsion_thickness = 5e-3f;
 		projection_thickness = 1e-4f;
-		enable_selfCollision = true;
+		enable_selfCollision = false;
 		selfCollision_maxGridSize = 64;
 	}
 
@@ -170,7 +172,7 @@ namespace ldp
 		m_clothManager = nullptr;
 		m_arcSimManager = arcSimManager;
 		m_simParam.setDefault();
-		initParam();
+		initParam(); 
 		initializeMaterialMemory();
 		updateTopology();
 		updateNumeric();
@@ -197,9 +199,10 @@ namespace ldp
 			m_simParam.pcg_iter = 400;
 			m_simParam.pcg_tol = 1e-2f;
 			m_simParam.handle_stiffness = 400.f;
-			m_simParam.stitch_ratio = 4.f;
+			m_simParam.stitch_ratio = 99999.f; // we donot have stitch in this mode, thus we set max to skip it.
 			m_simParam.strecth_mult = 1.f;
 			m_simParam.bend_mult = 1.f;
+			m_simParam.enable_selfCollision = true;
 		} // end if arc
 		else
 		{
@@ -376,11 +379,15 @@ namespace ldp
 			updateTopology_clothManager();
 		else
 			throw std::exception("GpuSim, not initialized!");
+		initBMesh();
+		buildStitchVertPairs();
+		buildStitchEdges();
 
 		m_texCoord_init_d.upload(m_texCoord_init_h);
 		m_faces_idxWorld_d.upload(m_faces_idxWorld_h);
 		m_faces_idxTex_d.upload(m_faces_idxTex_h);
-		m_edgeData_d.upload(m_edgeData_h.data(), m_edgeData_h.size());
+		m_edgeData_d.upload(m_edgeData_h);
+		m_stitch_edgeData_d.upload(m_stitch_edgeData_h);
 		m_x_init_d.upload(m_x_init_h);
 
 		setup_sparse_structure_from_cpu();
@@ -394,6 +401,7 @@ namespace ldp
 		m_dv_d.create(m_x_d.size());
 		m_b_d.create(m_x_d.size());
 		m_project_vw_d.create(m_x_d.size());
+
 		updateMaterial();
 		bindTextures();
 	}
@@ -537,10 +545,15 @@ namespace ldp
 			mat_index_begin += 0;// cloth.materials.size();
 			face_index_begin += cloth->mesh3d().face_list.size();
 		} // end for iCloth
+	}
 
-		// ------------------------------------------------------------------------------
-		// load stitch	
+	void GpuSim::buildStitchVertPairs()
+	{
 		m_stitch_vertPairs_h.clear();
+		m_stitch_vertPairs_d->resize(m_x_init_h.size(), m_x_init_h.size(), 1);
+		m_stitch_vertMerge_idxMap_h.clear();
+		if (m_clothManager == nullptr)
+			return;
 		for (int i_stp = 0; i_stp < m_clothManager->numStitches(); i_stp++)
 		{
 			const auto stp = m_clothManager->getStitchPointPair(i_stp);
@@ -548,7 +561,7 @@ namespace ldp
 			m_stitch_vertPairs_h.push_back(ldp::Int2(stp.second, stp.first));
 		} // i_stp
 		std::sort(m_stitch_vertPairs_h.begin(), m_stitch_vertPairs_h.end());
-		m_stitch_vertPairs_h.resize(std::unique(m_stitch_vertPairs_h.begin(), 
+		m_stitch_vertPairs_h.resize(std::unique(m_stitch_vertPairs_h.begin(),
 			m_stitch_vertPairs_h.end()) - m_stitch_vertPairs_h.begin());
 		std::vector<int> tmpRow_h, tmpCol_h;
 		for (const auto& stp : m_stitch_vertPairs_h)
@@ -561,7 +574,7 @@ namespace ldp
 		tmpCol_d.fromHost(tmpCol_h);
 		m_stitch_vertPairs_d->resize(m_x_init_h.size(), m_x_init_h.size(), 1);
 		m_stitch_vertPairs_d->setRowFromBooRowPtr(tmpRow_d.data(), tmpRow_d.size());
-		cudaSafeCall(cudaMemcpy(m_stitch_vertPairs_d->bsrColIdx(), tmpCol_d.data(), 
+		cudaSafeCall(cudaMemcpy(m_stitch_vertPairs_d->bsrColIdx(), tmpCol_d.data(),
 			tmpCol_d.bytes(), cudaMemcpyDeviceToDevice));
 
 		// ------------------------------------------------------------------------------
@@ -585,6 +598,103 @@ namespace ldp
 				m = m_stitch_vertMerge_idxMap_h[m];
 			m_stitch_vertMerge_idxMap_h[i] = m;
 		}
+	}
+
+	void GpuSim::buildStitchEdges()
+	{
+		m_stitch_edgeData_h.clear();
+		for (size_t idx_stp_i = 0; idx_stp_i < m_stitch_vertPairs_h.size(); idx_stp_i++)
+		{
+			const Int2 stp_i = m_stitch_vertPairs_h[idx_stp_i];
+			for (size_t idx_stp_j = idx_stp_i + 1; idx_stp_j < m_stitch_vertPairs_h.size(); idx_stp_j++)
+			{
+				const Int2 stp_j = m_stitch_vertPairs_h[idx_stp_j];
+				Int2 eIdx[2] = { Int2(stp_i[0], stp_j[0]), Int2(stp_i[1], stp_j[1]) };
+				Int4 allVIdx(eIdx[0][0], eIdx[0][1], eIdx[1][0], eIdx[1][1]);
+				bool copoint = false;
+				for (int r = 0; r < 4; r++)
+				for (int c = r + 1; c < 4; c++)
+				if (allVIdx[r] == allVIdx[c])
+				{
+					copoint = true;
+					break;
+				}
+				if (copoint)
+					continue;
+				BMEdge* e[2] = { findEdge(eIdx[0][0], eIdx[0][1]), findEdge(eIdx[1][0], eIdx[1][1]) };
+				if (e[0] == nullptr || e[1] == nullptr)
+					continue;
+				if (m_bmesh->fofe_count(e[0]) != 1 || m_bmesh->fofe_count(e[1]) != 1)
+					continue;
+				BMFace* f[2] = { nullptr, nullptr };
+				BMESH_F_OF_E(tmp_f0, e[0], tmp_f0_of_e_iter, *m_bmesh)
+				{
+					f[0] = tmp_f0;
+					break;
+				}
+				BMESH_F_OF_E(tmp_f1, e[1], tmp_f1_of_e_iter, *m_bmesh)
+				{
+					f[1] = tmp_f1;
+					break;
+				}
+
+				int op_vid[2] = { 0, 0 };
+				for (int k = 0; k < 2; k++)
+				{
+					BMESH_V_OF_F(v, f[k], v_of_f_iter, *m_bmesh)
+					{
+						if (v != m_bmesh->vofe_first(e[k]) && v != m_bmesh->vofe_last(e[k]))
+							op_vid[k] = v->getIndex();
+					}
+				} // end for k
+
+				for (int k = 0; k < 2; k++)
+				{
+					EdgeData eData;
+					eData.edge_idxWorld = Int4(eIdx[k][0], eIdx[k][1], op_vid[0], op_vid[1]);
+					eData.edge_idxTex[0] = Int2(eIdx[0][0], eIdx[0][1]);
+					eData.edge_idxTex[1] = Int2(eIdx[1][0], eIdx[1][1]);
+					eData.faceIdx[0] = f[0]->getIndex();
+					eData.faceIdx[1] = f[1]->getIndex();
+					const Float2 uv = m_texCoord_init_h[eIdx[k][1]] - m_texCoord_init_h[eIdx[k][0]];
+					eData.length_sqr[k] = uv.sqrLength();
+					eData.theta_uv[k] = atan2f(uv[1], uv[0]);
+					m_stitch_edgeData_h.push_back(eData);
+				} // end for k
+			} // end for idx_stp_j
+		} // end for idx_stp_i
+#ifdef DEBUG_DUMP
+		dumpEdgeData("d:/tmp/m_stitch_edgeData.txt", m_stitch_edgeData_h);
+#endif
+	}
+
+	void GpuSim::initBMesh()
+	{
+		std::vector<Int3> flist(m_faces_idxWorld_h.size());
+		for (size_t i = 0; i < flist.size(); i++)
+		for (int k = 0; k < 3; k++)
+			flist[i][k] = m_faces_idxWorld_h[i][k];
+		m_bmesh->init_triangles((int)m_x_init_h.size(), (float*)m_x_init_h.data(), 
+			(int)flist.size(), (int*)flist.data());
+		m_bmVerts.clear();
+		BMESH_ALL_VERTS(v, v_of_m_iter, *m_bmesh)
+		{
+			m_bmVerts.push_back(v);
+		}
+	}
+
+	BMEdge* GpuSim::findEdge(int v1, int v2)
+	{
+		if (m_bmVerts.size() == 0)
+			throw std::exception("bmesh not initialzed");
+		BMVert* bv1 = m_bmVerts[v1];
+		BMVert* bv2 = m_bmVerts[v2];
+		BMESH_E_OF_V(e, bv1, v1iter, *m_bmesh)
+		{
+			if (m_bmesh->vofe_first(e) == bv2 || m_bmesh->vofe_last(e) == bv2)
+				return e;
+		}
+		return nullptr;
 	}
 
 	void GpuSim::setup_sparse_structure_from_cpu()
@@ -685,8 +795,6 @@ namespace ldp
 			b_Ids_start_h.push_back(b_Ids_h.size());
 			if (ed.faceIdx[0] >= 0 && ed.faceIdx[1] >= 0)
 			{
-				const ldp::Int4& f1 = m_faces_idxWorld_h[ed.faceIdx[0]];
-				const ldp::Int4& f2 = m_faces_idxWorld_h[ed.faceIdx[1]];
 				for (int r = 0; r < 4; r++)
 				{
 					for (int c = 0; c < 4; c++)
@@ -708,8 +816,26 @@ namespace ldp
 			b_Ids_h.push_back(stp[0]);
 		} // i_stp
 
+		// ---------------------------------------------------------------------------------------------
+		// compute stitch edge info
+		for (const auto& ed : m_stitch_edgeData_h)
+		{
+			A_Ids_start_h.push_back(A_Ids_h.size());
+			b_Ids_start_h.push_back(b_Ids_h.size());
+			if (ed.faceIdx[0] >= 0 && ed.faceIdx[1] >= 0)
+			{
+				for (int r = 0; r < 4; r++)
+				{
+					for (int c = 0; c < 4; c++)
+						A_Ids_h.push_back(ldp::vertPair_to_idx(ldp::Int2(
+						ed.edge_idxWorld[r], ed.edge_idxWorld[c]), nVerts));
+					b_Ids_h.push_back(ed.edge_idxWorld[r]);
+				}
+			}
+		} // end for edgeData
+
 #ifdef DEBUG_DUMP
-		dumpVec("D:/tmp/m_stitch_vertPair_d.txt", m_stitch_vertPairs_d);
+		m_stitch_vertPairs_d->dump("D:/tmp/m_stitch_vertPair_d.txt");
 #endif
 
 		// ---------------------------------------------------------------------------------------------
@@ -989,6 +1115,8 @@ namespace ldp
 		m_bodyLvSet_h = nullptr;
 		m_bodyLvSet_d.release();
 
+		m_bmesh->clear();
+		m_bmVerts.clear();
 		m_faces_idxWorld_h.clear();
 		m_faces_idxWorld_d.release();
 		m_faces_idxTex_h.clear();
@@ -1004,6 +1132,8 @@ namespace ldp
 		m_stitch_vertPairs_h.clear();
 		m_stitch_vertPairs_d->clear();
 		m_stitch_vertMerge_idxMap_h.clear();
+		m_stitch_edgeData_h.clear();
+		m_stitch_edgeData_d.release();
 	
 		m_A_Ids_d.release();
 		m_A_Ids_d_unique.release();
@@ -1221,6 +1351,24 @@ namespace ldp
 					fprintf(pFile, "\n");
 				}
 				fprintf(pFile, "\n");
+			}
+			fclose(pFile);
+			printf("saved: %s\n", name.c_str());
+		}
+	}
+	void GpuSim::dumpEdgeData(std::string name, std::vector<EdgeData>& eDatas)
+	{
+		FILE* pFile = fopen(name.c_str(), "w");
+		if (pFile)
+		{
+			for (const auto& eData : eDatas)
+			{
+				fprintf(pFile, "iw[%d,%d,%d,%d], it[%d,%d;%d,%d], f[%d,%d]\n",
+					eData.edge_idxWorld[0], eData.edge_idxWorld[1],
+					eData.edge_idxWorld[2], eData.edge_idxWorld[3],
+					eData.edge_idxTex[0][0], eData.edge_idxTex[0][1],
+					eData.edge_idxTex[1][0], eData.edge_idxTex[1][1],
+					eData.faceIdx[0], eData.faceIdx[1]);
 			}
 			fclose(pFile);
 			printf("saved: %s\n", name.c_str());
