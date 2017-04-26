@@ -206,30 +206,45 @@ namespace ldp
 			m_simParam.gravity = par.gravity;
 			m_simParam.pcg_iter = 400;
 			m_simParam.pcg_tol = 1e-2f;
-			m_simParam.handle_stiffness = m_simParam.control_mag;
-			m_simParam.stitch_ratio = m_simParam.stitch_ratio;
+			m_simParam.handle_stiffness = par.control_mag;
+			m_simParam.stitch_ratio = 4.f;
 			m_simParam.strecth_mult = 1.f;
 			m_simParam.bend_mult = 1.f;
 			m_simParam.enable_selfCollision = par.enable_self_collistion;
 		} // end else clothManager
 	}
 
-	void GpuSim::run_one_step(bool reset_velocity)
+	void GpuSim::run_one_step()
 	{
 		gtime_t t_start = gtime_now();
+
+		// stitching: during stitching, we do not want the speed to high
+		m_curStitchRation = std::max(0.f, 1.f - m_curSimulationTime * m_simParam.stitch_ratio);
+		if (m_curStitchRation > 0.f)
+		{
+			cudaSafeCall(cudaMemset(m_v_d.ptr(), 0, m_v_d.sizeBytes()));
+			m_v_d.copyTo(m_last_v_d);
+		}
+
+		// build m_A and m_b
 		bindTextures();
 		updateNumeric();
 
+		// solve the linear system
 		m_x_d.copyTo(m_last_x_d);
 		m_v_d.copyTo(m_last_v_d);
 		m_dv_d.create(m_dv_d.size());
 		linearSolve();
-		collisionSolve();
-		userControlSolve();
-		m_x_d.download(m_x_h);
 
-		if (reset_velocity)
-			cudaSafeCall(cudaMemset(m_v_d.ptr(), 0, m_v_d.sizeBytes()));
+		// post-process collisions
+		collisionSolve();
+
+		// process user controls
+		userControlSolve();
+
+		// finish, get the result back to cpu and prepare for next.
+		m_x_d.download(m_x_h);
+		m_curSimulationTime += m_simParam.dt;
 
 		gtime_t t_end = gtime_now();
 		m_fps = 1.f / gtime_seconds(t_start, t_end);
@@ -265,6 +280,8 @@ namespace ldp
 		m_last_v_d.create(m_x_init_d.size());
 		m_dv_d.create(m_x_init_d.size());
 		m_b_d.create(m_x_init_d.size());
+		m_curSimulationTime = 0.f;
+		m_curStitchRation = 0.f;
 	}
 
 	void GpuSim::updateMaterial()
@@ -319,6 +336,14 @@ namespace ldp
 			updateTopology_clothManager();
 		else
 			throw std::exception("GpuSim, not initialized!");
+
+		m_texCoord_init_d.upload(m_texCoord_init_h);
+		m_faces_idxWorld_d.upload(m_faces_idxWorld_h);
+		m_faces_idxTex_d.upload(m_faces_idxTex_h);
+		m_edgeData_d.upload(m_edgeData_h.data(), m_edgeData_h.size());
+		m_x_init_d.upload(m_x_init_h);
+
+		setup_sparse_structure_from_cpu();
 
 		m_A_diag_d->resize(m_A_d->blocksInRow(), m_A_d->rowsPerBlock());
 		m_x_h = m_x_init_h;
@@ -402,15 +427,6 @@ namespace ldp
 			mat_index_begin += cloth.materials.size();
 			face_index_begin += cloth.mesh.faces.size();
 		} // end for iCloth
-
-		m_x_init_d.upload(m_x_init_h);
-		m_texCoord_init_d.upload(m_texCoord_init_h);
-		m_faces_idxWorld_d.upload(m_faces_idxWorld_h);
-		m_faces_idxTex_d.upload(m_faces_idxTex_h);
-		m_edgeData_d.upload(m_edgeData_h.data(), m_edgeData_h.size());
-
-		// build sparse matrix topology
-		setup_sparse_structure_from_cpu();
 	}
 
 	void GpuSim::updateTopology_clothManager()
@@ -481,12 +497,6 @@ namespace ldp
 			face_index_begin += cloth->mesh3d().face_list.size();
 		} // end for iCloth
 
-		m_x_init_d.upload(m_x_init_h);
-		m_texCoord_init_d.upload(m_texCoord_init_h);
-		m_faces_idxWorld_d.upload(m_faces_idxWorld_h);
-		m_faces_idxTex_d.upload(m_faces_idxTex_h);
-		m_edgeData_d.upload(m_edgeData_h.data(), m_edgeData_h.size());
-
 		// load stitch		
 		m_stitch_vertPairs_h.clear();
 		for (int i_stp = 0; i_stp < m_clothManager->numStitches(); i_stp++)
@@ -495,9 +505,6 @@ namespace ldp
 			m_stitch_vertPairs_h.push_back(ldp::Int2(stp.first, stp.second));
 		} // i_stp
 		m_stitch_vertPairs_d.upload(m_stitch_vertPairs_h);
-
-		// build sparse matrix topology
-		setup_sparse_structure_from_cpu();
 	}
 
 	void GpuSim::setup_sparse_structure_from_cpu()
@@ -899,6 +906,8 @@ namespace ldp
 		m_arcSimManager = nullptr;
 		m_simParam.setDefault();
 		m_fps = 0.f;
+		m_curSimulationTime = 0.f;
+		m_curStitchRation = 0.f;
 		m_solverInfo ="";
 		m_bodyLvSet_h = nullptr;
 		m_bodyLvSet_d.release();

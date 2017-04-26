@@ -708,12 +708,17 @@ namespace ldp
 
 	__device__ void computeStitchVertForces(int iStitch, const Int2* stitchVertPairs, 
 		int A_start, Mat3f* beforeScan_A, int b_start, Float3* beforeScan_b, 
-		float stiff, float dt)
+		float stiff, float dt, float cur_stitch_ratio)
 	{
 		const Int2 stp = stitchVertPairs[iStitch];
 
+		const Float3 xinit[2] = { texRead_x_init(stp[0]), texRead_x_init(stp[1]) };
 		const Float3 x[2] = { texRead_x(stp[0]), texRead_x(stp[1]) };
 		const Float3 v[2] = { texRead_v(stp[0]), texRead_v(stp[1]) };
+
+		const float len_init = (xinit[1] - xinit[0]).length();
+		const float len_cur = (x[1] - x[0]).length() + 1e-16f;
+		const float ratio = cur_stitch_ratio * len_init / len_cur;
 
 		for (int r = 0; r < 2; r++)
 		{
@@ -723,7 +728,7 @@ namespace ldp
 				int pos = texRead_A_order(A_start + r * 2 + c);
 				float s = stiff * ((r == c)*2.f - 1.f);
 				beforeScan_A[pos] = dt * s * ldp::Mat3f().eye();
-				b -= s * (x[c] + dt * v[c]);
+				b -= s * (1 - ratio) * (x[c] + dt * v[c]);
 			}
 			int pos = texRead_b_order(b_start + r);
 			beforeScan_b[pos] = b;
@@ -735,7 +740,7 @@ namespace ldp
 		const int* A_starts, Mat3f* beforeScan_A, const int* b_starts, Float3* beforeScan_b,
 		const Float3* velocity, int nFaces, int nEdges, 
 		const Int2* stitchVertPairs, int nStitchVertPairs,
-		float dt, float stretchMult, float bendMult, float stitchVertPairStiff)
+		float dt, float stretchMult, float bendMult, float stitchVertPairStiff, float curStitchRation)
 	{
 		int thread_id = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -761,7 +766,7 @@ namespace ldp
 			const int A_start = A_starts[thread_id];
 			const int b_start = b_starts[thread_id];
 			computeStitchVertForces(thread_id - nFaces - nEdges, stitchVertPairs,
-				A_start, beforeScan_A, b_start, beforeScan_b, stitchVertPairStiff, dt);
+				A_start, beforeScan_A, b_start, beforeScan_b, stitchVertPairStiff, dt, curStitchRation);
 		}
 	}
 
@@ -847,7 +852,8 @@ namespace ldp
 			m_edgeData_d.ptr(), m_faces_texStretch_d.ptr(), m_faces_texBend_d.ptr(),
 			m_A_Ids_start_d.ptr(), m_beforScan_A.ptr(), m_b_Ids_start_d.ptr(), m_beforScan_b.ptr(),
 			m_v_d.ptr(), nFaces, nEdges, m_stitch_vertPairs_d.ptr(), nStitchVertPairs,
-			m_simParam.dt, m_simParam.strecth_mult, m_simParam.bend_mult, m_simParam.stitch_stiffness);
+			m_simParam.dt, m_simParam.strecth_mult, m_simParam.bend_mult, m_simParam.stitch_stiffness,
+			m_curStitchRation);
 		cudaSafeCall(cudaGetLastError());
 		
 		// scanning into the sparse matrix

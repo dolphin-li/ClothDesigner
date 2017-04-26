@@ -71,8 +71,7 @@ namespace ldp
 			Float3 gravity;
 			int pcg_iter = 0;			// iteration of pcg solvers
 			float pcg_tol = 0.f;		// tolerance of pcg method
-			float control_mag = 0.f;	// for user control
-			float stitch_ratio = 0.f;	// for stitching edges length reduction
+			float stitch_ratio = 0.f;	// for stitching edges length reduction, L -= ratio * dt
 			float strecth_mult = 0.f;
 			float bend_mult = 0.f;
 			float stitch_stiffness = 0.f;
@@ -97,7 +96,7 @@ namespace ldp
 		void init(arcsim::ArcSimManager* arcSimManager);
 
 		// perform simulation for one time-step
-		void run_one_step(bool reset_velocity);
+		void run_one_step();
 
 		float getFps()const{ return m_fps; }
 		float getStepTime()const{ return m_simParam.dt; }
@@ -145,6 +144,8 @@ namespace ldp
 		cublasHandle_t m_cublasHandle = nullptr;
 		SimParam m_simParam;
 		float m_fps = 0.f;
+		float m_curSimulationTime = 0.f;
+		float m_curStitchRation = 0.f;
 		std::string m_solverInfo;
 
 		ldp::LevelSet3D* m_bodyLvSet_h = nullptr;
