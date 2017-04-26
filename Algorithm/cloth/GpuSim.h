@@ -21,6 +21,7 @@ namespace ldp
 	class BMesh;
 	class BMVert;
 	class BMEdge;
+	class BMFace;
 	__device__ __host__ inline size_t vertPair_to_idx(ldp::Int2 v, int n)
 	{
 		return size_t(v[0]) * size_t(n) + size_t(v[1]);
@@ -144,7 +145,7 @@ namespace ldp
 		void bindTextures();
 		void buildStitchVertPairs();
 		void buildStitchEdges();
-		BMEdge* findEdge(int v1, int v2);
+		BMEdge* findEdge(int v1, int v2); // edge with end point v1,v2
 	private:
 		ClothManager* m_clothManager = nullptr;
 		arcsim::ArcSimManager* m_arcSimManager = nullptr;

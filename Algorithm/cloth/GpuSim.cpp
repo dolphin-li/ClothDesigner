@@ -104,7 +104,11 @@ namespace ldp
 #define NOT_IMPLEMENTED throw std::exception((std::string("NotImplemented[")+__FILE__+"]["\
 	+std::to_string(__LINE__)+"]").c_str())
 
-	
+	inline Float2 texCoordFromClothManagerMesh2DCoords(Float3 v)
+	{
+		// arcsim requires this conversion
+		return Float2(v[0], -v[1]);
+	}
 #pragma endregion
 
 	GpuSim::GpuSim()
@@ -379,6 +383,9 @@ namespace ldp
 			updateTopology_clothManager();
 		else
 			throw std::exception("GpuSim, not initialized!");
+#ifdef DEBUG_DUMP
+		dumpEdgeData("d:/tmp/m_edgeData.txt", m_edgeData_h);
+#endif
 		initBMesh();
 		buildStitchVertPairs();
 		buildStitchEdges();
@@ -477,6 +484,28 @@ namespace ldp
 		} // end for iCloth
 	}
 
+	inline bool face_edge_same_order(BMesh& bmesh, BMEdge* e, BMFace* f)
+	{
+		BMVert* v[3] = { nullptr };
+		int cnt = 0;
+		BMESH_V_OF_F(vtmp, f, v_of_f_iter, bmesh)
+		{
+			v[cnt++] = vtmp;
+			if (cnt >= 3)
+				break;
+		}
+		BMVert* bv[2] = { bmesh.vofe_first(e), bmesh.vofe_last(e) };
+		if (v[0] == bv[0] && v[1] == bv[1]
+			|| v[1] == bv[0] && v[2] == bv[1]
+			|| v[2] == bv[0] && v[0] == bv[1])
+			return true;
+		else if (v[0] == bv[1] && v[1] == bv[0]
+			|| v[1] == bv[1] && v[2] == bv[0]
+			|| v[2] == bv[1] && v[0] == bv[0])
+			return false;
+		throw std::exception("edge not on face!");
+	}
+
 	void GpuSim::updateTopology_clothManager()
 	{		
 		// prepare body collision
@@ -516,30 +545,42 @@ namespace ldp
 				EdgeData ed;
 				ed.edge_idxWorld = ldp::Int4(id0 + node_index_begin, id1 + node_index_begin, -1, -1);
 				ed.faceIdx[0] = ed.faceIdx[1] = -1;
-				const auto t0 = cloth->mesh2d().vertex_list[id0];
-				const auto t1 = cloth->mesh2d().vertex_list[id1];
-				const float len = (t0 - t1).length();
+				auto t0 = texCoordFromClothManagerMesh2DCoords(cloth->mesh2d().vertex_list[id0]);
+				auto t1 = texCoordFromClothManagerMesh2DCoords(cloth->mesh2d().vertex_list[id1]);
+				const float lenSqr = (t0 - t1).sqrLength();
 				const float theta = atan2f(t1[1] - t0[1], t1[0] - t0[0]);
 				int fcnt = 0;
+				BMFace* faces[2] = { nullptr, nullptr };
 				BMESH_F_OF_E(f, e, f_of_e_iter, bmesh)
 				{
-					ed.faceIdx[fcnt] = f->getIndex() + face_index_begin;
-					ed.edge_idxTex[fcnt] = ldp::Int2(id0, id1) + tex_index_begin;
-					BMESH_V_OF_F(v, f, v_of_f_iter, bmesh)
+					faces[fcnt++] = f;
+					if (fcnt >= 2)
+						break;
+				}
+
+				// the order is important for the simulation
+				if (!face_edge_same_order(bmesh, e, faces[0]))
+					std::swap(faces[0], faces[1]);
+				for (int k = 0; k < 2; k++)
+				if (faces[k])
+				{
+					ed.faceIdx[k] = faces[k]->getIndex() + face_index_begin;
+					ed.edge_idxTex[k] = ldp::Int2(id0, id1) + tex_index_begin;
+					BMESH_V_OF_F(v, faces[k], v_of_f_iter, bmesh)
 					{
 						if (v->getIndex() != id0 && v->getIndex() != id1)
-							ed.edge_idxWorld[fcnt + 2] = v->getIndex() + node_index_begin;
+							ed.edge_idxWorld[k + 2] = v->getIndex() + node_index_begin;
 					}
-					ed.length_sqr[fcnt] = len;
-					ed.theta_uv[fcnt] = theta;
-				} // end for f
+					ed.length_sqr[k] = lenSqr;
+					ed.theta_uv[k] = theta;
+				} // end for k
 				m_edgeData_h.push_back(ed);
 			} // end for e
 
 			for (const auto& v : cloth->mesh3d().vertex_list)
 				m_x_init_h.push_back(v);
 			for (const auto& v : cloth->mesh2d().vertex_list)
-				m_texCoord_init_h.push_back(Float2(v[0], v[1]));
+				m_texCoord_init_h.push_back(Float2(v[0], -v[1]));	// arcsim requires this conversion
 			node_index_begin += cloth->mesh3d().vertex_list.size();
 			tex_index_begin += cloth->mesh2d().vertex_list.size();
 			mat_index_begin += 0;// cloth.materials.size();
@@ -600,9 +641,20 @@ namespace ldp
 		}
 	}
 
+	inline bool overlap(Int2 edges[2])
+	{
+		Int4 idx(edges[0][0], edges[0][1], edges[1][0], edges[1][1]);
+		for (int r = 0; r < 4; r++)
+		for (int c = r + 1; c < 4; c++)
+		if (idx[r] == idx[c])
+			return true;
+		return false;
+	}
+
 	void GpuSim::buildStitchEdges()
 	{
 		m_stitch_edgeData_h.clear();
+
 		for (size_t idx_stp_i = 0; idx_stp_i < m_stitch_vertPairs_h.size(); idx_stp_i++)
 		{
 			const Int2 stp_i = m_stitch_vertPairs_h[idx_stp_i];
@@ -610,57 +662,45 @@ namespace ldp
 			{
 				const Int2 stp_j = m_stitch_vertPairs_h[idx_stp_j];
 				Int2 eIdx[2] = { Int2(stp_i[0], stp_j[0]), Int2(stp_i[1], stp_j[1]) };
-				Int4 allVIdx(eIdx[0][0], eIdx[0][1], eIdx[1][0], eIdx[1][1]);
-				bool copoint = false;
-				for (int r = 0; r < 4; r++)
-				for (int c = r + 1; c < 4; c++)
-				if (allVIdx[r] == allVIdx[c])
-				{
-					copoint = true;
-					break;
-				}
-				if (copoint)
-					continue;
 				BMEdge* e[2] = { findEdge(eIdx[0][0], eIdx[0][1]), findEdge(eIdx[1][0], eIdx[1][1]) };
-				if (e[0] == nullptr || e[1] == nullptr)
+				if (e[0] == nullptr || e[1] == nullptr || overlap(eIdx))
 					continue;
 				if (m_bmesh->fofe_count(e[0]) != 1 || m_bmesh->fofe_count(e[1]) != 1)
 					continue;
 				BMFace* f[2] = { nullptr, nullptr };
-				BMESH_F_OF_E(tmp_f0, e[0], tmp_f0_of_e_iter, *m_bmesh)
-				{
-					f[0] = tmp_f0;
-					break;
-				}
-				BMESH_F_OF_E(tmp_f1, e[1], tmp_f1_of_e_iter, *m_bmesh)
-				{
-					f[1] = tmp_f1;
-					break;
-				}
-
 				int op_vid[2] = { 0, 0 };
 				for (int k = 0; k < 2; k++)
 				{
+					eIdx[k][0] = m_bmesh->vofe_first(e[k])->getIndex();
+					eIdx[k][1] = m_bmesh->vofe_last(e[k])->getIndex();
+					BMIter iter;
+					iter.init(e[k]);
+					f[k] = m_bmesh->fofe_begin(iter);
 					BMESH_V_OF_F(v, f[k], v_of_f_iter, *m_bmesh)
-					{
-						if (v != m_bmesh->vofe_first(e[k]) && v != m_bmesh->vofe_last(e[k]))
-							op_vid[k] = v->getIndex();
-					}
+					if (v != m_bmesh->vofe_first(e[k]) && v != m_bmesh->vofe_last(e[k]))
+						op_vid[k] = v->getIndex();
 				} // end for k
+				
+				// the order is important for simulation
+				if (!face_edge_same_order(*m_bmesh, e[0], f[0]))
+				{
+					std::swap(f[0], f[1]);
+					std::swap(op_vid[0], op_vid[1]);
+					std::swap(e[0], e[1]);
+					std::swap(eIdx[0], eIdx[1]);
+				}
 
+				EdgeData eData;
+				eData.edge_idxWorld = Int4(eIdx[0][0], eIdx[0][1], op_vid[0], op_vid[1]);
 				for (int k = 0; k < 2; k++)
 				{
-					EdgeData eData;
-					eData.edge_idxWorld = Int4(eIdx[k][0], eIdx[k][1], op_vid[0], op_vid[1]);
-					eData.edge_idxTex[0] = Int2(eIdx[0][0], eIdx[0][1]);
-					eData.edge_idxTex[1] = Int2(eIdx[1][0], eIdx[1][1]);
-					eData.faceIdx[0] = f[0]->getIndex();
-					eData.faceIdx[1] = f[1]->getIndex();
+					eData.faceIdx[k] = f[k]->getIndex();
+					eData.edge_idxTex[k] = Int2(eIdx[k][0], eIdx[k][1]);
 					const Float2 uv = m_texCoord_init_h[eIdx[k][1]] - m_texCoord_init_h[eIdx[k][0]];
 					eData.length_sqr[k] = uv.sqrLength();
 					eData.theta_uv[k] = atan2f(uv[1], uv[0]);
-					m_stitch_edgeData_h.push_back(eData);
-				} // end for k
+				}
+				m_stitch_edgeData_h.push_back(eData);
 			} // end for idx_stp_j
 		} // end for idx_stp_i
 #ifdef DEBUG_DUMP
@@ -1363,12 +1403,14 @@ namespace ldp
 		{
 			for (const auto& eData : eDatas)
 			{
-				fprintf(pFile, "iw[%d,%d,%d,%d], it[%d,%d;%d,%d], f[%d,%d]\n",
+				fprintf(pFile, "iw[%d,%d,%d,%d], it[%d,%d;%d,%d], f[%d,%d], L=%ef %ef, theta=%ef %ef\n",
 					eData.edge_idxWorld[0], eData.edge_idxWorld[1],
 					eData.edge_idxWorld[2], eData.edge_idxWorld[3],
 					eData.edge_idxTex[0][0], eData.edge_idxTex[0][1],
 					eData.edge_idxTex[1][0], eData.edge_idxTex[1][1],
-					eData.faceIdx[0], eData.faceIdx[1]);
+					eData.faceIdx[0], eData.faceIdx[1],
+					eData.length_sqr[0], eData.length_sqr[1],
+					eData.theta_uv[0], eData.theta_uv[1]);
 			}
 			fclose(pFile);
 			printf("saved: %s\n", name.c_str());
