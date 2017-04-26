@@ -94,57 +94,60 @@ namespace ldp
 		GpuSim();
 		~GpuSim();
 
-		// init from cloth manager
+		void clear();
 		void init(ClothManager* clothManager);
-
-		// init from arcsim
 		void init(arcsim::ArcSimManager* arcSimManager);
-
-		// perform simulation for one time-step
 		void run_one_step();
-
+		void restart();
+		void updateParam(GpuSim::SimParam par);
+		void updateTopology();
+		void updateStitch();
+		void updateMaterial();
+	public:
 		float getFps()const{ return m_fps; }
 		float getStepTime()const{ return m_simParam.dt; }
 		std::string getSolverInfo()const{ return m_solverInfo; }
-
 		void clothToObjMesh(ObjMesh& mesh);
-
-		// reset cloths to the initial state
-		void restart();
-
-		// update the material parameters
-		void updateMaterial();
-
-		// update cloth topologies
-		void updateTopology();
-
-		// simulatio parameter update; resulting in numerical updates
-		void updateNumeric();
-
-		void clear();
 	protected:
+		// update the whole system based on the current changes
+		void updateSystem();
+
+		// parameters
 		void initParam();
+
+		// body level set
+		void initLevelSet();
+
+		// basic topology
+		void initFaceEdgeVertArray();
+		void initFaceEdgeVertArray_arcSim();
+		void initFaceEdgeVertArray_clothManager();
 		void initBMesh();
 
-		void releaseMaterialMemory();
+		// stitching
+		void buildStitch();
+		void buildStitchVertPairs();
+		void buildStitchEdges();
+
+		// sparse system setup
+		void setup_sparse_structure();
+
+		// material
+		void buildMaterial();
 		void initializeMaterialMemory();
+		void updateMaterialDataToFaceNode();
 
-		void updateTopology_arcSim();
-		void updateTopology_clothManager();
-
+		// solving related
+		void updateNumeric();
 		void linearSolve();
 		void linearBodyCollision();
 		void linearSelfCollision();
 		void collisionSolve();
 		void userControlSolve();
-
 		void update_x_v_by_dv();
 		void project_outside();
 	protected:
-		void setup_sparse_structure_from_cpu();
 		void bindTextures();
-		void buildStitchVertPairs();
-		void buildStitchEdges();
 		BMEdge* findEdge(int v1, int v2); // edge with end point v1,v2
 	private:
 		ClothManager* m_clothManager = nullptr;
@@ -156,10 +159,18 @@ namespace ldp
 		float m_curSimulationTime = 0.f;
 		float m_curStitchRatio = 0.f;
 		std::string m_solverInfo;
-
 		ldp::LevelSet3D* m_bodyLvSet_h = nullptr;
 		Cuda3DArray<float> m_bodyLvSet_d;
 
+		bool m_shouldTopologyUpdate = false;
+		bool m_shouldLevelsetUpdate = false;
+		bool m_shouldMaterialUpdate = false;
+		bool m_shouldStitchUpdate = false;
+		bool m_shouldSparseStructureUpdate = false;
+		bool m_shouldRestart = false;
+		void updateDependency();
+		void resetDependency(bool on);
+		///////////////// mesh structure related /////////////////////////////////////////////////////////////
 		std::shared_ptr<BMesh> m_bmesh;
 		std::vector<BMVert*> m_bmVerts;
 		std::vector<ldp::Int4> m_faces_idxWorld_h;				// triangle face with 1 paded int

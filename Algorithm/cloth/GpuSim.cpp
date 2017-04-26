@@ -14,10 +14,6 @@
 #include <eigen\Sparse>
 
 //#define SOLVE_USE_EIGEN
-
-//#define DEBUG_DUMP
-//#define LDP_DEBUG
-
 const static char* g_default_arcsim_material = "data/arcsim/materials/gray-interlock.json";
 
 namespace ldp
@@ -124,25 +120,9 @@ namespace ldp
 
 	GpuSim::~GpuSim()
 	{
-		releaseMaterialMemory();
+		clear();
 		cusparseCheck(cusparseDestroy(m_cusparseHandle));
 		cublasCheck(cublasDestroy_v2(m_cublasHandle));
-	}
-
-	void GpuSim::SimParam::setDefault()
-	{
-		dt = 1.f / 200.f;
-		gravity = Float3(0.f, 0.f, -9.8f);
-		pcg_tol = 1e-6f;
-
-		handle_stiffness = 1e3f;
-		collision_stiffness = 1e6f;
-		friction_stiffness = 1;
-		stitch_stiffness = 1e3f;
-		repulsion_thickness = 5e-3f;
-		projection_thickness = 1e-4f;
-		enable_selfCollision = false;
-		selfCollision_maxGridSize = 64;
 	}
 
 	void GpuSim::init(ClothManager* clothManager)
@@ -151,21 +131,9 @@ namespace ldp
 		release_assert(ldp::is_float<ClothManager::ValueType>::value);
 		m_arcSimManager = nullptr;
 		m_clothManager = clothManager; 
-		m_simParam.setDefault();
 		initParam();
-		initializeMaterialMemory();
-		updateTopology();
-		updateNumeric();
-#ifdef DEBUG_DUMP
-		dumpVec("D:/tmp/m_beforScan_A.txt", m_beforScan_A);
-		dumpVec("D:/tmp/m_beforScan_b.txt", m_beforScan_b);
-		m_A_d->dump("D:/tmp/m_A.txt");
-		dumpVec("D:/tmp/m_b.txt", m_b_d);
-		SpMat A;
-		cudaSpMat_to_EigenMat(*m_A_d, A);
-		ldp::dump("D:/tmp/m_A_eigen.txt", A);
-#endif
-		restart();
+		resetDependency(true);
+		initFaceEdgeVertArray();
 		m_solverInfo = "solver intialized from cloth manager";
 	}
 
@@ -175,57 +143,20 @@ namespace ldp
 		release_assert(ldp::is_float<ClothManager::ValueType>::value);
 		m_clothManager = nullptr;
 		m_arcSimManager = arcSimManager;
-		m_simParam.setDefault();
-		initParam(); 
-		initializeMaterialMemory();
-		updateTopology();
-		updateNumeric();
-#ifdef DEBUG_DUMP
-		dumpVec("D:/tmp/m_beforScan_A.txt", m_beforScan_A);
-		dumpVec("D:/tmp/m_beforScan_b.txt", m_beforScan_b);
-		m_A_d->dump("D:/tmp/m_A.txt");
-		dumpVec("D:/tmp/m_b.txt", m_b_d);
-		SpMat A;
-		cudaSpMat_to_EigenMat(*m_A_d, A);
-		ldp::dump("D:/tmp/m_A_eigen.txt", A);
-#endif
-		restart();
+		initParam();
+		resetDependency(true);
+		initFaceEdgeVertArray();
 		m_solverInfo = "solver intialized from arcsim";
-	}
-
-	void GpuSim::initParam()
-	{
-		if (m_arcSimManager)
-		{
-			const auto* sim = m_arcSimManager->getSimulator();
-			m_simParam.dt = sim->step_time;
-			m_simParam.gravity = convert(sim->gravity);
-			m_simParam.pcg_iter = 400;
-			m_simParam.pcg_tol = 1e-2f;
-			m_simParam.handle_stiffness = 400.f;
-			m_simParam.stitch_ratio = 99999.f; // we donot have stitch in this mode, thus we set max to skip it.
-			m_simParam.strecth_mult = 1.f;
-			m_simParam.bend_mult = 1.f;
-			m_simParam.enable_selfCollision = true;
-		} // end if arc
-		else
-		{
-			auto par = m_clothManager->getSimulationParam();
-			m_simParam.dt = par.time_step;
-			m_simParam.gravity = par.gravity;
-			m_simParam.pcg_iter = 400;
-			m_simParam.pcg_tol = 1e-2f;
-			m_simParam.handle_stiffness = par.control_mag;
-			m_simParam.stitch_ratio = 4.f;
-			m_simParam.strecth_mult = 1.f;
-			m_simParam.bend_mult = 1.f;
-			m_simParam.enable_selfCollision = par.enable_self_collistion;
-		} // end else clothManager
 	}
 
 	void GpuSim::run_one_step()
 	{
+		if (m_clothManager == nullptr && m_arcSimManager == nullptr)
+			return;
+
 		gtime_t t_start = gtime_now();
+
+		updateSystem();
 
 		// stitching: during stitching, we do not want the speed to high
 		m_curStitchRatio = std::max(0.f, 1.f - m_curSimulationTime * m_simParam.stitch_ratio);
@@ -257,6 +188,42 @@ namespace ldp
 
 		gtime_t t_end = gtime_now();
 		m_fps = 1.f / gtime_seconds(t_start, t_end);
+	}
+
+	void GpuSim::restart()
+	{
+		m_shouldRestart = true;
+		updateDependency();
+		m_x_h = m_x_init_h;
+		m_x_init_d.copyTo(m_x_d);
+		m_x_d.copyTo(m_last_x_d);
+		m_v_d.create(m_x_init_d.size());
+		m_last_v_d.create(m_x_init_d.size());
+		m_dv_d.create(m_x_init_d.size());
+		m_b_d.create(m_x_init_d.size());
+		m_curSimulationTime = 0.f;
+		m_curStitchRatio = 1.f;
+		m_shouldRestart = false;
+	}
+
+	void GpuSim::updateParam(GpuSim::SimParam par)
+	{
+		m_simParam = par;
+	}
+
+	void GpuSim::updateTopology()
+	{
+		initFaceEdgeVertArray();
+	}
+
+	void GpuSim::updateStitch()
+	{
+		buildStitch();
+	}
+
+	void GpuSim::updateMaterial()
+	{
+		buildMaterial();
 	}
 
 	void GpuSim::clothToObjMesh(ObjMesh& mesh)
@@ -318,88 +285,182 @@ namespace ldp
 		} // end else clothManger
 	}
 
-	void GpuSim::restart()
+	void GpuSim::clear()
 	{
-		m_x_h = m_x_init_h;
-		m_x_init_d.copyTo(m_x_d);
-		m_x_d.copyTo(m_last_x_d);
-		m_v_d.create(m_x_init_d.size());
-		m_last_v_d.create(m_x_init_d.size());
-		m_dv_d.create(m_x_init_d.size());
-		m_b_d.create(m_x_init_d.size());
+		resetDependency(false);
+		m_clothManager = nullptr;
+		m_arcSimManager = nullptr;
+		m_simParam.setDefault();
+		m_fps = 0.f;
 		m_curSimulationTime = 0.f;
-		m_curStitchRatio = 1.f;
+		m_curStitchRatio = 0.f;
+		m_solverInfo = "";
+		m_bodyLvSet_h = nullptr;
+		m_bodyLvSet_d.release();
+
+		m_bmesh->clear();
+		m_bmVerts.clear();
+		m_faces_idxWorld_h.clear();
+		m_faces_idxWorld_d.release();
+		m_faces_idxTex_h.clear();
+		m_faces_idxTex_d.release();
+		m_faces_idxMat_h.clear();
+		m_faces_texStretch_d.release();
+		m_faces_texBend_d.release();
+		m_faces_materialSpace_d.release();
+		m_nodes_materialSpace_d.release();
+		m_edgeData_h.clear();
+		m_edgeData_d.release();
+		m_vert_FaceList_d->clear();
+		m_stitch_vertPairs_h.clear();
+		m_stitch_vertPairs_d->clear();
+		m_stitch_vertMerge_idxMap_h.clear();
+		m_stitch_edgeData_h.clear();
+		m_stitch_edgeData_d.release();
+
+		m_A_Ids_d.release();
+		m_A_Ids_d_unique.release();
+		m_A_Ids_d_unique_pos.release();
+		m_A_Ids_start_d.release();
+		m_A_order_d.release();
+		m_A_invOrder_d.release();
+		m_beforScan_A.release();
+		m_b_Ids_d.release();
+		m_b_Ids_d_unique.release();
+		m_b_Ids_d_unique_pos.release();
+		m_b_Ids_start_d.release();
+		m_b_order_d.release();
+		m_b_invOrder_d.release();
+		m_beforScan_b.release();
+
+		m_A_d->clear();
+		m_A_diag_d->clear();
+		m_b_d.release();
+		m_texCoord_init_h.clear();
+		m_texCoord_init_d.release();
+		m_x_init_h.clear();
+		m_x_init_d.release();
+		m_x_h.clear();
+		m_x_d.release();
+		m_last_x_d.release();
+		m_v_d.release();
+		m_last_v_d.release();
+		m_dv_d.release();
+
+		m_debug_flag = 0;
+		m_selfColli_nBuckets = 0;
+		m_selfColli_vertIds.release();
+		m_selfColli_bucketIds.release();
+		m_selfColli_bucketRanges.release();
+		m_selfColli_tri_vertCnt.release();
+		m_selfColli_tri_vertPair_tId.release();
+		m_selfColli_tri_vertPair_vId.release();
+		m_nPairs = 0;
+		m_stretchSamples_h.clear();
+		m_bendingData_h.clear();
+		m_densityData_h.clear();
 	}
 
-	void GpuSim::updateMaterial()
+#pragma region -- level set
+	void GpuSim::initLevelSet()
 	{
-		// stretching forces
-		std::vector<cudaTextureObject_t> tmp;
-		for (const auto& idx : m_faces_idxMat_h)
-			tmp.push_back(m_stretchSamples_h[idx].getCudaArray().getCudaTexture());
-		m_faces_texStretch_d.upload(tmp);
-
-		// bending forces
-		tmp.clear();
-		for (const auto& idx : m_faces_idxMat_h)
-			tmp.push_back(m_bendingData_h[idx].getCudaArray().getCudaTexture());
-		m_faces_texBend_d.upload(tmp);
-		tmp.clear();
-
-		// face material related
-		std::vector<FaceMaterailSpaceData> faceData(m_faces_idxTex_h.size());
-		for (size_t iFace = 0; iFace < m_faces_idxTex_h.size(); iFace++)
-		{
-			const auto& f = m_faces_idxTex_h[iFace];
-			const auto& t = m_texCoord_init_h;
-			const auto& label = m_faces_idxMat_h[iFace];
-			FaceMaterailSpaceData& fData = faceData[iFace];
-			fData.area = fabs(Float2(t[f[1]] - t[f[0]]).cross(t[f[2]] - t[f[0]])) / 2;
-			fData.mass = fData.area * m_densityData_h[label];
-		} // end for iFace
-		m_faces_materialSpace_d.upload(faceData);
-
-		// node material related
-		std::vector<NodeMaterailSpaceData> nodeData(m_x_init_h.size());
-		for (size_t iFace = 0; iFace < m_faces_idxTex_h.size(); iFace++)
-		{
-			const FaceMaterailSpaceData& fData = faceData[iFace];
-			const auto& f = m_faces_idxWorld_h[iFace];
-			for (int k = 0; k < 3; k++)
-			{
-				NodeMaterailSpaceData& nData = nodeData[f[k]];
-				nData.area += fData.area / 3.f;
-				nData.mass += fData.mass / 3.f;
-			}
-		} // end for iFace
-		m_nodes_materialSpace_d.upload(nodeData);
-	}
-
-	void GpuSim::updateTopology()
-	{
+		m_shouldLevelsetUpdate = true;
+		updateDependency();
 		if (m_arcSimManager)
-			updateTopology_arcSim();
+		{
+			m_bodyLvSet_h = nullptr;
+			if (m_arcSimManager->getSimulator()->obstacles.size() >= 1)
+			{
+				m_bodyLvSet_h = m_arcSimManager->getSimulator()->obstacles[0].base_objLevelSet.get();
+				auto sz = m_bodyLvSet_h->size();
+				std::vector<float> transposeLv(m_bodyLvSet_h->sizeXYZ(), 0.f);
+				for (int z = 0; z < sz[2]; z++)
+				for (int y = 0; y < sz[1]; y++)
+				for (int x = 0; x < sz[0]; x++)
+					transposeLv[x + y*sz[0] + z*sz[0] * sz[1]] = m_bodyLvSet_h->value(x, y, z)[0];
+				m_bodyLvSet_d.fromHost(transposeLv.data(), make_int3(sz[0], sz[1], sz[2]));
+				if (m_arcSimManager->getSimulator()->obstacles.size() > 1)
+					printf("warning: more than one obstacles given, only 1 used!\n");
+			}
+		} // end for arcSim
 		else if (m_clothManager)
-			updateTopology_clothManager();
+		{
+			if (m_clothManager->m_shouldLevelSetUpdate)
+				m_clothManager->calcLevelSet();
+			m_bodyLvSet_h = m_clothManager->bodyLevelSet();
+			m_bodyLvSet_d = m_clothManager->bodyLevelSetDevice();
+		} // end for clothManager
+		m_shouldLevelsetUpdate = false;
+	}
+#pragma endregion
+
+#pragma region -- param
+	void GpuSim::SimParam::setDefault()
+	{
+		dt = 1.f / 200.f;
+		gravity = Float3(0.f, 0.f, -9.8f);
+		pcg_tol = 1e-6f;
+
+		handle_stiffness = 1e3f;
+		collision_stiffness = 1e6f;
+		friction_stiffness = 1;
+		stitch_stiffness = 1e3f;
+		repulsion_thickness = 5e-3f;
+		projection_thickness = 1e-4f;
+		enable_selfCollision = false;
+		selfCollision_maxGridSize = 64;
+	}
+
+	void GpuSim::initParam()
+	{
+		m_simParam.setDefault();
+		if (m_arcSimManager)
+		{
+			const auto* sim = m_arcSimManager->getSimulator();
+			m_simParam.dt = sim->step_time;
+			m_simParam.gravity = convert(sim->gravity);
+			m_simParam.pcg_iter = 400;
+			m_simParam.pcg_tol = 1e-2f;
+			m_simParam.handle_stiffness = 400.f;
+			m_simParam.stitch_ratio = 99999.f; // we donot have stitch in this mode, thus we set max to skip it.
+			m_simParam.strecth_mult = 1.f;
+			m_simParam.bend_mult = 1.f;
+			m_simParam.enable_selfCollision = true;
+		} // end if arc
+		else
+		{
+			auto par = m_clothManager->getSimulationParam();
+			m_simParam.dt = par.time_step;
+			m_simParam.gravity = par.gravity;
+			m_simParam.pcg_iter = 400;
+			m_simParam.pcg_tol = 1e-2f;
+			m_simParam.handle_stiffness = par.control_mag;
+			m_simParam.stitch_ratio = 4.f;
+			m_simParam.strecth_mult = 1.f;
+			m_simParam.bend_mult = 1.f;
+			m_simParam.enable_selfCollision = par.enable_self_collistion;
+		} // end else clothManager
+	}
+#pragma endregion
+
+#pragma region -- init topology
+	void GpuSim::initFaceEdgeVertArray()
+	{
+		m_shouldTopologyUpdate = true;
+		updateDependency();
+
+		if (m_arcSimManager)
+			initFaceEdgeVertArray_arcSim();
+		else if (m_clothManager)
+			initFaceEdgeVertArray_clothManager();
 		else
 			throw std::exception("GpuSim, not initialized!");
-#ifdef DEBUG_DUMP
-		dumpEdgeData("d:/tmp/m_edgeData.txt", m_edgeData_h);
-#endif
 		initBMesh();
-		buildStitchVertPairs();
-		buildStitchEdges();
-
 		m_texCoord_init_d.upload(m_texCoord_init_h);
 		m_faces_idxWorld_d.upload(m_faces_idxWorld_h);
 		m_faces_idxTex_d.upload(m_faces_idxTex_h);
 		m_edgeData_d.upload(m_edgeData_h);
-		m_stitch_edgeData_d.upload(m_stitch_edgeData_h);
 		m_x_init_d.upload(m_x_init_h);
-
-		setup_sparse_structure_from_cpu();
-
-		m_A_diag_d->resize(m_A_d->blocksInRow(), m_A_d->rowsPerBlock());
 		m_x_h = m_x_init_h;
 		m_x_init_d.copyTo(m_x_d);
 		m_last_x_d.create(m_x_d.size());
@@ -408,29 +469,15 @@ namespace ldp
 		m_dv_d.create(m_x_d.size());
 		m_b_d.create(m_x_d.size());
 		m_project_vw_d.create(m_x_d.size());
+		m_stitch_vertMerge_idxMap_h.resize(m_x_init_h.size());
+		for (size_t i = 0; i < m_stitch_vertMerge_idxMap_h.size(); i++)
+			m_stitch_vertMerge_idxMap_h[i] = i;
 
-		updateMaterial();
-		bindTextures();
+		m_shouldTopologyUpdate = false;
 	}
-
-	void GpuSim::updateTopology_arcSim()
+	
+	void GpuSim::initFaceEdgeVertArray_arcSim()
 	{
-		m_bodyLvSet_h = nullptr;
-		if (m_arcSimManager->getSimulator()->obstacles.size() >= 1)
-		{
-			m_bodyLvSet_h = m_arcSimManager->getSimulator()->obstacles[0].base_objLevelSet.get();
-			auto sz = m_bodyLvSet_h->size();
-			std::vector<float> transposeLv(m_bodyLvSet_h->sizeXYZ(), 0.f);
-			for (int z = 0; z < sz[2]; z++)
-			for (int y = 0; y < sz[1]; y++)
-			for (int x = 0; x < sz[0]; x++)
-				transposeLv[x + y*sz[0] + z*sz[0] * sz[1]] = m_bodyLvSet_h->value(x, y, z)[0];
-			m_bodyLvSet_d.fromHost(transposeLv.data(), make_int3(sz[0], sz[1], sz[2]));
-			if (m_arcSimManager->getSimulator()->obstacles.size() > 1)
-				printf("warning: more than one obstacles given, only 1 used!\n");
-		}
-
-		// prepare triangle faces and edges
 		m_faces_idxWorld_h.clear();
 		m_faces_idxTex_h.clear();
 		m_faces_idxMat_h.clear();
@@ -506,15 +553,8 @@ namespace ldp
 		throw std::exception("edge not on face!");
 	}
 
-	void GpuSim::updateTopology_clothManager()
+	void GpuSim::initFaceEdgeVertArray_clothManager()
 	{		
-		// prepare body collision
-		m_clothManager->calcLevelSet();
-		m_bodyLvSet_h = m_clothManager->bodyLevelSet();
-		m_bodyLvSet_d = m_clothManager->bodyLevelSetDevice();
-
-		// ------------------------------------------------------------------------------
-		// prepare triangle faces and edges
 		m_faces_idxWorld_h.clear();
 		m_faces_idxTex_h.clear();
 		m_faces_idxMat_h.clear();
@@ -586,6 +626,162 @@ namespace ldp
 			mat_index_begin += 0;// cloth.materials.size();
 			face_index_begin += cloth->mesh3d().face_list.size();
 		} // end for iCloth
+	}
+
+	void GpuSim::initBMesh()
+	{
+		std::vector<Int3> flist(m_faces_idxWorld_h.size());
+		for (size_t i = 0; i < flist.size(); i++)
+		for (int k = 0; k < 3; k++)
+			flist[i][k] = m_faces_idxWorld_h[i][k];
+		m_bmesh->init_triangles((int)m_x_init_h.size(), (float*)m_x_init_h.data(),
+			(int)flist.size(), (int*)flist.data());
+		m_bmVerts.clear();
+		BMESH_ALL_VERTS(v, v_of_m_iter, *m_bmesh)
+		{
+			m_bmVerts.push_back(v);
+		}
+	}
+#pragma endregion
+
+#pragma region -- material
+	void GpuSim::buildMaterial()
+	{
+		m_shouldMaterialUpdate = true;
+		updateDependency();
+		initializeMaterialMemory();
+		updateMaterialDataToFaceNode();
+		m_shouldMaterialUpdate = false;
+	}
+
+	void GpuSim::initializeMaterialMemory()
+	{
+		m_bendingData_h.clear();
+		m_stretchSamples_h.clear();
+		m_densityData_h.clear();
+
+		// copy to self cpu
+		if (m_arcSimManager)
+		{
+			for (const auto& cloth : m_arcSimManager->getSimulator()->cloths)
+			for (const auto& mat : cloth.materials)
+			{
+				m_densityData_h.push_back(mat->density);
+				m_stretchSamples_h.push_back(StretchingSamples());
+				for (int x = 0; x < StretchingSamples::SAMPLES; x++)
+				for (int y = 0; y < StretchingSamples::SAMPLES; y++)
+				for (int z = 0; z < StretchingSamples::SAMPLES; z++)
+					m_stretchSamples_h.back()(x, y, z) = convert(mat->stretching.s[x][y][z]);
+				m_bendingData_h.push_back(BendingData());
+				auto& bdata = m_bendingData_h.back();
+				for (int x = 0; x < bdata.cols(); x++)
+				{
+					int wrap_x = x;
+					if (wrap_x>4)
+						wrap_x = 8 - wrap_x;
+					if (wrap_x > 2)
+						wrap_x = 4 - wrap_x;
+					for (int y = 0; y < bdata.rows(); y++)
+						bdata(x, y) = mat->bending.d[wrap_x][y];
+				}
+			} // end for mat, cloth
+
+		} // end if arcSim
+		else if (m_clothManager)
+		{
+			// TO DO: accomplish the importing from cloth manager
+			std::shared_ptr<arcsim::Cloth::Material> mat(new arcsim::Cloth::Material);
+			arcsim::load_material_data(*mat, g_default_arcsim_material);
+			printf("default material: %s\n", g_default_arcsim_material);
+
+			m_densityData_h.push_back(mat->density);
+			m_stretchSamples_h.push_back(StretchingSamples());
+			for (int x = 0; x < StretchingSamples::SAMPLES; x++)
+			for (int y = 0; y < StretchingSamples::SAMPLES; y++)
+			for (int z = 0; z < StretchingSamples::SAMPLES; z++)
+				m_stretchSamples_h.back()(x, y, z) = convert(mat->stretching.s[x][y][z]);
+			m_bendingData_h.push_back(BendingData());
+
+			auto& bdata = m_bendingData_h.back();
+			for (int x = 0; x < bdata.cols(); x++)
+			{
+				int wrap_x = x;
+				if (wrap_x>4)
+					wrap_x = 8 - wrap_x;
+				if (wrap_x > 2)
+					wrap_x = 4 - wrap_x;
+				for (int y = 0; y < bdata.rows(); y++)
+					bdata(x, y) = mat->bending.d[wrap_x][y];
+			}
+		} // end if clothManager
+
+		// copy to gpu
+		for (auto& bd : m_bendingData_h)
+		{
+			bd.updateHostToDevice();
+		} // end for m_bendingData_h
+
+		for (auto& sp : m_stretchSamples_h)
+		{
+			sp.updateHostToDevice();
+		} // end for m_stretchSamples_h
+
+		m_shouldMaterialUpdate = false;
+	}
+
+	void GpuSim::updateMaterialDataToFaceNode()
+	{
+		// stretching forces
+		std::vector<cudaTextureObject_t> tmp;
+		for (const auto& idx : m_faces_idxMat_h)
+			tmp.push_back(m_stretchSamples_h[idx].getCudaArray().getCudaTexture());
+		m_faces_texStretch_d.upload(tmp);
+
+		// bending forces
+		tmp.clear();
+		for (const auto& idx : m_faces_idxMat_h)
+			tmp.push_back(m_bendingData_h[idx].getCudaArray().getCudaTexture());
+		m_faces_texBend_d.upload(tmp);
+		tmp.clear();
+
+		// face material related
+		std::vector<FaceMaterailSpaceData> faceData(m_faces_idxTex_h.size());
+		for (size_t iFace = 0; iFace < m_faces_idxTex_h.size(); iFace++)
+		{
+			const auto& f = m_faces_idxTex_h[iFace];
+			const auto& t = m_texCoord_init_h;
+			const auto& label = m_faces_idxMat_h[iFace];
+			FaceMaterailSpaceData& fData = faceData[iFace];
+			fData.area = fabs(Float2(t[f[1]] - t[f[0]]).cross(t[f[2]] - t[f[0]])) / 2;
+			fData.mass = fData.area * m_densityData_h[label];
+		} // end for iFace
+		m_faces_materialSpace_d.upload(faceData);
+
+		// node material related
+		std::vector<NodeMaterailSpaceData> nodeData(m_x_init_h.size());
+		for (size_t iFace = 0; iFace < m_faces_idxTex_h.size(); iFace++)
+		{
+			const FaceMaterailSpaceData& fData = faceData[iFace];
+			const auto& f = m_faces_idxWorld_h[iFace];
+			for (int k = 0; k < 3; k++)
+			{
+				NodeMaterailSpaceData& nData = nodeData[f[k]];
+				nData.area += fData.area / 3.f;
+				nData.mass += fData.mass / 3.f;
+			}
+		} // end for iFace
+		m_nodes_materialSpace_d.upload(nodeData);
+	}
+#pragma endregion
+
+#pragma region -- stitch
+	void GpuSim::buildStitch()
+	{
+		m_shouldStitchUpdate = true;
+		updateDependency();
+		buildStitchVertPairs();
+		buildStitchEdges();
+		m_shouldStitchUpdate = false;
 	}
 
 	void GpuSim::buildStitchVertPairs()
@@ -703,79 +899,15 @@ namespace ldp
 				m_stitch_edgeData_h.push_back(eData);
 			} // end for idx_stp_j
 		} // end for idx_stp_i
-#ifdef DEBUG_DUMP
-		dumpEdgeData("d:/tmp/m_stitch_edgeData.txt", m_stitch_edgeData_h);
-#endif
+		m_stitch_edgeData_d.upload(m_stitch_edgeData_h);
 	}
+#pragma endregion
 
-	void GpuSim::initBMesh()
+#pragma region -- sparse structure
+	void GpuSim::setup_sparse_structure()
 	{
-		std::vector<Int3> flist(m_faces_idxWorld_h.size());
-		for (size_t i = 0; i < flist.size(); i++)
-		for (int k = 0; k < 3; k++)
-			flist[i][k] = m_faces_idxWorld_h[i][k];
-		m_bmesh->init_triangles((int)m_x_init_h.size(), (float*)m_x_init_h.data(), 
-			(int)flist.size(), (int*)flist.data());
-		m_bmVerts.clear();
-		BMESH_ALL_VERTS(v, v_of_m_iter, *m_bmesh)
-		{
-			m_bmVerts.push_back(v);
-		}
-	}
-
-	BMEdge* GpuSim::findEdge(int v1, int v2)
-	{
-		if (m_bmVerts.size() == 0)
-			throw std::exception("bmesh not initialzed");
-		BMVert* bv1 = m_bmVerts[v1];
-		BMVert* bv2 = m_bmVerts[v2];
-		BMESH_E_OF_V(e, bv1, v1iter, *m_bmesh)
-		{
-			if (m_bmesh->vofe_first(e) == bv2 || m_bmesh->vofe_last(e) == bv2)
-				return e;
-		}
-		return nullptr;
-	}
-
-	void GpuSim::setup_sparse_structure_from_cpu()
-	{
-#ifdef DEBUG_DUMP
-		// compute sparse structure via eigen
-		std::vector<Eigen::Triplet<float>> cooSys;
-		for (const auto& f : m_faces_idxWorld_h)
-		for (int k = 0; k < 3; k++)
-		{
-			cooSys.push_back(Eigen::Triplet<float>(f[k], f[k], 0));
-			cooSys.push_back(Eigen::Triplet<float>(f[k], f[(k + 1) % 3], 0));
-			cooSys.push_back(Eigen::Triplet<float>(f[(k + 1) % 3], f[k], 0));
-		}
-		for (const auto& ed : m_edgeData_h)
-		if (ed.faceIdx[0] >= 0 && ed.faceIdx[1] >= 0)
-		{
-			const ldp::Int4& f1 = m_faces_idxWorld_h[ed.faceIdx[0]];
-			const ldp::Int4& f2 = m_faces_idxWorld_h[ed.faceIdx[1]];
-			int v1 = f1[0] + f1[1] + f1[2] - ed.edge_idxWorld[0] - ed.edge_idxWorld[1];
-			int v2 = f2[0] + f2[1] + f2[2] - ed.edge_idxWorld[0] - ed.edge_idxWorld[1];
-			cooSys.push_back(Eigen::Triplet<float>(v1, v2, 0));
-			cooSys.push_back(Eigen::Triplet<float>(v2, v1, 0));
-		}
-
-		Eigen::SparseMatrix<float> A;
-		A.resize(m_x_init_h.size(), m_x_init_h.size());
-		if (!cooSys.empty())
-			A.setFromTriplets(cooSys.begin(), cooSys.end());
-
-		m_A_d->resize(A.rows(), A.cols(), 3);
-		m_A_d->beginConstructRowPtr();
-		cudaSafeCall(cudaMemcpy(m_A_d->bsrRowPtr(), A.outerIndexPtr(),
-			(1+A.outerSize())*sizeof(int), cudaMemcpyHostToDevice));
-		m_A_d->endConstructRowPtr();
-		cudaSafeCall(cudaMemcpy(m_A_d->bsrColIdx(), A.innerIndexPtr(),
-			A.nonZeros()*sizeof(float), cudaMemcpyHostToDevice));
-		cudaSafeCall(cudaMemset(m_A_d->value(), 0, m_A_d->nnz()*sizeof(float)));
-
-		m_A_d->dump("D:/tmp/eigen_A.txt");
-#endif
+		m_shouldSparseStructureUpdate = true;
+		updateDependency();
 		// compute sparse structure via sorting---------------------------------
 		const int nVerts = m_x_init_h.size();
 		const int nFaces = m_faces_idxWorld_h.size();
@@ -804,9 +936,6 @@ namespace ldp
 			cudaSafeCall(cudaMemcpy(m_vert_FaceList_d->bsrColIdx(), (const int*)vert_face_pair_f_h.data(),
 				vert_face_pair_f_h.size()*sizeof(int), cudaMemcpyHostToDevice));
 			cudaSafeCall(cudaThreadSynchronize());
-#ifdef DEBUG_DUMP
-			m_vert_FaceList_d->dump("D:/tmp/vertFace.txt");
-#endif
 		} // end collect one-ring face list of each vertex
 
 		// ---------------------------------------------------------------------------------------------
@@ -874,10 +1003,6 @@ namespace ldp
 			}
 		} // end for edgeData
 
-#ifdef DEBUG_DUMP
-		m_stitch_vertPairs_d->dump("D:/tmp/m_stitch_vertPair_d.txt");
-#endif
-
 		// ---------------------------------------------------------------------------------------------
 		// upload to GPU; make order array, then sort the orders by vertex-pair idx, then unique
 		// matrix A
@@ -885,9 +1010,6 @@ namespace ldp
 		b_Ids_start_h.push_back(b_Ids_h.size());
 
 		m_A_Ids_d.upload(A_Ids_h);
-#ifdef DEBUG_DUMP
-		dumpVec_pair("D:/tmp/m_A_Ids_d_inOrder.txt", m_A_Ids_d, nVerts);
-#endif
 		m_A_Ids_start_d.upload(A_Ids_start_h);
 		m_A_order_d.create(A_Ids_h.size());
 		m_A_invOrder_d.create(A_Ids_h.size());
@@ -905,9 +1027,6 @@ namespace ldp
 
 		// rhs b
 		m_b_Ids_d.upload(b_Ids_h);
-#ifdef DEBUG_DUMP
-		dumpVec("D:/tmp/m_b_Ids_d_inOrder.txt", m_b_Ids_d);
-#endif
 		m_b_Ids_start_d.upload(b_Ids_start_h);
 		m_b_order_d.create(b_Ids_h.size());
 		m_b_invOrder_d.create(b_Ids_h.size());
@@ -934,121 +1053,57 @@ namespace ldp
 		m_A_d->setRowFromBooRowPtr(booRow.data(), nUniqueNnz);
 		cudaSafeCall(cudaMemcpy(m_A_d->bsrColIdx(), booCol.data(), nUniqueNnz*sizeof(int), cudaMemcpyDeviceToDevice));
 		cudaSafeCall(cudaMemset(m_A_d->value(), 0, m_A_d->nnz()*sizeof(float)));
+		m_A_diag_d->resize(m_A_d->blocksInRow(), m_A_d->rowsPerBlock());
 
-#ifdef DEBUG_DUMP
-		m_A_d->dump("D:/tmp/eigen_A_1.txt");
-		dumpVec_pair("D:/tmp/m_A_Ids_d.txt", m_A_Ids_d, nVerts);
-		dumpVec_pair("D:/tmp/m_A_Ids_d_unique.txt", m_A_Ids_d_unique, nVerts, nUniqueNnz);
-		dumpVec("D:/tmp/m_A_Ids_d_unique_pos.txt", m_A_Ids_d_unique_pos, nUniqueNnz);
-		dumpVec("D:/tmp/m_A_order_d.txt", m_A_order_d);
-		dumpVec("D:/tmp/m_A_invOrder_d.txt", m_A_invOrder_d);
-		dumpVec("D:/tmp/m_b_Ids_d.txt", m_b_Ids_d);
-		dumpVec("D:/tmp/m_b_Ids_d_unique.txt", m_b_Ids_d_unique, nUniqueb);
-		dumpVec("D:/tmp/m_b_Ids_d_unique_pos.txt", m_b_Ids_d_unique_pos, nUniqueb);
-		dumpVec("D:/tmp/m_b_order_d.txt", m_b_order_d);
-		dumpVec("D:/tmp/m_b_invOrder_d.txt", m_b_invOrder_d);
-#endif
+		m_shouldSparseStructureUpdate = false;
 	}
+#pragma endregion
 
-	void GpuSim::initializeMaterialMemory()
+#pragma region -- dependency
+	void GpuSim::updateDependency()
 	{
-		releaseMaterialMemory();
-
-		// copy to self cpu
-		if (m_arcSimManager)
+		if (m_shouldLevelsetUpdate)
+			m_shouldRestart = true;
+		if (m_shouldTopologyUpdate)
 		{
-			for (const auto& cloth : m_arcSimManager->getSimulator()->cloths)
-			for (const auto& mat : cloth.materials)
-			{
-				m_densityData_h.push_back(mat->density);
-				m_stretchSamples_h.push_back(StretchingSamples());
-				for (int x = 0; x < StretchingSamples::SAMPLES; x++)
-				for (int y = 0; y < StretchingSamples::SAMPLES; y++)
-				for (int z = 0; z < StretchingSamples::SAMPLES; z++)
-					m_stretchSamples_h.back()(x, y, z) = convert(mat->stretching.s[x][y][z]);
-				m_bendingData_h.push_back(BendingData());
-				auto& bdata = m_bendingData_h.back();
-				for (int x = 0; x < bdata.cols(); x++)
-				{
-					int wrap_x = x;	
-					if (wrap_x>4)
-						wrap_x = 8 - wrap_x;
-					if (wrap_x > 2)
-						wrap_x = 4 - wrap_x;
-					for (int y = 0; y < bdata.rows(); y++)
-						bdata(x, y) = mat->bending.d[wrap_x][y];
-				}
-			} // end for mat, cloth
-			
-		} // end if arcSim
-		else if (m_clothManager)
-		{
-			// TO DO: accomplish the importing from cloth manager
-			std::shared_ptr<arcsim::Cloth::Material> mat(new arcsim::Cloth::Material);
-			arcsim::load_material_data(*mat, g_default_arcsim_material);
-			printf("default material: %s\n", g_default_arcsim_material);
-
-			m_densityData_h.push_back(mat->density);
-			m_stretchSamples_h.push_back(StretchingSamples());
-			for (int x = 0; x < StretchingSamples::SAMPLES; x++)
-			for (int y = 0; y < StretchingSamples::SAMPLES; y++)
-			for (int z = 0; z < StretchingSamples::SAMPLES; z++)
-				m_stretchSamples_h.back()(x, y, z) = convert(mat->stretching.s[x][y][z]);
-			m_bendingData_h.push_back(BendingData());
-
-			auto& bdata = m_bendingData_h.back();
-			for (int x = 0; x < bdata.cols(); x++)
-			{
-				int wrap_x = x;
-				if (wrap_x>4)
-					wrap_x = 8 - wrap_x;
-				if (wrap_x > 2)
-					wrap_x = 4 - wrap_x;
-				for (int y = 0; y < bdata.rows(); y++)
-					bdata(x, y) = mat->bending.d[wrap_x][y];
-			}
-		} // end if clothManager
-		
-		// copy to gpu
-		for (auto& bd : m_bendingData_h)
-		{
-			bd.updateHostToDevice();
-
-#ifdef DEBUG_DUMP
-			dumpBendDataArray("D:/tmp/bendData_h.txt", bd);
-			bd.updateDeviceToHost();
-			dumpBendDataArray("D:/tmp/bendData_d.txt", bd);
-			BendingData tmp;
-			bd.getCudaArray().copyTo(tmp.getCudaArray());
-			tmp.updateDeviceToHost();
-			dumpBendDataArray("D:/tmp/bendData_d1.txt", tmp);
-#endif
-
-		} // end for m_bendingData_h
-		
-		for (auto& sp : m_stretchSamples_h)
-		{
-			sp.updateHostToDevice();
-
-#ifdef DEBUG_DUMP
-			dumpStretchSampleArray("D:/tmp/stretchSample_h.txt", sp);
-			sp.updateDeviceToHost();
-			dumpStretchSampleArray("D:/tmp/stretchSample_d.txt", sp);
-			StretchingSamples tmp;
-			sp.getCudaArray().copyTo(tmp.getCudaArray());
-			tmp.updateDeviceToHost();
-			dumpStretchSampleArray("D:/tmp/stretchSample_d1.txt", tmp);
-#endif
-		} // end for m_stretchSamples_h
+			m_shouldStitchUpdate = true;
+			m_shouldMaterialUpdate = true;
+		}
+		if (m_shouldStitchUpdate)
+			m_shouldSparseStructureUpdate = true;
+		if (m_shouldSparseStructureUpdate)
+			m_shouldRestart = true;
 	}
 
-	void GpuSim::releaseMaterialMemory()
+	void GpuSim::resetDependency(bool on)
 	{
-		m_bendingData_h.clear();
-		m_stretchSamples_h.clear();
-		m_densityData_h.clear();
+		m_shouldTopologyUpdate = on;
+		m_shouldLevelsetUpdate = on;
+		m_shouldMaterialUpdate = on;
+		m_shouldStitchUpdate = on;
+		m_shouldSparseStructureUpdate = on;
+		m_shouldRestart = on;
 	}
 
+	void GpuSim::updateSystem()
+	{
+		updateDependency();
+		if (m_shouldTopologyUpdate)
+			initFaceEdgeVertArray();
+		if (m_shouldLevelsetUpdate)
+			initLevelSet();
+		if (m_shouldMaterialUpdate)
+			buildMaterial();
+		if (m_shouldStitchUpdate)
+			buildStitch();
+		if (m_shouldSparseStructureUpdate)
+			setup_sparse_structure();
+		if (m_shouldRestart)
+			restart();
+	}
+#pragma endregion
+
+#pragma region --solving
 	void GpuSim::linearSolve()
 	{
 #ifndef SOLVE_USE_EIGEN
@@ -1142,82 +1197,22 @@ namespace ldp
 		update_x_v_by_dv();
 		cudaSafeCall(cudaThreadSynchronize());
 	}
+#pragma endregion
 
-	void GpuSim::clear()
+#pragma region --helper functions
+	BMEdge* GpuSim::findEdge(int v1, int v2)
 	{
-		m_clothManager = nullptr;
-		m_arcSimManager = nullptr;
-		m_simParam.setDefault();
-		m_fps = 0.f;
-		m_curSimulationTime = 0.f;
-		m_curStitchRatio = 0.f;
-		m_solverInfo ="";
-		m_bodyLvSet_h = nullptr;
-		m_bodyLvSet_d.release();
-
-		m_bmesh->clear();
-		m_bmVerts.clear();
-		m_faces_idxWorld_h.clear();
-		m_faces_idxWorld_d.release();
-		m_faces_idxTex_h.clear();
-		m_faces_idxTex_d.release();
-		m_faces_idxMat_h.clear();
-		m_faces_texStretch_d.release();
-		m_faces_texBend_d.release();
-		m_faces_materialSpace_d.release();
-		m_nodes_materialSpace_d.release();
-		m_edgeData_h.clear();
-		m_edgeData_d.release();
-		m_vert_FaceList_d->clear(); 
-		m_stitch_vertPairs_h.clear();
-		m_stitch_vertPairs_d->clear();
-		m_stitch_vertMerge_idxMap_h.clear();
-		m_stitch_edgeData_h.clear();
-		m_stitch_edgeData_d.release();
-	
-		m_A_Ids_d.release();
-		m_A_Ids_d_unique.release();
-		m_A_Ids_d_unique_pos.release();	
-		m_A_Ids_start_d.release();		
-		m_A_order_d.release();			
-		m_A_invOrder_d.release();
-		m_beforScan_A.release();
-		m_b_Ids_d.release();
-		m_b_Ids_d_unique.release();
-		m_b_Ids_d_unique_pos.release();
-		m_b_Ids_start_d.release();		
-		m_b_order_d.release();			
-		m_b_invOrder_d.release();
-		m_beforScan_b.release();
-
-		m_A_d->clear();
-		m_A_diag_d->clear();
-		m_b_d.release();
-		m_texCoord_init_h.clear();								
-		m_texCoord_init_d.release();		
-		m_x_init_h.clear();				
-		m_x_init_d.release();				
-		m_x_h.clear();					
-		m_x_d.release();					
-		m_last_x_d.release();				
-		m_v_d.release();					
-		m_last_v_d.release();				
-		m_dv_d.release();					
-		
-		m_debug_flag = 0;
-		m_selfColli_nBuckets = 0;
-		m_selfColli_vertIds.release();
-		m_selfColli_bucketIds.release();
-		m_selfColli_bucketRanges.release();
-		m_selfColli_tri_vertCnt.release();
-		m_selfColli_tri_vertPair_tId.release();
-		m_selfColli_tri_vertPair_vId.release();
-		m_nPairs = 0;
-		m_stretchSamples_h.clear();
-		m_bendingData_h.clear();
-		m_densityData_h.clear();
+		if (m_bmVerts.size() == 0)
+			throw std::exception("bmesh not initialzed");
+		BMVert* bv1 = m_bmVerts[v1];
+		BMVert* bv2 = m_bmVerts[v2];
+		BMESH_E_OF_V(e, bv1, v1iter, *m_bmesh)
+		{
+			if (m_bmesh->vofe_first(e) == bv2 || m_bmesh->vofe_last(e) == bv2)
+				return e;
+		}
+		return nullptr;
 	}
-
 	void GpuSim::dumpVec(std::string name, const DeviceArray<float>& A, int nTotal)
 	{
 		std::vector<float> hA;
@@ -1416,4 +1411,5 @@ namespace ldp
 			printf("saved: %s\n", name.c_str());
 		}
 	}
+#pragma endregion
 }

@@ -1352,9 +1352,6 @@
     <ClInclude Include="Algorithm\BFGS\solver.h">
       <Filter>algorithm\BFGS</Filter>
     </ClInclude>
-    <ClInclude Include="Algorithm\cloth\SelfCollider.h">
-      <Filter>algorithm\cloth</Filter>
-    </ClInclude>
     <ClInclude Include="BatchSimulateManager.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -1592,6 +1589,9 @@
     <ClInclude Include="Algorithm\cudpp\cached_allocator.h">
       <Filter>algorithm\cudpp</Filter>
     </ClInclude>
+    <ClInclude Include="Algorithm\cloth\SelfCollider.h">
+      <Filter>algorithm\cloth</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="qdarkstyle\rc\up_arrow_disabled.png">
@@ -1730,12 +1730,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="Algorithm\cloth\clothManager.cu">
-      <Filter>algorithm\cloth</Filter>
-    </CudaCompile>
-    <CudaCompile Include="Algorithm\cloth\SelfCollider.cu">
-      <Filter>algorithm\cloth</Filter>
-    </CudaCompile>
     <CudaCompile Include="Algorithm\cudpp\ModerGpuWrapper.cu">
       <Filter>algorithm\cudpp</Filter>
     </CudaCompile>
@@ -1768,6 +1762,12 @@
     </CudaCompile>
     <CudaCompile Include="Algorithm\cudpp\cached_allocator.cu">
       <Filter>algorithm\cudpp</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Algorithm\cloth\clothManager.cu">
+      <Filter>algorithm\cloth</Filter>
+    </CudaCompile>
+    <CudaCompile Include="Algorithm\cloth\SelfCollider.cu">
+      <Filter>algorithm\cloth</Filter>
     </CudaCompile>
   </ItemGroup>
 </Project>
