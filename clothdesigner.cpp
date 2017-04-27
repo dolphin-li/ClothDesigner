@@ -317,7 +317,7 @@ void ClothDesigner::timerEvent(QTimerEvent* ev)
 	}
 
 	if (ev->timerId() == m_fpsTimer)
-		setWindowTitle(QString().sprintf("fps: %f", g_dataholder.m_clothManager->getFps()));
+		setWindowTitle(g_dataholder.m_clothManager->getSimulationInfo().c_str());
 
 	if (ev->timerId() == m_batchSimulateTimer)
 	{

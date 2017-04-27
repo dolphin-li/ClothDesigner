@@ -155,6 +155,8 @@ namespace ldp
 		if (m_clothManager == nullptr && m_arcSimManager == nullptr)
 			return;
 
+		m_solverInfo = "[";
+
 		gtime_t t_start = gtime_now();
 
 		updateSystem();
@@ -190,6 +192,10 @@ namespace ldp
 		m_shouldExportMesh = true;
 		gtime_t t_end = gtime_now();
 		m_fps = 1.f / gtime_seconds(t_start, t_end);
+
+		char fps_ary[10];
+		sprintf(fps_ary, "%.1f", m_fps);
+		m_solverInfo += std::string(", fps ") + fps_ary + "]";
 	}
 
 	void GpuSim::restart()
@@ -1171,7 +1177,7 @@ namespace ldp
 					break;
 			}
 		} // end for iter
-		m_solverInfo = std::string("pcg, iter ") + std::to_string(iter) + ", err " + std::to_string(err);
+		m_solverInfo += std::string("pcg, iter ") + std::to_string(iter) + ", err " + std::to_string(err);
 #else
 		SpMat A;
 		cudaSpMat_to_EigenMat(*m_A_d, A);

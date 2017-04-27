@@ -116,6 +116,12 @@
     <Filter Include="algorithm\cudpp\moderngpu">
       <UniqueIdentifier>{800a02b7-bdf3-4b64-9ff4-31f93255da62}</UniqueIdentifier>
     </Filter>
+    <Filter Include="algorithm\opensubdiv">
+      <UniqueIdentifier>{35e62bce-bf22-45bd-a94f-da6351899a61}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="algorithm\opensubdiv\utils">
+      <UniqueIdentifier>{ac2f3d84-8ad1-4ffd-87d2-6b1cd0321541}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">

@@ -148,12 +148,17 @@ namespace ldp
 		buildTopology();
 		buildStitch();
 		m_simulationMode = SimulationPause;
+		m_simulationInfo = "simulation initialized";
 	}
 
 	void ClothManager::simulationUpdate()
 	{
 		if (m_simulationMode != SimulationOn)
 			return;
+
+		m_simulationInfo = "";
+
+		gtime_t tbegin = gtime_now();
 
 		updateDependency();
 		if (m_shouldLevelSetUpdate)
@@ -169,18 +174,27 @@ namespace ldp
 
 		m_gpuSim->run_one_step();
 		m_gpuSim->getResultClothPieces();
-		m_fps = m_gpuSim->getFps();
+
+		gtime_t tend = gtime_now();
+		m_fps = 1.f / gtime_seconds(tbegin, tend);
+
+		char fps_ary[10];
+		sprintf(fps_ary, "%.1f", m_fps);
+		m_simulationInfo = std::string("[fps ") + fps_ary + "]" + m_gpuSim->getSolverInfo();
 	}
 
 	void ClothManager::simulationDestroy()
 	{
 		m_simulationMode = SimulationNotInit;
 		updateInitialClothsToCurrent();
+		m_simulationInfo = "simulation destroyed";
 	}
 
 	void ClothManager::setSimulationMode(SimulationMode mode)
 	{
 		m_simulationMode = mode;
+		if (m_simulationMode == SimulationMode::SimulationPause)
+			m_simulationInfo = "simulation paused";
 	}
 
 	void ClothManager::setSimulationParam(SimulationParam param)

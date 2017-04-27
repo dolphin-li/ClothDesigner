@@ -76,6 +76,7 @@ namespace ldp
 		void setClothDesignParam(ClothDesignParam param);
 		void setPieceParam(const ClothPiece* piece, PieceParam param);
 		float getFps()const { return m_fps; }
+		std::string getSimulationInfo()const{ return m_simulationInfo; }
 		SimulationMode getSimulationMode()const { return m_simulationMode; }
 		SimulationParam getSimulationParam()const { return m_simulationParam; }
 		static ClothDesignParam getClothDesignParam() { return g_designParam; }
@@ -165,6 +166,7 @@ namespace ldp
 		void buildTopology();
 		void buildStitch();
 	private:
+		std::string m_simulationInfo;
 		std::vector<std::shared_ptr<GraphsSewing>> m_graphSewings;
 		std::vector<std::shared_ptr<ClothPiece>> m_clothPieces;
 		std::shared_ptr<ObjMesh> m_bodyMesh, m_bodyMeshInit;

@@ -10,6 +10,7 @@
 #include "Renderable\ObjMesh.h"
 #include "CmlShadowMap\MeshRender.h"
 #include "CmlShadowMap\GPUBuffers.h"
+
 #pragma region --mat_utils
 
 inline ldp::Mat3f angles2rot(ldp::Float3 v)
@@ -100,6 +101,7 @@ static int CheckGLError(const string& file, int line)
 #define CHECK_GL_ERROR() CheckGLError(__FILE__, __LINE__)
 
 #pragma endregion
+
 
 Viewer3d::Viewer3d(QWidget *parent)
 : QGLWidget(QGLFormat(QGL::SampleBuffers), parent)
@@ -228,16 +230,17 @@ void Viewer3d::paintGL()
 			for (int i = 0; i < m_clothManager->numClothPieces(); i++)
 			{
 				const auto& piece = m_clothManager->clothPiece(i);
-				if (piece->mesh3d().material_list.size())
+				auto& pieceMesh = piece->mesh3d();
+				if (pieceMesh.material_list.size())
 				{
 					if (piece->graphPanel().isHighlighted())
-						piece->mesh3d().material_list[0].diff = ldp::Float3(0.0, 0.6, 0.8);
+						pieceMesh.material_list[0].diff = ldp::Float3(0.0, 0.6, 0.8);
 					else if (piece->graphPanel().isSelected())
-						piece->mesh3d().material_list[0].diff = ldp::Float3(0.8, 0.6, 0);
+						pieceMesh.material_list[0].diff = ldp::Float3(0.8, 0.6, 0);
 					else
-						piece->mesh3d().material_list[0].diff = ldp::Float3(1, 1, 1);
+						pieceMesh.material_list[0].diff = ldp::Float3(1, 1, 1);
 				}
-				piece->mesh3d().render(showType);
+				pieceMesh.render(showType);
 			}
 			if (isSmplMode() && m_clothManager->bodySmplManager())
 			{
