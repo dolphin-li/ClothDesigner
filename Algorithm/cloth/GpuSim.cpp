@@ -417,7 +417,7 @@ namespace ldp
 #pragma region -- param
 	void GpuSim::SimParam::setDefault()
 	{
-		dt = 1.f / 150.f;
+		dt = 1.f / 100.f;
 		gravity = Float3(0.f, 0.f, -9.8f);
 		pcg_tol = 1e-2f;
 		pcg_iter = 400;
