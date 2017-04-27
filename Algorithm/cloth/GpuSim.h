@@ -109,6 +109,12 @@ namespace ldp
 		std::string getSolverInfo()const{ return m_solverInfo; }
 		ObjMesh& getResultClothMesh();
 		void getResultClothPieces();	//only valid for cloth manager init.
+		const std::vector<Float2>& getVertTexCoords()const{ return m_texCoord_init_h; }
+		const std::vector<Float3>& getCurrentVertPositions()const{ return m_x_h; }
+		const std::vector<Float3>& getInitVertPositions()const{ return m_x_init_h; }
+		const std::vector<Int4>& getFaceIndices()const{ return m_faces_idxWorld_h; }
+		void setCurrentVertPositions(const std::vector<Float3>& X);
+		void setInitVertPositions(const std::vector<Float3>& X);
 	protected:
 		// update the whole system based on the current changes
 		void updateSystem();

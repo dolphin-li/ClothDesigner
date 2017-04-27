@@ -18,29 +18,13 @@
 #include <cuda_runtime_api.h>
 #include <fstream>
 #include <QString>
-#ifdef ENABLE_EDGE_WISE_STITCH
-#include <eigen\Dense>
-#include <eigen\Sparse>
-#endif
-#define ENABLE_DEBUG_DUMPING
+#include "GpuSim.h"
 
 namespace ldp
 {
+	enum{ LEVEL_SET_RESOLUTION = 128 };
 	std::shared_ptr<SmplManager> ClothManager::m_smplMale;
 	std::shared_ptr<SmplManager> ClothManager::m_smplFemale;
-
-	inline float cot_constrained(const float* a, const float* b, const float* c)
-	{
-		float val = Cotangent(a, b, c);
-		//return val;
-		return std::min(5.f, std::max(-5.f, val));
-	}
-	inline float areaWeight_constrained(float area1, float area2, float avgArea)
-	{
-		float b = 1.f / avgArea;
-		//return b;
-		return std::min(b * 10.f, std::max(b * 0.1f, 1.f / (area1 + area2)));
-	}
 
 	inline SmplManager::Mat3 convert(ldp::Mat3d A)
 	{
@@ -82,22 +66,6 @@ namespace ldp
 			m_smplFemale->loadFromMat("data/smpl/basicModel_f_lbs_10_207_0_v1.0.0_wrap.mat");
 	}
 
-	PROGRESSING_BAR g_debug_save_bar(0);
-	template<class T> static void debug_save_gpu_array(DeviceArray<T> D, std::string filename)
-	{
-		std::vector<T> H;
-		D.download(H);
-		std::ofstream stm(filename);
-		if (stm.fail())
-			throw std::exception(("IOError: " + filename).c_str());
-		for (const auto& v : H)
-		{
-			stm << v << std::endl;
-			g_debug_save_bar.Add();
-		}
-		stm.close();
-	}
-
 	ClothManager::ClothManager()
 	{
 		m_bodyMesh.reset(new ObjMesh);
@@ -106,8 +74,8 @@ namespace ldp
 		m_bodyTransform->setIdentity();
 		m_bodyLvSet.reset(new LevelSet3D);
 		m_graph2mesh.reset(new Graph2Mesh);
+		m_gpuSim.reset(new GpuSim);
 		initSmplDatabase();
-		initCollisionHandler();
 	}
 
 	ClothManager::~ClothManager()
@@ -118,18 +86,6 @@ namespace ldp
 	void ClothManager::clear()
 	{
 		simulationDestroy();
-
-		m_V.clear();
-		m_V_bending_k_mult.clear();
-		m_V_outgo_dist.clear();
-		m_allE.clear();
-		m_allVV.clear();
-		m_allVL.clear();
-		m_allVW.clear();
-		m_allVC.clear();
-		m_allVV_num.clear();
-		m_fixed.clear();
-		m_edgeWithBendEdge.clear();
 
 		m_bodyTransform->setIdentity();
 		m_bodyMeshInit->clear();
@@ -160,7 +116,6 @@ namespace ldp
 			m_curDragInfo.piece_id_start = m_clothVertBegin[info.selected_cloth];
 			m_curDragInfo.piece_id_end = m_curDragInfo.piece_id_start + (int)info.selected_cloth->vertex_list.size();
 		}
-		resetMoreFixed();
 	}
 
 	void ClothManager::dragMove(ldp::Float3 target)
@@ -177,7 +132,6 @@ namespace ldp
 		m_curDragInfo.vert_id = -1;
 		m_curDragInfo.dir = 0;
 		m_curDragInfo.target = 0;
-		resetMoreFixed();
 	}
 
 	void ClothManager::simulationInit()
@@ -189,9 +143,9 @@ namespace ldp
 		m_shouldTriangulate = true;
 		updateDependency();
 		triangulate();
+		m_gpuSim->init(this);
 		mergePieces();
 		buildTopology();
-		buildNumerical();
 		buildStitch();
 		m_simulationMode = SimulationPause;
 	}
@@ -200,8 +154,7 @@ namespace ldp
 	{
 		if (m_simulationMode != SimulationOn)
 			return;
-		if (m_X.size() == 0)
-			return;
+
 		updateDependency();
 		if (m_shouldLevelSetUpdate)
 			calcLevelSet();
@@ -211,96 +164,12 @@ namespace ldp
 			mergePieces();
 		if (m_shouldTopologyUpdate)
 			buildTopology();
-		if (m_shouldNumericUpdate)
-			buildNumerical();
 		if (m_shouldStitchUpdate)
 			buildStitch();
 
-		gtime_t t_begin = ldp::gtime_now();
-		for (int oiter = 0; oiter < m_simulationParam.out_iter; oiter++)
-		{
-			// 1. process dragging info
-			if (m_curDragInfo.vert_id != -1)
-			{
-				m_curDragInfo.dir = m_curDragInfo.target - m_X[m_curDragInfo.vert_id];
-				float dir_length = m_curDragInfo.dir.length();
-				m_curDragInfo.dir.normalizeLocal();
-				if (dir_length>0.1)	dir_length = 0.1;
-				m_curDragInfo.dir *= dir_length;
-			}
-
-			m_curStitchRatio = std::max(0.f, m_curStitchRatio - 
-				m_simulationParam.stitch_ratio * m_simulationParam.time_step);
-
-			// backup
-			m_dev_X.copyTo(m_dev_old_X);
-
-			// 2. laplacian damping, considering the air damping
-			laplaceDamping();
-			updateAfterLap();
-			constrain0();
-
-			// 3. perform inner loops
-			ValueType omega = 0;
-			for (int iter = 0; iter<m_simulationParam.inner_iter; iter++)
-			{
-				constrain1();
-
-				// chebshev param
-				if (iter <= 5)		
-					omega = 1;
-				else if (iter == 6)	
-					omega = 2 / (2 - ldp::sqr(m_simulationParam.rho));
-				else			
-					omega = 4 / (4 - ldp::sqr(m_simulationParam.rho)*omega);
-
-				constrain2(omega);
-
-				m_dev_X.swap(m_dev_prev_X);
-				m_dev_X.swap(m_dev_next_X);
-			} // end for iter
-
-			constrain3();
-
-			constrain_selfCollision();
-
-			constrain4();
-			m_dev_X.download((ValueType*)m_X.data());
-		} // end for oiter
-
-		splitClothPiecesFromComputedMereged();
-
-		gtime_t t_end = ldp::gtime_now();
-		m_fps = 1 / ldp::gtime_seconds(t_begin, t_end);
-	}
-
-	void ClothManager::splitClothPiecesFromComputedMereged()
-	{
-		// finally we update normals and bounding boxes
-		for (size_t iCloth = 0; iCloth < m_clothPieces.size(); iCloth++)
-		{
-			auto& mesh = m_clothPieces[iCloth]->mesh3d();
-			int vb = m_clothVertBegin.at(&mesh);
-			mesh.vertex_list.assign(m_X.begin() + vb, m_X.begin() + vb + mesh.vertex_list.size());
-			mesh.updateNormals();
-			mesh.updateBoundingBox();
-			updateSewingNormals(mesh);
-		} // end for iCloth
-	}
-
-	void ClothManager::updateSewingNormals(ObjMesh& mesh)
-	{
-		for (size_t iv = 0; iv < mesh.vertex_normal_list.size(); iv++)
-		{
-			auto iter = m_sewVofFMap.find(std::make_pair(&mesh, (int)iv));
-			if (iter == m_sewVofFMap.end())
-				continue;
-			Float3 normal = 0.f;
-			for (const auto& f : iter->second)
-				normal += Float3(m_X[f[1]] - m_X[f[0]]).cross(m_X[f[2]] - m_X[f[0]]);
-			mesh.vertex_normal_list[iv] = normal.normalize();
-		} // end for iv
-		mesh.requireRenderUpdate();
+		m_gpuSim->run_one_step();
+		m_gpuSim->getResultClothPieces();
+		m_fps = m_gpuSim->getFps();
 	}
 
 	void ClothManager::simulationDestroy()
@@ -318,35 +187,8 @@ namespace ldp
 	{
 		auto lastParam = m_simulationParam;
 		m_simulationParam = param;
-		m_simulationParam.spring_k = m_simulationParam.spring_k_raw / m_avgArea;
-		m_simulationParam.stitch_k = m_simulationParam.stitch_k_raw / m_avgArea;
-#if 0
-		printf("simulaton param:\n");
-		printf("\t rho          = %f\n", m_simulationParam.rho);
-		printf("\t under_relax  = %f\n", m_simulationParam.under_relax);
-		printf("\t lap_damping  = %d\n", m_simulationParam.lap_damping);
-		printf("\t air_damping  = %f\n", m_simulationParam.air_damping);
-		printf("\t bending_k    = %f\n", m_simulationParam.bending_k);
-		printf("\t spring_k     = %f\n", m_simulationParam.spring_k);
-		printf("\t spring_k_raw = %f\n", m_simulationParam.spring_k_raw);
-		printf("\t stitch_k     = %f\n", m_simulationParam.stitch_k);
-		printf("\t stitch_k_raw = %f\n", m_simulationParam.stitch_k_raw);
-		printf("\t out_iter     = %d\n", m_simulationParam.out_iter);
-		printf("\t inner_iter   = %d\n", m_simulationParam.inner_iter);
-		printf("\t time_step    = %f\n", m_simulationParam.time_step);
-		printf("\t control_mag  = %f\n", m_simulationParam.control_mag);
-		printf("\t gravity      = %f %f %f\n", m_simulationParam.gravity[0], 
-			m_simulationParam.gravity[1], m_simulationParam.gravity[2]);
-#endif
 		
-		if (fabs(lastParam.spring_k - m_simulationParam.spring_k) >= std::numeric_limits<float>::epsilon())
-			m_shouldNumericUpdate = true;
-		if (fabs(lastParam.bending_k - m_simulationParam.bending_k) >= std::numeric_limits<float>::epsilon())
-			m_shouldNumericUpdate = true;
-		if (fabs(lastParam.stitch_k - m_simulationParam.stitch_k) >= std::numeric_limits<float>::epsilon())
-			m_shouldStitchUpdate = true;
-		if (fabs(lastParam.stitch_bending_k - m_simulationParam.stitch_bending_k) >= std::numeric_limits<float>::epsilon())
-			m_shouldStitchUpdate = true;
+		// TODO: param update here?
 	}
 
 	void ClothManager::setClothDesignParam(ClothDesignParam param)
@@ -368,8 +210,13 @@ namespace ldp
 				&& fabs(param.piece_outgo_dist - pc->param().piece_outgo_dist) < std::numeric_limits<float>::epsilon())
 				break;
 			pc->param() = param;
-			m_shouldNumericUpdate = true;
+			// TODO: materials update here?
 		}
+	}
+
+	ldp::Float3 ClothManager::getVertexByGlobalId(int id)const 
+	{ 
+		return m_gpuSim->getCurrentVertPositions()[id]; 
 	}
 
 	int ClothManager::pieceVertId2GlobalVertId(const ObjMesh* piece, int pieceVertId)const
@@ -440,112 +287,21 @@ namespace ldp
 
 	void ClothManager::exportClothsMerged(ObjMesh& mesh, bool mergeStitchedVertex)const
 	{
-		// find idx map that remove all stitched vertices
-		std::vector<int> idxMap(m_X.size(), -1);
-		for (size_t i = 0; i < idxMap.size(); i++)
-			idxMap[i] = i;
-
-		if (mergeStitchedVertex)
-		{
-			for (const auto& stp : m_stitches)
-			{
-				if (stp.type != ldp::GraphsSewing::SewingTypeStitch)
-					continue;
-				int sm = std::min(stp.first, stp.second);
-				int lg = std::max(stp.first, stp.second);
-				while (idxMap[lg] != lg)
-					lg = idxMap[lg];
-				if (lg < sm) std::swap(sm, lg);
-				idxMap[lg] = sm;
-			}
-			for (size_t i = 0; i < idxMap.size(); i++)
-			{
-				int m = i;
-				while (idxMap[m] != m)
-					m = idxMap[m];
-				idxMap[i] = m;
-			}
-		} // end if mergeStitchedVertex
-
-		// create the mesh
-		mesh.clear();
-		for (const auto& piece : m_clothPieces)
-		{
-			const auto& m3d = piece->mesh3d();
-			const auto& m2d = piece->mesh2d();
-			int vs = m_clothVertBegin.at(&m3d);
-			for (size_t i = 0; i < m2d.vertex_list.size(); i++)
-			{
-				int vid = (int)i + vs;
-				if (idxMap[vid] == vid)
-				{
-					idxMap[vid] = (int)mesh.vertex_list.size();
-					mesh.vertex_list.push_back(m3d.vertex_list[i]);
-				}
-				else
-					idxMap[vid] = idxMap[idxMap[vid]];
-				mesh.vertex_texture_list.push_back(Float2(m2d.vertex_list[i][0], -m2d.vertex_list[i][1]));
-			} // end for i
-		} // end for piece
-
-		// remove unreferenced tex idx
-		std::set<int> validTexIdxSet;
-		for (const auto& t : m_T)
-		{
-			if (idxMap[t[0]] != idxMap[t[1]] 
-				&& idxMap[t[0]] != idxMap[t[2]]
-				&& idxMap[t[1]] != idxMap[t[2]])
-			for (int k = 0; k < t.size(); k++)
-				validTexIdxSet.insert(t[k]);
-		}
-		std::vector<ldp::Float2> tmpTex = mesh.vertex_texture_list;
-		std::vector<int> texIdxMap(mesh.vertex_texture_list.size(), -1);
-		mesh.vertex_texture_list.clear();
-		for (auto t : validTexIdxSet)
-		{
-			texIdxMap[t] = mesh.vertex_texture_list.size();
-			mesh.vertex_texture_list.push_back(tmpTex[t]);
-		}
-
-		// write faces
-		for (const auto& t : m_T)
-		{
-			ObjMesh::obj_face f;
-			f.vertex_count = 3;
-			f.material_index = -1;
-			for (int k = 0; k < t.size(); k++)
-				f.vertex_index[k] = idxMap[t[k]];
-			if (f.vertex_index[0] == f.vertex_index[1] || f.vertex_index[0] == f.vertex_index[2]
-				|| f.vertex_index[1] == f.vertex_index[2])
-			{
-				printf("warning, illegal face found, possibly due to an unproper sewing: %d %d %d -> %d %d %d\n", 
-					t[0], t[1], t[2], f.vertex_index[0], f.vertex_index[1],
-					f.vertex_index[2]);
-			}
-			else
-			{
-				for (int k = 0; k < t.size(); k++)
-				{
-					assert(texIdxMap[t[k]] >= 0);
-					f.texture_index[k] = texIdxMap[t[k]];
-				}
-				mesh.face_list.push_back(f);
-			}
-		}
+		mesh.cloneFrom(&m_gpuSim->getResultClothMesh());
 	}
 
 	void ClothManager::exportClothsSeparated(std::vector<ObjMesh>& meshes)const
 	{
-		std::vector<ldp::Float3> vmerged = m_X;
-		std::vector<float> wmerged(m_X.size(), 1.f);
+		std::vector<ldp::Float3> vmerged = m_gpuSim->getCurrentVertPositions();
+		std::vector<float> wmerged(m_gpuSim->getCurrentVertPositions().size(), 1.f);
 
 		for (const auto& stp : m_stitches)
 		{
 			int sm = std::min(stp.first, stp.second);
 			int lg = std::max(stp.first, stp.second);
-			vmerged[sm] += m_X[lg];
+			vmerged[sm] += m_gpuSim->getCurrentVertPositions()[lg];
 			wmerged[sm]++;
-			vmerged[lg] += m_X[sm];
+			vmerged[lg] += m_gpuSim->getCurrentVertPositions()[sm];
 			wmerged[lg]++;
 		}
 		for (size_t i = 0; i < vmerged.size(); i++)
@@ -577,15 +333,9 @@ namespace ldp
 	//////////////////////////////////////////////////////////////////////////////////
 	void ClothManager::clearClothPieces() 
 	{
-		m_bmesh.reset((BMesh*)nullptr);
-		m_bmeshVerts.clear();
 		m_clothVertBegin.clear();
 		m_vertex_smplJointBind.reset((SpMat*)nullptr);
 		m_vertex_smpl_defaultPosition.clear();
-		m_X.clear();
-		m_T.clear();
-		m_avgArea = 0;
-		m_avgEdgeLength = 0;
 
 		clearSewings();
 		auto tmp = m_clothPieces;
@@ -628,12 +378,7 @@ namespace ldp
 	{
 		if (m_shouldTriangulate)
 			triangulate();
-		m_X.clear();
-		m_X_texCoords.clear();
-		m_T.clear();
 		m_clothVertBegin.clear();
-		m_avgArea = 0;
-		m_avgEdgeLength = 0;
 		int fcnt = 0;
 		int ecnt = 0;
 		int vid_s = 0;
@@ -641,35 +386,8 @@ namespace ldp
 		{
 			const auto& mesh = piece->mesh3d();
 			m_clothVertBegin.insert(std::make_pair(&mesh, vid_s));
-			for (const auto& v : mesh.vertex_list)
-				m_X.push_back(v);
-			for (const auto& v : piece->mesh2d().vertex_list)
-				m_X_texCoords.push_back(Vec2(v[0], v[1]));
-			for (const auto& f : mesh.face_list)
-			{
-				m_T.push_back(ldp::Int3(f.vertex_index[0], f.vertex_index[1],
-					f.vertex_index[2]) + vid_s);
-				ldp::Float3 v[3] = { mesh.vertex_list[f.vertex_index[0]], mesh.vertex_list[f.vertex_index[1]],
-					mesh.vertex_list[f.vertex_index[2]] };
-				m_avgArea += sqrt(Area_Squared(v[0].ptr(), v[1].ptr(), v[2].ptr()));
-				fcnt++;
-
-				m_avgEdgeLength += (v[0] - v[1]).length() + (v[0] - v[2]).length() + (v[1] - v[2]).length();
-				ecnt += 3;
-			}
 			vid_s += mesh.vertex_list.size();
 		} // end for iCloth
-		m_avgArea /= fcnt;
-		m_avgEdgeLength /= ecnt;
-
-		// build connectivity
-		m_bmesh.reset(new ldp::BMesh);
-		m_bmesh->init_triangles((int)m_X.size(), m_X.data()->ptr(), (int)m_T.size(), m_T.data()->ptr());
-		m_bmeshVerts.clear();
-		BMESH_ALL_VERTS(v, viter, *m_bmesh)
-		{
-			m_bmeshVerts.push_back(v);
-		}
 
 		m_shouldMergePieces = false;
 		m_shouldTopologyUpdate = true;
@@ -677,15 +395,7 @@ namespace ldp
 
 	void ClothManager::clearSewings()
 	{
-		m_sewVofFMap.clear();
 		m_stitches.clear();
-		m_stitchVV.clear();
-		m_stitchVV_num.clear();
-		m_stitchVC.clear();
-		m_stitchVW.clear();
-		m_stitchVL.clear();
-		m_stitchPair.clear();
-		m_stitchPair_num.clear();
 		auto tmp = m_graphSewings;
 		for (auto& s : tmp)
 			removeGraphSewing(s.get());
@@ -769,287 +479,6 @@ namespace ldp
 		return vp;
 	}
 
-	void ClothManager::buildStitch()
-	{
-		updateDependency();
-		if (m_shouldNumericUpdate)
-			buildNumerical();
-		m_simulationParam.stitch_k = m_simulationParam.stitch_k_raw / m_avgArea;
-		
-		// build bending edges for boundary sewings
-		m_sewVofFMap.clear();
-		std::map<Int2, std::pair<Int2, Int2>> edgeBendEdgeMap;
-		for (const auto& s1 : m_stitches)
-		{
-			Int2 sv1(s1.first, s1.second);
-			for (const auto& s2 : m_stitches)
-			{
-				Int2 sv2(s2.first, s2.second);
-				Int2 e1Idx(sv1[0], sv2[0]);
-				Int2 e2Idx(sv1[1], sv2[1]);
-				if (e1Idx[0] == e1Idx[1] || e2Idx[0] == e2Idx[1])
-					continue;
-				auto e1 = findEdge(e1Idx[0], e1Idx[1]);
-				auto e2 = findEdge(e2Idx[0], e2Idx[1]);
-				if (e1 && e2)
-				{
-					if (m_bmesh->fofe_count(e1) != 1 || m_bmesh->fofe_count(e2) != 1)
-						continue;
-
-					// bending is only needed for stitch type, but not position type
-					if (s1.type == ldp::GraphsSewing::SewingTypeStitch
-						&& s2.type == ldp::GraphsSewing::SewingTypeStitch)
-					{
-						Int2 bend = -1;
-						BMESH_F_OF_E(f, e1, e1iter, *m_bmesh)
-						{
-							bend[0] = -e1Idx[0] - e1Idx[1];
-							int cnt = 0;
-							BMESH_V_OF_F(v, f, viter, *m_bmesh)
-							{
-								bend[0] += v->getIndex();
-							}
-							break;
-						}
-						BMESH_F_OF_E(f, e2, e2iter, *m_bmesh)
-						{
-							bend[1] = -e2Idx[0] - e2Idx[1];
-							int cnt = 0;
-							BMESH_V_OF_F(v, f, viter, *m_bmesh)
-							{
-								bend[1] += v->getIndex();
-							}
-							break;
-						}
-						edgeBendEdgeMap[e1Idx] = std::make_pair(e2Idx, bend);
-						edgeBendEdgeMap[e2Idx] = std::make_pair(e1Idx, bend);
-					} // end if s1, s2 type is stich
-
-					// insert boundary face map, but only for 1-to-1 map
-					// this is used for better rendering, not related to the simulation
-					std::pair<const ObjMesh*, int> localIds[2][2];
-					localIds[0][0] = getLocalVertsId(e1Idx[0]);
-					localIds[0][1] = getLocalVertsId(e1Idx[1]);
-					localIds[1][0] = getLocalVertsId(e2Idx[0]);
-					localIds[1][1] = getLocalVertsId(e2Idx[1]);
-					BMVert* bv[2][2] = { { m_bmeshVerts[e1Idx[0]], m_bmeshVerts[e1Idx[1]] }, 
-					{ m_bmeshVerts[e2Idx[0]], m_bmeshVerts[e2Idx[1]] } };
-					BMESH_F_OF_V(f, bv[0][0], viter0, *m_bmesh)
-					{
-						Int3 idx = m_T[f->getIndex()];
-						m_sewVofFMap[localIds[0][0]].insert(idx);
-						m_sewVofFMap[localIds[1][0]].insert(idx);
-					}
-					BMESH_F_OF_V(f, bv[0][1], viter1, *m_bmesh)
-					{
-						Int3 idx = m_T[f->getIndex()];
-						m_sewVofFMap[localIds[0][1]].insert(idx);
-						m_sewVofFMap[localIds[1][1]].insert(idx);
-					}
-					BMESH_F_OF_V(f, bv[1][0], viter2, *m_bmesh)
-					{
-						Int3 idx = m_T[f->getIndex()];
-						m_sewVofFMap[localIds[1][0]].insert(idx);
-						m_sewVofFMap[localIds[0][0]].insert(idx);
-					}
-					BMESH_F_OF_V(f, bv[1][1], viter3, *m_bmesh)
-					{
-						Int3 idx = m_T[f->getIndex()];
-						m_sewVofFMap[localIds[1][1]].insert(idx);
-						m_sewVofFMap[localIds[0][1]].insert(idx);
-					}
-				} // end if e1 and e2
-			} // end for s2
-		} // end for s1
-
-		// build edges
-		std::vector<Int2> edges;
-		std::set<Int2> edgeExist;
-		std::vector<std::tuple<Int2, Int2, Int2>> edgesWithBend;
-		for (const auto& s : m_stitches)
-		{
-			Int2 e(s.first, s.second);
-			if (e[0] == e[1])
-				continue;
-
-			// ignore duplicated edges
-			if (edgeExist.find(e) != edgeExist.end())
-				continue;
-			edgeExist.insert(e);
-			edgeExist.insert(Int2(e[1], e[0]));
-
-			// stitcg edges
-			edges.push_back(e);
-			edges.push_back(Int2(e[1], e[0]));
-
-			// bending edges
-			edgesWithBend.push_back(std::make_tuple(e, Int2(-1), Int2(-1)));
-		}
-		for (auto iter : edgeBendEdgeMap)
-		{
-			auto e = iter.first; // edge
-			auto se = iter.second.first, be = iter.second.second; // stiched edge and bend edge
-
-			if (e[0] >= e[1])
-				continue;
-
-			// original edges
-			edges.push_back(e);
-			edges.push_back(Int2(e[1], e[0]));
-
-			// boundary triangle edges
-			edges.push_back(Int2(e[0], be[0]));
-			edges.push_back(Int2(be[0], e[0]));
-			edges.push_back(Int2(e[1], be[0]));
-			edges.push_back(Int2(be[0], e[1]));
-
-			edges.push_back(Int2(be[0], be[1]));
-			edges.push_back(Int2(be[1], be[0]));
-
-			edges.push_back(Int2(se[0], be[1]));
-			edges.push_back(Int2(be[1], se[0]));
-			edges.push_back(Int2(se[1], be[1]));
-			edges.push_back(Int2(be[1], se[1]));
-
-			// bend edges, marked as < 0 to distinguish with stitch edges
-			edgesWithBend.push_back(std::make_tuple(0-e, se, be));
-		}
-		std::sort(edges.begin(), edges.end());
-		edges.resize(std::unique(edges.begin(), edges.end()) - edges.begin());
-
-		// setup one-ring vertex info
-		size_t eIdx = 0;
-		m_stitchVV_num.clear();
-		m_stitchVV_num.reserve(m_X.size() + 1);
-		m_stitchVV.clear();
-		for (size_t i = 0; i<m_X.size(); i++)
-		{
-			m_stitchVV_num.push_back(m_stitchVV.size());
-			for (; eIdx<edges.size(); eIdx++)
-			{
-				const auto& e = edges[eIdx];
-				if (e[0] != i)
-					break;		// not in the right vertex
-				if (e[1] == e[0])
-					continue;	// duplicate
-				m_stitchVV.push_back(e[1]);
-			}
-		} // end for i
-		m_stitchVV_num.push_back(m_stitchVV.size());
-
-		// compute matrix related values
-		m_stitchVL.resize(m_stitchVV.size());
-		m_stitchVW.resize(m_stitchVV.size());
-		m_stitchVC.resize(m_X.size());
-		std::fill(m_stitchVL.begin(), m_stitchVL.end(), ValueType(0));
-		std::fill(m_stitchVW.begin(), m_stitchVW.end(), ValueType(0));
-		std::fill(m_stitchVC.begin(), m_stitchVC.end(), ValueType(0));
-		for (auto tuple : edgesWithBend)
-		{
-			Int2 e = std::get<0>(tuple);
-			Int2 se = std::get<1>(tuple);
-			Int2 be = std::get<2>(tuple);
-
-			// first, handle spring length		
-			if (e[0] >= 0 && e[1] >= 0)
-			{
-				ValueType l = (m_X[e[0]] - m_X[e[1]]).length();
-				m_stitchVL[findStitchNeighbor(e[0], e[1])] = l;
-				m_stitchVL[findStitchNeighbor(e[1], e[0])] = l;
-			}
-
-			// ignore boundary edges for bending
-			if (se[0] == -1 || se[1] == -1 || be[0] == -1 || be[1] == -1)
-				continue;
-
-			// convert the negative flag back.
-			e[0] = -e[0];
-			e[1] = -e[1];
-
-			// second, handle bending weights
-			ValueType c01 = cot_constrained(m_X[e[0]].ptr(), m_X[e[1]].ptr(), m_X[be[0]].ptr());
-			ValueType c02 = cot_constrained(m_X[se[0]].ptr(), m_X[se[1]].ptr(), m_X[be[1]].ptr());
-			ValueType c03 = cot_constrained(m_X[e[1]].ptr(), m_X[e[0]].ptr(), m_X[be[0]].ptr());
-			ValueType c04 = cot_constrained(m_X[se[1]].ptr(), m_X[se[0]].ptr(), m_X[be[1]].ptr());
-			ValueType area0 = sqrt(Area_Squared(m_X[e[0]].ptr(), m_X[e[1]].ptr(), m_X[be[0]].ptr()));
-			ValueType area1 = sqrt(Area_Squared(m_X[se[0]].ptr(), m_X[se[1]].ptr(), m_X[be[1]].ptr()));
-			ValueType weight = areaWeight_constrained(area0, area1, m_avgArea);
-			ValueType k[4];
-			k[0] = c03 + c04;
-			k[1] = c01 + c02;
-			k[2] = -c01 - c03;
-			k[3] = -c02 - c04;
-
-			Int6 v;
-			v[0] = e[0];
-			v[1] = e[1];
-			v[2] = se[0];
-			v[3] = se[1];
-			v[4] = be[0];
-			v[5] = be[1];
-
-			const float w = weight * m_simulationParam.stitch_bending_k;
-			m_stitchVC[v[0]] += k[0] * k[0] * w / 2;
-			m_stitchVC[v[1]] += k[1] * k[1] * w / 2;
-			m_stitchVC[v[2]] += k[0] * k[0] * w / 2;
-			m_stitchVC[v[3]] += k[1] * k[1] * w / 2;
-			m_stitchVC[v[4]] += k[2] * k[2] * w;
-			m_stitchVC[v[5]] += k[3] * k[3] * w;
-			m_stitchVW[findStitchNeighbor(v[0], v[1])] += k[0] * k[1] * w / 2;
-			m_stitchVW[findStitchNeighbor(v[2], v[3])] += k[0] * k[1] * w / 2;
-			m_stitchVW[findStitchNeighbor(v[0], v[4])] += k[0] * k[2] * w;
-			m_stitchVW[findStitchNeighbor(v[2], v[5])] += k[0] * k[3] * w;
-
-			m_stitchVW[findStitchNeighbor(v[1], v[0])] += k[1] * k[0] * w / 2;
-			m_stitchVW[findStitchNeighbor(v[3], v[2])] += k[1] * k[0] * w / 2;
-			m_stitchVW[findStitchNeighbor(v[1], v[4])] += k[1] * k[2] * w;
-			m_stitchVW[findStitchNeighbor(v[3], v[5])] += k[1] * k[3] * w;
-
-			m_stitchVW[findStitchNeighbor(v[4], v[0])] += k[2] * k[0] * w;
-			m_stitchVW[findStitchNeighbor(v[4], v[1])] += k[2] * k[1] * w;
-			m_stitchVW[findStitchNeighbor(v[4], v[5])] += k[2] * k[3] * w;
-																		
-			m_stitchVW[findStitchNeighbor(v[5], v[2])] += k[3] * k[0] * w;
-			m_stitchVW[findStitchNeighbor(v[5], v[3])] += k[3] * k[1] * w;
-			m_stitchVW[findStitchNeighbor(v[5], v[4])] += k[3] * k[2] * w;
-		} // end for all edges
-
-		// construct pure stitch pair info for self-collision handle
-		std::vector<Eigen::Triplet<ValueType>> tmpCoo;
-		std::vector<Int2> pureSpair;
-		for (const auto& s : m_stitches)
-		{
-			Int2 e(s.first, s.second);
-			if (e[0] == e[1])
-				continue;
-			tmpCoo.push_back(Eigen::Triplet<ValueType>(e[0], e[1], 0));
-			tmpCoo.push_back(Eigen::Triplet<ValueType>(e[1], e[0], 0));
-		}
-		SpMat sPairMat;
-		sPairMat.resize(m_X.size(), m_X.size());
-		if (tmpCoo.size())
-			sPairMat.setFromTriplets(tmpCoo.begin(), tmpCoo.end());
-		m_stitchPair_num.clear();
-		m_stitchPair_num.resize(m_X.size() + 1);
-		for (int i = 0; i < (int)m_stitchPair_num.size(); i++)
-			m_stitchPair_num[i] = sPairMat.outerIndexPtr()[i];
-		m_stitchPair.clear();
-		m_stitchPair.resize(sPairMat.nonZeros());
-		for (int i = 0; i < (int)m_stitchPair.size(); i++)
-			m_stitchPair[i] = sPairMat.innerIndexPtr()[i];
-
-		// copy to GPU
-		m_dev_stitch_VV.upload(m_stitchVV);
-		m_dev_stitch_VV_num.upload(m_stitchVV_num);
-		m_dev_stitch_VC.upload(m_stitchVC);
-		m_dev_stitch_VW.upload(m_stitchVW);
-		m_dev_stitch_VL.upload(m_stitchVL);
-		m_dev_stitchPair.upload(m_stitchPair);
-		m_dev_stitchPair_num.upload(m_stitchPair_num);
-
-		m_shouldStitchUpdate = false;
-	}
-
 	void ClothManager::updateSmplBody()
 	{
 		if (m_smplBody == nullptr)
@@ -1060,36 +489,10 @@ namespace ldp
 		updateClothBySmplJoints();
 	}
 
-	void ClothManager::calcLevelSet()
-	{
-		m_bodyMesh->updateBoundingBox();
-		auto bmin = m_bodyMesh->boundingBox[0];
-		auto bmax = m_bodyMesh->boundingBox[1];
-		auto brag = bmax - bmin;
-		bmin -= 0.2f * brag;
-		bmax += 0.2f * brag;
-		const float step = powf(brag[0] * brag[1] * brag[2], 1.f / 3.f) / 256.f;
-		ldp::Int3 res = (bmax - bmin) / step;
-		ldp::Float3 start = bmin;
-		m_bodyLvSet->create(res, start, step);
-		m_bodyLvSet->fromMesh(*m_bodyMesh);
-		auto sz = m_bodyLvSet->size();
-		std::vector<float> transposeLv(m_bodyLvSet->sizeXYZ(), 0.f);
-		for (int z = 0; z < sz[2]; z++)
-		for (int y = 0; y < sz[1]; y++)
-		for (int x = 0; x < sz[0]; x++)
-			transposeLv[x + y*sz[0] + z*sz[0]*sz[1]] = m_bodyLvSet->value(x, y, z)[0];
-		m_dev_phi.fromHost(transposeLv.data(), make_int3(sz[0], sz[1], sz[2]));
-		m_shouldLevelSetUpdate = false;
-	}
-
 	void ClothManager::clearBindClothesToSmplJoints()
 	{
 		m_vertex_smplJointBind.reset((SpMat*)nullptr);
 	}
-
-
-#define USE_BODY_MESH_WEIGHTS_AS_CLOTH_WEIGHTS
 
 	void ClothManager::bindClothesToSmplJoints()
 	{
@@ -1097,17 +500,15 @@ namespace ldp
 		if (m_smplBody == nullptr)
 			return;
 		m_vertex_smplJointBind.reset(new SpMat);
-		m_vertex_smpl_defaultPosition = m_X;
+		m_vertex_smpl_defaultPosition = m_gpuSim->getCurrentVertPositions();
 
-		const int nVerts = (int)m_X.size();
+		const int nVerts = (int)m_gpuSim->getCurrentVertPositions().size();
 		const int nJoints = m_smplBody->numPoses();
 		const static int K = 4;
 
 		auto bR = m_bodyTransform->transform().getRotationPart();
 		auto bT = m_bodyTransform->transform().getTranslationPart();
 
-		// debug, using the weights of nearest vertex
-#ifdef USE_BODY_MESH_WEIGHTS_AS_CLOTH_WEIGHTS
 		typedef kdtree::PointTree<ValueType, 3> KdTree;
 		std::vector<KdTree::Point> kdpoints;
 		for (size_t i = 0; i < m_bodyMesh->vertex_list.size(); i++)
@@ -1119,7 +520,7 @@ namespace ldp
 
 		for (int iVert = 0; iVert < nVerts; iVert++)
 		{
-			KdTree::Point v(m_X[iVert]);
+			KdTree::Point v(m_gpuSim->getCurrentVertPositions()[iVert]);
 			ValueType dist = 0;
 			auto nv = tree.nearestPoint(v, dist);
 
@@ -1136,84 +537,13 @@ namespace ldp
 		m_vertex_smplJointBind->resize(nJoints, nVerts);
 		if (cooSys.size())
 			m_vertex_smplJointBind->setFromTriplets(cooSys.begin(), cooSys.end());
-#else
-		// for each vertex, find the k-nearest-neighbor joints and calculate weights
-		std::vector<Eigen::Triplet<ValueType>> cooSys;
-		std::map<int, ValueType> distMap;
-		std::vector<std::pair<ValueType, int>> distMapVec;
-		ValueType avgMinDist = ValueType(0);
-		for (int iVert = 0; iVert < nVerts; iVert++)
-		{
-			Vec3 v(m_X[iVert]);
-		
-			// compute the distance to each joint **bone**.
-			distMap.clear();
-			for (int iJoint = 0; iJoint < m_smplBody->numPoses(); iJoint++)
-			{
-				int iParent = m_smplBody->getNodeParent(iJoint);
-				if (iParent < 0)
-					continue;
-				Vec3 jb = bR * convert(m_smplBody->getCurNodeCenter(iParent)) + bT;
-				Vec3 je = bR * convert(m_smplBody->getCurNodeCenter(iJoint)) + bT;
-				ValueType val = ldp::pointSegDistance(v, jb, je);
-				auto iter = distMap.find(iParent);
-				if (iter == distMap.end())
-					distMap[iParent] = val;
-				else if (val < iter->second)
-					iter->second = val;
-			} // end for iJoint
-
-			// sort to make nearest first
-			distMapVec.clear();
-			for (auto iter : distMap)
-				distMapVec.push_back(std::make_pair(iter.second, iter.first));
-			std::sort(distMapVec.begin(), distMapVec.end());
-
-			// gather
-			const int nnNum = std::min(K, int(distMapVec.size()));
-			ValueType wsum = ValueType(0);
-			for (int k = 0; k < nnNum; k++)
-			{
-				ValueType dist = distMapVec[k].first;
-				int jointIdx = distMapVec[k].second;
-				cooSys.push_back(Eigen::Triplet<ValueType>(jointIdx, iVert, dist));
-				if (k == 0)
-					avgMinDist += dist;
-			} // end for k
-		} // end for iVert
-
-		avgMinDist /= nVerts;
-		m_vertex_smplJointBind->resize(nJoints, nVerts);
-		if (cooSys.size())
-			m_vertex_smplJointBind->setFromTriplets(cooSys.begin(), cooSys.end());
-
-		// convert distance to weights
-		for (int iVert = 0; iVert < m_vertex_smplJointBind->outerSize(); iVert++)
-		{
-			int jb = m_vertex_smplJointBind->outerIndexPtr()[iVert];
-			int je = m_vertex_smplJointBind->outerIndexPtr()[iVert + 1];
-			ValueType wsum = ValueType(0);
-			for (int j = jb; j < je; j++)
-			{
-				int iJoint = m_vertex_smplJointBind->innerIndexPtr()[j];
-				ValueType dist = m_vertex_smplJointBind->valuePtr()[j];
-				ValueType w = exp(-pow(abs(dist / avgMinDist), 4));
-				m_vertex_smplJointBind->valuePtr()[j] = w;
-				wsum += w;
-			} // end for j
-			for (int j = jb; j < je; j++)
-			{
-				int iJoint = m_vertex_smplJointBind->innerIndexPtr()[j];
-				m_vertex_smplJointBind->valuePtr()[j] /=  wsum;
-			} // end for j
-		} // end for iVert
-#endif
 	}
 
 	void ClothManager::updateClothBySmplJoints()
 	{
 		if (m_smplBody == nullptr || m_vertex_smplJointBind == nullptr)
 			return;
+		std::vector<Float3> mX = m_gpuSim->getCurrentVertPositions();
 		auto bR = m_bodyTransform->transform().getRotationPart();
 		auto bT = m_bodyTransform->transform().getTranslationPart();
 		m_smplBody->calcGlobalTrans();
@@ -1233,13 +563,10 @@ namespace ldp
 				Tsum += convert(m_smplBody->getCurNodeTrans(iJoint)) * w;
 				wsum += w;
 			} // end for j
-			m_X[iVert] = bR * ( Rsum * bR.inv() * (v-bT) + Tsum ) / wsum + bT;
+			mX[iVert] = bR * (Rsum * bR.inv() * (v - bT) + Tsum) / wsum + bT;
 		} // end for iVert
-		splitClothPiecesFromComputedMereged();
-		m_dev_X.upload((const ValueType*)m_X.data(), m_X.size() * 3);
-		m_dev_old_X.upload((const ValueType*)m_X.data(), m_X.size() * 3);
-		m_dev_next_X.upload((const ValueType*)m_X.data(), m_X.size() * 3);
-		m_dev_prev_X.upload((const ValueType*)m_X.data(), m_X.size() * 3);
+		m_gpuSim->setCurrentVertPositions(mX);
+		m_gpuSim->getResultClothPieces();
 	}
 
 	bool ClothManager::setClothColorAsBoneWeights()
@@ -1281,8 +608,6 @@ namespace ldp
 		if (m_shouldMergePieces)
 			m_shouldTopologyUpdate = true;
 		if (m_shouldTopologyUpdate)
-			m_shouldNumericUpdate = true;
-		if (m_shouldNumericUpdate)
 			m_shouldStitchUpdate = true;
 	}
 
@@ -1291,265 +616,43 @@ namespace ldp
 		updateDependency();
 		if (m_shouldMergePieces)
 			mergePieces();
-		m_V.resize(m_X.size());
-		std::fill(m_V.begin(), m_V.end(), ValueType(0));
-		m_fixed.resize(m_X.size());
-		std::fill(m_fixed.begin(), m_fixed.end(), ValueType(0));
 
-		// set up all edges + bending edges
-		m_edgeWithBendEdge.clear();
-		m_allE.clear();
-		BMESH_ALL_EDGES(e, eiter, *m_bmesh)
-		{
-			ldp::Int2 vori(m_bmesh->vofe_first(e)->getIndex(),
-				m_bmesh->vofe_last(e)->getIndex());
-			m_allE.push_back(vori);
-			m_allE.push_back(Int2(vori[1], vori[0]));
-			if (m_bmesh->fofe_count(e) > 2)
-				throw std::exception("error: non-manifold mesh found!");
-			Int2 vbend = -1;
-			int vcnt = 0;
-			BMESH_F_OF_E(f, e, fiter, *m_bmesh)
-			{
-				int vsum = 0;
-				BMESH_V_OF_F(v, f, viter, *m_bmesh)
-				{
-					vsum += v->getIndex();
-				}
-				vsum -= vori[0] + vori[1];
-				vbend[vcnt++] = vsum;
-			} // end for fiter
-			if (vbend[0] >= 0 && vbend[1] >= 0)
-			{
-				m_allE.push_back(vbend);
-				m_allE.push_back(Int2(vbend[1], vbend[0]));
-			}
-			m_edgeWithBendEdge.push_back(Int4(vori[0], vori[1], vbend[0], vbend[1]));
-		} // end for all edges
-
-		// sort edges
-		std::sort(m_allE.begin(), m_allE.end());
-		m_allE.resize(std::unique(m_allE.begin(), m_allE.end()) - m_allE.begin());
-
-		// setup one-ring vertex info
-		size_t eIdx = 0;
-		m_allVV_num.clear();
-		m_allVV.clear();
-		m_allVV_num.reserve(m_X.size()+1);
-		for (size_t i = 0; i<m_X.size(); i++)
-		{
-			m_allVV_num.push_back(m_allVV.size());
-			for (; eIdx<m_allE.size(); eIdx++)
-			{
-				const auto& e = m_allE[eIdx];
-				if (e[0] != i)						
-					break;		// not in the right vertex
-				if (eIdx != 0 && e[1] == e[0])	
-					continue;	// duplicate
-				m_allVV.push_back(e[1]);
-			} 
-		} // end for i
-		m_allVV_num.push_back(m_allVV.size());
-
-		// copy to GPU
-		m_dev_T.upload((const int*)m_T.data(), m_T.size() * 3);
-		m_dev_all_VV.upload(m_allVV);
-		m_dev_all_vv_num.upload(m_allVV_num);
-
-		initCollisionHandler();
+		m_gpuSim->updateTopology();
 
 		// parameter
-		m_simulationParam.spring_k = m_simulationParam.spring_k_raw / m_avgArea;
-		m_curStitchRatio = 1;
 		m_shouldTopologyUpdate = false;
-		m_shouldNumericUpdate = true;
 	}
 
-	void ClothManager::buildNumerical()
+	void ClothManager::buildStitch()
 	{
 		updateDependency();
 		if (m_shouldTopologyUpdate)
 			buildTopology();
-
-		// update per-vertex bending and outgo dist
-		m_V_bending_k_mult.clear();
-		m_V_outgo_dist.clear();
-		for (auto& piece : m_clothPieces)
-		{
-			const auto& mesh = piece->mesh3d();
-			for (const auto& v : mesh.vertex_list)
-			{
-				m_V_bending_k_mult.push_back(piece->param().bending_k_mult);
-				m_V_outgo_dist.push_back(piece->param().piece_outgo_dist);
-			}
-		} // end for iCloth
-		assert(m_V_bending_k_mult.size() == m_V.size());
-
-		// compute matrix related values
-		m_allVL.resize(m_allVV.size());
-		m_allVW.resize(m_allVV.size());
-		m_allVC.resize(m_X.size());
-		std::fill(m_allVL.begin(), m_allVL.end(), ValueType(0));
-		std::fill(m_allVW.begin(), m_allVW.end(), ValueType(0));
-		std::fill(m_allVC.begin(), m_allVC.end(), ValueType(0));
-		for (size_t iv = 0; iv < m_edgeWithBendEdge.size(); iv++)
-		{
-			const auto& v = m_edgeWithBendEdge[iv];
-
-			// first, handle spring length			
-			ValueType l = (m_X[v[0]] - m_X[v[1]]).length();
-			m_allVL[findNeighbor(v[0], v[1])] = l;
-			m_allVL[findNeighbor(v[1], v[0])] = l;
-			m_allVC[v[0]] += m_simulationParam.spring_k;
-			m_allVC[v[1]] += m_simulationParam.spring_k;
-			m_allVW[findNeighbor(v[0], v[1])] -= m_simulationParam.spring_k;
-			m_allVW[findNeighbor(v[1], v[0])] -= m_simulationParam.spring_k;
-
-			// ignore boundary edges for bending
-			if (v[2] == -1 || v[3] == -1)
-				continue;
-
-
-			// second, handle bending weights
-			ValueType c01 = cot_constrained(m_X[v[0]].ptr(), m_X[v[1]].ptr(), m_X[v[2]].ptr());
-			ValueType c02 = cot_constrained(m_X[v[0]].ptr(), m_X[v[1]].ptr(), m_X[v[3]].ptr());
-			ValueType c03 = cot_constrained(m_X[v[1]].ptr(), m_X[v[0]].ptr(), m_X[v[2]].ptr());
-			ValueType c04 = cot_constrained(m_X[v[1]].ptr(), m_X[v[0]].ptr(), m_X[v[3]].ptr());
-			ValueType area0 = sqrt(Area_Squared(m_X[v[0]].ptr(), m_X[v[1]].ptr(), m_X[v[2]].ptr()));
-			ValueType area1 = sqrt(Area_Squared(m_X[v[0]].ptr(), m_X[v[1]].ptr(), m_X[v[3]].ptr()));
-			ValueType weight = areaWeight_constrained(area0, area1, m_avgArea);
-			ValueType k[4];
-			k[0] = c03 + c04;
-			k[1] = c01 + c02;
-			k[2] = -c01 - c03;
-			k[3] = -c02 - c04;
-
-			// gather the per-vertex bending
-			Float4 vbendk;
-			for (int k = 0; k < 4; k++)
-				vbendk[k] = m_V_bending_k_mult[v[k]] * m_simulationParam.bending_k * weight;
-
-			for (int i = 0; i<4; i++)
-			for (int j = 0; j<4; j++)
-			{
-				if (i == j)
-					m_allVC[v[i]] += k[i] * k[j] * sqrt(vbendk[i] * vbendk[j]);
-				else
-					m_allVW[findNeighbor(v[i], v[j])] += k[i] * k[j] * sqrt(vbendk[i] * vbendk[j]);
-			}
-		} // end for all edges
-
-		// copy to GPU
-		m_dev_X.upload((const ValueType*)m_X.data(), m_X.size() * 3);
-		m_dev_old_X.upload((const ValueType*)m_X.data(), m_X.size() * 3);
-		m_dev_next_X.upload((const ValueType*)m_X.data(), m_X.size() * 3);
-		m_dev_prev_X.upload((const ValueType*)m_X.data(), m_X.size() * 3);
-		m_dev_fixed.upload(m_fixed);
-		m_dev_more_fixed.upload(m_fixed);
-		m_dev_V.upload((const ValueType*)m_V.data(), m_V.size() * 3);
-		m_dev_V_outgo_dist.upload(m_V_outgo_dist);
-		m_dev_init_B.create(m_X.size()*3);
-		cudaMemset(m_dev_init_B.ptr(), 0, m_dev_init_B.sizeBytes());
-		m_dev_all_VL.upload(m_allVL);
-		m_dev_all_VW.upload(m_allVW);
-		m_dev_all_VC.upload(m_allVC);
-
-		// parameter
-		m_shouldNumericUpdate = false;
-		m_shouldStitchUpdate = true;
+		m_gpuSim->updateStitch();
+		m_shouldStitchUpdate = false;
 	}
 
-	int ClothManager::findNeighbor(int i, int j)const
+	void ClothManager::calcLevelSet()
 	{
-		for (int index = m_allVV_num[i]; index<m_allVV_num[i + 1]; index++)
-		if (m_allVV[index] == j)	
-			return index;
-		throw std::exception("ERROR: failed to find the neighbor in all_VV.\n");
-		return -1;
-	}
-
-	int ClothManager::findStitchNeighbor(int i, int j)const
-	{
-		for (int index = m_stitchVV_num[i]; index<m_stitchVV_num[i + 1]; index++)
-		if (m_stitchVV[index] == j)
-			return index;
-		throw std::exception("ERROR: failed to find the neighbor in stich_VV.\n");
-		return -1;
-	}
-
-	BMEdge* ClothManager::findEdge(int v1, int v2)
-	{
-		BMVert* bv1 = m_bmeshVerts[v1];
-		BMVert* bv2 = m_bmeshVerts[v2];
-		BMESH_E_OF_V(e, bv1, v1iter, *m_bmesh)
-		{
-			if (m_bmesh->vofe_first(e) == bv2)
-				return e;
-			if (m_bmesh->vofe_last(e) == bv2)
-				return e;
-		}
-		return nullptr;
-	}
-
-	Int3 ClothManager::getLocalFaceVertsId(Int3 globalVertId)const
-	{
-		for (auto map : m_clothVertBegin)
-		{
-			if (globalVertId[0] >= map.second && globalVertId[0] < map.second + map.first->vertex_list.size())
-			{
-				assert(globalVertId[1] >= map.second && globalVertId[1] < map.second + map.first->vertex_list.size());
-				assert(globalVertId[2] >= map.second && globalVertId[2] < map.second + map.first->vertex_list.size());
-				return globalVertId - map.second;
-			}
-		} // end for id
-		return -1;
-	}
-	
-	std::pair<const ObjMesh*, int> ClothManager::getLocalVertsId(int globalVertId)const
-	{
-		for (auto map : m_clothVertBegin)
-		{
-			if (globalVertId >= map.second && globalVertId < map.second + map.first->vertex_list.size())
-			{
-				return std::make_pair(map.first, globalVertId - map.second);
-			}
-		} // end for id
-		return std::make_pair((const ObjMesh*)nullptr, -1);
-	}
-
-	void ClothManager::debug_save_values()
-	{
-#ifdef ENABLE_DEBUG_DUMPING
-		static int a = 0;
-		if (a != 0)
-			return;
-		a++;
-		printf("begin debug saving all variables..\n");
-		g_debug_save_bar.sample_number = m_dev_X.size() + m_dev_next_X.size()
-			+ m_dev_prev_X.size() + m_dev_V.size()
-			+ m_dev_init_B.size() + m_dev_T.size() + m_dev_all_VV.size()
-			+ m_dev_all_VC.size() + m_dev_all_VW.size() + m_dev_all_VL.size()
-			+ m_dev_new_VC.size() + m_dev_all_vv_num.size();// +m_dev_phi.size();
-		g_debug_save_bar.Start();
-		debug_save_gpu_array(m_dev_X, "tmp/X.txt");
-		debug_save_gpu_array(m_dev_next_X, "tmp/next_X.txt");
-		debug_save_gpu_array(m_dev_prev_X, "tmp/prev_X.txt");
-		debug_save_gpu_array(m_dev_fixed, "tmp/fixed.txt");
-		debug_save_gpu_array(m_dev_more_fixed, "tmp/more_fixed.txt");
-		debug_save_gpu_array(m_dev_V, "tmp/V.txt");
-		debug_save_gpu_array(m_dev_init_B, "tmp/init_B.txt");
-		debug_save_gpu_array(m_dev_T, "tmp/fixed_T.txt");
-		debug_save_gpu_array(m_dev_all_VV, "tmp/all_VV.txt");
-		debug_save_gpu_array(m_dev_all_VC, "tmp/all_VC.txt");
-		debug_save_gpu_array(m_dev_all_VW, "tmp/all_VW.txt");
-		debug_save_gpu_array(m_dev_all_VL, "tmp/all_VL.txt");
-		debug_save_gpu_array(m_dev_new_VC, "tmp/new_VC.txt");
-		debug_save_gpu_array(m_dev_all_vv_num, "tmp/all_vv_num.txt");
-		debug_save_gpu_array(m_dev_stitch_VV_num, "tmp/dev_vv_num.txt");
-		debug_save_gpu_array(m_dev_stitch_VV, "tmp/dev_vv.txt");
-		//debug_save_gpu_array(m_dev_phi, "tmp/phi.txt");
-		g_debug_save_bar.End();
-#endif
+		m_bodyMesh->updateBoundingBox();
+		auto bmin = m_bodyMesh->boundingBox[0];
+		auto bmax = m_bodyMesh->boundingBox[1];
+		auto brag = bmax - bmin;
+		bmin -= 0.2f * brag;
+		bmax += 0.2f * brag;
+		const float step = powf(brag[0] * brag[1] * brag[2], 1.f / 3.f) / float(LEVEL_SET_RESOLUTION);
+		ldp::Int3 res = (bmax - bmin) / step;
+		ldp::Float3 start = bmin;
+		m_bodyLvSet->create(res, start, step);
+		m_bodyLvSet->fromMesh(*m_bodyMesh);
+		auto sz = m_bodyLvSet->size();
+		std::vector<float> transposeLv(m_bodyLvSet->sizeXYZ(), 0.f);
+		for (int z = 0; z < sz[2]; z++)
+		for (int y = 0; y < sz[1]; y++)
+		for (int x = 0; x < sz[0]; x++)
+			transposeLv[x + y*sz[0] + z*sz[0] * sz[1]] = m_bodyLvSet->value(x, y, z)[0];
+		m_bodyLvSet_d.fromHost(transposeLv.data(), make_int3(sz[0], sz[1], sz[2]));
+		m_shouldLevelSetUpdate = false;
 	}
 
 	void ClothManager::get2dBound(ldp::Float2& bmin, ldp::Float2& bmax)const

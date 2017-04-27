@@ -234,6 +234,23 @@ namespace ldp
 		return *m_resultClothMesh;
 	}
 
+	void GpuSim::setCurrentVertPositions(const std::vector<Float3>& X)
+	{
+		if (X.size() != m_x_h.size())
+			throw std::exception("GpuSim::setCurrentVertPosition, size not matched!");
+		m_x_h = X;
+		m_x_d.upload(m_x_h);
+	}
+
+	void GpuSim::setInitVertPositions(const std::vector<Float3>& X)
+	{
+		if (X.size() != m_x_h.size())
+			throw std::exception("GpuSim::setCurrentVertPosition, size not matched!");
+		m_x_init_h = X;
+		m_x_init_d.upload(m_x_init_h);
+		m_shouldRestart = true;
+	}
+
 	void GpuSim::getResultClothPieces()
 	{
 		if (m_clothManager == nullptr)
@@ -241,6 +258,7 @@ namespace ldp
 		exportResultClothToObjMesh();
 
 		int vbegin = 0;
+		int fbegin = 0;
 		for (int iCloth = 0; iCloth < m_clothManager->numClothPieces(); iCloth++)
 		{
 			ObjMesh& mesh = m_clothManager->clothPiece(iCloth)->mesh3d();
@@ -250,8 +268,14 @@ namespace ldp
 				mesh.vertex_list[iVert] = m_resultClothMesh->vertex_list[oVert];
 				mesh.vertex_normal_list[iVert] = m_resultClothMesh->vertex_normal_list[oVert];
 			} // end for iVert
+			for (size_t iFace = 0; iFace < mesh.face_normal_list.size(); iFace++)
+			{
+				mesh.face_normal_list[iFace] = m_resultClothMesh->face_normal_list[fbegin + iFace];
+			} // end for iFace
 			mesh.updateBoundingBox();
+			mesh.requireRenderUpdate();
 			vbegin += mesh.vertex_list.size();
+			fbegin += mesh.face_list.size();
 		} // end for iCloth
 	}
 

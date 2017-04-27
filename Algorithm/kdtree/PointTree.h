@@ -18,7 +18,7 @@ namespace ldp
 
 				Point() :idx(-1){}
 				Point(const Point& r) :idx(r.idx), p(r.p){}
-				Point(ldp::ldp_basic_vec<T, N>& v, int i = -1) : p(v), idx(i){}
+				Point(const ldp::ldp_basic_vec<T, N>& v, int i = -1) : p(v), idx(i){}
 			};
 		private:
 			template <typename T>
