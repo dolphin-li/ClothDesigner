@@ -108,6 +108,8 @@
       <AdditionalLibraryDirectories>D:\boost_1_57_0\lib64-msvc-12.0;$(ProjectDir)\algorithm\arcsim\taucs\lib;$(ProjectDir)\algorithm\arcsim\lib;$(ProjectDir)\algorithm\matio;$(ProjectDir)\algorithm\GL;$(ProjectDir)\algorithm\freeImage;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>cublas.lib;cusparse.lib;libmatio.lib;glew32.lib;qtmaind.lib;Qt5Cored.lib;Qt5Guid.lib;Qt5OpenGLd.lib;opengl32.lib;glu32.lib;Qt5Widgetsd.lib;Qt5Xmld.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <IgnoreSpecificDefaultLibraries>
+      </IgnoreSpecificDefaultLibraries>
     </Link>
     <CudaCompile>
       <CodeGeneration>compute_30,sm_30</CodeGeneration>
@@ -146,6 +148,8 @@
       <AdditionalLibraryDirectories>E:\Cloth_Project\code\ClothDesigner\Algorithm\opensubdiv\lib;D:\boost_1_57_0\lib64-msvc-12.0;$(ProjectDir)\algorithm\arcsim\taucs\lib;$(ProjectDir)\algorithm\arcsim\lib;$(ProjectDir)\algorithm\matio;$(ProjectDir)\algorithm\GL;$(ProjectDir)\algorithm\freeImage;$(QTDIR)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>cublas.lib;cusparse.lib;libmatio.lib;glew32.lib;freeglut.lib;qtmain.lib;Qt5Core.lib;Qt5Gui.lib;Qt5OpenGL.lib;opengl32.lib;glu32.lib;Qt5Widgets.lib;Qt5Xml.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <IgnoreSpecificDefaultLibraries>
+      </IgnoreSpecificDefaultLibraries>
     </Link>
     <CudaCompile>
       <CodeGeneration>compute_30,sm_30</CodeGeneration>
