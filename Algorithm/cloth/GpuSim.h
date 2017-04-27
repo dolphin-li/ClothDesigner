@@ -107,7 +107,8 @@ namespace ldp
 		float getFps()const{ return m_fps; }
 		float getStepTime()const{ return m_simParam.dt; }
 		std::string getSolverInfo()const{ return m_solverInfo; }
-		void exportClothToObjMesh(ObjMesh& mesh);
+		ObjMesh& getResultClothMesh();
+		void getResultClothPieces();	//only valid for cloth manager init.
 	protected:
 		// update the whole system based on the current changes
 		void updateSystem();

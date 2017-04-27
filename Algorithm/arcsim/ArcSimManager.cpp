@@ -347,7 +347,7 @@ namespace arcsim
 		convertToObj(m_sim->obstacle_meshes, *m_bodyMesh);
 
 #ifdef LDP_DEBUG_USE_GPUSIM
-		m_gpuSim->exportClothToObjMesh(*m_clothMesh);
+		m_clothMesh->cloneFrom(&m_gpuSim->getResultClothMesh());
 #else
 		convertToObj(m_sim->cloth_meshes, *m_clothMesh);
 #endif

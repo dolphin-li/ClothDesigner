@@ -228,10 +228,31 @@ namespace ldp
 		buildMaterial();
 	}
 
-	void GpuSim::exportClothToObjMesh(ObjMesh& mesh)
+	ObjMesh& GpuSim::getResultClothMesh()
 	{
 		exportResultClothToObjMesh();
-		mesh.cloneFrom(m_resultClothMesh.get());
+		return *m_resultClothMesh;
+	}
+
+	void GpuSim::getResultClothPieces()
+	{
+		if (m_clothManager == nullptr)
+			return;
+		exportResultClothToObjMesh();
+
+		int vbegin = 0;
+		for (int iCloth = 0; iCloth < m_clothManager->numClothPieces(); iCloth++)
+		{
+			ObjMesh& mesh = m_clothManager->clothPiece(iCloth)->mesh3d();
+			for (size_t iVert = 0; iVert < mesh.vertex_list.size(); iVert++)
+			{
+				const int oVert = m_vertMerge_in_out_idxMap_h[vbegin + iVert];
+				mesh.vertex_list[iVert] = m_resultClothMesh->vertex_list[oVert];
+				mesh.vertex_normal_list[iVert] = m_resultClothMesh->vertex_normal_list[oVert];
+			} // end for iVert
+			mesh.updateBoundingBox();
+			vbegin += mesh.vertex_list.size();
+		} // end for iCloth
 	}
 
 	void GpuSim::clear()

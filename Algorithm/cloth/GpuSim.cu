@@ -1030,7 +1030,8 @@ namespace ldp
 		b_values[iVert] += thisb;
 
 		// collect project vec info
-		proj_vw[iVert] += make_Float4(con.project(x), 1.f);
+		if (g != 0.f)
+			proj_vw[iVert] += make_Float4(con.project(x), 1.f);
 	}
 
 	void GpuSim::linearBodyCollision()
@@ -1081,7 +1082,7 @@ namespace ldp
 				return;
 			float inv_mass = 0.f;
 			for (int i = 0; i < 4; i++)
-				inv_mass += sqr(w[i]) / texRead_nodeMaterialData(nIds[i]).area;
+				inv_mass += sqr(w[i]) / texRead_nodeMaterialData(nIds[i]).mass;
 			for (int i = 0; i < 4; i++)
 				dx[i] = -(w[i] / texRead_nodeMaterialData(nIds[i]).mass) / inv_mass*d*n;
 		}
@@ -1332,7 +1333,7 @@ namespace ldp
 			rhs_atomicAdd(b_value, vabcp[k1], -dt*(g + dt*h*v_dot_grad)*w[k1] * N);
 		} // end for k1
 
-		////// handle self collision project out
+		////// handle self collision project out, NOT ready
 		//Float3 proj_dx[4];
 		//con.project(value, N, w, vabcp, proj_dx);
 		//for (int k1 = 0; k1 < 4; k1++)
@@ -1435,7 +1436,7 @@ namespace ldp
 		if (vw[3])
 			v /= vw[3];
 		positions[iVert] += v;
-		velocity[iVert] += v / dt;
+		//velocity[iVert] += v / dt;
 	}
 
 
