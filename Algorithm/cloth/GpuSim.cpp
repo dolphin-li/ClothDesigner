@@ -4,6 +4,7 @@
 #include "Renderable\ObjMesh.h"
 #include "cloth\LevelSet3D.h"
 #include "cloth\clothPiece.h"
+#include "cloth\graph\Graph.h"
 #include "cudpp\thrust_wrapper.h"
 #include "cudpp\CachedDeviceBuffer.h"
 #include "arcsim\adaptiveCloth\dde.hpp"
@@ -135,6 +136,7 @@ namespace ldp
 		initParam();
 		resetDependency(true);
 		initFaceEdgeVertArray();
+		m_curStitchRatio = 1.f;
 		m_solverInfo = "solver intialized from cloth manager";
 	}
 
@@ -147,6 +149,7 @@ namespace ldp
 		initParam();
 		resetDependency(true);
 		initFaceEdgeVertArray();
+		m_curStitchRatio = 1.f;
 		m_solverInfo = "solver intialized from arcsim";
 	}
 
@@ -214,9 +217,24 @@ namespace ldp
 		m_shouldRestart = false;
 	}
 
-	void GpuSim::updateParam(GpuSim::SimParam par)
+	void GpuSim::updateParam()
 	{
-		m_simParam = par;
+		if (m_arcSimManager)
+		{
+			const auto* sim = m_arcSimManager->getSimulator();
+			m_simParam.dt = sim->step_time;
+			m_simParam.gravity = convert(sim->gravity);
+			m_simParam.stitch_ratio = 99999.f; // we donot have stitch in this mode, thus we set max to skip it.
+			m_simParam.enable_selfCollision = true;
+		} // end if arc
+		else if (m_clothManager)
+		{
+			auto par = m_clothManager->getSimulationParam();
+			m_simParam.gravity = par.gravity;
+			m_simParam.strecth_mult = par.spring_k;
+			m_simParam.bend_mult = par.bending_k;
+			m_simParam.enable_selfCollision = par.enable_self_collistion;
+		} // end else clothManager
 	}
 
 	void GpuSim::updateTopology()
@@ -399,10 +417,13 @@ namespace ldp
 #pragma region -- param
 	void GpuSim::SimParam::setDefault()
 	{
-		dt = 1.f / 200.f;
+		dt = 1.f / 150.f;
 		gravity = Float3(0.f, 0.f, -9.8f);
-		pcg_tol = 1e-6f;
+		pcg_tol = 1e-2f;
+		pcg_iter = 400;
 
+		strecth_mult = 1.f;
+		bend_mult = 1.f;
 		handle_stiffness = 1e3f;
 		collision_stiffness = 1e6f;
 		friction_stiffness = 1;
@@ -421,25 +442,16 @@ namespace ldp
 			const auto* sim = m_arcSimManager->getSimulator();
 			m_simParam.dt = sim->step_time;
 			m_simParam.gravity = convert(sim->gravity);
-			m_simParam.pcg_iter = 400;
-			m_simParam.pcg_tol = 1e-2f;
-			m_simParam.handle_stiffness = 400.f;
 			m_simParam.stitch_ratio = 99999.f; // we donot have stitch in this mode, thus we set max to skip it.
-			m_simParam.strecth_mult = 1.f;
-			m_simParam.bend_mult = 1.f;
 			m_simParam.enable_selfCollision = true;
 		} // end if arc
 		else
 		{
 			auto par = m_clothManager->getSimulationParam();
-			m_simParam.dt = par.time_step;
 			m_simParam.gravity = par.gravity;
-			m_simParam.pcg_iter = 400;
-			m_simParam.pcg_tol = 1e-2f;
-			m_simParam.handle_stiffness = par.control_mag;
 			m_simParam.stitch_ratio = 4.f;
-			m_simParam.strecth_mult = 1.f;
-			m_simParam.bend_mult = 1.f;
+			m_simParam.strecth_mult = par.spring_k;
+			m_simParam.bend_mult = par.bending_k;
 			m_simParam.enable_selfCollision = par.enable_self_collistion;
 		} // end else clothManager
 	}
@@ -573,8 +585,10 @@ namespace ldp
 			auto cloth = m_clothManager->clothPiece(iCloth);
 			for (const auto& f : cloth->mesh3d().face_list)
 			{
-				m_faces_idxWorld_h.push_back(ldp::Int4(f.vertex_index[0],
-					f.vertex_index[1], f.vertex_index[2], 0) + node_index_begin);
+				m_faces_idxWorld_h.push_back(ldp::Int4(
+					f.vertex_index[0] + node_index_begin,
+					f.vertex_index[1] + node_index_begin, 
+					f.vertex_index[2] + node_index_begin, iCloth));
 				m_faces_idxTex_h.push_back(ldp::Int4(f.vertex_index[0],
 					f.vertex_index[1], f.vertex_index[2], 0) + tex_index_begin);
 				m_faces_idxMat_h.push_back(mat_index_begin); // material set here..
@@ -1212,18 +1226,23 @@ namespace ldp
 		updateDependency();
 
 		ObjMesh& mesh = *m_resultClothMesh;
+		mesh.clear();
+
 		if (m_arcSimManager || m_curStitchRatio > 0.f)
 		{
+			ObjMesh::obj_material mat;
+			mesh.material_list.push_back(mat);
+
 			m_vertMerge_in_out_idxMap_h.resize(m_x_init_h.size());
 			for (size_t i = 0; i < m_vertMerge_in_out_idxMap_h.size(); i++)
 				m_vertMerge_in_out_idxMap_h[i] = i;
-			mesh.clear();
 			mesh.vertex_list = m_x_h;
 			mesh.vertex_texture_list = m_texCoord_init_h;
 			for (size_t iFace = 0; iFace < m_faces_idxWorld_h.size(); iFace++)
 			{
 				ObjMesh::obj_face f;
 				f.vertex_count = 3;
+				f.material_index = 0;
 				for (int k = 0; k < 3; k++)
 				{
 					f.vertex_index[k] = m_faces_idxWorld_h[iFace][k];
@@ -1237,8 +1256,15 @@ namespace ldp
 		} // end if arcsim
 		else // we merge pices if they have been stiched together
 		{
+			ObjMesh::obj_material mat_default, mat_sel, mat_high;
+			mat_default.diff = Float3(1.f, 1.f, 1.f);
+			mat_sel.diff = Float3(0.8f, 0.6f, 0.0f);
+			mat_high.diff = Float3(0.0f, 0.6f, 0.8f);
+			mesh.material_list.push_back(mat_default);
+			mesh.material_list.push_back(mat_sel);
+			mesh.material_list.push_back(mat_high);
+
 			m_vertMerge_in_out_idxMap_h = m_stitch_vertMerge_idxMap_h;
-			mesh.clear();
 			for (size_t id = 0; id < m_x_h.size(); id++)
 			{
 				if (m_vertMerge_in_out_idxMap_h[id] == id)
@@ -1253,10 +1279,19 @@ namespace ldp
 
 			// write faces
 			for (const auto& t : m_faces_idxWorld_h)
-			{
+			{		
 				ObjMesh::obj_face f;
 				f.vertex_count = 3;
 				f.material_index = -1;
+				const auto piece = m_clothManager->clothPiece(t[3]);
+				if (piece)
+				{
+					f.material_index = std::min(0, (int)mesh.material_list.size() - 1);
+					if (piece->graphPanel().isHighlighted())
+						f.material_index = std::min(2, (int)mesh.material_list.size() - 1);
+					else if (piece->graphPanel().isSelected())
+						f.material_index = std::min(1, (int)mesh.material_list.size() - 1);
+				}
 				for (int k = 0; k < t.size(); k++)
 					f.vertex_index[k] = m_vertMerge_in_out_idxMap_h[t[k]];
 				if (f.vertex_index[0] != f.vertex_index[1] && f.vertex_index[0] != f.vertex_index[2]

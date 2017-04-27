@@ -114,6 +114,7 @@ protected:
 	int m_lightNum = 0;
 	bool m_showShadow = false;
 	bool m_shadowMapInitialized = false;
+	bool m_showSubdiv = false;
 	std::vector<ldp::Float3> m_lightOriginalColors;
 	std::vector<ldp::Float3> m_lightShadeColors;
 	std::vector<ldp::Float3> m_lightDirections;

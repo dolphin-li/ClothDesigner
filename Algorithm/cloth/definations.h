@@ -15,21 +15,8 @@ namespace ldp
 
 	struct SimulationParam
 	{
-		float rho = 0.f;						// for chebshev accereration
-		float under_relax = 0.f;				// jacobi relax param
-		int lap_damping = 0;					// loops of laplacian damping
-		float air_damping = 0.f;				// damping of the air
 		float bending_k = 0.f;					// related to the thickness of the cloth
 		float spring_k = 0.f;					// related to the elasticity of the cloth
-		float spring_k_raw = 0.f;				// spring_k_raw / avgArea = spring_k
-		float stitch_k = 0.f;					// stiffness of stithed vertex, for sewing
-		float stitch_k_raw = 0.f;				// stitch_k_raw / avgArea = stitch_k
-		float stitch_bending_k = 0.f;			// bending of stitch sewings.
-		float stitch_ratio = 0.f;				// for each stitch, the length will -= ratio*time_step each update
-		int out_iter = 0;						// number of iterations
-		int inner_iter = 0;						// number of iterations
-		float control_mag = 0.f;				// for dragging, the stiffness of dragged point
-		float time_step = 0.f;					// simulation time step
 		bool enable_self_collistion = false;
 		ldp::Float3 gravity;
 		SimulationParam();

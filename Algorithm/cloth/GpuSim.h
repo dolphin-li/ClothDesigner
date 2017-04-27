@@ -99,7 +99,7 @@ namespace ldp
 		void init(arcsim::ArcSimManager* arcSimManager);
 		void run_one_step();
 		void restart();
-		void updateParam(GpuSim::SimParam par);
+		void updateParam();
 		void updateTopology();
 		void updateStitch();
 		void updateMaterial();
@@ -186,8 +186,8 @@ namespace ldp
 		///////////////// mesh structure related /////////////////////////////////////////////////////////////
 		std::shared_ptr<BMesh> m_bmesh;
 		std::vector<BMVert*> m_bmVerts;
-		std::vector<ldp::Int4> m_faces_idxWorld_h;				// triangle face with 1 paded int
-		DeviceArray<ldp::Int4> m_faces_idxWorld_d;
+		std::vector<ldp::Int4> m_faces_idxWorld_h;				// the last value is its cloth index
+		DeviceArray<ldp::Int4> m_faces_idxWorld_d;				// the last value is its vert start index
 		std::vector<ldp::Int4> m_faces_idxTex_h;
 		DeviceArray<ldp::Int4> m_faces_idxTex_d;
 		std::vector<int> m_faces_idxMat_h;						// material index of each face

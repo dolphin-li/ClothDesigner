@@ -424,7 +424,9 @@ void ObjMesh::generate_fast_view_tri_face_by_group(int showType)const
 	{
 		const obj_face& f = face_list[i];
 		int iS = 0;
-		if (material_list.size() != 0) iS = f.material_index;
+		if (material_list.size() != 0  && f.material_index >= 0
+			&& f.material_index < material_list.size()) 
+			iS = f.material_index;
 
 		std::vector<ldp::Float3>& verts = _fast_view_verts[iS];
 		std::vector<ldp::Float3>& normals = _fast_view_normals[iS];
@@ -919,7 +921,7 @@ bool ObjMesh::subdiv_loop_to(ObjMesh& result)
 				}
 			}
 		}
-		assert(cnt >= 1);
+		assert(ids.size() >= 1);
 
 		Float3 rv;
 		if (ids.size() != 4)	

@@ -11,6 +11,7 @@
 #include "graph\Graph2Mesh.h"
 #include "PROGRESSING_BAR.h"
 #include "Renderable\ObjMesh.h"
+#include "Renderable\LoopSubdiv.h"
 #include "svgpp\SvgManager.h"
 #include "svgpp\SvgPolyPath.h"
 #include "ldputil.h"
@@ -75,6 +76,7 @@ namespace ldp
 		m_bodyLvSet.reset(new LevelSet3D);
 		m_graph2mesh.reset(new Graph2Mesh);
 		m_gpuSim.reset(new GpuSim);
+		m_fullClothSubdiv.reset(new LoopSubdiv);
 		initSmplDatabase();
 	}
 
@@ -147,6 +149,8 @@ namespace ldp
 		mergePieces();
 		buildTopology();
 		buildStitch();
+		buildSubdiv();
+		updateSubdiv();
 		m_simulationMode = SimulationPause;
 		m_simulationInfo = "simulation initialized";
 	}
@@ -175,6 +179,10 @@ namespace ldp
 		m_gpuSim->run_one_step();
 		m_gpuSim->getResultClothPieces();
 
+		if (m_shouldSubdivBuild)
+			buildSubdiv();
+		updateSubdiv();
+
 		gtime_t tend = gtime_now();
 		m_fps = 1.f / gtime_seconds(tbegin, tend);
 
@@ -202,7 +210,8 @@ namespace ldp
 		auto lastParam = m_simulationParam;
 		m_simulationParam = param;
 		
-		// TODO: param update here?
+		if (m_gpuSim.get())
+			m_gpuSim->updateParam();
 	}
 
 	void ClothManager::setClothDesignParam(ClothDesignParam param)
@@ -350,6 +359,7 @@ namespace ldp
 		m_clothVertBegin.clear();
 		m_vertex_smplJointBind.reset((SpMat*)nullptr);
 		m_vertex_smpl_defaultPosition.clear();
+		m_fullClothSubdiv->clear();
 
 		clearSewings();
 		auto tmp = m_clothPieces;
@@ -360,7 +370,8 @@ namespace ldp
 
 	void ClothManager::addClothPiece(std::shared_ptr<ClothPiece> piece) 
 	{ 
-		m_clothPieces.push_back(piece); 
+		m_clothPieces.push_back(piece);
+		m_piecesSubdiv.push_back(std::shared_ptr<LoopSubdiv>(new LoopSubdiv));
 		m_shouldTriangulate = true;
 	}
 
@@ -372,6 +383,7 @@ namespace ldp
 			if (panel.getId() != graphPanelId)
 				continue;
 			m_clothPieces.erase(iter);
+			m_piecesSubdiv.erase(m_piecesSubdiv.begin() + (iter - m_clothPieces.begin()));
 			m_shouldTriangulate = true;
 			break;
 		} // end for iter
@@ -623,6 +635,8 @@ namespace ldp
 			m_shouldTopologyUpdate = true;
 		if (m_shouldTopologyUpdate)
 			m_shouldStitchUpdate = true;
+		if (m_shouldStitchUpdate)
+			m_shouldSubdivBuild = true;
 	}
 
 	void ClothManager::buildTopology()
@@ -669,6 +683,49 @@ namespace ldp
 		m_shouldLevelSetUpdate = false;
 	}
 
+	void ClothManager::buildSubdiv()
+	{
+		updateDependency();
+		if (m_shouldStitchUpdate)
+			buildStitch();
+		m_piecesSubdiv.resize(m_clothPieces.size());
+		for (size_t iPiece = 0; iPiece < m_piecesSubdiv.size(); iPiece++)
+		{
+			auto& mesh = m_clothPieces[iPiece]->mesh3d();
+			auto& subPiece = m_piecesSubdiv[iPiece];
+			if (subPiece.get() == nullptr)
+				subPiece.reset(new LoopSubdiv);
+			subPiece->init(&mesh);
+		} // end for ipiece
+
+		m_fullClothSubdiv->init(&m_gpuSim->getResultClothMesh());
+
+		m_shouldSubdivBuild = false;
+	}
+
+	void ClothManager::updateSubdiv()
+	{
+		if (m_shouldSubdivBuild)
+			buildSubdiv();
+
+#pragma omp parallel for num_threads(2)  
+		for (int thread = 0; thread < 2; thread++)
+		{
+			if (thread == 0)
+			{
+				for (size_t iPiece = 0; iPiece < m_piecesSubdiv.size(); iPiece++)
+				{
+					auto& subPiece = m_piecesSubdiv[iPiece];
+					subPiece->run();
+				} // end for ipiece
+			}
+			if (thread == 1)
+			{
+				m_fullClothSubdiv->run();
+			}
+		} // end for thread
+	}
+
 	void ClothManager::get2dBound(ldp::Float2& bmin, ldp::Float2& bmax)const
 	{
 		bmin = FLT_MAX;
@@ -692,6 +749,26 @@ namespace ldp
 			}
 		}
 		return;
+	}
+
+	const ObjMesh& ClothManager::currentPieceMeshSubdiv(int i)const
+	{
+		return *m_piecesSubdiv.at(i)->getResultMesh();
+	}
+
+	ObjMesh& ClothManager::currentPieceMeshSubdiv(int i)
+	{
+		return *m_piecesSubdiv.at(i)->getResultMesh();
+	}
+
+	const ObjMesh& ClothManager::currentFullMeshSubdiv()const
+	{
+		return *m_fullClothSubdiv->getResultMesh();
+	}
+
+	ObjMesh& ClothManager::currentFullMeshSubdiv()
+	{
+		return *m_fullClothSubdiv->getResultMesh();
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////
@@ -1457,55 +1534,15 @@ namespace ldp
 			{
 				auto para = getSimulationParam();
 				TiXmlElement* child = pele->FirstChildElement();
-				child->Attribute("outer_iter", &para.out_iter);
-				child = child->NextSiblingElement();
+				double tmp_double = 0;
+				int tmp_int = 0;
 
-				child->Attribute("inner_iter", &para.inner_iter);
-				child = child->NextSiblingElement();
-
-				int tmp_int;
-				double tmp_double;
-				child->Attribute("time_step", &tmp_double);
-				para.time_step = 1.0f / tmp_double;
-				child = child->NextSiblingElement();
-
-				child->Attribute("lap_damp_iter", &para.lap_damping);
-				child = child->NextSiblingElement();
-				
-				child->Attribute("air_damp", &tmp_double);
-				para.air_damping = tmp_double;
-				child = child->NextSiblingElement();
-
-				child->Attribute("control_stiff", &tmp_double);
-				para.control_mag = tmp_double;
-				child = child->NextSiblingElement();
-
-				child->Attribute("rho", &tmp_double);
-				para.rho = tmp_double;
-				child = child->NextSiblingElement();
-				
-				child->Attribute("under_relax", &tmp_double);
-				para.under_relax = tmp_double;
-				child = child->NextSiblingElement();
-				
 				child->Attribute("spring_stiff", &tmp_double);
-				para.spring_k_raw = tmp_double;
+				para.spring_k = tmp_double;
 				child = child->NextSiblingElement();
 
 				child->Attribute("bend_stiff", &tmp_double);
 				para.bending_k = tmp_double;
-				child = child->NextSiblingElement();
-
-				child->Attribute("stitch_stiff", &tmp_double);
-				para.stitch_k_raw = tmp_double;
-				child = child->NextSiblingElement();
-
-				child->Attribute("stitch_bend", &tmp_double);
-				para.stitch_bending_k = tmp_double;
-				child = child->NextSiblingElement();
-
-				child->Attribute("stitch_speed", &tmp_double);
-				para.stitch_ratio = tmp_double;
 				child = child->NextSiblingElement();
 
 				child->Attribute("gravityX", &tmp_double);
@@ -1635,43 +1672,11 @@ namespace ldp
 		TiXmlElement* ele = new TiXmlElement("para");
 		pele->LinkEndChild(ele);
 		auto para = getSimulationParam();
-		ele->SetAttribute("outer_iter",para.out_iter);
-		ele = new TiXmlElement("para");
-		pele->LinkEndChild(ele);
-		ele->SetAttribute("inner_iter", para.inner_iter);
-		ele = new TiXmlElement("para");
-		pele->LinkEndChild(ele);
-		ele->SetAttribute("time_step", QString::number(1.0 / para.time_step).toStdString().c_str());
-		ele = new TiXmlElement("para");
-		pele->LinkEndChild(ele);
-		ele->SetAttribute("lap_damp_iter", QString::number(para.lap_damping).toStdString().c_str());
-		ele = new TiXmlElement("para");
-		pele->LinkEndChild(ele);
-		ele->SetAttribute("air_damp", QString::number(para.air_damping).toStdString().c_str());
-		ele = new TiXmlElement("para");
-		pele->LinkEndChild(ele);
-		ele->SetAttribute("control_stiff ", QString::number(para.control_mag).toStdString().c_str());
-		ele = new TiXmlElement("para");
-		pele->LinkEndChild(ele);
-		ele->SetAttribute("rho", QString::number(para.rho).toStdString().c_str());
-		ele = new TiXmlElement("para");
-		pele->LinkEndChild(ele);
-		ele->SetAttribute("under_relax", QString::number(para.under_relax).toStdString().c_str());
-		ele = new TiXmlElement("para");
-		pele->LinkEndChild(ele);
-		ele->SetAttribute("spring_stiff", QString::number(para.spring_k_raw).toStdString().c_str());
+
+		ele->SetAttribute("spring_stiff", QString::number(para.spring_k).toStdString().c_str());
 		ele = new TiXmlElement("para");
 		pele->LinkEndChild(ele);
 		ele->SetAttribute("bend_stiff", QString::number(para.bending_k).toStdString().c_str());
-		ele = new TiXmlElement("para");
-		pele->LinkEndChild(ele);
-		ele->SetAttribute("stitch_stiff", QString::number(para.stitch_k_raw).toStdString().c_str());
-		ele = new TiXmlElement("para");
-		pele->LinkEndChild(ele);
-		ele->SetAttribute("stitch_bend", QString::number(para.stitch_bending_k).toStdString().c_str());
-		ele = new TiXmlElement("para");
-		pele->LinkEndChild(ele);
-		ele->SetAttribute("stitch_speed", QString::number(para.stitch_ratio).toStdString().c_str());
 		ele = new TiXmlElement("para");
 		pele->LinkEndChild(ele);
 		ele->SetAttribute("gravityX", QString::number(para.gravity[0]).toStdString().c_str());

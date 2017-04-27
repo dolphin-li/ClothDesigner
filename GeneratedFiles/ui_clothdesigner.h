@@ -25,7 +25,6 @@
 #include <QtWidgets/QMenuBar>
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QSpacerItem>
-#include <QtWidgets/QSpinBox>
 #include <QtWidgets/QStatusBar>
 #include <QtWidgets/QTabWidget>
 #include <QtWidgets/QToolBar>
@@ -67,36 +66,14 @@ public:
     QGroupBox *groupBox;
     QGridLayout *gridLayout;
     QDoubleSpinBox *sbSparamSpringStiff;
-    QSpinBox *sbSparamLapDampIter;
-    QDoubleSpinBox *sbSparamStitchStiff;
-    QDoubleSpinBox *sbSparamUnderRelax;
-    QSpinBox *sbSparamTimeStepInv;
-    QLabel *label_4;
-    QDoubleSpinBox *sbSparamStitchBend;
-    QDoubleSpinBox *sbSparamControlStiff;
-    QDoubleSpinBox *sbSparamBendStiff;
-    QLabel *label_11;
-    QDoubleSpinBox *sbSparamStitchSpeed;
-    QDoubleSpinBox *sbSparamGravityZ;
-    QLabel *label;
-    QLabel *label_2;
-    QLabel *label_5;
-    QLabel *label_6;
-    QLabel *label_10;
-    QLabel *label_8;
-    QLabel *label_12;
-    QSpinBox *sbSparamInnerIter;
-    QDoubleSpinBox *sbSparamGravityY;
-    QDoubleSpinBox *sbSparamRho;
-    QLabel *label_3;
-    QDoubleSpinBox *sbSparamAirDamp;
-    QLabel *label_13;
-    QLabel *label_15;
-    QLabel *label_7;
-    QLabel *label_9;
     QDoubleSpinBox *sbSparamGravityX;
-    QSpinBox *sbSparamOuterIter;
+    QLabel *label_10;
+    QDoubleSpinBox *sbSparamGravityY;
+    QLabel *label_11;
+    QDoubleSpinBox *sbSparamBendStiff;
     QCheckBox *cbSelfCollision;
+    QDoubleSpinBox *sbSparamGravityZ;
+    QLabel *label_9;
     QSpacerItem *verticalSpacer;
     QWidget *tabDesign;
     QGridLayout *gridLayout_3;
@@ -210,177 +187,54 @@ public:
         sbSparamSpringStiff->setObjectName(QStringLiteral("sbSparamSpringStiff"));
         sbSparamSpringStiff->setMaximum(1e+09);
 
-        gridLayout->addWidget(sbSparamSpringStiff, 8, 2, 1, 2);
-
-        sbSparamLapDampIter = new QSpinBox(groupBox);
-        sbSparamLapDampIter->setObjectName(QStringLiteral("sbSparamLapDampIter"));
-
-        gridLayout->addWidget(sbSparamLapDampIter, 3, 2, 1, 2);
-
-        sbSparamStitchStiff = new QDoubleSpinBox(groupBox);
-        sbSparamStitchStiff->setObjectName(QStringLiteral("sbSparamStitchStiff"));
-        sbSparamStitchStiff->setMaximum(1e+08);
-
-        gridLayout->addWidget(sbSparamStitchStiff, 10, 2, 1, 2);
-
-        sbSparamUnderRelax = new QDoubleSpinBox(groupBox);
-        sbSparamUnderRelax->setObjectName(QStringLiteral("sbSparamUnderRelax"));
-        sbSparamUnderRelax->setDecimals(5);
-        sbSparamUnderRelax->setMaximum(1);
-
-        gridLayout->addWidget(sbSparamUnderRelax, 7, 2, 1, 2);
-
-        sbSparamTimeStepInv = new QSpinBox(groupBox);
-        sbSparamTimeStepInv->setObjectName(QStringLiteral("sbSparamTimeStepInv"));
-        sbSparamTimeStepInv->setMaximum(9999);
-
-        gridLayout->addWidget(sbSparamTimeStepInv, 2, 2, 1, 2);
-
-        label_4 = new QLabel(groupBox);
-        label_4->setObjectName(QStringLiteral("label_4"));
-
-        gridLayout->addWidget(label_4, 3, 0, 1, 2);
-
-        sbSparamStitchBend = new QDoubleSpinBox(groupBox);
-        sbSparamStitchBend->setObjectName(QStringLiteral("sbSparamStitchBend"));
-        sbSparamStitchBend->setMaximum(1e+08);
-
-        gridLayout->addWidget(sbSparamStitchBend, 11, 2, 1, 2);
-
-        sbSparamControlStiff = new QDoubleSpinBox(groupBox);
-        sbSparamControlStiff->setObjectName(QStringLiteral("sbSparamControlStiff"));
-        sbSparamControlStiff->setMaximum(1e+09);
-
-        gridLayout->addWidget(sbSparamControlStiff, 5, 2, 1, 2);
-
-        sbSparamBendStiff = new QDoubleSpinBox(groupBox);
-        sbSparamBendStiff->setObjectName(QStringLiteral("sbSparamBendStiff"));
-        sbSparamBendStiff->setMaximum(9999);
-
-        gridLayout->addWidget(sbSparamBendStiff, 9, 2, 1, 2);
-
-        label_11 = new QLabel(groupBox);
-        label_11->setObjectName(QStringLiteral("label_11"));
-
-        gridLayout->addWidget(label_11, 14, 0, 1, 1);
-
-        sbSparamStitchSpeed = new QDoubleSpinBox(groupBox);
-        sbSparamStitchSpeed->setObjectName(QStringLiteral("sbSparamStitchSpeed"));
-        sbSparamStitchSpeed->setDecimals(1);
-        sbSparamStitchSpeed->setMaximum(100);
-
-        gridLayout->addWidget(sbSparamStitchSpeed, 12, 2, 1, 2);
-
-        sbSparamGravityZ = new QDoubleSpinBox(groupBox);
-        sbSparamGravityZ->setObjectName(QStringLiteral("sbSparamGravityZ"));
-        sbSparamGravityZ->setDecimals(1);
-        sbSparamGravityZ->setMinimum(-100);
-
-        gridLayout->addWidget(sbSparamGravityZ, 14, 3, 1, 1);
-
-        label = new QLabel(groupBox);
-        label->setObjectName(QStringLiteral("label"));
-
-        gridLayout->addWidget(label, 0, 0, 1, 2);
-
-        label_2 = new QLabel(groupBox);
-        label_2->setObjectName(QStringLiteral("label_2"));
-
-        gridLayout->addWidget(label_2, 1, 0, 1, 2);
-
-        label_5 = new QLabel(groupBox);
-        label_5->setObjectName(QStringLiteral("label_5"));
-
-        gridLayout->addWidget(label_5, 4, 0, 1, 2);
-
-        label_6 = new QLabel(groupBox);
-        label_6->setObjectName(QStringLiteral("label_6"));
-
-        gridLayout->addWidget(label_6, 5, 0, 1, 2);
-
-        label_10 = new QLabel(groupBox);
-        label_10->setObjectName(QStringLiteral("label_10"));
-
-        gridLayout->addWidget(label_10, 9, 0, 1, 2);
-
-        label_8 = new QLabel(groupBox);
-        label_8->setObjectName(QStringLiteral("label_8"));
-
-        gridLayout->addWidget(label_8, 7, 0, 1, 2);
-
-        label_12 = new QLabel(groupBox);
-        label_12->setObjectName(QStringLiteral("label_12"));
-
-        gridLayout->addWidget(label_12, 10, 0, 1, 2);
-
-        sbSparamInnerIter = new QSpinBox(groupBox);
-        sbSparamInnerIter->setObjectName(QStringLiteral("sbSparamInnerIter"));
-        sbSparamInnerIter->setMaximum(9999);
-
-        gridLayout->addWidget(sbSparamInnerIter, 1, 2, 1, 2);
-
-        sbSparamGravityY = new QDoubleSpinBox(groupBox);
-        sbSparamGravityY->setObjectName(QStringLiteral("sbSparamGravityY"));
-        sbSparamGravityY->setDecimals(1);
-        sbSparamGravityY->setMinimum(-100);
-
-        gridLayout->addWidget(sbSparamGravityY, 14, 2, 1, 1);
-
-        sbSparamRho = new QDoubleSpinBox(groupBox);
-        sbSparamRho->setObjectName(QStringLiteral("sbSparamRho"));
-        sbSparamRho->setDecimals(5);
-        sbSparamRho->setMaximum(1);
-
-        gridLayout->addWidget(sbSparamRho, 6, 2, 1, 2);
-
-        label_3 = new QLabel(groupBox);
-        label_3->setObjectName(QStringLiteral("label_3"));
-
-        gridLayout->addWidget(label_3, 2, 0, 1, 2);
-
-        sbSparamAirDamp = new QDoubleSpinBox(groupBox);
-        sbSparamAirDamp->setObjectName(QStringLiteral("sbSparamAirDamp"));
-        sbSparamAirDamp->setDecimals(5);
-        sbSparamAirDamp->setMaximum(1);
-
-        gridLayout->addWidget(sbSparamAirDamp, 4, 2, 1, 2);
-
-        label_13 = new QLabel(groupBox);
-        label_13->setObjectName(QStringLiteral("label_13"));
-
-        gridLayout->addWidget(label_13, 12, 0, 1, 2);
-
-        label_15 = new QLabel(groupBox);
-        label_15->setObjectName(QStringLiteral("label_15"));
-
-        gridLayout->addWidget(label_15, 11, 0, 1, 2);
-
-        label_7 = new QLabel(groupBox);
-        label_7->setObjectName(QStringLiteral("label_7"));
-
-        gridLayout->addWidget(label_7, 6, 0, 1, 2);
-
-        label_9 = new QLabel(groupBox);
-        label_9->setObjectName(QStringLiteral("label_9"));
-
-        gridLayout->addWidget(label_9, 8, 0, 1, 2);
+        gridLayout->addWidget(sbSparamSpringStiff, 0, 2, 1, 2);
 
         sbSparamGravityX = new QDoubleSpinBox(groupBox);
         sbSparamGravityX->setObjectName(QStringLiteral("sbSparamGravityX"));
         sbSparamGravityX->setDecimals(1);
         sbSparamGravityX->setMinimum(-100);
 
-        gridLayout->addWidget(sbSparamGravityX, 14, 1, 1, 1);
+        gridLayout->addWidget(sbSparamGravityX, 3, 1, 1, 1);
 
-        sbSparamOuterIter = new QSpinBox(groupBox);
-        sbSparamOuterIter->setObjectName(QStringLiteral("sbSparamOuterIter"));
+        label_10 = new QLabel(groupBox);
+        label_10->setObjectName(QStringLiteral("label_10"));
 
-        gridLayout->addWidget(sbSparamOuterIter, 0, 2, 1, 2);
+        gridLayout->addWidget(label_10, 1, 0, 1, 2);
+
+        sbSparamGravityY = new QDoubleSpinBox(groupBox);
+        sbSparamGravityY->setObjectName(QStringLiteral("sbSparamGravityY"));
+        sbSparamGravityY->setDecimals(1);
+        sbSparamGravityY->setMinimum(-100);
+
+        gridLayout->addWidget(sbSparamGravityY, 3, 2, 1, 1);
+
+        label_11 = new QLabel(groupBox);
+        label_11->setObjectName(QStringLiteral("label_11"));
+
+        gridLayout->addWidget(label_11, 3, 0, 1, 1);
+
+        sbSparamBendStiff = new QDoubleSpinBox(groupBox);
+        sbSparamBendStiff->setObjectName(QStringLiteral("sbSparamBendStiff"));
+        sbSparamBendStiff->setMaximum(9999);
+
+        gridLayout->addWidget(sbSparamBendStiff, 1, 2, 1, 2);
 
         cbSelfCollision = new QCheckBox(groupBox);
         cbSelfCollision->setObjectName(QStringLiteral("cbSelfCollision"));
 
-        gridLayout->addWidget(cbSelfCollision, 15, 0, 1, 2);
+        gridLayout->addWidget(cbSelfCollision, 4, 0, 1, 2);
+
+        sbSparamGravityZ = new QDoubleSpinBox(groupBox);
+        sbSparamGravityZ->setObjectName(QStringLiteral("sbSparamGravityZ"));
+        sbSparamGravityZ->setDecimals(1);
+        sbSparamGravityZ->setMinimum(-100);
+
+        gridLayout->addWidget(sbSparamGravityZ, 3, 3, 1, 1);
+
+        label_9 = new QLabel(groupBox);
+        label_9->setObjectName(QStringLiteral("label_9"));
+
+        gridLayout->addWidget(label_9, 0, 0, 1, 2);
 
 
         gridLayout_5->addWidget(groupBox, 1, 0, 1, 1);
@@ -588,21 +442,10 @@ public:
         menuHistory->setTitle(QApplication::translate("ClothDesignerClass", "history", 0));
         menuWindows->setTitle(QApplication::translate("ClothDesignerClass", "windows", 0));
         groupBox->setTitle(QApplication::translate("ClothDesignerClass", "Simulation Param", 0));
-        label_4->setText(QApplication::translate("ClothDesignerClass", "lap damp iter", 0));
-        label_11->setText(QApplication::translate("ClothDesignerClass", "gravity", 0));
-        label->setText(QApplication::translate("ClothDesignerClass", "outer iter", 0));
-        label_2->setText(QApplication::translate("ClothDesignerClass", "inner iter", 0));
-        label_5->setText(QApplication::translate("ClothDesignerClass", "air damp", 0));
-        label_6->setText(QApplication::translate("ClothDesignerClass", "control stiff", 0));
         label_10->setText(QApplication::translate("ClothDesignerClass", "bend stiff", 0));
-        label_8->setText(QApplication::translate("ClothDesignerClass", "under relax", 0));
-        label_12->setText(QApplication::translate("ClothDesignerClass", "stitch stiff", 0));
-        label_3->setText(QApplication::translate("ClothDesignerClass", "time step inv", 0));
-        label_13->setText(QApplication::translate("ClothDesignerClass", "stitch speed", 0));
-        label_15->setText(QApplication::translate("ClothDesignerClass", "stitch bend", 0));
-        label_7->setText(QApplication::translate("ClothDesignerClass", "rho", 0));
-        label_9->setText(QApplication::translate("ClothDesignerClass", "spring stiff", 0));
+        label_11->setText(QApplication::translate("ClothDesignerClass", "gravity", 0));
         cbSelfCollision->setText(QApplication::translate("ClothDesignerClass", "self collision", 0));
+        label_9->setText(QApplication::translate("ClothDesignerClass", "spring stiff", 0));
         tabWidget->setTabText(tabWidget->indexOf(tabSimulation), QApplication::translate("ClothDesignerClass", "Simulation", 0));
         label_14->setText(QApplication::translate("ClothDesignerClass", "triangle size (mm)", 0));
         groupBox_2->setTitle(QApplication::translate("ClothDesignerClass", "Piece Param", 0));

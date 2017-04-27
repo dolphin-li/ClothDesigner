@@ -36,21 +36,8 @@ namespace ldp
 
 	void SimulationParam::setDefaultParam()
 	{
-		rho = 0.996;
-		under_relax = 0.5;
-		lap_damping = 4;
-		air_damping = 0.999;
-		bending_k = 10;
-		spring_k_raw = 1000;
-		spring_k = 0;//will be updated after built topology
-		stitch_k_raw = 90000;
-		stitch_k = 0;//will be updated after built topology
-		stitch_bending_k = 10;
-		out_iter = 8;
-		inner_iter = 40;
-		time_step = 1.0 / 240.0;
-		stitch_ratio = 5;
-		control_mag = 400;
+		bending_k = 1;
+		spring_k = 1;
 		gravity = ldp::Float3(0, 0, -9.8);
 	}
 

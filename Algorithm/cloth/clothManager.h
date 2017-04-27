@@ -21,6 +21,7 @@ namespace svg
 class SmplManager;
 namespace ldp
 {
+	class LoopSubdiv;
 	class GpuSim;
 	class GraphsSewing;
 	class GraphPoint;
@@ -127,6 +128,10 @@ namespace ldp
 		int numClothPieces()const { return (int)m_clothPieces.size(); }
 		const ClothPiece* clothPiece(int i)const { return m_clothPieces.at(i).get(); }
 		ClothPiece* clothPiece(int i) { return m_clothPieces.at(i).get(); }
+		const ObjMesh& currentPieceMeshSubdiv(int i)const;
+		ObjMesh& currentPieceMeshSubdiv(int i);
+		const ObjMesh& currentFullMeshSubdiv()const;
+		ObjMesh& currentFullMeshSubdiv();
 		std::shared_ptr<ClothPiece> clothPieceShared(int i) { return m_clothPieces.at(i); }
 		void clearClothPieces();
 		void addClothPiece(std::shared_ptr<ClothPiece> piece);
@@ -165,10 +170,14 @@ namespace ldp
 		void mergePieces();
 		void buildTopology();
 		void buildStitch();
+		void buildSubdiv();
+		void updateSubdiv();
 	private:
 		std::string m_simulationInfo;
 		std::vector<std::shared_ptr<GraphsSewing>> m_graphSewings;
 		std::vector<std::shared_ptr<ClothPiece>> m_clothPieces;
+		std::shared_ptr<LoopSubdiv> m_fullClothSubdiv;
+		std::vector<std::shared_ptr<LoopSubdiv>> m_piecesSubdiv;
 		std::shared_ptr<ObjMesh> m_bodyMesh, m_bodyMeshInit;
 		static std::shared_ptr<SmplManager> m_smplMale, m_smplFemale;
 		SmplManager* m_smplBody = nullptr;
@@ -184,6 +193,7 @@ namespace ldp
 		bool m_shouldTopologyUpdate = false;
 		bool m_shouldStitchUpdate = false;
 		bool m_shouldLevelSetUpdate = false;
+		bool m_shouldSubdivBuild = false;
 		DragInfoInternal m_curDragInfo;
 		std::shared_ptr<Graph2Mesh> m_graph2mesh;		// 2D-3D triangulation related
 		std::map<const ObjMesh*, int> m_clothVertBegin;	// index begin of each cloth piece

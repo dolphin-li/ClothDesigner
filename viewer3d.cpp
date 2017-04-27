@@ -227,7 +227,11 @@ void Viewer3d::paintGL()
 		if (m_clothManager)
 		{
 			m_clothManager->bodyMesh()->render(showType);
-			for (int i = 0; i < m_clothManager->numClothPieces(); i++)
+			if (m_showSubdiv)
+			{
+				m_clothManager->currentFullMeshSubdiv().render(showType);
+			} // end if show subdiv
+			else for (int i = 0; i < m_clothManager->numClothPieces(); i++)
 			{
 				const auto& piece = m_clothManager->clothPiece(i);
 				auto& pieceMesh = piece->mesh3d();
@@ -241,7 +245,7 @@ void Viewer3d::paintGL()
 						pieceMesh.material_list[0].diff = ldp::Float3(1, 1, 1);
 				}
 				pieceMesh.render(showType);
-			}
+			} // end not show subdiv
 			if (isSmplMode() && m_clothManager->bodySmplManager())
 			{
 				auto T = m_clothManager->getBodyMeshTransform().transform();
@@ -435,6 +439,9 @@ void Viewer3d::keyPressEvent(QKeyEvent*ev)
 	case Qt::Key_L:
 		if (m_shadowMapInitialized)
 			m_showShadow = !m_showShadow;
+		break;
+	case Qt::Key::Key_Shift:
+		m_showSubdiv = !m_showSubdiv;
 		break;
 	}
 	m_currentEventHandle->keyPressEvent(ev);
@@ -745,7 +752,9 @@ void Viewer3d::renderWithShadowMap()
 		// collect meshes
 		std::vector<ObjMesh*> meshes;
 		meshes.push_back(m_clothManager->bodyMesh());
-		for (int i = 0; i < m_clothManager->numClothPieces(); i++)
+		if (m_showSubdiv)
+			meshes.push_back(&m_clothManager->currentFullMeshSubdiv());
+		else for (int i = 0; i < m_clothManager->numClothPieces(); i++)
 		{
 			const auto& piece = m_clothManager->clothPiece(i);
 			if (piece->mesh3d().material_list.size())

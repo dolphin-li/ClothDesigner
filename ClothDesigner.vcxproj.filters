@@ -943,6 +943,9 @@
     <ClCompile Include="Algorithm\cudpp\GpuKdTree.cpp">
       <Filter>algorithm\cudpp</Filter>
     </ClCompile>
+    <ClCompile Include="Algorithm\Renderable\LoopSubdiv.cpp">
+      <Filter>algorithm\renderable</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">
@@ -1585,6 +1588,9 @@
     </ClInclude>
     <ClInclude Include="Algorithm\cudpp\cached_allocator.h">
       <Filter>algorithm\cudpp</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\Renderable\LoopSubdiv.h">
+      <Filter>algorithm\renderable</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

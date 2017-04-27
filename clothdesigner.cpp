@@ -773,19 +773,8 @@ void ClothDesigner::updateUiByParam()
 	{
 		//// simulation param
 		auto param = g_dataholder.m_clothManager->getSimulationParam();
-		ui.sbSparamAirDamp->setValue(param.air_damping);
 		ui.sbSparamBendStiff->setValue(param.bending_k);
-		ui.sbSparamControlStiff->setValue(param.control_mag);
-		ui.sbSparamInnerIter->setValue(param.inner_iter);
-		ui.sbSparamLapDampIter->setValue(param.lap_damping);
-		ui.sbSparamOuterIter->setValue(param.out_iter);
-		ui.sbSparamRho->setValue(param.rho);
-		ui.sbSparamSpringStiff->setValue(param.spring_k_raw);
-		ui.sbSparamStitchStiff->setValue(param.stitch_k_raw);
-		ui.sbSparamStitchSpeed->setValue(param.stitch_ratio);
-		ui.sbSparamStitchBend->setValue(param.stitch_bending_k);
-		ui.sbSparamTimeStepInv->setValue(1./param.time_step);
-		ui.sbSparamUnderRelax->setValue(param.under_relax);
+		ui.sbSparamSpringStiff->setValue(param.spring_k);
 		ui.sbSparamGravityX->setValue(param.gravity[0]);
 		ui.sbSparamGravityY->setValue(param.gravity[1]);
 		ui.sbSparamGravityZ->setValue(param.gravity[2]);
@@ -844,140 +833,12 @@ void ClothDesigner::on_pbResetSimulation_clicked()
 	}
 }
 
-void ClothDesigner::on_sbSparamOuterIter_valueChanged(int v)
-{
-	try
-	{
-		auto param = g_dataholder.m_clothManager->getSimulationParam();
-		param.out_iter = v;
-		g_dataholder.m_clothManager->setSimulationParam(param);
-	} catch (std::exception e)
-	{
-		std::cout << e.what() << std::endl;
-	} catch (...)
-	{
-		std::cout << "unknown error" << std::endl;
-	}
-}
-
-void ClothDesigner::on_sbSparamInnerIter_valueChanged(int v)
-{
-	try
-	{
-		auto param = g_dataholder.m_clothManager->getSimulationParam();
-		param.inner_iter = v;
-		g_dataholder.m_clothManager->setSimulationParam(param);
-	} catch (std::exception e)
-	{
-		std::cout << e.what() << std::endl;
-	} catch (...)
-	{
-		std::cout << "unknown error" << std::endl;
-	}
-}
-
-void ClothDesigner::on_sbSparamTimeStepInv_valueChanged(int v)
-{
-	try
-	{
-		auto param = g_dataholder.m_clothManager->getSimulationParam();
-		param.time_step = 1./v;
-		g_dataholder.m_clothManager->setSimulationParam(param);
-	} catch (std::exception e)
-	{
-		std::cout << e.what() << std::endl;
-	} catch (...)
-	{
-		std::cout << "unknown error" << std::endl;
-	}
-}
-
-void ClothDesigner::on_sbSparamLapDampIter_valueChanged(int v)
-{
-	try
-	{
-		auto param = g_dataholder.m_clothManager->getSimulationParam();
-		param.lap_damping = v;
-		g_dataholder.m_clothManager->setSimulationParam(param);
-	} catch (std::exception e)
-	{
-		std::cout << e.what() << std::endl;
-	} catch (...)
-	{
-		std::cout << "unknown error" << std::endl;
-	}
-}
-
-void ClothDesigner::on_sbSparamAirDamp_valueChanged(double v)
-{
-	try
-	{
-		auto param = g_dataholder.m_clothManager->getSimulationParam();
-		param.air_damping = v;
-		g_dataholder.m_clothManager->setSimulationParam(param);
-	} catch (std::exception e)
-	{
-		std::cout << e.what() << std::endl;
-	} catch (...)
-	{
-		std::cout << "unknown error" << std::endl;
-	}
-}
-
-void ClothDesigner::on_sbSparamControlStiff_valueChanged(double v)
-{
-	try
-	{
-		auto param = g_dataholder.m_clothManager->getSimulationParam();
-		param.control_mag = v;
-		g_dataholder.m_clothManager->setSimulationParam(param);
-	} catch (std::exception e)
-	{
-		std::cout << e.what() << std::endl;
-	} catch (...)
-	{
-		std::cout << "unknown error" << std::endl;
-	}
-}
-
-void ClothDesigner::on_sbSparamRho_valueChanged(double v)
-{
-	try
-	{
-		auto param = g_dataholder.m_clothManager->getSimulationParam();
-		param.rho = v;
-		g_dataholder.m_clothManager->setSimulationParam(param);
-	} catch (std::exception e)
-	{
-		std::cout << e.what() << std::endl;
-	} catch (...)
-	{
-		std::cout << "unknown error" << std::endl;
-	}
-}
-
-void ClothDesigner::on_sbSparamUnderRelax_valueChanged(double v)
-{
-	try
-	{
-		auto param = g_dataholder.m_clothManager->getSimulationParam();
-		param.under_relax = v;
-		g_dataholder.m_clothManager->setSimulationParam(param);
-	} catch (std::exception e)
-	{
-		std::cout << e.what() << std::endl;
-	} catch (...)
-	{
-		std::cout << "unknown error" << std::endl;
-	}
-}
-
 void ClothDesigner::on_sbSparamSpringStiff_valueChanged(double v)
 {
 	try
 	{
 		auto param = g_dataholder.m_clothManager->getSimulationParam();
-		param.spring_k_raw = v;
+		param.spring_k = v;
 		g_dataholder.m_clothManager->setSimulationParam(param);
 	} catch (std::exception e)
 	{
@@ -994,54 +855,6 @@ void ClothDesigner::on_sbSparamBendStiff_valueChanged(double v)
 	{
 		auto param = g_dataholder.m_clothManager->getSimulationParam();
 		param.bending_k = v;
-		g_dataholder.m_clothManager->setSimulationParam(param);
-	} catch (std::exception e)
-	{
-		std::cout << e.what() << std::endl;
-	} catch (...)
-	{
-		std::cout << "unknown error" << std::endl;
-	}
-}
-
-void ClothDesigner::on_sbSparamStitchStiff_valueChanged(double v)
-{
-	try
-	{
-		auto param = g_dataholder.m_clothManager->getSimulationParam();
-		param.stitch_k_raw = v;
-		g_dataholder.m_clothManager->setSimulationParam(param);
-	} catch (std::exception e)
-	{
-		std::cout << e.what() << std::endl;
-	} catch (...)
-	{
-		std::cout << "unknown error" << std::endl;
-	}
-}
-
-void ClothDesigner::on_sbSparamStitchSpeed_valueChanged(double v)
-{
-	try
-	{
-		auto param = g_dataholder.m_clothManager->getSimulationParam();
-		param.stitch_ratio = v;
-		g_dataholder.m_clothManager->setSimulationParam(param);
-	} catch (std::exception e)
-	{
-		std::cout << e.what() << std::endl;
-	} catch (...)
-	{
-		std::cout << "unknown error" << std::endl;
-	}
-}
-
-void ClothDesigner::on_sbSparamStitchBend_valueChanged(double v)
-{
-	try
-	{
-		auto param = g_dataholder.m_clothManager->getSimulationParam();
-		param.stitch_bending_k = v;
 		g_dataholder.m_clothManager->setSimulationParam(param);
 	} catch (std::exception e)
 	{
