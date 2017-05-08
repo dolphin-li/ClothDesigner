@@ -5,6 +5,7 @@
 #include "LEVEL_SET_COLLISION.h"
 #include <math.h>
 #include "LevelSet3D.h"
+#include "MaterialCache.h"
 namespace ldp
 {
 
@@ -463,6 +464,8 @@ namespace ldp
 		GpuSim::FaceMaterailSpaceData data;
 		data.area = v.x;
 		data.mass = v.y;
+		data.stretch_mult = v.z;
+		data.bend_mult = v.w;
 		return data;
 	}
 	__device__ __forceinline__ GpuSim::NodeMaterailSpaceData texRead_nodeMaterialData(int i)
@@ -562,9 +565,9 @@ namespace ldp
 
 	__device__ __forceinline__ Float4 stretching_stiffness(const Mat2f &G, cudaTextureObject_t samples)
 	{
-		float a = (G(0, 0) + 0.25f)*GpuSim::StretchingSamples::SAMPLES;
-		float b = (G(1, 1) + 0.25f)*GpuSim::StretchingSamples::SAMPLES;
-		float c = fabsf(G(0, 1))*GpuSim::StretchingSamples::SAMPLES;
+		float a = (G(0, 0) + 0.25f)*MaterialCache::StretchingSamples::SAMPLES;
+		float b = (G(1, 1) + 0.25f)*MaterialCache::StretchingSamples::SAMPLES;
+		float c = fabsf(G(0, 1))*MaterialCache::StretchingSamples::SAMPLES;
 		return texRead_strechSample(samples, a, b, c);
 	}
 
@@ -611,7 +614,7 @@ namespace ldp
 
 	__device__ void computeStretchForces(int iFace, int A_start, Mat3f* beforeScan_A,
 		int b_start, Float3* beforeScan_b, const Float3* velocity,
-		const cudaTextureObject_t* t_stretchSamples, float dt, float stretchMult)
+		const cudaTextureObject_t* t_stretchSamples, float dt)
 	{
 		const ldp::Int3 face_idxWorld = texRead_faces_idxWorld(iFace);
 		const ldp::Int3 face_idxTex = texRead_faces_idxTex(iFace);
@@ -620,6 +623,7 @@ namespace ldp
 		const ldp::Float2 t[3] = { texRead_texCoord_init(face_idxTex[0]),
 			texRead_texCoord_init(face_idxTex[1]), texRead_texCoord_init(face_idxTex[2]) };
 		const float area = texRead_faceMaterialData(iFace).area;
+		const float stretchMult = texRead_faceMaterialData(iFace).stretch_mult;
 
 		// arcsim::stretching_force()---------------------------
 		const Mat32f F = derivative(x, t);
@@ -664,7 +668,7 @@ namespace ldp
 
 	__device__ void computeBendForces(int iEdge, const GpuSim::EdgeData* edgeDatas,
 		int A_start, Mat3f* beforeScan_A, int b_start, Float3* beforeScan_b, 
-		const Float3* velocity, const cudaTextureObject_t* t_bendDatas, float dt, float bendMult)
+		const Float3* velocity, const cudaTextureObject_t* t_bendDatas, float dt)
 	{
 		const GpuSim::EdgeData edgeData = edgeDatas[iEdge];
 		if (edgeData.faceIdx[0] < 0 || edgeData.faceIdx[1] < 0)
@@ -674,6 +678,8 @@ namespace ldp
 		Float3 n0 = faceNormal(edgeData.faceIdx[0]), n1 = faceNormal(edgeData.faceIdx[1]);
 		const float area = texRead_faceMaterialData(edgeData.faceIdx[0]).area 
 			+ texRead_faceMaterialData(edgeData.faceIdx[1]).area;
+		const float bendMult = ::min(texRead_faceMaterialData(edgeData.faceIdx[0]).bend_mult,
+			texRead_faceMaterialData(edgeData.faceIdx[1]).bend_mult);
 		const float dihe_theta = dihedral_angle(ex[0], ex[1], n0, n1, edgeData.dihedral_ideal);
 		const float h0 = distance(ex[2], ex[0], ex[1]), h1 = distance(ex[3], ex[0], ex[1]);
 		const Float2 w_f0 = barycentric_weights(ex[2], ex[0], ex[1]);
@@ -730,7 +736,7 @@ namespace ldp
 		const int* A_starts, Mat3f* beforeScan_A, const int* b_starts, Float3* beforeScan_b,
 		const Float3* velocity, int nFaces, int nEdges, 
 		cudaTextureObject_t stitchVertPair0, cudaTextureObject_t stitchVertPair1, int nStitchVertPairs,
-		float dt, float stretchMult, float bendMult, float stitchVertPairStiff, float curStitchRation,
+		float dt, float stitchVertPairStiff, float curStitchRation,
 		const GpuSim::EdgeData* stitchEdgeData, int nStitchEdges)
 	{
 		int thread_id = threadIdx.x + blockIdx.x * blockDim.x;
@@ -742,7 +748,7 @@ namespace ldp
 			const int b_start = b_starts[thread_id];
 			const ldp::Int3 face_idxWorld = texRead_faces_idxWorld(thread_id);
 			computeStretchForces(thread_id, A_start, beforeScan_A, 
-				b_start, beforeScan_b, velocity, t_stretchSamples, dt, stretchMult);
+				b_start, beforeScan_b, velocity, t_stretchSamples, dt);
 		} // end if nFaces_numAb
 		// compute bending forces here
 		else if (thread_id < nFaces + nEdges)
@@ -750,7 +756,7 @@ namespace ldp
 			const int A_start = A_starts[thread_id];
 			const int b_start = b_starts[thread_id];
 			computeBendForces(thread_id - nFaces, edgeData, A_start, beforeScan_A,
-				b_start, beforeScan_b, velocity, t_bendDatas, dt, bendMult);
+				b_start, beforeScan_b, velocity, t_bendDatas, dt);
 		}
 		else if (thread_id < nFaces + nEdges + nStitchVertPairs)
 		{
@@ -764,7 +770,7 @@ namespace ldp
 			const int A_start = A_starts[thread_id];
 			const int b_start = b_starts[thread_id];
 			computeBendForces(thread_id - nFaces - nEdges - nStitchVertPairs, stitchEdgeData, A_start, beforeScan_A,
-				b_start, beforeScan_b, velocity, t_bendDatas, dt, bendMult);
+				b_start, beforeScan_b, velocity, t_bendDatas, dt);
 		}
 	}
 
@@ -852,7 +858,7 @@ namespace ldp
 			m_A_Ids_start_d.ptr(), m_beforScan_A.ptr(), m_b_Ids_start_d.ptr(), m_beforScan_b.ptr(),
 			m_v_d.ptr(), nFaces, nEdges, 
 			m_stitch_vertPairs_d->bsrRowPtr_cooTexture(), m_stitch_vertPairs_d->bsrColIdxTexture(), nStitchVertPairs,
-			m_simParam.dt, m_simParam.strecth_mult, m_simParam.bend_mult, m_simParam.stitch_stiffness,
+			m_simParam.dt, m_simParam.stitch_stiffness,
 			m_curStitchRatio, m_stitch_edgeData_d.ptr(), nStitchEdges);
 		cudaSafeCall(cudaGetLastError()); 
 		

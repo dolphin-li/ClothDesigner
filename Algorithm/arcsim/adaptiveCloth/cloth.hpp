@@ -28,7 +28,7 @@
 
 #include "dde.hpp"
 #include "mesh.hpp"
-
+#include <string>
 namespace arcsim
 {
 
@@ -43,6 +43,7 @@ namespace arcsim
 			double damping; // stiffness-proportional damping coefficient
 			double strain_min, strain_max; // strain limits
 			double yield_curv, weakening; // plasticity parameters
+			std::string name;
 		};
 		std::vector<Material*> materials;
 		struct Remeshing

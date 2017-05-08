@@ -236,6 +236,7 @@
     <ClCompile Include="Algorithm\cloth\graph\GraphsSewing.cpp" />
     <ClCompile Include="Algorithm\cloth\HistoryStack.cpp" />
     <ClCompile Include="Algorithm\cloth\LevelSet3D.cpp" />
+    <ClCompile Include="Algorithm\cloth\MaterialCache.cpp" />
     <ClCompile Include="Algorithm\cloth\RigidEstimation.cpp" />
     <CudaCompile Include="Algorithm\cloth\GpuSim.cu" />
     <ClCompile Include="Algorithm\cloth\SmplManager.cpp" />
@@ -628,6 +629,7 @@
     <ClInclude Include="Algorithm\cloth\HistoryStack.h" />
     <ClInclude Include="Algorithm\cloth\LevelSet3D.h" />
     <ClInclude Include="Algorithm\cloth\LEVEL_SET_COLLISION.h" />
+    <ClInclude Include="Algorithm\cloth\MaterialCache.h" />
     <ClInclude Include="Algorithm\cloth\RigidEstimation.h" />
     <ClInclude Include="Algorithm\cloth\SmplManager.h" />
     <ClInclude Include="Algorithm\cloth\TransformInfo.h" />

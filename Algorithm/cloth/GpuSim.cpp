@@ -1,5 +1,5 @@
 #include "GpuSim.h"
-
+#include "ldputil.h"
 #include "clothManager.h"
 #include "Renderable\ObjMesh.h"
 #include "cloth\LevelSet3D.h"
@@ -10,6 +10,7 @@
 #include "arcsim\adaptiveCloth\dde.hpp"
 #include "arcsim\ArcSimManager.h"
 #include "arcsim\adaptiveCloth\conf.hpp"
+#include "MaterialCache.h"
 
 #include <eigen\Dense>
 #include <eigen\Sparse>
@@ -118,6 +119,7 @@ namespace ldp
 		m_stitch_vertPairs_d.reset(new CudaBsrMatrix(m_cusparseHandle, true));
 		m_bmesh.reset(new BMesh());
 		m_resultClothMesh.reset(new ObjMesh);
+		m_materials.reset(new MaterialCache);
 	}
 
 	GpuSim::~GpuSim()
@@ -235,6 +237,7 @@ namespace ldp
 			m_simParam.bend_mult = par.bending_k;
 			m_simParam.enable_selfCollision = par.enable_self_collistion;
 		} // end else clothManager
+		updateMaterialDataToFaceNode();
 	}
 
 	void GpuSim::updateTopology()
@@ -249,7 +252,7 @@ namespace ldp
 
 	void GpuSim::updateMaterial()
 	{
-		buildMaterial();
+		updateMaterialDataToFaceNode();
 	}
 
 	ObjMesh& GpuSim::getResultClothMesh()
@@ -323,7 +326,7 @@ namespace ldp
 		m_faces_idxWorld_d.release();
 		m_faces_idxTex_h.clear();
 		m_faces_idxTex_d.release();
-		m_faces_idxMat_h.clear();
+		m_faces_matName_h.clear();
 		m_faces_texStretch_d.release();
 		m_faces_texBend_d.release();
 		m_faces_materialSpace_d.release();
@@ -337,6 +340,7 @@ namespace ldp
 		m_vertMerge_in_out_idxMap_h.clear();
 		m_stitch_edgeData_h.clear();
 		m_stitch_edgeData_d.release();
+		m_materials->clear();
 
 		m_A_Ids_d.release();
 		m_A_Ids_d_unique.release();
@@ -376,9 +380,6 @@ namespace ldp
 		m_selfColli_tri_vertPair_tId.release();
 		m_selfColli_tri_vertPair_vId.release();
 		m_nPairs = 0;
-		m_stretchSamples_h.clear();
-		m_bendingData_h.clear();
-		m_densityData_h.clear();
 	}
 
 #pragma region -- level set
@@ -495,7 +496,7 @@ namespace ldp
 	{
 		m_faces_idxWorld_h.clear();
 		m_faces_idxTex_h.clear();
-		m_faces_idxMat_h.clear();
+		m_faces_matName_h.clear();
 		m_edgeData_h.clear();
 		m_x_init_h.clear();
 		m_texCoord_init_h.clear();
@@ -509,11 +510,13 @@ namespace ldp
 			const auto& cloth = sim->cloths[iCloth];
 			for (const auto& f : cloth.mesh.faces)
 			{
-				m_faces_idxWorld_h.push_back(ldp::Int4(f->v[0]->node->index,
-					f->v[1]->node->index, f->v[2]->node->index, 0) + node_index_begin);
+				m_faces_idxWorld_h.push_back(ldp::Int4(f->v[0]->node->index + node_index_begin,
+					f->v[1]->node->index + node_index_begin, f->v[2]->node->index + node_index_begin, iCloth));
 				m_faces_idxTex_h.push_back(ldp::Int4(f->v[0]->index,
 					f->v[1]->index, f->v[2]->index, 0) + tex_index_begin);
-				m_faces_idxMat_h.push_back(mat_index_begin + f->label);
+				std::string path, name, ext;
+				ldp::fileparts(cloth.materials[mat_index_begin + f->label]->name, path, name, ext);
+				m_faces_matName_h.push_back(name);
 			} // end for f
 			for (const auto& e : cloth.mesh.edges)
 			{
@@ -572,13 +575,12 @@ namespace ldp
 	{		
 		m_faces_idxWorld_h.clear();
 		m_faces_idxTex_h.clear();
-		m_faces_idxMat_h.clear();
+		m_faces_matName_h.clear();
 		m_edgeData_h.clear();
 		m_x_init_h.clear();
 		m_texCoord_init_h.clear();
 		int node_index_begin = 0;
 		int tex_index_begin = 0;
-		int mat_index_begin = 0;
 		int face_index_begin = 0;
 		for (int iCloth = 0; iCloth < m_clothManager->numClothPieces(); iCloth++)
 		{
@@ -591,7 +593,6 @@ namespace ldp
 					f.vertex_index[2] + node_index_begin, iCloth));
 				m_faces_idxTex_h.push_back(ldp::Int4(f.vertex_index[0],
 					f.vertex_index[1], f.vertex_index[2], 0) + tex_index_begin);
-				m_faces_idxMat_h.push_back(mat_index_begin); // material set here..
 			} // end for f
 
 			BMesh bmesh = *cloth->mesh3d().get_bmesh(false);
@@ -640,7 +641,6 @@ namespace ldp
 				m_texCoord_init_h.push_back(Float2(v[0], -v[1]));	// arcsim requires this conversion
 			node_index_begin += cloth->mesh3d().vertex_list.size();
 			tex_index_begin += cloth->mesh2d().vertex_list.size();
-			mat_index_begin += 0;// cloth.materials.size();
 			face_index_begin += cloth->mesh3d().face_list.size();
 		} // end for iCloth
 	}
@@ -662,123 +662,56 @@ namespace ldp
 #pragma endregion
 
 #pragma region -- material
-	void GpuSim::buildMaterial()
+	void GpuSim::updateMaterialDataToFaceNode()
 	{
 		m_shouldMaterialUpdate = true;
 		updateDependency();
-		initializeMaterialMemory();
-		updateMaterialDataToFaceNode();
-		m_shouldMaterialUpdate = false;
-	}
 
-	void GpuSim::initializeMaterialMemory()
-	{
-		m_bendingData_h.clear();
-		m_stretchSamples_h.clear();
-		m_densityData_h.clear();
-
-		// copy to self cpu
+		// find materials of all faces
+		std::vector<const MaterialCache::Material*> materials;		
 		if (m_arcSimManager)
 		{
-			for (const auto& cloth : m_arcSimManager->getSimulator()->cloths)
-			for (const auto& mat : cloth.materials)
-			{
-				m_densityData_h.push_back(mat->density);
-				m_stretchSamples_h.push_back(StretchingSamples());
-				for (int x = 0; x < StretchingSamples::SAMPLES; x++)
-				for (int y = 0; y < StretchingSamples::SAMPLES; y++)
-				for (int z = 0; z < StretchingSamples::SAMPLES; z++)
-					m_stretchSamples_h.back()(x, y, z) = convert(mat->stretching.s[x][y][z]);
-				m_bendingData_h.push_back(BendingData());
-				auto& bdata = m_bendingData_h.back();
-				for (int x = 0; x < bdata.cols(); x++)
-				{
-					int wrap_x = x;
-					if (wrap_x>4)
-						wrap_x = 8 - wrap_x;
-					if (wrap_x > 2)
-						wrap_x = 4 - wrap_x;
-					for (int y = 0; y < bdata.rows(); y++)
-						bdata(x, y) = mat->bending.d[wrap_x][y];
-				}
-			} // end for mat, cloth
-
-		} // end if arcSim
-		else if (m_clothManager)
+			for (const auto& f : m_faces_matName_h)
+				materials.push_back(m_materials->findMaterial(f));
+		} // end if arcsim
+		else
 		{
-			// TO DO: accomplish the importing from cloth manager
-			std::shared_ptr<arcsim::Cloth::Material> mat(new arcsim::Cloth::Material);
-			arcsim::load_material_data(*mat, g_default_arcsim_material);
-			printf("default material: %s\n", g_default_arcsim_material);
-
-			m_densityData_h.push_back(mat->density);
-			m_stretchSamples_h.push_back(StretchingSamples());
-			for (int x = 0; x < StretchingSamples::SAMPLES; x++)
-			for (int y = 0; y < StretchingSamples::SAMPLES; y++)
-			for (int z = 0; z < StretchingSamples::SAMPLES; z++)
-				m_stretchSamples_h.back()(x, y, z) = convert(mat->stretching.s[x][y][z]);
-			m_bendingData_h.push_back(BendingData());
-
-			auto& bdata = m_bendingData_h.back();
-			for (int x = 0; x < bdata.cols(); x++)
-			{
-				int wrap_x = x;
-				if (wrap_x>4)
-					wrap_x = 8 - wrap_x;
-				if (wrap_x > 2)
-					wrap_x = 4 - wrap_x;
-				for (int y = 0; y < bdata.rows(); y++)
-					bdata(x, y) = mat->bending.d[wrap_x][y];
-			}
-		} // end if clothManager
-
-		// copy to gpu
-		for (auto& bd : m_bendingData_h)
-		{
-			bd.updateHostToDevice();
-		} // end for m_bendingData_h
-
-		for (auto& sp : m_stretchSamples_h)
-		{
-			sp.updateHostToDevice();
-		} // end for m_stretchSamples_h
-
-		m_shouldMaterialUpdate = false;
-	}
-
-	void GpuSim::updateMaterialDataToFaceNode()
-	{
-		// stretching forces
-		std::vector<cudaTextureObject_t> tmp;
-		for (const auto& idx : m_faces_idxMat_h)
-			tmp.push_back(m_stretchSamples_h[idx].getCudaArray().getCudaTexture());
-		m_faces_texStretch_d.upload(tmp);
-
-		// bending forces
-		tmp.clear();
-		for (const auto& idx : m_faces_idxMat_h)
-			tmp.push_back(m_bendingData_h[idx].getCudaArray().getCudaTexture());
-		m_faces_texBend_d.upload(tmp);
-		tmp.clear();
+			for (const auto& f : m_faces_idxWorld_h)
+				materials.push_back(m_materials->findMaterial(m_clothManager
+					->clothPiece(f[3])->param().material_name));
+		} // end else cloth manager
 
 		// face material related
-		std::vector<FaceMaterailSpaceData> faceData(m_faces_idxTex_h.size());
+		std::vector<cudaTextureObject_t> tmpStre, tmpBend;
+		std::vector<FaceMaterailSpaceData> tmpFaceData(m_faces_idxTex_h.size());
 		for (size_t iFace = 0; iFace < m_faces_idxTex_h.size(); iFace++)
 		{
+			auto mat = materials[iFace];
+			tmpStre.push_back(mat->stretchSample.getCudaArray().getCudaTexture());
+			tmpBend.push_back(mat->bendData.getCudaArray().getCudaTexture());
 			const auto& f = m_faces_idxTex_h[iFace];
 			const auto& t = m_texCoord_init_h;
-			const auto& label = m_faces_idxMat_h[iFace];
-			FaceMaterailSpaceData& fData = faceData[iFace];
+			FaceMaterailSpaceData& fData = tmpFaceData[iFace];
 			fData.area = fabs(Float2(t[f[1]] - t[f[0]]).cross(t[f[2]] - t[f[0]])) / 2;
-			fData.mass = fData.area * m_densityData_h[label];
-		} // end for iFace
-		m_faces_materialSpace_d.upload(faceData);
+			fData.mass = fData.area * mat->density;
+			fData.stretch_mult = m_simParam.strecth_mult;
+			fData.bend_mult = m_simParam.bend_mult;
+			if (m_clothManager)
+			{
+				const auto& pieceParam = m_clothManager->clothPiece(m_faces_idxWorld_h[iFace][3])->param();
+				fData.stretch_mult *= pieceParam.spring_k_mult;
+				fData.bend_mult *= pieceParam.bending_k_mult;
+			}
+		}
+		m_faces_texStretch_d.upload(tmpStre);
+		m_faces_texBend_d.upload(tmpBend);
+		m_faces_materialSpace_d.upload(tmpFaceData);
 
 		// node material related
 		std::vector<NodeMaterailSpaceData> nodeData(m_x_init_h.size());
 		for (size_t iFace = 0; iFace < m_faces_idxTex_h.size(); iFace++)
 		{
-			const FaceMaterailSpaceData& fData = faceData[iFace];
+			const FaceMaterailSpaceData& fData = tmpFaceData[iFace];
 			const auto& f = m_faces_idxWorld_h[iFace];
 			for (int k = 0; k < 3; k++)
 			{
@@ -788,6 +721,8 @@ namespace ldp
 			}
 		} // end for iFace
 		m_nodes_materialSpace_d.upload(nodeData);
+
+		m_shouldMaterialUpdate = false;
 	}
 #pragma endregion
 
@@ -1113,7 +1048,7 @@ namespace ldp
 		if (m_shouldLevelsetUpdate)
 			initLevelSet();
 		if (m_shouldMaterialUpdate)
-			buildMaterial();
+			updateMaterial();
 		if (m_shouldStitchUpdate)
 			buildStitch();
 		if (m_shouldSparseStructureUpdate)
@@ -1461,41 +1396,6 @@ namespace ldp
 			{
 				for (int x = 0; x < A.cols(); x++)
 					fprintf(pFile, "%ef ", hA[y*A.cols()+x]);
-				fprintf(pFile, "\n");
-			}
-			fclose(pFile);
-			printf("saved: %s\n", name.c_str());
-		}
-	}
-	void GpuSim::dumpBendDataArray(std::string name, const BendingData& samples)
-	{
-		FILE* pFile = fopen(name.c_str(), "w");
-		if (pFile)
-		{
-			for (int y = 0; y < samples.rows(); y++)
-			{
-				for (int x = 0; x < samples.cols(); x++)
-					fprintf(pFile, "%ef ", samples(x, y));
-				fprintf(pFile, "\n");
-			}
-			fclose(pFile);
-			printf("saved: %s\n", name.c_str());
-		}
-	}
-	void GpuSim::dumpStretchSampleArray(std::string name, const StretchingSamples& samples)
-	{	
-		FILE* pFile = fopen(name.c_str(), "w");
-		if (pFile)
-		{
-			for (int z = 0; z < StretchingSamples::SAMPLES; z++)
-			{
-				for (int y = 0; y < StretchingSamples::SAMPLES; y++)
-				{
-					for (int x = 0; x < StretchingSamples::SAMPLES; x++)
-						fprintf(pFile, "%ef/%ef/%ef/%ef ", samples(x, y, z)[0],
-						samples(x, y, z)[1], samples(x, y, z)[2], samples(x, y, z)[3]);
-					fprintf(pFile, "\n");
-				}
 				fprintf(pFile, "\n");
 			}
 			fclose(pFile);

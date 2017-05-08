@@ -8,7 +8,9 @@ namespace ldp
 	struct PieceParam
 	{
 		float bending_k_mult = 0.f;			// multiplied on SimulationParam.bending_k for each piece
-		float piece_outgo_dist = 0.f;		// we want some pieces to be outside of others, this hack may be helpful		
+		float spring_k_mult = 0.f;
+		std::string material_name;
+		static std::string default_material_folder;
 		PieceParam();
 		void setDefaultParam();
 	};

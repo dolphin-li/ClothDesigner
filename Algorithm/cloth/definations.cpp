@@ -23,10 +23,13 @@ namespace ldp
 		setDefaultParam();
 	}
 
+	std::string PieceParam::default_material_folder = "data/arcsim/materials/";
+
 	void PieceParam::setDefaultParam()
 	{
 		bending_k_mult = 1;
-		piece_outgo_dist = 0;
+		spring_k_mult = 1;
+		material_name = "gray-interlock";
 	}
 
 	SimulationParam::SimulationParam()

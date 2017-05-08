@@ -37,7 +37,7 @@ ClothDesigner::ClothDesigner(QWidget *parent)
 : QMainWindow(parent), m_projectSaved(false)
 {
 	ui.setupUi(this);
-	setAcceptDrops(true);
+	setAcceptDrops(true); 
 	ui.centralWidget->setLayout(new QGridLayout());
 	m_splitter = new QSplitter(ui.centralWidget);
 	ui.centralWidget->layout()->addWidget(m_splitter);
@@ -56,6 +56,17 @@ ClothDesigner::ClothDesigner(QWidget *parent)
 	g_dataholder.m_historyStack->init(g_dataholder.m_clothManager.get(), m_widget2d);
 	m_widget3d->init(g_dataholder.m_clothManager.get(), this);
 	m_widget2d->init(g_dataholder.m_clothManager.get(), this);
+
+	// collect material list..
+	std::vector<std::string> matFiles;
+	ldp::getAllFilesInDir(ldp::PieceParam::default_material_folder, matFiles, ".json");
+	ui.cbPieceMaterialName->clear();
+	for (const auto& s : matFiles)
+	{
+		std::string path, name, ext;
+		ldp::fileparts(s, path, name, ext);
+		ui.cbPieceMaterialName->addItem(name.c_str());
+	} // end for s
 
 	setupSmplUI();
 	updateUiByParam();
@@ -797,7 +808,14 @@ void ClothDesigner::updateUiByParam()
 		{
 			auto piece = *selectedPieces.begin();
 			ui.dbPieceBendMult->setValue(piece->param().bending_k_mult);
-			ui.dbPieceOutgoDist->setValue(piece->param().piece_outgo_dist);
+			ui.dbPieceSpringMult->setValue(piece->param().spring_k_mult);
+			for (int i = 0; i < ui.cbPieceMaterialName->count(); i++)
+			if (ui.cbPieceMaterialName->itemText(i).toStdString() == piece->param().material_name
+				&& ui.cbPieceMaterialName->currentIndex() != i)
+			{
+				ui.cbPieceMaterialName->setCurrentIndex(i);
+				break;
+			}
 		}
 
 		//// smpl body param
@@ -1043,7 +1061,7 @@ void ClothDesigner::on_sbDparamTriangleSize_valueChanged(double v)
 	}
 }
 
-void ClothDesigner::on_dbPieceOutgoDist_valueChanged(double v)
+void ClothDesigner::on_dbPieceSpringMult_valueChanged(double v)
 {
 	for (int ipiece = 0; ipiece < g_dataholder.m_clothManager->numClothPieces(); ipiece++)
 	{
@@ -1052,9 +1070,9 @@ void ClothDesigner::on_dbPieceOutgoDist_valueChanged(double v)
 		if (!panel.isSelected())
 			continue;
 		auto param = piece->param();
-		param.piece_outgo_dist = v;
+		param.spring_k_mult = v;
 		g_dataholder.m_clothManager->setPieceParam(piece, param);
-		printf("%s, outgo_dist = %f meters\n", piece->getName().c_str(), v);
+		printf("%s, stretch_mult = %f\n", piece->getName().c_str(), v);
 	}
 }
 
@@ -1070,6 +1088,24 @@ void ClothDesigner::on_dbPieceBendMult_valueChanged(double v)
 		param.bending_k_mult = v;
 		g_dataholder.m_clothManager->setPieceParam(piece, param);
 		printf("%s, bend_k_mult = %f\n", piece->getName().c_str(), v);
+	}
+}
+
+void ClothDesigner::on_cbPieceMaterialName_currentIndexChanged(int idx)
+{
+	for (int ipiece = 0; ipiece < g_dataholder.m_clothManager->numClothPieces(); ipiece++)
+	{
+		auto piece = g_dataholder.m_clothManager->clothPiece(ipiece);
+		auto& panel = piece->graphPanel();
+		if (!panel.isSelected())
+			continue;
+		auto param = piece->param();
+		auto newname = ui.cbPieceMaterialName->itemText(idx).toStdString();
+		if (newname.empty())
+			return;
+		param.material_name = newname;
+		g_dataholder.m_clothManager->setPieceParam(piece, param);
+		printf("%s, material = %s\n", piece->getName().c_str(), param.material_name.c_str());
 	}
 }
 

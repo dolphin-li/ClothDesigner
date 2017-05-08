@@ -632,6 +632,12 @@ namespace arcsim
 		parse(material.density, json["density"]);
 		parse(material.stretching, json["stretching"]);
 		parse(material.bending, json["bending"]);
+		material.name = filename;
+		size_t pos = material.name.find_last_of("/");
+		if (pos >= material.name.size())
+			pos = material.name.find_last_of("\\");
+		if (pos < material.name.size())
+			material.name = material.name.substr(pos+1);
 	}
 
 	void parse(StretchingSamples &samples, const Json::Value &json)

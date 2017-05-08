@@ -946,6 +946,9 @@
     <ClCompile Include="Algorithm\Renderable\LoopSubdiv.cpp">
       <Filter>algorithm\renderable</Filter>
     </ClCompile>
+    <ClCompile Include="Algorithm\cloth\MaterialCache.cpp">
+      <Filter>algorithm\cloth</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="clothdesigner.ui">
@@ -1591,6 +1594,9 @@
     </ClInclude>
     <ClInclude Include="Algorithm\Renderable\LoopSubdiv.h">
       <Filter>algorithm\renderable</Filter>
+    </ClInclude>
+    <ClInclude Include="Algorithm\cloth\MaterialCache.h">
+      <Filter>algorithm\cloth</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

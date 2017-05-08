@@ -93,6 +93,7 @@ namespace ldp
 		m_bodyMeshInit->clear();
 		m_bodyMesh->clear();
 		m_bodyLvSet->clear();
+		m_gpuSim->clear();
 
 		m_fps = 0;
 		m_smplBody = nullptr;
@@ -221,20 +222,26 @@ namespace ldp
 		if (fabs(lastParam.triangulateThre - g_designParam.triangulateThre)
 			>= std::numeric_limits<float>::epsilon())
 			m_shouldTriangulate = true;
+		if (m_gpuSim.get())
+			m_gpuSim->updateParam();
 	}
 
 	void ClothManager::setPieceParam(const ClothPiece* piece, PieceParam param)
 	{
+		bool changed = false;
 		for (auto& pc : m_clothPieces)
 		{
 			if (pc.get() != piece)
 				continue;
 			if (fabs(param.bending_k_mult - pc->param().bending_k_mult) < std::numeric_limits<float>::epsilon()
-				&& fabs(param.piece_outgo_dist - pc->param().piece_outgo_dist) < std::numeric_limits<float>::epsilon())
+				&& fabs(param.spring_k_mult - pc->param().spring_k_mult) < std::numeric_limits<float>::epsilon()
+				&& param.material_name == pc->param().material_name)
 				break;
 			pc->param() = param;
-			// TODO: materials update here?
+			changed = true;
 		}
+		if (changed && m_gpuSim.get())
+			m_gpuSim->updateParam();
 	}
 
 	ldp::Float3 ClothManager::getVertexByGlobalId(int id)const 
@@ -1692,8 +1699,13 @@ namespace ldp
 					else if (child->Value() == std::string("Param"))
 					{
 						double tmp = 0;
+						const char* tmpc = nullptr;
 						if (child->Attribute("bend_k_mult", &tmp))
 							m_clothPieces.back()->param().bending_k_mult = tmp;
+						if (child->Attribute("spring_k_mult", &tmp))
+							m_clothPieces.back()->param().spring_k_mult = tmp;
+						if (tmpc = child->Attribute("material_name"))
+							m_clothPieces.back()->param().material_name = tmpc;
 					}
 				}
 			} // end for piece
@@ -1708,9 +1720,9 @@ namespace ldp
 		// . validate all graphs, the corresponding sewings will be updated
 		for (auto& piece : m_clothPieces)
 			piece->graphPanel().makeGraphValid();
-
+	
 		// finally initilaize simulation
-		simulationInit();
+		simulationInit(); 
 	}
 
 	void ClothManager::toXml(std::string filename)const
@@ -1797,6 +1809,8 @@ namespace ldp
 			TiXmlElement* param_ele = new TiXmlElement("Param");
 			pele->LinkEndChild(param_ele);
 			param_ele->SetAttribute("bend_k_mult", piece->param().bending_k_mult);
+			param_ele->SetAttribute("spring_k_mult", piece->param().spring_k_mult);
+			param_ele->SetAttribute("material_name", piece->param().material_name.c_str());
 
 			// transform info
 			piece->transformInfo().toXML(pele);
