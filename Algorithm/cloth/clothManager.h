@@ -172,6 +172,7 @@ namespace ldp
 		void buildStitch();
 		void buildSubdiv();
 		void updateSubdiv();
+		bool checkTopologyChangedOfMesh2d()const;
 	private:
 		std::string m_simulationInfo;
 		std::vector<std::shared_ptr<GraphsSewing>> m_graphSewings;

@@ -270,19 +270,60 @@ namespace ldp
 		m_shouldMergePieces = true;
 	}
 
+	bool ClothManager::checkTopologyChangedOfMesh2d()const
+	{
+		bool topChanged = false;
+		for (auto& cloth : m_clothPieces)
+		{
+			// check whether topology changed of each piece
+			topChanged |= (cloth->mesh3dInit().face_list.size() != cloth->mesh2d().face_list.size());
+			if (!topChanged)
+			{
+				for (size_t iFace = 0; iFace < cloth->mesh3dInit().face_list.size(); iFace++)
+				{
+					const auto& f2 = cloth->mesh2d().face_list[iFace];
+					const auto& f3 = cloth->mesh3dInit().face_list[iFace];
+					topChanged |= (f2.vertex_count != f3.vertex_count);
+					// for each face, the verts may be inversed, so we check this case
+					bool faceChanged[2] = { false, false };
+					for (int k = 0; k < f2.vertex_count; k++)
+						faceChanged[0] |= (f2.vertex_index[k] != f3.vertex_index[k]);
+					for (int k = 0; k < f2.vertex_count; k++)
+						faceChanged[1] |= (f2.vertex_index[k] != f3.vertex_index[f3.vertex_count - 1 - k]);
+					topChanged |= (faceChanged[0] && faceChanged[1]);
+				}
+			}
+		}
+		return topChanged;
+	}
+
 	void ClothManager::updateCloths3dMeshBy2d()
 	{
+		bool topChanged = checkTopologyChangedOfMesh2d();
 		for (auto& cloth : m_clothPieces)
 		{
 			cloth->mesh3dInit().cloneFrom(&cloth->mesh2d());
 			cloth->transformInfo().apply(cloth->mesh3dInit());
 			cloth->mesh3d().cloneFrom(&cloth->mesh3dInit());
 		}
+
+		// if topology changed, we want to handle it here
+		if (topChanged)
+		{
+			mergePieces();
+			buildTopology();
+			buildStitch();
+			buildSubdiv();
+		}
+
+		// else, we just update the subdivision mesh and handle others later
+		updateSubdiv();
 		m_shouldMergePieces = true;
 	}
 
 	void ClothManager::resetCloths3dMeshBy2d()
 	{
+		bool topChanged = checkTopologyChangedOfMesh2d();
 		for (auto& cloth : m_clothPieces)
 		{
 			cloth->mesh3dInit().cloneFrom(&cloth->mesh2d());
@@ -291,7 +332,19 @@ namespace ldp
 			cloth->transformInfo().transform().setTranslationPart(ldp::Float3(0, 0.3, 0));
 			cloth->transformInfo().apply(cloth->mesh3dInit());
 			cloth->mesh3d().cloneFrom(&cloth->mesh3dInit());
+		}				
+		
+		// if topology changed, we want to handle it here
+		if (topChanged)
+		{
+			mergePieces();
+			buildTopology();
+			buildStitch();
+			buildSubdiv();
 		}
+
+		// else, we just update the subdivision mesh and handle others later
+		updateSubdiv();
 		m_shouldMergePieces = true;
 	}
 
