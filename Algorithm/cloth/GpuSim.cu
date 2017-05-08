@@ -678,8 +678,6 @@ namespace ldp
 		Float3 n0 = faceNormal(edgeData.faceIdx[0]), n1 = faceNormal(edgeData.faceIdx[1]);
 		const float area = texRead_faceMaterialData(edgeData.faceIdx[0]).area 
 			+ texRead_faceMaterialData(edgeData.faceIdx[1]).area;
-		const float bendMult = ::min(texRead_faceMaterialData(edgeData.faceIdx[0]).bend_mult,
-			texRead_faceMaterialData(edgeData.faceIdx[1]).bend_mult);
 		const float dihe_theta = dihedral_angle(ex[0], ex[1], n0, n1, edgeData.dihedral_ideal);
 		const float h0 = distance(ex[2], ex[0], ex[1]), h1 = distance(ex[3], ex[0], ex[1]);
 		const Float2 w_f0 = barycentric_weights(ex[2], ex[0], ex[1]);
@@ -687,9 +685,11 @@ namespace ldp
 		const FloatC dtheta = make_Float12(-(w_f0[0] * n0 / h0 + w_f1[0] * n1 / h1),
 			-(w_f0[1] * n0 / h0 + w_f1[1] * n1 / h1), n0 / h0, n1 / h1);
 		const float ke = ::min(
-			bending_stiffness(edgeData, dihe_theta, area, t_bendDatas, 0),
+			bending_stiffness(edgeData, dihe_theta, area, t_bendDatas, 0) 
+			* texRead_faceMaterialData(edgeData.faceIdx[0]).bend_mult,
 			bending_stiffness(edgeData, dihe_theta, area, t_bendDatas, 1)
-			) * bendMult;
+			* texRead_faceMaterialData(edgeData.faceIdx[1]).bend_mult
+			);
 		const float len = 0.5f * (sqrt(edgeData.length_sqr[0]) + sqrt(edgeData.length_sqr[1]));
 		const float shape = ldp::sqr(len) / (2.f * area);
 		const FloatC vs = make_Float12(velocity[edgeData.edge_idxWorld[0]], velocity[edgeData.edge_idxWorld[1]], 

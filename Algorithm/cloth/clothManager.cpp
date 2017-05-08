@@ -499,7 +499,7 @@ namespace ldp
 		s1 += m_clothVertBegin.at(&cloth1->mesh3d());
 		s2 += m_clothVertBegin.at(&cloth2->mesh3d());
 
-		m_stitches.push_back(StitchPointPair(s1, s2, type));
+		m_stitches.push_back(StitchPointPair(s1, s2, type, 0.f));
 
 		m_shouldStitchUpdate = true;
 	}
@@ -526,6 +526,11 @@ namespace ldp
 		if (m_shouldMergePieces)
 			mergePieces();
 		return m_stitches.at(i);
+	}
+
+	void ClothManager::updateStitchAngle()
+	{
+		triangulate();
 	}
 
 	std::pair<Float3, Float3> ClothManager::getStitchPos(int i)
@@ -1799,7 +1804,7 @@ namespace ldp
 			} // end for i_shape
 		} // end smplBody
 
-		// close pieces
+		// cloth pieces
 		for (const auto& piece : m_clothPieces)
 		{
 			TiXmlElement* pele = new TiXmlElement("Piece");

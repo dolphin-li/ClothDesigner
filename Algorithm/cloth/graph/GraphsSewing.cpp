@@ -338,6 +338,7 @@ namespace ldp
 	{
 		TiXmlElement* ele = AbstractGraphObject::toXML(parent);
 		ele->SetAttribute("type", getSewingTypeStr());
+		ele->SetAttribute("angle", getAngleInDegree());
 		TiXmlElement* fele = new TiXmlElement("Firsts");
 		ele->LinkEndChild(fele);
 		for (const auto& f : m_firsts)
@@ -375,6 +376,9 @@ namespace ldp
 				}
 			}
 		} // end if sewTypeStr
+		double tmp = 0;
+		if (self->Attribute("angle", &tmp))
+			setAngleInDegree(tmp);
 
 		for (auto child = self->FirstChildElement(); child; child = child->NextSiblingElement())
 		{

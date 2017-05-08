@@ -26,6 +26,7 @@
 #include <QtWidgets/QMenuBar>
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QSpacerItem>
+#include <QtWidgets/QSpinBox>
 #include <QtWidgets/QStatusBar>
 #include <QtWidgets/QTabWidget>
 #include <QtWidgets/QToolBar>
@@ -77,7 +78,6 @@ public:
     QDoubleSpinBox *sbSparamSpringStiff;
     QLabel *label_15;
     QDoubleSpinBox *sbDparamTriangleSize;
-    QSpacerItem *verticalSpacer;
     QGroupBox *groupBox_2;
     QGridLayout *gridLayout_6;
     QLabel *label_16;
@@ -86,6 +86,11 @@ public:
     QLabel *label_17;
     QLabel *label_18;
     QComboBox *cbPieceMaterialName;
+    QSpacerItem *verticalSpacer;
+    QGroupBox *groupBox_3;
+    QGridLayout *gridLayout_3;
+    QLabel *label;
+    QSpinBox *sbSewParamAngle;
     QWidget *tab;
     QGridLayout *gridLayout_7;
     QPushButton *pbSaveSmplCoeffs;
@@ -109,6 +114,7 @@ public:
         if (ClothDesignerClass->objectName().isEmpty())
             ClothDesignerClass->setObjectName(QStringLiteral("ClothDesignerClass"));
         ClothDesignerClass->resize(890, 784);
+        ClothDesignerClass->setMinimumSize(QSize(0, 0));
         actionLoad_project = new QAction(ClothDesignerClass);
         actionLoad_project->setObjectName(QStringLiteral("actionLoad_project"));
         actionImport_body_mesh = new QAction(ClothDesignerClass);
@@ -254,10 +260,6 @@ public:
 
         gridLayout_5->addWidget(groupBox, 1, 0, 1, 1);
 
-        verticalSpacer = new QSpacerItem(20, 40, QSizePolicy::Minimum, QSizePolicy::Expanding);
-
-        gridLayout_5->addItem(verticalSpacer, 5, 0, 1, 1);
-
         groupBox_2 = new QGroupBox(tabSimulation);
         groupBox_2->setObjectName(QStringLiteral("groupBox_2"));
         gridLayout_6 = new QGridLayout(groupBox_2);
@@ -300,6 +302,32 @@ public:
 
 
         gridLayout_5->addWidget(groupBox_2, 4, 0, 1, 1);
+
+        verticalSpacer = new QSpacerItem(20, 40, QSizePolicy::Minimum, QSizePolicy::Expanding);
+
+        gridLayout_5->addItem(verticalSpacer, 6, 0, 1, 1);
+
+        groupBox_3 = new QGroupBox(tabSimulation);
+        groupBox_3->setObjectName(QStringLiteral("groupBox_3"));
+        groupBox_3->setMinimumSize(QSize(0, 0));
+        gridLayout_3 = new QGridLayout(groupBox_3);
+        gridLayout_3->setSpacing(6);
+        gridLayout_3->setContentsMargins(11, 11, 11, 11);
+        gridLayout_3->setObjectName(QStringLiteral("gridLayout_3"));
+        label = new QLabel(groupBox_3);
+        label->setObjectName(QStringLiteral("label"));
+
+        gridLayout_3->addWidget(label, 0, 0, 1, 1);
+
+        sbSewParamAngle = new QSpinBox(groupBox_3);
+        sbSewParamAngle->setObjectName(QStringLiteral("sbSewParamAngle"));
+        sbSewParamAngle->setMinimum(-180);
+        sbSewParamAngle->setMaximum(180);
+
+        gridLayout_3->addWidget(sbSewParamAngle, 0, 1, 1, 1);
+
+
+        gridLayout_5->addWidget(groupBox_3, 5, 0, 1, 1);
 
         tabWidget->addTab(tabSimulation, QString());
         tab = new QWidget();
@@ -450,6 +478,8 @@ public:
         label_16->setText(QApplication::translate("ClothDesignerClass", "bend mult", 0));
         label_17->setText(QApplication::translate("ClothDesignerClass", "spring mult", 0));
         label_18->setText(QApplication::translate("ClothDesignerClass", "material", 0));
+        groupBox_3->setTitle(QApplication::translate("ClothDesignerClass", "Sew Param", 0));
+        label->setText(QApplication::translate("ClothDesignerClass", "angle", 0));
         tabWidget->setTabText(tabWidget->indexOf(tabSimulation), QApplication::translate("ClothDesignerClass", "Simulation", 0));
         pbSaveSmplCoeffs->setText(QApplication::translate("ClothDesignerClass", "save smpl coeffs", 0));
         pbLoadSmplCoeffs->setText(QApplication::translate("ClothDesignerClass", "load smpl coeffs", 0));

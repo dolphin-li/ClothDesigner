@@ -74,8 +74,11 @@ void Sewing2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 			if (manager->graphSewing(iSewing)->select(pickInfo().renderId, op))
 				changed = true;
 			if (m_viewer->getMainUI() && changed)
+			{
 				m_viewer->getMainUI()->pushHistory(QString().sprintf("sew select: %d",
-				pickInfo().renderId), ldp::HistoryStack::TypePatternSelect);
+					pickInfo().renderId), ldp::HistoryStack::TypePatternSelect);
+				m_viewer->getMainUI()->updateUiByParam();
+			}
 
 			auto obj = ldp::GraphsSewing::getObjByIdx(highLightInfo().renderId);
 			if (obj)
@@ -100,8 +103,11 @@ void Sewing2dPatternEventHandle::mouseReleaseEvent(QMouseEvent *ev)
 			if (manager->graphSewing(iSewing)->select(ids, op))
 				changed = true;
 			if (m_viewer->getMainUI() && changed)
+			{
 				m_viewer->getMainUI()->pushHistory(QString().sprintf("sew select: %d",
 				pickInfo().renderId), ldp::HistoryStack::TypePatternSelect);
+				m_viewer->getMainUI()->updateUiByParam();
+			}
 		}
 	}
 	m_viewer->endDragBox();

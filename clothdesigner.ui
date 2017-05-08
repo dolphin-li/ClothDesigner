@@ -10,6 +10,12 @@
     <height>784</height>
    </rect>
   </property>
+  <property name="minimumSize">
+   <size>
+    <width>0</width>
+    <height>0</height>
+   </size>
+  </property>
   <property name="windowTitle">
    <string>ClothDesigner</string>
   </property>
@@ -214,19 +220,6 @@
            </layout>
           </widget>
          </item>
-         <item row="5" column="0">
-          <spacer name="verticalSpacer">
-           <property name="orientation">
-            <enum>Qt::Vertical</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>40</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
          <item row="4" column="0">
           <widget class="QGroupBox" name="groupBox_2">
            <property name="title">
@@ -276,6 +269,51 @@
             </item>
             <item row="2" column="1">
              <widget class="QComboBox" name="cbPieceMaterialName"/>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item row="6" column="0">
+          <spacer name="verticalSpacer">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>40</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item row="5" column="0">
+          <widget class="QGroupBox" name="groupBox_3">
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="title">
+            <string>Sew Param</string>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_3">
+            <item row="0" column="0">
+             <widget class="QLabel" name="label">
+              <property name="text">
+               <string>angle</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QSpinBox" name="sbSewParamAngle">
+              <property name="minimum">
+               <number>-180</number>
+              </property>
+              <property name="maximum">
+               <number>180</number>
+              </property>
+             </widget>
             </item>
            </layout>
           </widget>

@@ -59,7 +59,8 @@ namespace ldp
 		StitchPoint first = 0;
 		StitchPoint second = 0;
 		size_t type = 0;
-		StitchPointPair(StitchPoint a, StitchPoint b, size_t t) :first(a), second(b), type(t){}
+		float angle = 0.f;
+		StitchPointPair(StitchPoint a, StitchPoint b, size_t t, float d) :first(a), second(b), type(t), angle(d){}
 		bool operator < (const StitchPointPair& r)
 		{
 			return first < r.first || (first == r.first && second < r.second);

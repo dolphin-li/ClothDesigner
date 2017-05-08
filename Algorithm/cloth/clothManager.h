@@ -96,6 +96,7 @@ namespace ldp
 		std::pair<Float3, Float3> getStitchPos(int i);
 		size_t getStitchType(int i);
 		StitchPointPair getStitchPointPair(int i);
+		void updateStitchAngle();
 		int numStitches();
 
 		int numGraphSewings()const { return m_graphSewings.size(); }

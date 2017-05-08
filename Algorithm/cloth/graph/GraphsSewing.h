@@ -73,6 +73,8 @@ namespace ldp
 		bool select(int idx, SelectOp op);
 		bool select(const std::set<int>& indices, SelectOp op);
 		void highLight(int idx, int lastIdx);
+		void setAngleInDegree(float d){ m_angleInDegree = d; }
+		float getAngleInDegree()const{ return m_angleInDegree; }
 	protected:
 		void add(std::vector<Unit>& units, Unit unit)const;
 		void remove(std::vector<Unit>& units, size_t curveId)const;
@@ -88,6 +90,7 @@ namespace ldp
 	protected:
 		std::vector<Unit> m_firsts;
 		std::vector<Unit> m_seconds;
+		float m_angleInDegree = 0.f;
 		SewingType m_sewingType = SewingTypeStitch;
 	};
 	typedef std::shared_ptr<GraphsSewing> GraphsSewingPtr;

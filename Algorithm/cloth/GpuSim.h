@@ -197,7 +197,7 @@ namespace ldp
 		std::vector<EdgeData> m_edgeData_h;
 		DeviceArray<EdgeData> m_edgeData_d;
 		std::shared_ptr<CudaBsrMatrix> m_vert_FaceList_d;
-		std::vector<Int2> m_stitch_vertPairs_h;
+		std::vector<std::pair<Int2, float>> m_stitch_vertPairs_h;
 		std::shared_ptr<CudaBsrMatrix> m_stitch_vertPairs_d;
 		std::vector<int> m_stitch_vertMerge_idxMap_h;
 		std::vector<int> m_vertMerge_in_out_idxMap_h;

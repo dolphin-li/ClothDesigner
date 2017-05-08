@@ -810,13 +810,27 @@ void ClothDesigner::updateUiByParam()
 			ui.dbPieceBendMult->setValue(piece->param().bending_k_mult);
 			ui.dbPieceSpringMult->setValue(piece->param().spring_k_mult);
 			for (int i = 0; i < ui.cbPieceMaterialName->count(); i++)
-			if (ui.cbPieceMaterialName->itemText(i).toStdString() == piece->param().material_name
-				&& ui.cbPieceMaterialName->currentIndex() != i)
+			if (ui.cbPieceMaterialName->itemText(i).toStdString() == piece->param().material_name)
 			{
 				ui.cbPieceMaterialName->setCurrentIndex(i);
 				break;
 			}
-		}
+		} // end if one piece selected
+
+		// if only one sew selected, we update the sew param
+		// this is due to the current UI do not display all sew params, but only the selected one
+		std::set<ldp::GraphsSewing*> selectedSews;
+		for (int iSew = 0; iSew < g_dataholder.m_clothManager->numGraphSewings(); iSew++)
+		{
+			auto sew = g_dataholder.m_clothManager->graphSewing(iSew);
+			if (sew->isSelected())
+				selectedSews.insert(sew);
+		} // end for iSew
+		if (selectedSews.size() == 1)
+		{
+			auto sew = *selectedSews.begin();
+			ui.sbSewParamAngle->setValue(std::lroundf(sew->getAngleInDegree()));
+		} // end if one sew selected
 
 		//// smpl body param
 		updateSmplUI();
@@ -1102,11 +1116,29 @@ void ClothDesigner::on_cbPieceMaterialName_currentIndexChanged(int idx)
 		auto param = piece->param();
 		auto newname = ui.cbPieceMaterialName->itemText(idx).toStdString();
 		if (newname.empty())
-			return;
+			continue;
 		param.material_name = newname;
 		g_dataholder.m_clothManager->setPieceParam(piece, param);
 		printf("%s, material = %s\n", piece->getName().c_str(), param.material_name.c_str());
 	}
+}
+
+void ClothDesigner::on_sbSewParamAngle_valueChanged(int v)
+{
+	bool changed = false;
+	for (int iSew = 0; iSew < g_dataholder.m_clothManager->numGraphSewings(); iSew++)
+	{
+		auto sew = g_dataholder.m_clothManager->graphSewing(iSew);
+		if (!sew->isSelected())
+			continue;
+		if (fabs(v - sew->getAngleInDegree()) < std::numeric_limits<float>::epsilon())
+			continue;
+		sew->setAngleInDegree(v);
+		printf("sew id %d, angle = %d\n", sew->getId(), v);
+		changed = true;
+	} // end for iSew
+	if (changed)
+		g_dataholder.m_clothManager->updateStitchAngle();
 }
 
 void ClothDesigner::on_pbMirrorSelected_clicked()

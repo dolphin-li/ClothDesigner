@@ -62,6 +62,7 @@ public:
 	void on_dbPieceBendMult_valueChanged(double v);
 	void on_dbPieceSpringMult_valueChanged(double v);
 	void on_cbPieceMaterialName_currentIndexChanged(int idx);
+	void on_sbSewParamAngle_valueChanged(int v);
 	void on_pbMirrorSelected_clicked();
 	void on_pbCopySelected_clicked();
 	/// 

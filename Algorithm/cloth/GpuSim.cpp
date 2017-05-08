@@ -746,8 +746,8 @@ namespace ldp
 		for (int i_stp = 0; i_stp < m_clothManager->numStitches(); i_stp++)
 		{
 			const auto stp = m_clothManager->getStitchPointPair(i_stp);
-			m_stitch_vertPairs_h.push_back(ldp::Int2(stp.first, stp.second));
-			m_stitch_vertPairs_h.push_back(ldp::Int2(stp.second, stp.first));
+			m_stitch_vertPairs_h.push_back(std::make_pair(ldp::Int2(stp.first, stp.second), stp.angle));
+			m_stitch_vertPairs_h.push_back(std::make_pair(ldp::Int2(stp.second, stp.first), stp.angle));
 		} // i_stp
 		std::sort(m_stitch_vertPairs_h.begin(), m_stitch_vertPairs_h.end());
 		m_stitch_vertPairs_h.resize(std::unique(m_stitch_vertPairs_h.begin(),
@@ -755,8 +755,8 @@ namespace ldp
 		std::vector<int> tmpRow_h, tmpCol_h;
 		for (const auto& stp : m_stitch_vertPairs_h)
 		{
-			tmpRow_h.push_back(stp[0]);
-			tmpCol_h.push_back(stp[1]);
+			tmpRow_h.push_back(stp.first[0]);
+			tmpCol_h.push_back(stp.first[1]);
 		}
 		CachedDeviceArray<int> tmpRow_d, tmpCol_d;
 		tmpRow_d.fromHost(tmpRow_h);
@@ -773,8 +773,8 @@ namespace ldp
 			m_stitch_vertMerge_idxMap_h[i] = i;
 		for (const auto& stp : m_stitch_vertPairs_h)
 		{
-			int sm = std::min(stp[0], stp[1]);
-			int lg = std::max(stp[0], stp[1]);
+			int sm = std::min(stp.first[0], stp.first[1]);
+			int lg = std::max(stp.first[0], stp.first[1]);
 			while (m_stitch_vertMerge_idxMap_h[lg] != lg)
 				lg = m_stitch_vertMerge_idxMap_h[lg];
 			if (lg < sm) std::swap(sm, lg);
@@ -805,10 +805,12 @@ namespace ldp
 
 		for (size_t idx_stp_i = 0; idx_stp_i < m_stitch_vertPairs_h.size(); idx_stp_i++)
 		{
-			const Int2 stp_i = m_stitch_vertPairs_h[idx_stp_i];
+			const Int2 stp_i = m_stitch_vertPairs_h[idx_stp_i].first;
+			const float degree_i = m_stitch_vertPairs_h[idx_stp_i].second;
 			for (size_t idx_stp_j = idx_stp_i + 1; idx_stp_j < m_stitch_vertPairs_h.size(); idx_stp_j++)
 			{
-				const Int2 stp_j = m_stitch_vertPairs_h[idx_stp_j];
+				const Int2 stp_j = m_stitch_vertPairs_h[idx_stp_j].first;
+				const float degree_j = m_stitch_vertPairs_h[idx_stp_j].second;
 				Int2 eIdx[2] = { Int2(stp_i[0], stp_j[0]), Int2(stp_i[1], stp_j[1]) };
 				BMEdge* e[2] = { findEdge(eIdx[0][0], eIdx[0][1]), findEdge(eIdx[1][0], eIdx[1][1]) };
 				if (e[0] == nullptr || e[1] == nullptr || overlap(eIdx))
@@ -847,6 +849,7 @@ namespace ldp
 					const Float2 uv = m_texCoord_init_h[eIdx[k][1]] - m_texCoord_init_h[eIdx[k][0]];
 					eData.length_sqr[k] = uv.sqrLength();
 					eData.theta_uv[k] = atan2f(uv[1], uv[0]);
+					eData.dihedral_ideal = (degree_i + degree_j) * 0.5f / 180.f * ldp::PI_S;
 				}
 				m_stitch_edgeData_h.push_back(eData);
 			} // end for idx_stp_j
@@ -932,9 +935,9 @@ namespace ldp
 		{
 			A_Ids_start_h.push_back(A_Ids_h.size());
 			b_Ids_start_h.push_back(b_Ids_h.size());
-			A_Ids_h.push_back(ldp::vertPair_to_idx(Int2(stp[0], stp[0]), nVerts));
-			A_Ids_h.push_back(ldp::vertPair_to_idx(Int2(stp[0], stp[1]), nVerts));
-			b_Ids_h.push_back(stp[0]);
+			A_Ids_h.push_back(ldp::vertPair_to_idx(Int2(stp.first[0], stp.first[0]), nVerts));
+			A_Ids_h.push_back(ldp::vertPair_to_idx(Int2(stp.first[0], stp.first[1]), nVerts));
+			b_Ids_h.push_back(stp.first[0]);
 		} // i_stp
 
 		// ---------------------------------------------------------------------------------------------
