@@ -185,7 +185,7 @@ namespace ldp
 		linearSolve();
 
 		// post-process collisions
-		collisionSolve();
+		//collisionSolve();
 
 		// finish, get the result back to cpu and prepare for next.
 		m_x_d.download(m_x_h);
