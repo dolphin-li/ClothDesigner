@@ -775,8 +775,9 @@ namespace ldp
 	}
 
 	__global__ void compute_A_kernel(const int* A_unique_pos, const Mat3f* A_beforeScan, 
-		const int* A_cooRow, const int* A_cooCol, Mat3f* A_values, 
-		int nVerts, int nnzBlocks, int nA_beforScan)
+		const int* A_cooRow, const int* A_cooCol, Mat3f* A_values, const Float4* fixPosition_xw,
+		const int nVerts, const int nnzBlocks, const int nA_beforScan, 
+		const float drag_stiff, const float dt)
 	{
 		int thread_id = threadIdx.x + blockIdx.x * blockDim.x;
 		if (thread_id >= nnzBlocks)
@@ -794,11 +795,14 @@ namespace ldp
 		for (int scan_i = scan_begin; scan_i < scan_end; scan_i++)
 			sum += A_beforeScan[scan_i];
 		
-		// external forces and diag term
 		if (row == col)
 		{
+			// external forces and diag term
 			const float mass = texRead_nodeMaterialData(row).mass;
 			sum += ldp::Mat3f().eye() * mass;
+
+			// fix positions as diag term
+			sum += ldp::Mat3f().eye() * fixPosition_xw[row][3] * drag_stiff *dt;
 		}
 
 		// write into A, note that A is row majored while Mat3f is col majored
@@ -806,8 +810,9 @@ namespace ldp
 	}
 
 	__global__ void compute_b_kernel(const int* b_unique_pos, const Float3* b_beforeScan,
-		Float3* b_values, const float dt, const Float3 gravity, const int nVerts, const int nb_beforScan,
-		const Float3* velocity, cudaTextureObject_t v_f_rowPtrTex, cudaTextureObject_t v_f_colTex)
+		Float3* b_values, const Float4* fixPosition_xw, const float dt, const Float3 gravity, 
+		const int nVerts, const int nb_beforScan, const Float3* velocity, const float drag_stiff,
+		cudaTextureObject_t v_f_rowPtrTex, cudaTextureObject_t v_f_colTex)
 	{
 		int thread_id = threadIdx.x + blockIdx.x * blockDim.x;
 		if (thread_id >= nVerts)
@@ -824,6 +829,11 @@ namespace ldp
 		// gravity forces and diag term
 		const float mass = texRead_nodeMaterialData(thread_id).mass;
 		sum += gravity * mass * dt;
+
+		// fix positions
+		const Float4 fixXw = fixPosition_xw[thread_id];
+		const Float3 fix_x(fixXw[0], fixXw[1], fixXw[2]);
+		sum += fixXw[3] * drag_stiff * (fix_x - texRead_x(thread_id) - texRead_v(thread_id) * dt);
 
 		// wind forces
 		const int fpos_begin = fetch_int(v_f_rowPtrTex, thread_id);
@@ -870,13 +880,15 @@ namespace ldp
 		const int nb_beforScan = m_beforScan_b.size();
 		compute_A_kernel << <divUp(nnzBlocks, CTA_SIZE), CTA_SIZE >> >(
 			m_A_Ids_d_unique_pos.ptr(), m_beforScan_A.ptr(), m_A_d->bsrRowPtr_coo(), m_A_d->bsrColIdx(),
-			(Mat3f*)m_A_d->value(), nVerts, nnzBlocks, nA_beforScan
+			(Mat3f*)m_A_d->value(), m_fixPosition_vw_d.ptr(), nVerts, nnzBlocks, nA_beforScan, 
+			m_simParam.handle_stiffness, m_simParam.dt
 			);
 		cudaSafeCall(cudaGetLastError()); 
 		compute_b_kernel << <divUp(nVerts, CTA_SIZE), CTA_SIZE >> >(
 			m_b_Ids_d_unique_pos.ptr(), m_beforScan_b.ptr(),
-			(Float3*)m_b_d.ptr(), m_simParam.dt, gravity, nVerts, nb_beforScan,
-			m_v_d.ptr(), m_vert_FaceList_d->bsrRowPtrTexture(), m_vert_FaceList_d->bsrColIdxTexture()
+			(Float3*)m_b_d.ptr(), m_fixPosition_vw_d.ptr(), m_simParam.dt, gravity, nVerts, nb_beforScan,
+			m_v_d.ptr(), m_simParam.handle_stiffness, 
+			m_vert_FaceList_d->bsrRowPtrTexture(), m_vert_FaceList_d->bsrColIdxTexture()
 			);
 		cudaSafeCall(cudaGetLastError()); 
 
@@ -1457,13 +1469,6 @@ namespace ldp
 	void GpuSim::collisionSolve()
 	{
 		project_outside();
-	}
-#pragma endregion
-
-#pragma region --user control solve
-	void GpuSim::userControlSolve()
-	{
-
 	}
 #pragma endregion
 

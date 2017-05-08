@@ -126,6 +126,13 @@ namespace ldp
 		if (m_simulationMode != SimulationOn)
 			return;
 		m_curDragInfo.target = target;
+		if (m_curDragInfo.vert_id >= 0 && m_gpuSim.get())
+		{
+			auto x0 = m_gpuSim->getCurrentVertPositions()[m_curDragInfo.vert_id];
+			m_curDragInfo.dir = target - x0;
+			m_curDragInfo.dir.normalizeLocal();
+			m_curDragInfo.dir *= (target - x0).length() * 0.1f;
+		}
 	}
 
 	void ClothManager::dragEnd()
@@ -177,6 +184,23 @@ namespace ldp
 		if (m_shouldStitchUpdate)
 			buildStitch();
 
+		// handle fix verts
+		std::vector<int> fixIds;
+		std::vector<ldp::Float3> fixTars;
+		if (m_curDragInfo.vert_id >= 0)
+		for (size_t i = 0; i < m_gpuSim->getCurrentVertPositions().size(); i++)
+		{
+			auto x0 = m_gpuSim->getCurrentVertPositions()[m_curDragInfo.vert_id];
+			auto x = m_gpuSim->getCurrentVertPositions()[i];
+			if ((x0 - x).length() < 0.001)
+			{
+				fixIds.push_back(i);
+				fixTars.push_back(x + m_curDragInfo.dir);
+			}
+		}
+		m_gpuSim->setFixPositions(fixIds.size(), fixIds.data(), fixTars.data());
+
+		// perform simulation for one step
 		m_gpuSim->run_one_step();
 		m_gpuSim->getResultClothPieces();
 
@@ -781,10 +805,11 @@ namespace ldp
 				for (size_t iPiece = 0; iPiece < m_piecesSubdiv.size(); iPiece++)
 				{
 					auto& subPiece = m_piecesSubdiv[iPiece];
-					subPiece->run();
+					if (subPiece)
+						subPiece->run();
 				} // end for ipiece
 			}
-			if (thread == 1)
+			if (thread == 1 && m_fullClothSubdiv)
 			{
 				m_fullClothSubdiv->run();
 			}

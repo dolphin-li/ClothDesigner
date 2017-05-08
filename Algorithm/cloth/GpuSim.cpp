@@ -187,9 +187,6 @@ namespace ldp
 		// post-process collisions
 		collisionSolve();
 
-		// process user controls
-		userControlSolve();
-
 		// finish, get the result back to cpu and prepare for next.
 		m_x_d.download(m_x_h);
 		m_curSimulationTime += m_simParam.dt;
@@ -370,6 +367,8 @@ namespace ldp
 		m_v_d.release();
 		m_last_v_d.release();
 		m_dv_d.release();
+		m_fixPosition_vw_h.clear();
+		m_fixPosition_vw_d.release();
 
 		m_debug_flag = 0;
 		m_selfColli_nBuckets = 0;
@@ -380,6 +379,18 @@ namespace ldp
 		m_selfColli_tri_vertPair_tId.release();
 		m_selfColli_tri_vertPair_vId.release();
 		m_nPairs = 0;
+	}
+
+	void GpuSim::setFixPositions(int nFixed, const int* ids, const Float3* targets)
+	{
+		std::fill(m_fixPosition_vw_h.begin(), m_fixPosition_vw_h.end(), 0.f);
+		for (int i = 0; i < nFixed; i++)
+		{
+			const int id = ids[i];
+			if (id >= 0 && id < m_fixPosition_vw_h.size())
+				m_fixPosition_vw_h[id] = Float4(targets[i][0], targets[i][1], targets[i][2], 1.f);
+		}
+		m_fixPosition_vw_d.upload(m_fixPosition_vw_h);
 	}
 
 #pragma region -- level set
@@ -425,7 +436,7 @@ namespace ldp
 
 		strecth_mult = 1.f;
 		bend_mult = 1.f;
-		handle_stiffness = 1e3f;
+		handle_stiffness = 1e6f;
 		collision_stiffness = 1e6f;
 		friction_stiffness = 1;
 		stitch_stiffness = 1e3f;
@@ -488,6 +499,9 @@ namespace ldp
 		for (size_t i = 0; i < m_stitch_vertMerge_idxMap_h.size(); i++)
 			m_stitch_vertMerge_idxMap_h[i] = i;
 		m_vertMerge_in_out_idxMap_h = m_stitch_vertMerge_idxMap_h;
+		m_fixPosition_vw_h.resize(m_x_init_h.size());
+		std::fill(m_fixPosition_vw_h.begin(), m_fixPosition_vw_h.end(), 0.f);
+		m_fixPosition_vw_d.upload(m_fixPosition_vw_h);
 
 		m_shouldTopologyUpdate = false;
 	}

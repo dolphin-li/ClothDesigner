@@ -157,7 +157,10 @@ namespace ldp
 	void LoopSubdiv::run()
 	{
 		if (m_inputMesh == nullptr)
-			throw std::exception("not initailzed!\n");
+		{
+			printf("LoopSubdiv::run(), warning: not initailzed!\n");
+			return;
+		}
 
 		if (m_subdivMat.cols() != m_inputMesh->vertex_list.size())
 			updateTopology();

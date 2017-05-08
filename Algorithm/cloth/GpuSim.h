@@ -104,6 +104,7 @@ namespace ldp
 		void updateTopology();
 		void updateStitch();
 		void updateMaterial();
+		void setFixPositions(int nFixed, const int* ids, const Float3* targets);
 	public:
 		float getFps()const{ return m_fps; }
 		float getStepTime()const{ return m_simParam.dt; }
@@ -150,7 +151,6 @@ namespace ldp
 		void linearBodyCollision();
 		void linearSelfCollision();
 		void collisionSolve();
-		void userControlSolve();
 		void update_x_v_by_dv();
 		void project_outside();
 
@@ -234,6 +234,8 @@ namespace ldp
 		DeviceArray<ldp::Float3> m_last_v_d;					// velocity of last step	
 		DeviceArray<ldp::Float3> m_dv_d;						// velocity changed in this step
 		DeviceArray<ldp::Float4> m_project_vw_d;
+		std::vector<ldp::Float4> m_fixPosition_vw_h;
+		DeviceArray<ldp::Float4> m_fixPosition_vw_d;
 		//////////////////////// self collision related///////////////////////////////////////////////////////
 		int m_selfColli_nBuckets = 0;
 		DeviceArray<int> m_selfColli_vertIds;
